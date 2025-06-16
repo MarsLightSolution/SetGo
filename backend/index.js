@@ -18,7 +18,7 @@ app.use(cookieParser());
 app.use(express.urlencoded({extended:true}));
 
 // app.use("/asset", express.static("asset"));
-app.use("/api/", require("./Routes"));
+app.use("/", require("./Routes"));
 const port = process.env.PORT || 8080; // Default to port 3000 if PORT is not set
 app.listen(port, (err) => {
   if (err) {
