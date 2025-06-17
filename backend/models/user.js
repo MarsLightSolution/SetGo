@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  username: {
+    type: String,
+    required: true,
+    unique: true
+  },
   emailVerified: {
     type: Boolean,
     default: false
@@ -73,5 +78,6 @@ const userSchema = new mongoose.Schema({
     }
   ]
 }, { timestamps: true });
+
 
 module.exports = mongoose.model('User', userSchema);
