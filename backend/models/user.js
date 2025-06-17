@@ -64,6 +64,10 @@ const userSchema = new mongoose.Schema({
     },
     subscribedAt: Date
   },
+  refreshToken: {
+    type: String, // for JWT refresh token
+    required: false     
+  },
   messagesFromUsers: [
     {
       fromUserId: {
