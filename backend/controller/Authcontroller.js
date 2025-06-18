@@ -139,7 +139,7 @@ module.exports.verifyEmail = async (req, res) => {
 
     await permanentUser.save();
 
-    // Delete temporary user
+ 
     await TempUser.deleteOne({ _id: tempUser._id });
     res.status(200).send("Email verified successfully. You can now log in.");
   } catch (error) {
