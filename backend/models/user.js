@@ -58,12 +58,14 @@ const userSchema = new mongoose.Schema({
     }
   ],
   newsletter: {
-    subscribed: {
       type: Boolean,
       default: false
-    },
-    subscribedAt: Date
   },
+  messageforuser: {
+      type: Boolean,
+      default: false
+  },
+
   refreshToken: {
     type: String, // for JWT refresh token
     required: false     
