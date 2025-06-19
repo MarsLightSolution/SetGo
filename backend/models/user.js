@@ -68,6 +68,13 @@ const userSchema = new mongoose.Schema({
     type: String, // for JWT refresh token
     required: false     
   },
+  resetToken: {
+    type: String, // for password reset token
+    required: false
+  },
+  resetTokenExpiration: {
+    type: Date 
+  },
   messagesFromUsers: [
     {
       fromUserId: {

@@ -295,3 +295,108 @@ module.exports.logout = async (req, res) => {
     return res.status(500).json({ message: "Failed to logout" });
   }
 };
+module.exports.forgetpassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found or email not verified" });
+    }
+
+    // Generate token and set expiration
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetToken = resetToken;
+    user.resetTokenExpiration = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Construct reset link
+    const resetLink = `http://localhost:8080/resetpassword?token=${resetToken}`;
+
+    // Prepare email
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset Request",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Password Reset Request</h2>
+          <p>Hi ${user.username || "User"},</p>
+          <p>We received a request to reset your password. Click the button below to reset it:</p>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px;">
+              Reset Password
+            </a>
+          </p>
+          <p>If the button above doesn't work, copy and paste this link in your browser:</p>
+          <p><a href="${resetLink}">${resetLink}</a></p>
+          <p>This link is valid for 1 hour.</p>
+          <p>If you did not request this, please ignore this email.</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Password reset link sent to your email." });
+
+  } catch (error) {
+    console.error("Forget password error:", error);
+    res.status(500).json({ error: "Something went wrong. Please try again later." });
+  }
+};
+module.exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.query;
+    const { newPassword } = req.body;
+
+    // Validation
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: "Token and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters long" });
+    }
+
+    // Find the user with matching token and check expiration
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiration: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    // Hash and update the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+
+    // Clear reset token and expiration
+    user.resetToken = undefined;
+    user.resetTokenExpiration = undefined;
+
+    await user.save();
+
+    return res.status(200).json({ message: "Password has been reset successfully" });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    return res.status(500).json({ error: "Something went wrong. Please try again later." });
+  }
+};
