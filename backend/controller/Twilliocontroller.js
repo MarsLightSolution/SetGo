@@ -6,7 +6,6 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 const client = twilio(accountSid, authToken);
-console.log(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN, process.env.TWILIO_VERIFY_SERVICE_SID);
 module.exports.sendOTP = async (req, res) => {
   const { phoneNumber } = req.body;
   if (!phoneNumber) return res.status(400).json({ message: "Phone number is required" });
