@@ -6,7 +6,6 @@ const Home = () => {
     <>
     <div className='bg-white h-[700px] ' >
         Home
-        
     </div>
         <Footer/>
         </>
