@@ -1,18 +1,26 @@
 const express = require("express");
-const dotenv = require("dotenv").config(); // Load environment variables
-const mongoose = require("./config/mongoose"); // Import the Mongoose setup
+const dotenv = require("dotenv").config();
+const mongoose = require("./config/mongoose");
 const cookieParser = require("cookie-parser");
-const path = require('path');
+const path = require("path");
+const cors = require("cors");
+
 const app = express();
-app.use('/api/assets', express.static(path.join(__dirname,'assets')));
 
-app.use(express.json()); 
+// ✅ Enable CORS for frontend at http://localhost:5173
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true, // needed to allow cookies (like refresh token)
+}));
+
+app.use('/api/assets', express.static(path.join(__dirname, 'assets')));
+app.use(express.json());
 app.use(cookieParser());
-app.use(express.urlencoded({extended:true}));
+app.use(express.urlencoded({ extended: true }));
 
-// app.use("/asset", express.static("asset"));
 app.use("/", require("./Routes"));
-const port = process.env.PORT || 8080; // Default to port 3000 if PORT is not set
+
+const port = process.env.PORT || 8080;
 app.listen(port, (err) => {
   if (err) {
     console.log("Error:", err);

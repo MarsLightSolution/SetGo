@@ -147,19 +147,6 @@ module.exports.verifyEmail = async (req, res) => {
     return res.status(500).send("An error occurred during email verification.");
   }
 };
-module.exports.login = async (req, res) => {
-  try {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
-   }
-   
-  }
-  catch (error) {
-  }
-
-  }
-
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -171,7 +158,7 @@ const generateAccessToken = (user) => {
 
 const generateRefreshToken = (user) => {
   return jwt.sign(
-    { id: user.id },
+    { id: user.id,fullName: user.username },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "7d" } // refresh token valid for 7 days
   );
@@ -209,8 +196,8 @@ module.exports.login = async (req, res) => {
     res.json({
       success: true,
       accessToken:"Bearer " + accessToken,
-      userId: user.id,
-      userName: user.fullName,
+      userId: user._id,
+      userName: user.username,
       role: user.role,
     });
 
