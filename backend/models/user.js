@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  username: {
+    type: String,
+    required: true,
+    unique: true
+  },
   emailVerified: {
     type: Boolean,
     default: false
@@ -53,11 +58,24 @@ const userSchema = new mongoose.Schema({
     }
   ],
   newsletter: {
-    subscribed: {
       type: Boolean,
       default: false
-    },
-    subscribedAt: Date
+  },
+  messageforuser: {
+      type: Boolean,
+      default: false
+  },
+
+  refreshToken: {
+    type: String, // for JWT refresh token
+    required: false     
+  },
+  resetToken: {
+    type: String, // for password reset token
+    required: false
+  },
+  resetTokenExpiration: {
+    type: Date 
   },
   messagesFromUsers: [
     {
@@ -73,5 +91,6 @@ const userSchema = new mongoose.Schema({
     }
   ]
 }, { timestamps: true });
+
 
 module.exports = mongoose.model('User', userSchema);
