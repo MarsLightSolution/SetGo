@@ -7,6 +7,13 @@ const cors = require("cors");
 
 const app = express();
 
+app.use('/api/assets', express.static(path.join(__dirname,'assets')));
+const corsOptions = {
+  origin: "http://localhost:5173", // Allow all origins (You can specify your frontend domain here)
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}
+
 // ✅ Enable CORS for frontend at http://localhost:5173
 app.use(cors({
   origin: "http://localhost:5173",
