@@ -1,7 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler.js");
-const  ApiError  = require("../utils/ApiError.js");
-const  ApiResponse  = require("../utils/ApiResponse.js");
-const Product  = require("../models/product.model.js");
+const ApiError = require("../utils/ApiError.js");
+const ApiResponse = require("../utils/ApiResponse.js");
+const Product = require("../models/product.model.js");
 // const { uploadOnCloudinary } = require("../utils/cloudinary.js"); // Remove if not using
 const mongoose = require("mongoose");
 
@@ -13,9 +13,13 @@ const addProduct = asyncHandler(async (req, res) => {
     price,
     description,
     postalCode,
-    street,
+    streetNo,
     name,
     termsAccepted,
+    offerType,
+    location,
+    showFullAddress,
+    subscribe,
   } = req.body;
 
   // ✅ Check required field
@@ -34,10 +38,10 @@ const addProduct = asyncHandler(async (req, res) => {
   //   throw new ApiError(400, "You can upload a maximum of 20 pictures.");
   // }
 
-  for (const file of req.files.pictures) {
-    // If using local storage, just push local file paths
-    pictures.push(file.path);
-  }
+  // for (const file of req.files.pictures) {
+  //   // If using local storage, just push local file paths
+  //   pictures.push(file.path);
+  // }
 
   const product = await Product.create({
     title,
@@ -47,19 +51,23 @@ const addProduct = asyncHandler(async (req, res) => {
     pictures,
     location: {
       postalCode,
-      street: street || "",
+      streetNo: streetNo || "",
     },
     name,
     termsAccepted,
     owner: req.user?._id || null,
+     offerType,
+    location,
+    showFullAddress,
+    subscribe,
   });
-
+console.log(product);
   return res
     .status(201)
     .json(new ApiResponse(201, product, "Product added successfully."));
 });
 
-// 🔹 GET Paginated Products
+//  GET Paginated Products
 const getPaginatedProducts = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, category } = req.query;
 
@@ -68,7 +76,7 @@ const getPaginatedProducts = asyncHandler(async (req, res) => {
 
   // Conditionally add the $match stage if a valid category is provided
   // It's important to check if 'category' is a non-empty string
-  if (category && typeof category === 'string' && category.trim() !== '') {
+  if (category && typeof category === "string" && category.trim() !== "") {
     pipeline.push({ $match: { category: category.trim() } });
   }
 
@@ -81,15 +89,16 @@ const getPaginatedProducts = asyncHandler(async (req, res) => {
   const options = {
     page: parseInt(page, 10), // Ensure base 10 for parseInt
     limit: parseInt(limit, 10), // Ensure base 10 for parseInt
-    customLabels: { // It's good practice to define custom labels for clarity
-      docs: 'products',
-      totalDocs: 'totalProducts',
-      page: 'currentPage',
-      totalPages: 'totalPages',
-      hasNextPage: 'hasNextPage',
-      hasPrevPage: 'hasPrevPage',
-      nextPage: 'nextPage',
-      prevPage: 'prevPage',
+    customLabels: {
+      // It's good practice to define custom labels for clarity
+      docs: "products",
+      totalDocs: "totalProducts",
+      page: "currentPage",
+      totalPages: "totalPages",
+      hasNextPage: "hasNextPage",
+      hasPrevPage: "hasPrevPage",
+      nextPage: "nextPage",
+      prevPage: "prevPage",
     },
   };
 
@@ -103,5 +112,5 @@ const getPaginatedProducts = asyncHandler(async (req, res) => {
 
 module.exports = {
   addProduct,
-  getPaginatedProducts
+  getPaginatedProducts,
 };
