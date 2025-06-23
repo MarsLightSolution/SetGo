@@ -4,8 +4,7 @@ import './App.css'
 import Footer from './components/common/Footer'
 import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
-import RegisterForm from './pages/Register'
-import Register from './pages/Register'
+import Form from './pages/Form'
 import Login from './pages/Login'
 function App() {
 
@@ -17,6 +16,7 @@ function App() {
         <Route path='/' element={<Home/>}/>
         <Route path='/register' element={<Register/>}/>
         <Route path='/login' element={<Login/>}/>
+         <Route path='/form' element={<Form/>}/>
       </Routes>
     </div>
   )
