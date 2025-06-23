@@ -4,8 +4,7 @@ import './App.css'
 import Footer from './components/common/Footer'
 import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
-import RegisterForm from './pages/Register'
-import Register from './pages/Register'
+import Form from './pages/Form'
 import Login from './pages/Login'
 import Postcard1 from './Components/Pop-ups/Postcard1'
 import PhoneVerification from './Components/Pop-ups/PhoneVerification'
@@ -23,6 +22,7 @@ function App() {
         <Route path='/postcard1' element={<Postcard1/>}/>
         <Route path='/phoneverify' element={<PhoneVerification/>}/>
         <Route path='/SMS' element={<SmsVerify/>}/>
+        <Route path='/form' element={<Form/>}/>
       </Routes>
     </div>
   )
