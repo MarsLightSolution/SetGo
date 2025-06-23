@@ -7,6 +7,9 @@ import Home from './pages/Home'
 import RegisterForm from './pages/Register'
 import Register from './pages/Register'
 import Login from './pages/Login'
+import Postcard1 from './Components/Pop-ups/Postcard1'
+import PhoneVerification from './Components/Pop-ups/PhoneVerification'
+import SmsVerify from './Components/Pop-ups/SmsVerify'
 function App() {
 
 
@@ -17,6 +20,9 @@ function App() {
         <Route path='/' element={<Home/>}/>
         <Route path='/register' element={<Register/>}/>
         <Route path='/login' element={<Login/>}/>
+        <Route path='/postcard1' element={<Postcard1/>}/>
+        <Route path='/phoneverify' element={<PhoneVerification/>}/>
+        <Route path='/SMS' element={<SmsVerify/>}/>
       </Routes>
     </div>
   )
