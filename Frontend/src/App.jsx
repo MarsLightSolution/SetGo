@@ -10,6 +10,7 @@ import Login from './pages/Login'
 import Postcard1 from './Components/Pop-ups/Postcard1'
 import PhoneVerification from './Components/Pop-ups/PhoneVerification'
 import SmsVerify from './Components/Pop-ups/SmsVerify'
+import PVerify from './components/Pop-ups/PVerify'
 function App() {
 
 
@@ -23,7 +24,9 @@ function App() {
         <Route path='/postcard1' element={<Postcard1/>}/>
         <Route path='/phoneverify' element={<PhoneVerification/>}/>
         <Route path='/SMS' element={<SmsVerify/>}/>
-        <Route path='/form' element={<Form/>}/>
+        <Route path='/form' element={<Form/>}/>        
+        <Route path='/Pverify' element={<PVerify/>}/>        
+
       </Routes>
     </div>
   )
