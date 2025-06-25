@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Routes,Route } from 'react-router-dom'
 import './App.css'
 import Footer from './components/common/Footer'
@@ -46,6 +45,7 @@ function App() {
         <Route path='/aboutclassifieds' element={<AboutClassifieds/>}/>
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
+
       </Routes>
     </div>
   )
