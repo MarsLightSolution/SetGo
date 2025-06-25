@@ -50,7 +50,7 @@ function DataProtection() {
                 </label>
 
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Change</button>
+              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
             </div>
 
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
@@ -59,7 +59,7 @@ function DataProtection() {
                   Privacy Policy
                 </label>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Change</button>
+              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
             </div>
 
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
@@ -68,7 +68,7 @@ function DataProtection() {
                   Privacy
                 </label>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Change</button>
+              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
             </div>
           </div>
         </div>

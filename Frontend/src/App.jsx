@@ -46,6 +46,7 @@ function App() {
         <Route path='/aboutclassifieds' element={<AboutClassifieds/>}/>
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
+    
       </Routes>
     </div>
   )
