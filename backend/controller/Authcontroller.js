@@ -141,7 +141,7 @@ module.exports.verifyEmail = async (req, res) => {
 
  
     await TempUser.deleteOne({ _id: tempUser._id });
-    res.status(200).send("Email verified successfully. You can now log in.");
+    return res.redirect(`http://localhost:5173/confirm?verified=true&email=${encodeURIComponent(permanentUser.email)}`);
   } catch (error) {
     console.error("Verification error:", error);
     return res.status(500).send("An error occurred during email verification.");
