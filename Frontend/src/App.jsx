@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Routes,Route } from 'react-router-dom'
 import './App.css'
 import Footer from './components/common/Footer'
@@ -13,6 +12,8 @@ import SmsVerify from './components/Popups/SmsVerify'
 import RenewPassword from "./components/Popups/RenewPassword"
 import PVerify from './components/Popups/PVerify'
 import Confirm from './pages/Confirm'
+import EmailNotification from './components/Popups/EmailNotification'
+import NewPassword from './components/Popups/NewPassword'
 function App() {
 
 
@@ -30,6 +31,9 @@ function App() {
         <Route path='/renewpassword' element={<RenewPassword/>}/>
         <Route path='/confirm' element={<Confirm/>}/>
         <Route path='/pverify' element={<PVerify/>}/>
+        <Route path='/emailnotify' element={<EmailNotification/>}/>
+        <Route path='/newpassword' element={<NewPassword/>}/>
+
       </Routes>
     </div>
   )
