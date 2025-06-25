@@ -10,7 +10,7 @@ function PaymentSettings() {
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
           <nav className="space-y-1 text-sm font-medium">
-            <a href="/set" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <a href="/profile" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
               <span className="mr-3">👤</span> Profile information
             </a>
             <a href="/accountsettings" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">

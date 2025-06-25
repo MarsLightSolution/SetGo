@@ -3,61 +3,83 @@ import { AnimatePresence, motion } from 'framer-motion';
 import PhoneVerification from './PhoneVerification';
 import SmsVerify from './SmsVerify';
 import { useLocation } from 'react-router-dom';
+import phoneImage from '../../assets/images/post1.png';
+
 function PVerify() {
   const [step, setStep] = useState('popup'); // 'popup' → 'phone' → 'sms'
   const [phoneNumber, setPhoneNumber] = useState('');
   const email = useLocation().state?.email || '';
+
   return (
     <div className="relative min-h-screen bg-gray-50 text-center">
       {/* Message below navbar */}
-      <div className={`p-6 text-left ${step === 'popup' ? "brightness-90" : ""}`}>
+      <div className={`p-6 text-left ${step === 'popup' ? 'brightness-90' : ''}`}>
         <h1 className="text-xl text-gray-800 font-medium">
           Please wait, your information is being verified...
         </h1>
       </div>
 
-      {/* Shared Modal Overlay */}
+      {/* Modal overlay */}
       <div className="fixed inset-0 flex items-center justify-center bg-black/10 backdrop-brightness-75 z-50">
-        <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full relative overflow-hidden">
+        <div className="bg-white p-5 rounded-xl shadow-xl max-w-md w-full relative overflow-hidden">
           <AnimatePresence mode="wait">
             {step === 'popup' && (
-              <motion.div
-                key="popup"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-              >
-                <button
-                  className="absolute top-4 right-4 text-gray-600 hover:text-black text-2xl"
-                  onClick={() => setStep('phone')}
-                >
-                  &times;
-                </button>
+         <motion.div
+      key="popup"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      className="flex items-center justify-center" // centers in parent
+    >
+      <div className="bg-white w-[600px] rounded-xl p-1 flex flex-col">
+        
+        {/* Header */}
+        <div className="mb-5">
+          <h1 className="text-xl font-bold text-black">Is it really you?</h1>
+          <div className="w-full h-px bg-gray-300 mt-4"></div>
+        </div>
 
-                <h2 className="text-xl font-bold mb-4">Is it really you?</h2>
+        {/* Main Content */}
+        <div className="flex gap-4">
+          {/* Left - Image */}
+          <div className="w-1/3 flex-shrink-0">
+            <img
+              src={phoneImage}
+              alt="Verification"
+              className="w-full h-auto object-contain"
+            />
+          </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="text-5xl">📱</div>
-                  <div className="text-sm text-gray-700">
-                    <p className="mb-2">
-                      For your protection and the protection of everyone else on Classifieds, we want to make sure you're really you. Therefore, we ask you to verify your phone number.
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      We will not share or publish your phone number. You can still decide whether to include a number in your ads.
-                    </p>
-                  </div>
-                </div>
+          {/* Right - Text */}
+          <div className="flex-1 text-sm text-black leading-snug text-justify">
+            <p className="mb-2">
+              For your protection and the protection of everyone else on Classifieds, we want to make sure you're really you.
+            </p>
+            <p className="mb-2">
+              Therefore, we ask you to verify your phone number.
+            </p>
+            <p>
+              We will not share or publish your phone number. You can still decide whether to include it in your ads.
+            </p>
+          </div>
+        </div>
 
-                <div className="mt-6 flex justify-end space-x-3">
-                  <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md text-sm">Help</button>
-                  <button
-                    onClick={() => setStep('phone')}
-                    className="bg-lime-500 hover:bg-lime-600 text-white px-4 py-2 rounded-md text-sm font-semibold"
-                  >
-                    Further
-                  </button>
-                </div>
-              </motion.div>
+        {/* Buttons */}
+        <div className="flex justify-end gap-3 mt-6">
+          <button className="px-5 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition">
+            Login
+          </button>
+          <button
+            onClick={() => setStep('phone')}
+            className="px-5 py-2 text-sm font-semibold text-white bg-lime-500 rounded-full hover:bg-lime-600 transition"
+          >
+            Further
+          </button>
+        </div>
+      </div>
+    </motion.div>
+
+
             )}
 
             {step === 'phone' && (
@@ -67,7 +89,11 @@ function PVerify() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
               >
-                <PhoneVerification onSendOTP={() => setStep('sms')} setPhoneNumber={setPhoneNumber} email={email}/>
+                <PhoneVerification
+                  onSendOTP={() => setStep('sms')}
+                  setPhoneNumber={setPhoneNumber}
+                  email={email}
+                />
               </motion.div>
             )}
 

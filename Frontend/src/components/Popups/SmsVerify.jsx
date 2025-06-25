@@ -97,10 +97,10 @@ function SmsVerify({ phoneNumber,email }) {
 
       <div className="flex justify-end gap-4 pt-2">
         <button
-          onClick={() => console.log("Help clicked")}
+          onClick={() => console.log("Login clicked")}
           className="px-8 py-3 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition"
         >
-          Help
+          Login
         </button>
         <button
           onClick={handleVerify}

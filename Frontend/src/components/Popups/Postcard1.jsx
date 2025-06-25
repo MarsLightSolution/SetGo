@@ -6,11 +6,19 @@ function Postcard1() {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
       <div className="bg-white w-[512px] h-[306.67px] rounded-xl shadow-lg p-4 flex flex-col">
         
-        {/* Header */}
-        <div className="mb-2">
-          <h1 className="text-lg font-bold text-black">Is it really you?</h1>
-          <div className="w-full h-px bg-gray-300 mt-1"></div>
-        </div>
+        {/* Header with Close Button */}
+<div className="flex items-center justify-between mb-4">
+  <h1 className="text-xl font-bold text-black">Is it really you?</h1>
+  <button
+    onClick={closePopup}
+    className="text-gray-500 hover:text-black text-2xl font-semibold leading-none"
+    aria-label="Close"
+  >
+    &times;
+  </button>
+</div>
+<div className="w-full h-px bg-gray-300 mb-4"></div>
+
 
         {/* Main Content */}
         <div className="flex flex-1 gap-3 overflow-hidden">
