@@ -68,7 +68,7 @@ module.exports.signup = async (req, res) => {
       },
     });
 
-    const verificationLink = `http://localhost:8080/verifyemail?token=${token}`;
+    const verificationLink = `http://localhost:5173/verify?token=${token}`;
 
    const mailOptions = {
   from: "yourgmail@gmail.com",
@@ -108,7 +108,8 @@ module.exports.signup = async (req, res) => {
 };
 module.exports.verifyEmail = async (req, res) => {
   try {
-    const { token } = req.query;
+    const { token } = req.body;
+    console.log(token);
 
     if (!token) {
       return res.status(400).send("Verification token is required.");
