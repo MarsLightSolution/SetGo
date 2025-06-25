@@ -1,5 +1,5 @@
 const express = require("express");
-const router = express.Router();
+const route = express.Router();
 
 console.log("router loaded");
 
@@ -8,5 +8,5 @@ route.use('/users', require('./userRouter.js'));
 route.use('/redis', require('./redisRoutes.js'));
 route.use('/', require('./Twillioroutes.js'));
 route.use('/', require('./Profileroutes.js'));
-router.use("/api/products",require('./product.route.js'));
-module.exports = router;
+route.use("/api/products",require('./product.route.js'));
+module.exports = route;
