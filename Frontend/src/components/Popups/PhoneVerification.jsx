@@ -122,7 +122,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
           onClick={handleHelp}
           className="px-6 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition"
         >
-          Help
+          Login
         </button>
         <button
           onClick={handleSendOTP}

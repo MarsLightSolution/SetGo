@@ -10,7 +10,7 @@ function ProfileMgmt() {
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
           <nav className="space-y-1">
             <a
-              href="/set"
+              href="/profile"
               className="flex items-center px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md"
             >
               <span className="mr-3">👤</span>
