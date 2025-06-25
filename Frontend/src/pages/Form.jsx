@@ -36,9 +36,45 @@ const Form = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log(formData);
+    const form=e.target;
+    const formDataToSend=new FormData();
+  formDataToSend.append("title", formData.title);
+  formDataToSend.append("category", formData.category);
+  formDataToSend.append("price", formData.price);
+  formDataToSend.append("description", formData.description);
+  formDataToSend.append("name", formData.name);
+  formDataToSend.append("offerType", formData.offerType);
+  formDataToSend.append("termsAccepted", formData.termsAccepted ? "true" : "false");
+  formDataToSend.append("showFullAddress", formData.showFullAddress ? "true" : "false");
+  formDataToSend.append("subscribe", formData.subscribe ? "true" : "false");
+
+  // Nested object field: location
+  formDataToSend.append("location[postalCode]", formData.postalCode);
+  formDataToSend.append("location[streetNo]", formData.streetNo || "");
+
+  // File uploads: pictures (assumed as multiple)
+  if (formData.pictures && formData.pictures.length > 0) {
+    for (let i = 0; i < formData.pictures.length; i++) {
+      formDataToSend.append("pictures", formData.pictures[i]);
+    }
+  }
+
+  try{
+    const res=await fetch("http://localhost:8080/api/products/add",{
+      method:"POST",
+      body:formDataToSend,
+    });
+    if(!res.ok){
+      throw new Error("Failed to submit form");
+    }
+    const data = await response.json();
+    console.log("Ad submitted successfully:", data);
+  } catch (error) {
+    console.error("Error submitting ad:", error);
+  }
+    
   };
 
   return (
@@ -200,8 +236,8 @@ const Form = () => {
           <FormControlLabel
             control={
               <Checkbox
-                name="subscribe"
-                checked={formData.subscribe}
+                name="termsAccepted"
+                checked={formData.termsAccepted}
                 onChange={handleChange}
               />
             }

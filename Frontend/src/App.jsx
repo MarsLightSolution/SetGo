@@ -1,16 +1,17 @@
 import { Routes,Route } from 'react-router-dom'
 import './App.css'
 import Footer from './components/common/Footer'
+import Register from './pages/Register'
 import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
 import Form from './pages/Form'
 import Login from './pages/Login'
-import Postcard1 from './Components/Pop-ups/Postcard1'
-import PhoneVerification from './Components/Pop-ups/PhoneVerification'
-import SmsVerify from './Components/Pop-ups/SmsVerify'
-import Register from '../src/pages/Register'
+import Postcard1 from './components/Popups/Postcard1'
+import PhoneVerification from './components/Popups/PhoneVerification'
+import SmsVerify from './components/Popups/SmsVerify'
+import RenewPassword from "./components/Popups/RenewPassword"
+import PVerify from './components/Popups/PVerify'
 import Confirm from './pages/Confirm'
-import EmailVerify from './pages/Emailverify'
 function App() {
 
 
@@ -25,8 +26,9 @@ function App() {
         <Route path='/phoneverify' element={<PhoneVerification/>}/>
         <Route path='/SMS' element={<SmsVerify/>}/>
         <Route path='/form' element={<Form/>}/>
+        <Route path='/renewpassword' element={<RenewPassword/>}/>
         <Route path='/confirm' element={<Confirm/>}/>
-        <Route path='/verify' element={<EmailVerify/>}/>
+        <Route path='/pverify' element={<PVerify/>}/>
       </Routes>
     </div>
   )
