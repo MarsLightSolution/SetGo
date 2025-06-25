@@ -12,6 +12,12 @@ import PhoneVerification from './Components/Pop-ups/PhoneVerification'
 import SmsVerify from './Components/Pop-ups/SmsVerify'
 import RenewPassword from "./Components/Pop-ups/RenewPassword"
 import PVerify from './Components/Pop-ups/PVerify'
+import ProfileMgmt from './Components/Pop-ups/ProfileMgmt'
+import AccountSettings from './Components/Pop-ups/AccountSettings'
+import PaymentSettings from './Components/Pop-ups/PaymentSettings'
+import DataProtection from './Components/Pop-ups/DataProtection'
+import EmailSettings from './Components/Pop-ups/EmailSettings'
+import AboutClassifieds from './Components/Pop-ups/AboutClassifieds'
 function App() {
 
 
@@ -28,6 +34,12 @@ function App() {
         <Route path='/form' element={<Form/>}/>
         <Route path='/renewpassword' element={<RenewPassword/>}/>
         <Route path='/pverify' element={<PVerify/>}/>
+        <Route path='/profile' element={<ProfileMgmt/>}/>
+        <Route path='/accountsettings' element={<AccountSettings/>}/>
+        <Route path='/paymentsettings' element={<PaymentSettings/>}/>
+        <Route path='/dataprotection' element={<DataProtection/>}/>
+        <Route path='/emailsettings' element={<EmailSettings/>}/>
+        <Route path='/aboutclassifieds' element={<AboutClassifieds/>}/>
       </Routes>
     </div>
   )
