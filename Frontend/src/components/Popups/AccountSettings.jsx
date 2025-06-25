@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Eye, Trash2 } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import AddressModal from './AddressModal'; // adjust path if necessary
 
 function AccountSettings() {
+  const navigate = useNavigate();
+  const [showAddressModal, setShowAddressModal] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       {/* White Card Wrapper */}
@@ -49,7 +54,12 @@ function AccountSettings() {
                 <label className="text-sm font-medium text-gray-700 w-40">Verified phone number</label>
                 <span className="text-gray-900 text-sm">+49*******863</span>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Change</button>
+              <button
+                className="text-green-600 hover:text-green-700 text-sm"
+                onClick={() => navigate('/pverify')}
+              >
+                Change
+              </button>
             </div>
 
             {/* Email Address */}
@@ -67,7 +77,12 @@ function AccountSettings() {
                 <label className="text-sm font-medium text-gray-700 w-40">Password</label>
                 <span className="text-gray-900 text-sm">************</span>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Change</button>
+              <button
+                className="text-green-600 hover:text-green-700 text-sm"
+                onClick={() => navigate('/newpassword')}
+              >
+                Change
+              </button>
             </div>
           </div>
 
@@ -85,7 +100,12 @@ function AccountSettings() {
               <label className="text-sm font-medium text-gray-700 w-40">Billing address</label>
               <span className="text-gray-900 text-sm">Current Billing Address</span>
             </div>
-            <button className="text-green-600 hover:text-green-700 text-sm">Edit</button>
+            <button
+              className="text-green-600 hover:text-green-700 text-sm"
+              onClick={() => setShowAddressModal(true)}
+            >
+              Edit
+            </button>
           </div>
 
           {/* Delete Account */}
@@ -97,11 +117,19 @@ function AccountSettings() {
           </div>
         </div>
       </div>
+
+      {/* Address Modal */}
+      {showAddressModal && (
+        <AddressModal
+          isOpen={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+        />
+      )}
+
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8 text-sm text-gray-600">
-            {/* Sections (reused structure) */}
             {[
               {
                 title: "Classifieds",
