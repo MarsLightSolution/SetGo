@@ -1,23 +1,32 @@
-import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import WaitVerify from "./WaitVerify";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 function Confirm() {
   const [params] = useSearchParams();
   const [isVerified, setIsVerified] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const verifiedParam = params.get("verified");
-    setIsVerified(verifiedParam === "true");
-  }, [params]);
+    const email = params.get("email");
+    const isTrue = verifiedParam === "true";
+    setIsVerified(isTrue);
+
+    if (isTrue && email) {
+      // Pass email as state to /pverify route
+      navigate("/pverify", { state: { email } });
+    }
+  }, [params, navigate]);
 
   return (
     <div>
-      {/* Show WaitVerify always, it handles redirect inside */}
-      <WaitVerify isVerified={isVerified} />
-
-      {/* Show error only if verification failed */}
-      {!isVerified && <h2>Verification Failed ❌</h2>}
+      {isVerified ? (
+        "Redirecting..."
+      ) : (
+        <p>
+          Please check your email and click the verification link to continue.
+        </p>
+      )}
     </div>
   );
 }

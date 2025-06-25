@@ -26,7 +26,6 @@ const Login = () => {
     localStorage.setItem("userId", data.userId);
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("userName", data.userName);
-    alert("Login successful!");
     window.location.href = "/"; // full reload
   } else {
     alert(data.error || "Login failed");
