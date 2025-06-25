@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import PhoneVerification from './PhoneVerification';
 import SmsVerify from './SmsVerify';
-
+import { useLocation } from 'react-router-dom';
 function PVerify() {
   const [step, setStep] = useState('popup'); // 'popup' → 'phone' → 'sms'
-
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const email = useLocation().state?.email || '';
   return (
     <div className="relative min-h-screen bg-gray-50 text-center">
       {/* Message below navbar */}
@@ -66,7 +67,7 @@ function PVerify() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
               >
-                <PhoneVerification onSendOTP={() => setStep('sms')} />
+                <PhoneVerification onSendOTP={() => setStep('sms')} setPhoneNumber={setPhoneNumber} email={email}/>
               </motion.div>
             )}
 
@@ -77,7 +78,7 @@ function PVerify() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -30 }}
               >
-                <SmsVerify />
+                <SmsVerify phoneNumber={phoneNumber} email={email} />
               </motion.div>
             )}
           </AnimatePresence>

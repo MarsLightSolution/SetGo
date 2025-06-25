@@ -7,10 +7,12 @@ import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
 import Form from './pages/Form'
 import Login from './pages/Login'
-import Postcard1 from './Components/Pop-ups/Postcard1'
-import PhoneVerification from './Components/Pop-ups/PhoneVerification'
-import SmsVerify from './Components/Pop-ups/SmsVerify'
-import PVerify from './components/Pop-ups/PVerify'
+import Postcard1 from './components/Popups/Postcard1'
+import PhoneVerification from './components/Popups/PhoneVerification'
+import SmsVerify from './components/Popups/SmsVerify'
+import RenewPassword from "./components/Popups/RenewPassword"
+import PVerify from './components/Popups/PVerify'
+import Confirm from './pages/Confirm'
 function App() {
 
 
@@ -24,9 +26,10 @@ function App() {
         <Route path='/postcard1' element={<Postcard1/>}/>
         <Route path='/phoneverify' element={<PhoneVerification/>}/>
         <Route path='/SMS' element={<SmsVerify/>}/>
-        <Route path='/form' element={<Form/>}/>        
-        <Route path='/Pverify' element={<PVerify/>}/>        
-
+        <Route path='/form' element={<Form/>}/>
+        <Route path='/renewpassword' element={<RenewPassword/>}/>
+        <Route path='/confirm' element={<Confirm/>}/>
+        <Route path='/pverify' element={<PVerify/>}/>
       </Routes>
     </div>
   )
