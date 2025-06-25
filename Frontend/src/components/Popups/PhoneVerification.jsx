@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import axios from "axios";
 
-function PhoneVerification({ onSendOTP }) {
+function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
   const [selectedCountry, setSelectedCountry] = useState("Germany +49");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [localPhoneNumber, setLocalPhoneNumber] = useState(""); // renamed local state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const countries = [
     "Germany +49",
+    "India +91",
     "United States +1",
     "United Kingdom +44",
     "France +33",
@@ -22,6 +26,30 @@ function PhoneVerification({ onSendOTP }) {
   const handleCountrySelect = (country) => {
     setSelectedCountry(country);
     setIsDropdownOpen(false);
+  };
+
+  const handleSendOTP = async () => {
+    setLoading(true);
+    setError("");
+
+    const countryCode = selectedCountry.split(" ")[1]; // e.g. "+49"
+    const fullNumber = `${countryCode}${localPhoneNumber}`;
+
+    try {
+      const res = await axios.post("http://localhost:8080/send-otp", {
+        email: email,
+        phoneNumber: fullNumber,
+      });
+
+      console.log(res.data);
+      setPhoneNumber(fullNumber); // update parent state with full number
+      onSendOTP(); // proceed to SMS step
+    } catch (err) {
+      console.error(err);
+      setError("Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleHelp = () => {
@@ -73,12 +101,15 @@ function PhoneVerification({ onSendOTP }) {
         {/* Phone number input */}
         <input
           type="tel"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
+          value={localPhoneNumber}
+          onChange={(e) => setLocalPhoneNumber(e.target.value)}
           placeholder="Phone number"
           className="w-1/2 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-lime-500"
         />
       </div>
+
+      {/* Error */}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {/* Disclaimer */}
       <p className="text-sm text-gray-600">
@@ -91,13 +122,14 @@ function PhoneVerification({ onSendOTP }) {
           onClick={handleHelp}
           className="px-6 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition"
         >
-          Help
+          Login
         </button>
         <button
-          onClick={onSendOTP}
+          onClick={handleSendOTP}
+          disabled={loading || !localPhoneNumber}
           className="px-6 py-2 text-sm font-semibold text-white bg-lime-500 rounded-full hover:bg-lime-600 transition"
         >
-          Confirm
+          {loading ? "Sending..." : "Confirm"}
         </button>
       </div>
     </div>

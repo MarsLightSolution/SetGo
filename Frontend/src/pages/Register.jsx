@@ -28,8 +28,7 @@ const Register = () => {
 
       const data = await res.json();
   if (res.status === 200 || res.status === 201) {
-      alert(data.message || "Registration successful!");
-      navigate("/login");
+      navigate("/confirm");
     } else {
       alert(data.error || data.message || "Registration failed.");
     }
