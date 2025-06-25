@@ -1,11 +1,46 @@
-import React from 'react'
-import { ChevronDown, Search, MapPin, User, Plus } from "lucide-react"
-
+import React, { useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function NewPassword() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const token = searchParams.get('token');
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async () => {
+    if (!newPassword || !confirmPassword) {
+      return setMessage('Both fields are required.');
+    }
+
+    if (newPassword !== confirmPassword) {
+      return setMessage('Passwords do not match.');
+    }
+
+    try {
+      const res = await axios.post(`http://localhost:8080/resetpassword?token=${token}`, {
+        newPassword,
+      });
+
+      if (res.status === 200) {
+        setMessage('✅ Password reset successful. Redirecting to login...');
+        setTimeout(() => {
+          navigate('/login'); // 🔁 redirect after 2 seconds
+        }, 2000);
+      } else {
+        setMessage('❌ Failed to reset password. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setMessage(error?.response?.data?.error || 'Server error');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white shadow rounded-lg">
           <div className="p-8">
@@ -17,16 +52,35 @@ function NewPassword() {
             <div className="space-y-6">
               <div className="flex items-center gap-4">
                 <label className="w-40 text-gray-700 font-medium">New Password</label>
-                <input type="password" className="flex-1 max-w-md border border-gray-300 rounded-md px-4 py-2" />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="flex-1 max-w-md border border-gray-300 rounded-md px-4 py-2"
+                />
               </div>
 
               <div className="flex items-center gap-4">
                 <label className="w-40 text-gray-700 font-medium">Confirm Password</label>
-                <input type="password" className="flex-1 max-w-md border border-gray-300 rounded-md px-4 py-2" />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="flex-1 max-w-md border border-gray-300 rounded-md px-4 py-2"
+                />
               </div>
 
+              {message && (
+                <p className={`text-sm ${message.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
+                  {message}
+                </p>
+              )}
+
               <div className="flex justify-center pt-4">
-                <button className="bg-white text-green-600 border-2 border-green-600 hover:bg-green-50 px-12 py-2 rounded-full">
+                <button
+                  onClick={handleSubmit}
+                  className="bg-white text-green-600 border-2 border-green-600 hover:bg-green-50 px-12 py-2 rounded-full"
+                >
                   Save
                 </button>
               </div>
@@ -35,55 +89,9 @@ function NewPassword() {
         </div>
       </main>
 
-      {/* Footer */}
-      {/* Footer */}
-      <footer className="bg-white border-t mt-16">
-        <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-5 gap-8 text-sm text-gray-600">
-          {/* Reuse logic as before */}
-          {[
-            {
-              title: "Classifieds",
-              items: ["About Us", "Career", "Press", "Classifieds Magazine", "Engagement", "Mobile Apps"]
-            },
-            {
-              title: "Information",
-              items: ["Help", "Tips for your safety", "Child and your protection", "Privacy Policy", "Privacy Settings", "Terms of use"]
-            },
-            {
-              title: "For companies",
-              items: ["Classified Real Estate", "PRO Infopoint", "PRO Packages for companies", "Advertising on classifieds"]
-            },
-            {
-              title: "Social Media",
-              items: ["Facebook", "Youtube", "Instagram", "Threads", "Pinterest", "Tik Tok"]
-            },
-            {
-              title: "Generally",
-              items: ["Popular searches", "Ads Overview", "Overview of company pages", "Car valuation"]
-            }
-          ].map((section, index) => (
-            <div key={index}>
-              <h3 className="font-semibold text-gray-800 mb-4">{section.title}</h3>
-              <ul className="space-y-2">
-                {section.items.map((item) => (
-                  <li key={item}>
-                    <a href="#" className="hover:text-gray-800">{item}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-        <div className="border-t mt-8 pt-6 text-center text-sm text-gray-500">
-          <p>
-            Copyright © 2005-2025 Marketplaces BV. All rights reserved.
-            <br />
-            The classifieds services are operated by kleinanzeigen.de GmbH.
-          </p>
-        </div>
-      </footer>
+      {/* Keep your footer if needed */}
     </div>
-  )
+  );
 }
 
-export default NewPassword
+export default NewPassword;
