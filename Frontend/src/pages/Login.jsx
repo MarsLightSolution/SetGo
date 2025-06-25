@@ -10,30 +10,30 @@ const Login = () => {
     e.preventDefault();
 
     try {
-  const res = await fetch("http://localhost:8080/login", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  });
+      const res = await fetch("http://localhost:8080/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-  const data = await res.json();
-  console.log(data);
+      const data = await res.json();
+      console.log(data);
 
-  if (res.status === 200 || res.status === 201) {
-    localStorage.setItem("userId", data.userId);
-    localStorage.setItem("accessToken", data.accessToken);
-    localStorage.setItem("userName", data.userName);
-    window.location.href = "/"; // full reload
-  } else {
-    alert(data.error || "Login failed");
-  }
-} catch (err) {
-  console.error("Login error:", err);
-  alert("An error occurred. Please try again.");
-}
+      if (res.status === 200 || res.status === 201) {
+        localStorage.setItem("userId", data.userId);
+        localStorage.setItem("accessToken", data.accessToken);
+        localStorage.setItem("userName", data.userName);
+        window.location.href = "/"; // full reload
+      } else {
+        alert(data.error || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("An error occurred. Please try again.");
+    }
   };
   return (
     <>
@@ -67,10 +67,15 @@ const Login = () => {
               </div>
 
               <div className="text-sm mt-2">
-                <a href="#" className="text-green-700 underline">
+                <button
+                  type="button"
+                  onClick={() => navigate("/renewpassword")}
+                  className="text-green-700 underline"
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
+
 
               <button
                 type="submit"
