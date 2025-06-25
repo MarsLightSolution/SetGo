@@ -208,6 +208,33 @@ const Form = () => {
               fullWidth
               helperText="Tip: By default, we only display the postal code and city. To show full address, check the box below."
             />
+
+            <TextField
+              label="Description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              multiline
+              rows={4}
+              sx={{width:"41rem"}}
+
+              helperText="You have 4000 characters left"
+            />
+          </div>
+
+          {/* Upload Section */}
+          <div className="mt-4">
+            <label className="block font-medium mb-2">Pictures (recommended)</label>
+            <input type="file" multiple accept="image/*"   onChange={(e) =>
+    setFormData({
+      ...formData,
+      pictures: Array.from(e.target.files), 
+    })
+  } />
+            <p className="text-sm text-gray-500 mt-2">
+              Tip: Upload up to 20 images (max size 12 MB). Images will be perfect with our{" "}
+              <a href="#" className="text-blue-600 underline">Phototips</a>.
+            </p>
             <FormControlLabel
               control={
                 <Checkbox
