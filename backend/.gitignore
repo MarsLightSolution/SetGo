@@ -56,3 +56,4 @@ coverage/
 
 # Lock file (optional, if you're not using npm or want to avoid conflicts)
 package-lock.json
+/uploads/
