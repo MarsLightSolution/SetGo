@@ -7,17 +7,20 @@ import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
 import Form from './pages/Form'
 import Login from './pages/Login'
-import Postcard1 from './Components/Pop-ups/Postcard1'
-import PhoneVerification from './Components/Pop-ups/PhoneVerification'
-import SmsVerify from './Components/Pop-ups/SmsVerify'
-import RenewPassword from "./Components/Pop-ups/RenewPassword"
-import PVerify from './Components/Pop-ups/PVerify'
-import ProfileMgmt from './Components/Pop-ups/ProfileMgmt'
-import AccountSettings from './Components/Pop-ups/AccountSettings'
-import PaymentSettings from './Components/Pop-ups/PaymentSettings'
-import DataProtection from './Components/Pop-ups/DataProtection'
-import EmailSettings from './Components/Pop-ups/EmailSettings'
-import AboutClassifieds from './Components/Pop-ups/AboutClassifieds'
+import Postcard1 from './Components/Popups/Postcard1'
+import PhoneVerification from './Components/Popups/PhoneVerification'
+import SmsVerify from './Components/Popups/SmsVerify'
+import ProfileMgmt from './Components/Popups/ProfileMgmt'
+import AccountSettings from './Components/Popups/AccountSettings'
+import PaymentSettings from './Components/Popups/PaymentSettings'
+import DataProtection from './Components/Popups/DataProtection'
+import EmailSettings from './Components/Popups/EmailSettings'
+import AboutClassifieds from './Components/Popups/AboutClassifieds'
+import PVerify from './components/Popups/PVerify'
+import Confirm from './pages/Confirm'
+import NewPassword from './Components/Popups/NewPassword'
+import RenewPassword from './Components/Popups/RenewPassword'
+import EmailNotification from './Components/Popups/EmailNotification'
 function App() {
 
 
@@ -33,6 +36,7 @@ function App() {
         <Route path='/SMS' element={<SmsVerify/>}/>
         <Route path='/form' element={<Form/>}/>
         <Route path='/renewpassword' element={<RenewPassword/>}/>
+        <Route path='/confirm' element={<Confirm/>}/>
         <Route path='/pverify' element={<PVerify/>}/>
         <Route path='/profile' element={<ProfileMgmt/>}/>
         <Route path='/accountsettings' element={<AccountSettings/>}/>
@@ -40,6 +44,8 @@ function App() {
         <Route path='/dataprotection' element={<DataProtection/>}/>
         <Route path='/emailsettings' element={<EmailSettings/>}/>
         <Route path='/aboutclassifieds' element={<AboutClassifieds/>}/>
+        <Route path='/newpassword' element={<NewPassword/>}/>
+        <Route path='/emailnotify' element={<EmailNotification/>}/>
       </Routes>
     </div>
   )
