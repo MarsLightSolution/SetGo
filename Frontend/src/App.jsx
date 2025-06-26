@@ -45,11 +45,7 @@ function App() {
         <Route path='/aboutclassifieds' element={<AboutClassifieds/>}/>
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> 631613be356ae9ff54a079a4d25f8ff4c9f27f04
+        
       </Routes>
     </div>
   )
