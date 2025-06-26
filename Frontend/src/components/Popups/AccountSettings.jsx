@@ -51,7 +51,7 @@ function AccountSettings() {
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
               <div className="flex items-center gap-10">
                 <label className="text-sm font-medium text-gray-700 w-40">Verified phone number</label>
-                <span className="text-gray-900 text-sm">+49*******863</span>
+                <span className="text-gray-900 text-sm">+49*****863</span>
               </div>
               <button
                 className="text-green-600 hover:text-green-700 text-sm"
@@ -139,7 +139,7 @@ function AccountSettings() {
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
               <div className="flex items-center gap-10">
                 <label className="text-sm font-medium text-gray-700 w-40">Password</label>
-                <span className="text-gray-900 text-sm">************</span>
+                <span className="text-gray-900 text-sm">****</span>
               </div>
               <button
                 className="text-green-600 hover:text-green-700 text-sm"

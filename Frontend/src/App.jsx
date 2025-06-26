@@ -1,6 +1,5 @@
 import { Routes,Route } from 'react-router-dom'
 import './App.css'
-import Footer from './components/common/Footer'
 import Register from './pages/Register'
 import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
@@ -20,9 +19,8 @@ import Confirm from './pages/Confirm'
 import NewPassword from './Components/Popups/NewPassword'
 import RenewPassword from './Components/Popups/RenewPassword'
 import EmailNotification from './Components/Popups/EmailNotification'
+import useUserProfile from './Hooks/useUserProfile'
 function App() {
-
-
   return (
     <div >
       <Navbar/>
