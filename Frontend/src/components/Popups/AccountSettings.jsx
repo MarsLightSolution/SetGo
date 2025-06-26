@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Trash2 } from "lucide-react";
-;
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import AddressModal from './AddressModal';
@@ -8,22 +7,55 @@ import ChangePhone from '../Settings/ChangePhone';
 import PhoneVerification from '../Settings/PhoneVerification';
 import SmsVerification from '../Settings/SmsVerification';
 import NewPasswordModal from '../Settings/NewPasswordModal';
+import useUserProfile from '../../hooks/useUserProfile'; // adjust path as needed
+import axios from 'axios';
 
 function AccountSettings() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [billingAddress, setBillingAddress] = useState("Current Billing Address");
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [popupStep, setPopupStep] = useState(null);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const userEmail = "jacobweidman42@gmail.com";
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [repeatEmail, setRepeatEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
 
+  const { profile, updateField } = useUserProfile();
 
-  const handleBillingUpdate = (newAddress) => {
-    setBillingAddress(newAddress);
-    localStorage.setItem('billingAddress', newAddress);
+  const handleBillingUpdate = async (newAddress) => {
+  try {
+    const userId = profile._id; // Make sure _id exists in your profile data
+    const res = await axios.patch(`http://localhost:8080/billingaddress/${userId}/billingAddress`, {
+      billingAddress: newAddress,
+    });
+
+    if (res.status === 200) {
+      updateField('billingAddress', newAddress);
+    } else {
+      console.error('Unexpected response:', res);
+      alert('Failed to update billing address.');
+    }
+  } catch (error) {
+    console.error('Error updating billing address:', error);
+    alert('An error occurred while updating billing address.');
+  }
+};
+
+  const handlePhoneUpdate = (newNumber) => {
+    updateField('phoneNumber', newNumber);
+  };
+
+  const handleEmailSave = () => {
+    if (newEmail !== repeatEmail || !emailPassword) {
+      alert("Emails must match and password is required.");
+      return;
+    }
+    updateField('email', newEmail);
+    setShowEmailForm(false);
+    setNewEmail('');
+    setRepeatEmail('');
+    setEmailPassword('');
   };
 
   return (
@@ -73,7 +105,7 @@ function AccountSettings() {
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
               <div className="flex items-center gap-10">
                 <label className="text-sm font-medium text-gray-700 w-40">Verified phone number</label>
-                <span className="text-gray-900 text-sm">{phoneNumber || '+49*****863'}</span>
+                <span className="text-gray-900 text-sm">{profile.phoneNumber || '+49*****863'}</span>
               </div>
               <button onClick={() => setPopupStep('popup')} className="text-green-600 hover:text-green-700 text-sm">
                 Change
@@ -83,73 +115,38 @@ function AccountSettings() {
             {/* Email */}
             <div className="border-b border-gray-100 py-2.5">
               {!showEmailForm ? (
-  <div className="flex justify-between items-center">
-    <div className="flex items-center gap-10">
-      <label className="text-sm font-medium text-gray-700 w-40">E-mail Address</label>
-      <span className="text-gray-900 text-sm">{userEmail}</span>
-    </div>
-    <button onClick={() => setShowEmailForm(true)} className="text-green-600 hover:text-green-700 text-sm">
-      Change
-    </button>
-  </div>
-) : (
-  <div className="p-6 bg-[#f4f2ed] rounded-lg space-y-4">
-    <p className="text-sm text-gray-800 bg-gray-100 rounded p-4">
-      To change your email address, you will receive two emails from us:
-      <br /><br />
-      1. An email to your current email address.<br />
-      2. An email to your new address to confirm ownership.
-      <br /><br />
-      For more info, see the <a href="#" className="text-green-700 underline">Help section</a>.
-    </p>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-10">
+                    <label className="text-sm font-medium text-gray-700 w-40">E-mail Address</label>
+                    <span className="text-gray-900 text-sm">{profile.email}</span>
+                  </div>
+                  <button onClick={() => setShowEmailForm(true)} className="text-green-600 hover:text-green-700 text-sm">Change</button>
+                </div>
+              ) : (
+                <div className="p-6 bg-[#f4f2ed] rounded-lg space-y-4">
+                  <p className="text-sm text-gray-800 bg-gray-100 rounded p-4">
+                    To change your email address, you will receive two emails:<br />
+                    1. One to your current email address<br />
+                    2. One to your new email to confirm ownership
+                  </p>
 
-    <input
-      type="text"
-      className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100 text-sm"
-      value={userEmail}
-      disabled
-    />
-    <input
-      type="email"
-      className="w-full px-4 py-2 border border-gray-300 rounded text-sm"
-      placeholder="New email address"
-    />
-    <input
-      type="email"
-      className="w-full px-4 py-2 border border-gray-300 rounded text-sm"
-      placeholder="Repeat new email address"
-    />
+                  <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100 text-sm" value={profile.email} disabled />
+                  <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="New email address" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+                  <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="Repeat new email address" value={repeatEmail} onChange={(e) => setRepeatEmail(e.target.value)} />
 
-    {/* Password with Eye Toggle */}
-    <div className="relative">
-      <input
-        type={showPassword ? 'text' : 'password'}
-        className="w-full px-4 py-2 border border-gray-300 rounded text-sm pr-10"
-        placeholder="Enter password"
-      />
-      <button
-        type="button"
-        onClick={() => setShowPassword(prev => !prev)}
-        className="absolute right-3 top-2.5 text-gray-400"
-      >
-        {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-      </button>
-    </div>
+                  <div className="relative">
+                    <input type={showPassword ? 'text' : 'password'} className="w-full px-4 py-2 border border-gray-300 rounded text-sm pr-10" placeholder="Enter password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} />
+                    <button type="button" onClick={() => setShowPassword(prev => !prev)} className="absolute right-3 top-2.5 text-gray-400">
+                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                    </button>
+                  </div>
 
-    <div className="flex gap-4 mt-4 justify-end">
-      <button
-        onClick={() => setShowEmailForm(false)}
-        className="px-4 py-2 border border-gray-400 rounded text-sm hover:bg-gray-100"
-      >
-        Cancel
-      </button>
-      <button className="px-4 py-2 bg-green-200 text-green-800 rounded text-sm hover:bg-green-300">
-        Save new email address
-      </button>
-    </div>
-  </div>
-)}
-
+                  <div className="flex gap-4 mt-4 justify-end">
+                    <button onClick={() => setShowEmailForm(false)} className="px-4 py-2 border border-gray-400 rounded text-sm hover:bg-gray-100">Cancel</button>
+                    <button onClick={handleEmailSave} className="px-4 py-2 bg-green-200 text-green-800 rounded text-sm hover:bg-green-300">Save new email address</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Password */}
@@ -158,10 +155,7 @@ function AccountSettings() {
                 <label className="text-sm font-medium text-gray-700 w-40">Password</label>
                 <span className="text-gray-900 text-sm">****</span>
               </div>
-             <button onClick={() => setShowPasswordModal(true)} className="text-green-600 hover:text-green-700 text-sm">
-  Change
-</button>
-
+              <button onClick={() => setShowPasswordModal(true)} className="text-green-600 hover:text-green-700 text-sm">Change</button>
             </div>
           </div>
 
@@ -169,7 +163,7 @@ function AccountSettings() {
           <div className="mt-8 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Your activity</h3>
             <p className="text-gray-600 text-sm">
-              You currently have 0 listings online. You've posted 0 listings in the last 30 days.
+              You currently have {profile.activity?.length || 0} listings online. You've posted {profile.activity?.length || 0} listings in the last 30 days.
             </p>
           </div>
 
@@ -177,11 +171,9 @@ function AccountSettings() {
           <div className="flex items-center justify-between py-4 border-b border-gray-100 mb-8">
             <div className="flex items-center gap-6">
               <label className="text-sm font-medium text-gray-700 w-40">Billing address</label>
-              <div className="text-gray-900 text-sm">{billingAddress || 'N/A'}</div>
+              <div className="text-gray-900 text-sm">{profile.billingAddress || 'N/A'}</div>
             </div>
-            <button className="text-green-600 hover:text-green-700 text-sm" onClick={() => setShowBillingModal(true)}>
-              Edit
-            </button>
+            <button className="text-green-600 hover:text-green-700 text-sm" onClick={() => setShowBillingModal(true)}>Edit</button>
           </div>
 
           {/* Delete Account */}
@@ -195,13 +187,9 @@ function AccountSettings() {
       </div>
 
       {/* Billing Modal */}
-      <AddressModal
-        isOpen={showBillingModal}
-        onClose={() => setShowBillingModal(false)}
-        onSave={handleBillingUpdate}
-      />
+      <AddressModal isOpen={showBillingModal} onClose={() => setShowBillingModal(false)} onSave={handleBillingUpdate} />
 
-      {/* Phone Verification Popups */}
+      {/* Phone Popups */}
       <AnimatePresence>
         {popupStep && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
@@ -214,40 +202,32 @@ function AccountSettings() {
               className="bg-white rounded-xl p-6 shadow-xl w-full max-w-xl"
             >
               {popupStep === 'popup' && (
-                <ChangePhone
-                  onClose={() => setPopupStep(null)}
-                  onNext={() => setPopupStep('phone')}
-                />
+                <ChangePhone onClose={() => setPopupStep(null)} onNext={() => setPopupStep('phone')} />
               )}
-
               {popupStep === 'phone' && (
-                <PhoneVerification
-                  onSendOTP={() => setPopupStep('sms')}
-                  setPhoneNumber={setPhoneNumber}
-                  email={userEmail}
-                  onClose={() => setPopupStep(null)}
-                />
+                <PhoneVerification onSendOTP={() => setPopupStep('sms')} setPhoneNumber={handlePhoneUpdate} email={profile.email} onClose={() => setPopupStep(null)} />
               )}
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-      <AnimatePresence>
-  {showPasswordModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <motion.div
-        key="passwordModal"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
-      >
-        <NewPasswordModal onClose={() => setShowPasswordModal(false)} />
-      </motion.div>
-    </div>
-  )}
-</AnimatePresence>
 
+      {/* Password Modal */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+            <motion.div
+              key="passwordModal"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+            >
+              <NewPasswordModal onClose={() => setShowPasswordModal(false)} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
