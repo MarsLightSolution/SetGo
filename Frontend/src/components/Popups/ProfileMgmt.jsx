@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddressModal from './AddressModal';
 import useUserProfile from '../../Hooks/useUserProfile';
+import axios from 'axios';
 
 function ProfileMgmt() {
   const navigate = useNavigate();
@@ -11,18 +12,42 @@ function ProfileMgmt() {
   const [tempProfileName, setTempProfileName] = useState(profile.username || '');
   const [showAddressModal, setShowAddressModal] = useState(false);
 
-  const handleSaveName = () => {
-    const updated = { ...profile, username: tempProfileName };
-    updateField('username', tempProfileName);
-    localStorage.setItem('userData', JSON.stringify(updated));
-    setIsEditingName(false);
-  };
+  const handleSaveName = async () => {
+  const userId = JSON.parse(localStorage.getItem('userData'))?._id;
 
-  const handleAddressUpdate = (newAddress) => {
-    const updated = { ...profile, deliveryAddress: newAddress };
+  try {
+    const res = await axios.patch(
+      `http://localhost:8080/nameupdate/${userId}/profileName`,
+      { profileName: tempProfileName }
+    );
+
+    const updatedUser = res.data.data;
+    localStorage.setItem('userData', JSON.stringify(updatedUser));
+    updateField('username', tempProfileName);
+    setIsEditingName(false);
+  } catch (err) {
+    console.error(err.response?.data?.message || 'Failed to update name');
+    // Optionally show error toast here
+  }
+};
+
+  const handleAddressUpdate = async (newAddress) => {
+  const userId = JSON.parse(localStorage.getItem('userData'))?._id;
+
+  try {
+    const res = await axios.patch(
+      `http://localhost:8080/deliveryaddress/${userId}/delivery-Address`,
+      { deliveryAddress: newAddress }
+    );
+
+    const updatedUser = res.data.data;
+    localStorage.setItem('userData', JSON.stringify(updatedUser));
     updateField('deliveryAddress', newAddress);
-    localStorage.setItem('userData', JSON.stringify(updated));
-  };
+  } catch (err) {
+    console.error(err.response?.data?.message || 'Failed to update address');
+    // Optionally show error toast here
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
