@@ -1,35 +1,48 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 function EmailSettings() {
   const [newsletter, setNewsletter] = useState(false);
   const [messagesFromUsers, setMessagesFromUsers] = useState(true);
+  const navigate = useNavigate();
+
+  const sidebarItems = [
+    { label: "Profile information", icon: "👤", path: "/profile" },
+    { label: "Account settings", icon: "⚙️", path: "/accountsettings" },
+    { label: "Payments", icon: "💳", path: "/paymentsettings" },
+    { label: "Data protection", icon: "🛡️", path: "/dataprotection" },
+    { label: "Emails", icon: "🔔", path: "/emailsettings", active: true },
+    { label: "About Classified Ads", icon: "❤️", path: "/aboutclassifieds" }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
+    <motion.div
+      className="min-h-screen bg-gray-50 py-10"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
         
         {/* Sidebar */}
         <div className="w-64 border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
           <nav className="space-y-1 text-sm font-medium">
-            <a href="/profile" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
-              <span className="mr-3">👤</span> Profile information
-            </a>
-            <a href="/accountsettings" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
-              <span className="mr-3">⚙️</span> Account settings
-            </a>
-            <a href="/paymentsettings" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
-              <span className="mr-3">💳</span> Payments
-            </a>
-            <a href="/dataprotection" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
-              <span className="mr-3">🛡️</span> Data protection
-            </a>
-            <a href="/emailsettings" className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md">
-              <span className="mr-3">🔔</span> Emails
-            </a>
-            <a href="/aboutclassifieds" className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
-              <span className="mr-3">❤️</span> About Classified Ads
-            </a>
+            {sidebarItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className={`flex w-full items-center px-3 py-2 rounded-md text-left transition duration-200 ${
+                  item.active
+                    ? "text-green-700 bg-green-50"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <span className="mr-3">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
           </nav>
         </div>
 
@@ -47,9 +60,14 @@ function EmailSettings() {
                 </p>
               </div>
               <label className="inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only" checked={newsletter} onChange={() => setNewsletter(!newsletter)} />
-                <div className={`w-11 h-6 bg-gray-300 rounded-full p-1 duration-300 ${newsletter ? 'bg-green-600' : ''}`}>
-                  <div className={`w-4 h-4 bg-white rounded-full shadow-md transform duration-300 ${newsletter ? 'translate-x-5' : ''}`}></div>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={newsletter}
+                  onChange={() => setNewsletter(!newsletter)}
+                />
+                <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${newsletter ? 'bg-green-600' : 'bg-gray-300'}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${newsletter ? 'translate-x-5' : ''}`}></div>
                 </div>
               </label>
             </div>
@@ -63,20 +81,25 @@ function EmailSettings() {
                 </p>
               </div>
               <label className="inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only" checked={messagesFromUsers} onChange={() => setMessagesFromUsers(!messagesFromUsers)} />
-                <div className={`w-11 h-6 bg-gray-300 rounded-full p-1 duration-300 ${messagesFromUsers ? 'bg-green-600' : ''}`}>
-                  <div className={`w-4 h-4 bg-white rounded-full shadow-md transform duration-300 ${messagesFromUsers ? 'translate-x-5' : ''}`}></div>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={messagesFromUsers}
+                  onChange={() => setMessagesFromUsers(!messagesFromUsers)}
+                />
+                <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${messagesFromUsers ? 'bg-green-600' : 'bg-gray-300'}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${messagesFromUsers ? 'translate-x-5' : ''}`}></div>
                 </div>
               </label>
             </div>
           </div>
         </div>
       </div>
+
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8 text-sm text-gray-600">
-            {/* Sections (reused structure) */}
             {[
               {
                 title: "Classifieds",
@@ -112,7 +135,6 @@ function EmailSettings() {
             ))}
           </div>
 
-          {/* Footer Bottom */}
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-gray-500 text-sm">
             <p>
               Copyright © 2005-2025 Marketplaces BV. All rights reserved.
@@ -122,7 +144,7 @@ function EmailSettings() {
           </div>
         </div>
       </footer>
-    </div>
+    </motion.div>
   );
 }
 
