@@ -7,34 +7,48 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const handleLogin = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const res = await fetch("http://localhost:8080/login", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+  try {
+    const res = await fetch("http://localhost:8080/login", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+    console.log("Login response:", data);
+
+    if (res.status === 200 || res.status === 201) {
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("userName", data.userName);
+
+      // 🔽 Fetch full user data from your user profile API
+      const userRes = await fetch(`http://localhost:8080/userdata/${data.userId}`, {
+        method: "GET",
       });
 
-      const data = await res.json();
-      console.log(data);
-
-      if (res.status === 200 || res.status === 201) {
-        localStorage.setItem("userId", data.userId);
-        localStorage.setItem("accessToken", data.accessToken);
-        localStorage.setItem("userName", data.userName);
-        window.location.href = "/"; // full reload
+      const userData = await userRes.json();
+      if (userRes.ok) {
+        localStorage.setItem("userData", JSON.stringify(userData.data));
       } else {
-        alert(data.error || "Login failed");
+        console.warn("Failed to fetch user details:", userData.message || userData.error);
       }
-    } catch (err) {
-      console.error("Login error:", err);
-      alert("An error occurred. Please try again.");
+
+      window.location.href = "/"; // Full page reload
+    } else {
+      alert(data.error || "Login failed");
     }
-  };
+  } catch (err) {
+    console.error("Login error:", err);
+    alert("An error occurred. Please try again.");
+  }
+};
+
   return (
     <>
       <div className="min-h-screen bg-white flex text-black items-center justify-center px-4">
