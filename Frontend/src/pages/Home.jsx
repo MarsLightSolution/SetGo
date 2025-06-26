@@ -10,7 +10,7 @@ const AdCard = ({ image, title, location }) => (
   <Card>
     <CardMedia
       component="img"
-      height="140"
+      height="14"
       image={image}
       alt={title}
     />
@@ -84,7 +84,7 @@ const Home = () => {
               {latestAds.map((ad, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
                   <AdCard
-                    image={`http://localhost:8080/${ad.pictures?.[0] || "uploads/placeholder.jpg"}`}
+                    image={`http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
                     title={ad.title}
                     location={ad.location?.postalCode || "Unknown"}
                   />
