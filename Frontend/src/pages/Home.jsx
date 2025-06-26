@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, Typography, CardMedia } from "@mui/material";
 import { Input, TextField, Button } from "@mui/material";
 import Grid from '@mui/material/Grid';
@@ -22,15 +22,22 @@ const AdCard = ({ image, title, location }) => (
 );
 
 const Home = () => {
-  // Simulating fetched data from backend
-  const latestAds = [
-    { image: "https://via.placeholder.com/150", title: "Electrical Engineering", location: "Hamburg" },
-    { image: "https://via.placeholder.com/150", title: "Electrical Engineering", location: "Hamburg" },
-    { image: "https://via.placeholder.com/150", title: "Electrical Engineering", location: "Hamburg" },
-    { image: "https://via.placeholder.com/150", title: "Electrical Engineering", location: "Hamburg" },
-    { image: "https://via.placeholder.com/150", title: "Electrical Engineering", location: "Hamburg" },
-    { image: "https://via.placeholder.com/150", title: "Electrical Engineering", location: "Hamburg" },
-  ];
+  const [latestAds, setLatestAds] = useState([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/products/getProducts");
+        const result = await response.json();
+        const ads = Array.isArray(result?.data?.products) ? result.data.products : [];
+        setLatestAds(ads);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   return (
     <>
@@ -76,7 +83,11 @@ const Home = () => {
             <Grid container spacing={2} mb={4}>
               {latestAds.map((ad, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
-                  <AdCard image={ad.image} title={ad.title} location={ad.location} />
+                  <AdCard
+                    image={`http://localhost:8080/${ad.pictures?.[0] || "uploads/placeholder.jpg"}`}
+                    title={ad.title}
+                    location={ad.location?.postalCode || "Unknown"}
+                  />
                 </Grid>
               ))}
             </Grid>
