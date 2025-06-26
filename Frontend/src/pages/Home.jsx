@@ -1,25 +1,43 @@
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, Typography, CardMedia } from "@mui/material";
-import { Input, TextField, Button } from "@mui/material";
+import { Card, CardContent, Typography, CardMedia, IconButton } from "@mui/material";
+import { Favorite, FavoriteBorder } from "@mui/icons-material";
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Footer from "../components/common/Footer";
+import { useDispatch, useSelector } from "react-redux";
+import { like, unlike } from '../slices/wishSlice';
 
 // Reusable Ad Card Component
-const AdCard = ({ image, title, location }) => (
-  <Card>
-    <CardMedia
-      component="img"
-      height="14"
-      image={image}
-      alt={title}
-    />
-    <CardContent>
-      <Typography variant="body1" fontWeight="bold">{title}</Typography>
-      <Typography variant="body2" color="text.secondary">{location}</Typography>
-    </CardContent>
-  </Card>
-);
+const AdCard = ({ image, title, location, ad }) => {
+  const dispatch = useDispatch();
+const { wishlist: likedAds } = useSelector(state => state.wishlist);
+const liked = ad && likedAds.some(item => item._id === ad._id);
+
+  const handleLikeToggle = () => {
+    liked ? dispatch(unlike(ad)) : dispatch(like(ad));
+  };
+
+  return (
+    <Card sx={{ position: 'relative' }}>
+      <IconButton
+        onClick={handleLikeToggle}
+        sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1, color: liked ? 'red' : 'grey.500' }}
+      >
+        {liked ? <Favorite /> : <FavoriteBorder />}
+      </IconButton>
+      <CardMedia
+        component="img"
+        height="140"
+        image={image}
+        alt={title}
+      />
+      <CardContent>
+        <Typography variant="body1" fontWeight="bold">{title}</Typography>
+        <Typography variant="body2" color="text.secondary">{location}</Typography>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Home = () => {
   const [latestAds, setLatestAds] = useState([]);
@@ -73,7 +91,7 @@ const Home = () => {
             <Grid container spacing={2} mb={4}>
               {[...Array(3)].map((_, i) => (
                 <Grid item xs={12} md={4} key={i}>
-                  <AdCard image="https://via.placeholder.com/150" title="Original BMW leather" location="Hamburg" />
+                  <AdCard image="https://via.placeholder.com/150" title="Original BMW leather" location="Hamburg" ad={{ _id: `gallery-${i}` }} />
                 </Grid>
               ))}
             </Grid>
@@ -86,6 +104,7 @@ const Home = () => {
                   <AdCard
                     image={`http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
                     title={ad.title}
+                    ad={ad}
                     location={ad.location?.postalCode || "Unknown"}
                   />
                 </Grid>
@@ -97,7 +116,7 @@ const Home = () => {
             <Grid container spacing={2}>
               {[...Array(3)].map((_, i) => (
                 <Grid item xs={12} md={4} key={i}>
-                  <AdCard image="https://via.placeholder.com/150" title="Original BMW leather" location="Hamburg" />
+                  <AdCard image="https://via.placeholder.com/150" title="Original BMW leather" location="Hamburg" ad={{ _id: `company-${i}` }} />
                 </Grid>
               ))}
             </Grid>

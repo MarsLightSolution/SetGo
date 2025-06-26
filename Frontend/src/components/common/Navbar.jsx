@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
 import { MdOutlineAddCircle } from "react-icons/md";
-
+import { useSelector } from "react-redux";
 const Navbar = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
@@ -34,6 +34,7 @@ const Navbar = () => {
       console.error("Logout error:", err);
     }
   };
+const wishlist=useSelector(state=>state.wishlist.totalItems);
 
   return (
     <div className="w-full">
