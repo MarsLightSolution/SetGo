@@ -1,7 +1,7 @@
 const jwt        = require("jsonwebtoken");
 const asyncHandler = require("../utils/asyncHandler.js");
 const ApiError     = require("../utils/ApiError.js");
-const User         = require("../models/user.model.js");   // your User schema
+const User         = require("../models/user.js");   // your User schema
 
 exports.verifyToken = asyncHandler(async (req, _res, next) => {
   const auth = req.headers.authorization || "";
