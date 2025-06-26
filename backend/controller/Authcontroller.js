@@ -1,5 +1,5 @@
 const TempUser = require("../models/tempuser");
-const User = require("../models/user");
+const User = require("../models/user.js");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
