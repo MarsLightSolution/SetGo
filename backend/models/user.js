@@ -8,11 +8,14 @@ const userSchema = new mongoose.Schema({
   },
   deliveryAddress: {
     type: String,
-    required: false
+    required: false,
+    default:"NA"
   },
   billingAddress: {
     type: String,
-    required: false  },
+    required: false,
+    default:"NA"
+  },
   phoneNumber: {
     type: String,
     required: false,

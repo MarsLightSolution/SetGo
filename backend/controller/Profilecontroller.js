@@ -242,3 +242,22 @@ module.exports.toggleMessagePreference = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+module.exports.getUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Find the user by ID
+    const user = await User.findById(userId).select('-password -__v'); // Exclude sensitive fields
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json({
+      message: 'User profile retrieved successfully.',
+      data: user
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
