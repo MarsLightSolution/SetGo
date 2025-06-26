@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import PhoneVerification from './PhoneVerification';
-import SmsVerify from './SmsVerify';
+import SmsVerify from '../Popups/SmsVerify.jsx';
 import { useLocation } from 'react-router-dom';
 import phoneImage from '../../assets/images/post1.png';
 
