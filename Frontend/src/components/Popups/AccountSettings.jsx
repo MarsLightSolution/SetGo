@@ -8,10 +8,9 @@ import ChangePhone from '../Settings/ChangePhone';
 import PhoneVerification from '../Settings/PhoneVerification';
 import SmsVerification from '../Settings/SmsVerification';
 import NewPasswordModal from '../Settings/NewPasswordModal';
-import useUserProfile from '../../hooks/useUserProfile';
+import useUserProfile from '../../Hooks/useUserProfile';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 function AccountSettings() {
   const navigate = useNavigate();
@@ -28,10 +27,14 @@ function AccountSettings() {
   const { profile, updateField } = useUserProfile();
 
   const handleBillingUpdate = async (newAddress) => {
+    if (!profile || !profile._id) {
+      toast.error('User  profile is not available.');
+      return;
+    }
+
     try {
-      const userId = profile._id;
       setLoading(true);
-      const res = await axios.patch(`http://localhost:8080/billingaddress/${userId}/billingAddress`, {
+      const res = await axios.patch(`http://localhost:8080/billingaddress/${profile._id}/billingAddress`, {
         billingAddress: newAddress,
       });
       if (res.status === 200) {
@@ -41,7 +44,8 @@ function AccountSettings() {
         toast.error('Failed to update billing address.');
       }
     } catch (error) {
-      toast.error('Error updating billing address');
+      console.error("Error updating billing address:", error);
+      toast.error('Error updating billing address: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -54,28 +58,31 @@ function AccountSettings() {
   const handleDeleteAccount = async () => {
     const confirmDelete = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
     if (!confirmDelete) return;
-    try {
-      const userId = profile._id;
-      const res = await axios.delete(`http://localhost:8080/deleteuser/${userId}`);
 
+    try {
+      if (!profile || !profile._id) {
+        toast.error('User  profile is not available.');
+        return;
+      }
+
+      const res = await axios.delete(`http://localhost:8080/deleteuser/${profile._id}`);
       if (res.status === 200) {
         alert("Account deleted successfully.");
         await fetch("http://localhost:8080/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+          method: "POST",
+          credentials: "include",
+        });
 
-      // Clear localStorage and refresh page
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("userName");
-      navigate("/login");
-    }
-    }
-     catch (error) {
+        // Clear localStorage and refresh page
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userName");
+        navigate("/login");
+      }
+    } catch (error) {
       console.error("Delete account error:", error);
       alert("An error occurred while deleting your account.");
-    toast.success('Phone number updated successfully');
+    }
   };
 
   const handleEmailSave = async () => {
