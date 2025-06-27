@@ -59,7 +59,6 @@ function ProfileMgmt() {
       showErrorToast(err.response?.data?.message || 'Failed to update address');
     }
   };
-
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <ToastifyContainer />
