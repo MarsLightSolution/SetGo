@@ -2,22 +2,31 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import PhoneVerification from './PhoneVerification';
 import SmsVerify from '../Popups/SmsVerify.jsx';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+
 import phoneImage from '../../assets/images/post1.png';
 
 function PVerify() {
   const [step, setStep] = useState('popup'); // 'popup' → 'phone' → 'sms'
   const [phoneNumber, setPhoneNumber] = useState('');
   const email = useLocation().state?.email || '';
-
+  const navigate = useNavigate();
+  const handlelogin = () => {
+    navigate('/login');
+  };
   return (
     <div className="relative min-h-screen bg-gray-50 text-center">
       {/* Message below navbar */}
-      <div className={`p-6 text-left ${step === 'popup' ? 'brightness-90' : ''}`}>
-        <h1 className="text-xl text-gray-800 font-medium">
-          Please wait, your information is being verified...
-        </h1>
+     <div className={`p-6 text-left ${step === 'popup' ? 'brightness-90' : ''}`}>
+<div
+  className={`absolute top-4 left-4 z-40 ${step === 'popup' ? 'brightness-90' : ''}`}
+>
+  <p className="text-sm font-semibold text-gray-700 bg-white/60 px-4 py-2 rounded-md shadow-sm backdrop-blur-md font-[Inter]">
+    Please wait, your information is being verified...
+  </p>
+</div>
       </div>
+
 
       {/* Modal overlay */}
       <div className="fixed inset-0 flex items-center justify-center bg-black/10 backdrop-brightness-75 z-50">
@@ -66,7 +75,7 @@ function PVerify() {
 
         {/* Buttons */}
         <div className="flex justify-end gap-3 mt-6">
-          <button className="px-5 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition">
+          <button onClick={()=>{handlelogin()}} className="px-5 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition">
             Login
           </button>
           <button
