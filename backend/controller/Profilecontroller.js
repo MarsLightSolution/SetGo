@@ -1,5 +1,6 @@
 const User = require('../models/user'); // Adjust path as needed
 const twilio = require('twilio');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -27,8 +28,8 @@ module.exports.nameupdate = async (req, res) => {
             return res.status(400).json({ message: 'Profile name cannot be empty or just spaces.' });
         }
 
-        if (trimmedName.length > 30) {
-            return res.status(400).json({ message: 'Profile name cannot be longer than 30 characters.' });
+        if (trimmedName.length > 16 || trimmedName.length <3) {
+            return res.status(400).json({ message: 'Profile name cannot be longer than 16 characters.' });
         }
 
         if (!nameRegex.test(trimmedName)) {
@@ -298,5 +299,45 @@ module.exports.getUserProfile = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+module.exports.verifyEmail = async (req, res) => {
+  const { userId, password, newEmail } = req.body;
+
+  try {
+    // Check required fields
+    if (!userId || !password || !newEmail) {
+      return res.status(400).json({ message: 'User ID, password, and new email are required.' });
+    }
+
+    // Find user by ID
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Check if password matches
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect password.' });
+    }
+
+    // Check if new email is already taken
+    const existingUser = await User.findOne({ email: newEmail });
+    if (existingUser) {
+      return res.status(409).json({ message: 'New email is already in use.' });
+    }
+
+    // Update email
+    user.email = newEmail;
+    await user.save();
+
+    res.status(200).json({ message: 'Email updated successfully.', email: user.email });
+
+  } catch (err) {
+    console.error('Error updating email:', err);
+    res.status(500).json({ message: 'Server error.' });
   }
 };

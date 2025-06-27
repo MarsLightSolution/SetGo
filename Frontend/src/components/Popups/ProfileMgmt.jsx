@@ -3,56 +3,67 @@ import { useNavigate } from 'react-router-dom';
 import AddressModal from './AddressModal';
 import useUserProfile from '../../Hooks/useUserProfile';
 import axios from 'axios';
+import {
+  showSuccessToast,
+  showErrorToast,
+  ToastifyContainer,
+} from '../../Hooks/Tostify';
 
 function ProfileMgmt() {
   const navigate = useNavigate();
-  const { profile, updateField, loading } = useUserProfile();
+  const { profile, updateField, loading: profileLoading } = useUserProfile();
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempProfileName, setTempProfileName] = useState(profile.username || '');
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [savingName, setSavingName] = useState(false);
 
   const handleSaveName = async () => {
-  const userId = JSON.parse(localStorage.getItem('userData'))?._id;
+    const userId = JSON.parse(localStorage.getItem('userData'))?._id;
+    setSavingName(true);
 
-  try {
-    const res = await axios.patch(
-      `http://localhost:8080/nameupdate/${userId}/profileName`,
-      { profileName: tempProfileName }
-    );
+    try {
+      const res = await axios.patch(
+        `http://localhost:8080/nameupdate/${userId}/profileName`,
+        { profileName: tempProfileName }
+      );
 
-    const updatedUser = res.data.data;
-    localStorage.setItem('userData', JSON.stringify(updatedUser));
-    updateField('username', tempProfileName);
-    setIsEditingName(false);
-  } catch (err) {
-    console.error(err.response?.data?.message || 'Failed to update name');
-    // Optionally show error toast here
-  }
-};
+      const updatedUser = res.data.data;
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      updateField('username', tempProfileName);
+      setIsEditingName(false);
+      showSuccessToast('Profile name updated successfully!');
+    } catch (err) {
+      console.error(err);
+      showErrorToast(err.response?.data?.message || 'Failed to update name');
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const handleAddressUpdate = async (newAddress) => {
-  const userId = JSON.parse(localStorage.getItem('userData'))?._id;
+    const userId = JSON.parse(localStorage.getItem('userData'))?._id;
 
-  try {
-    const res = await axios.patch(
-      `http://localhost:8080/deliveryaddress/${userId}/delivery-Address`,
-      { deliveryAddress: newAddress }
-    );
+    try {
+      const res = await axios.patch(
+        `http://localhost:8080/deliveryaddress/${userId}/delivery-Address`,
+        { deliveryAddress: newAddress }
+      );
 
-    const updatedUser = res.data.data;
-    localStorage.setItem('userData', JSON.stringify(updatedUser));
-    updateField('deliveryAddress', newAddress);
-  } catch (err) {
-    console.error(err.response?.data?.message || 'Failed to update address');
-    // Optionally show error toast here
-  }
-};
-
+      const updatedUser = res.data.data;
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      updateField('deliveryAddress', newAddress);
+      showSuccessToast('Address updated successfully!');
+    } catch (err) {
+      console.error(err);
+      showErrorToast(err.response?.data?.message || 'Failed to update address');
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-50 py-10">
+      <ToastifyContainer />
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
-        {/* Sidebar (Restored) */}
+        {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
           <nav className="space-y-1">
@@ -119,10 +130,31 @@ function ProfileMgmt() {
                     </button>
                     <button
                       onClick={handleSaveName}
-                      disabled={loading}
-                      className="bg-lime-400 text-white px-4 py-1 rounded-full text-sm ml-2 hover:bg-lime-500"
+                      disabled={savingName}
+                      className="bg-lime-400 text-white px-4 py-1 rounded-full text-sm ml-2 hover:bg-lime-500 flex items-center gap-2"
                     >
-                      {loading ? 'Saving...' : 'Save'}
+                      {savingName && (
+                        <svg
+                          className="animate-spin h-4 w-4 text-white"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
+                          />
+                        </svg>
+                      )}
+                      {savingName ? 'Saving...' : 'Save'}
                     </button>
                   </>
                 ) : (

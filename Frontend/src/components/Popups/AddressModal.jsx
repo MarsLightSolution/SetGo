@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
+import {
+  showSuccessToast,
+  showErrorToast,
+  ToastifyContainer,
+} from '../../Hooks/Tostify';
 
 const AddressModal = ({ isOpen, onClose, onSave }) => {
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [address, setAddress] = useState({
     firstName: '',
     lastName: '',
@@ -18,17 +24,38 @@ const AddressModal = ({ isOpen, onClose, onSave }) => {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const fullAddress = `${address.firstName} ${address.lastName}, ${address.suffix}, ${address.street} ${address.houseNumber}, ${address.postalCode}, ${address.location}`.trim();
-    if (!fullAddress || fullAddress === ', , , , ,') return;
-    onSave(fullAddress); // ✅ sync to parent
-    setShowForm(false);
-    onClose(); // ✅ close modal
+
+    const { firstName, lastName, street, houseNumber, postalCode, location } = address;
+
+    // Validation: Required Fields
+    if (!firstName || !lastName || !street || !houseNumber || !postalCode || !location) {
+      return showErrorToast("Please fill all required fields.");
+    }
+
+    setLoading(true);
+
+    try {
+      const fullAddress = `${firstName} ${lastName}, ${address.suffix || ''}, ${street} ${houseNumber}, ${postalCode}, ${location}`.trim();
+
+      // Save to parent
+      onSave(fullAddress);
+
+      // Reset form
+      setShowForm(false);
+      showSuccessToast("Address updated successfully!");
+      onClose();
+    } catch (error) {
+      showErrorToast("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/10 backdrop-brightness-75 z-50">
+      <ToastifyContainer />
       <div className="bg-white rounded-lg p-6 w-full max-w-xl shadow-lg relative">
         <button onClick={onClose} className="absolute top-3 right-4 text-gray-500 hover:text-green-600 text-xl">×</button>
 
@@ -47,8 +74,41 @@ const AddressModal = ({ isOpen, onClose, onSave }) => {
               <input name="location" value={address.location} onChange={handleInputChange} placeholder="Location*" className="flex-1 border rounded px-4 py-2" />
             </div>
             <div className="flex justify-end gap-3 pt-4">
-              <button type="button" onClick={() => setShowForm(false)} className="border rounded-full px-5 py-1 text-sm text-green-600 hover:bg-gray-100">Cancel</button>
-              <button type="submit" className="bg-lime-400 rounded-full px-5 py-1 text-sm text-black font-semibold hover:bg-lime-500">Save</button>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="border rounded-full px-5 py-1 text-sm text-green-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-lime-400 rounded-full px-5 py-1 text-sm text-black font-semibold hover:bg-lime-500 flex items-center gap-2"
+              >
+                {loading && (
+                  <svg
+                    className="animate-spin h-4 w-4 text-black"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
+                    />
+                  </svg>
+                )}
+                {loading ? 'Saving...' : 'Save'}
+              </button>
             </div>
           </form>
         ) : (

@@ -1,3 +1,4 @@
+// ✅ Imports
 import React, { useState } from 'react';
 import { Eye, EyeOff, Trash2 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
@@ -7,8 +8,10 @@ import ChangePhone from '../Settings/ChangePhone';
 import PhoneVerification from '../Settings/PhoneVerification';
 import SmsVerification from '../Settings/SmsVerification';
 import NewPasswordModal from '../Settings/NewPasswordModal';
-import useUserProfile from '../../hooks/useUserProfile'; // adjust path as needed
+import useUserProfile from '../../hooks/useUserProfile';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function AccountSettings() {
   const navigate = useNavigate();
@@ -20,25 +23,27 @@ function AccountSettings() {
   const [newEmail, setNewEmail] = useState('');
   const [repeatEmail, setRepeatEmail] = useState('');
   const [emailPassword, setEmailPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const { profile, updateField } = useUserProfile();
 
   const handleBillingUpdate = async (newAddress) => {
     try {
-      const userId = profile._id; // Make sure _id exists in your profile data
+      const userId = profile._id;
+      setLoading(true);
       const res = await axios.patch(`http://localhost:8080/billingaddress/${userId}/billingAddress`, {
         billingAddress: newAddress,
       });
-
       if (res.status === 200) {
         updateField('billingAddress', newAddress);
+        toast.success('Billing address updated successfully');
       } else {
-        console.error('Unexpected response:', res);
-        alert('Failed to update billing address.');
+        toast.error('Failed to update billing address.');
       }
     } catch (error) {
-      console.error('Error updating billing address:', error);
-      alert('An error occurred while updating billing address.');
+      toast.error('Error updating billing address');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,22 +51,9 @@ function AccountSettings() {
     updateField('phoneNumber', newNumber);
   };
 
-  const handleEmailSave = () => {
-    if (newEmail !== repeatEmail || !emailPassword) {
-      alert("Emails must match and password is required.");
-      return;
-    }
-    updateField('email', newEmail);
-    setShowEmailForm(false);
-    setNewEmail('');
-    setRepeatEmail('');
-    setEmailPassword('');
-  };
-
   const handleDeleteAccount = async () => {
     const confirmDelete = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
     if (!confirmDelete) return;
-
     try {
       const userId = profile._id;
       const res = await axios.delete(`http://localhost:8080/deleteuser/${userId}`);
@@ -83,6 +75,37 @@ function AccountSettings() {
      catch (error) {
       console.error("Delete account error:", error);
       alert("An error occurred while deleting your account.");
+    toast.success('Phone number updated successfully');
+  };
+
+  const handleEmailSave = async () => {
+    if (newEmail !== repeatEmail || !emailPassword) {
+      toast.warning("Emails must match and password is required.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.post(`http://localhost:8080/emailverify`, {
+        userId: profile._id,
+        password: emailPassword,
+        newEmail: newEmail,
+      });
+
+      if (res.status === 200) {
+        updateField('email', newEmail);
+        setShowEmailForm(false);
+        setNewEmail('');
+        setRepeatEmail('');
+        setEmailPassword('');
+        toast.success('Email updated successfully');
+      } else {
+        toast.error("Failed to update email.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error updating email.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -93,6 +116,17 @@ function AccountSettings() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
+      {/* Toastify */}
+      <ToastContainer position="top-right" autoClose={3000} />
+
+      {/* Loader Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white px-4 py-2 rounded shadow text-sm text-gray-700">Loading...</div>
+        </div>
+      )}
+
+      {/* Content */}
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
@@ -119,7 +153,7 @@ function AccountSettings() {
           </nav>
         </div>
 
-        {/* Main Content */}
+        {/* Main */}
         <div className="flex-1 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Account settings</h2>
 
@@ -129,15 +163,13 @@ function AccountSettings() {
           </div>
 
           <div className="space-y-4">
-            {/* Verified Phone */}
+            {/* Phone */}
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
               <div className="flex items-center gap-10">
                 <label className="text-sm font-medium text-gray-700 w-40">Verified phone number</label>
                 <span className="text-gray-900 text-sm">{profile.phoneNumber || '+49*****863'}</span>
               </div>
-              <button onClick={() => setPopupStep('popup')} className="text-green-600 hover:text-green-700 text-sm">
-                Change
-              </button>
+              <button onClick={() => setPopupStep('popup')} className="text-green-600 hover:text-green-700 text-sm">Change</button>
             </div>
 
             {/* Email */}
@@ -158,17 +190,16 @@ function AccountSettings() {
                     2. One to your new email to confirm ownership
                   </p>
 
-                  <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100 text-sm" value={profile.email} disabled />
-                  <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="New email address" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-                  <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="Repeat new email address" value={repeatEmail} onChange={(e) => setRepeatEmail(e.target.value)} />
+                  <input disabled type="text" value={profile.email} className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100 text-sm" />
+                  <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="New email address" />
+                  <input type="email" value={repeatEmail} onChange={(e) => setRepeatEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="Repeat new email address" />
 
                   <div className="relative">
-                    <input type={showPassword ? 'text' : 'password'} className="w-full px-4 py-2 border border-gray-300 rounded text-sm pr-10" placeholder="Enter password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} />
+                    <input type={showPassword ? 'text' : 'password'} value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded text-sm pr-10" placeholder="Enter password" />
                     <button type="button" onClick={() => setShowPassword(prev => !prev)} className="absolute right-3 top-2.5 text-gray-400">
                       {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
                   </div>
-
                   <div className="flex gap-4 mt-4 justify-end">
                     <button onClick={() => setShowEmailForm(false)} className="px-4 py-2 border border-gray-400 rounded text-sm hover:bg-gray-100">Cancel</button>
                     <button onClick={handleEmailSave} className="px-4 py-2 bg-green-200 text-green-800 rounded text-sm hover:bg-green-300">Save new email address</button>
@@ -187,7 +218,7 @@ function AccountSettings() {
             </div>
           </div>
 
-          {/* Your activity */}
+          {/* Activity */}
           <div className="mt-8 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Your activity</h3>
             <p className="text-gray-600 text-sm">
@@ -195,7 +226,7 @@ function AccountSettings() {
             </p>
           </div>
 
-          {/* Billing Address */}
+          {/* Billing */}
           <div className="flex items-center justify-between py-4 border-b border-gray-100 mb-8">
             <div className="flex items-center gap-6">
               <label className="text-sm font-medium text-gray-700 w-40">Billing address</label>
@@ -204,7 +235,7 @@ function AccountSettings() {
             <button className="text-green-600 hover:text-green-700 text-sm" onClick={() => setShowBillingModal(true)}>Edit</button>
           </div>
 
-          {/* Delete Account */}
+          {/* Delete */}
           <div className="flex justify-end">
             <button onClick={handleDeleteAccount} className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium">
               <Trash2 className="w-4 h-4" />
@@ -216,8 +247,6 @@ function AccountSettings() {
 
       {/* Billing Modal */}
       <AddressModal isOpen={showBillingModal} onClose={() => setShowBillingModal(false)} onSave={handleBillingUpdate} />
-
-      {/* Phone Popups */}
       <AnimatePresence>
         {popupStep && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
@@ -227,13 +256,16 @@ function AccountSettings() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-xl p-6 shadow-xl w-full max-w-xl"
+              className="bg-white rounded-xl p-0 shadow-xl w-full max-w-xl"
             >
               {popupStep === 'popup' && (
                 <ChangePhone onClose={() => setPopupStep(null)} onNext={() => setPopupStep('phone')} />
               )}
               {popupStep === 'phone' && (
                 <PhoneVerification onSendOTP={() => setPopupStep('sms')} setPhoneNumber={handlePhoneUpdate} email={profile.email} onClose={() => setPopupStep(null)} />
+              )}
+              {popupStep === 'sms' && (
+                <SmsVerification phoneNumber={profile.phoneNumber} email={profile.email} onClose={() => setPopupStep(null)} onNext={() => setPopupStep(null)} />
               )}
             </motion.div>
           </div>
