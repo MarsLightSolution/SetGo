@@ -25,7 +25,7 @@ function SmsVerify({ phoneNumber, email, onClose }) {
       });
 
       console.log("Verification successful:", res.data);
-      navigate("/login");
+      navigate("/accountsettings");
     } catch (err) {
       console.error("OTP verification failed:", err.response?.data || err.message);
       setError("Verification failed. Please try again.");

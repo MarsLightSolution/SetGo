@@ -28,6 +28,7 @@ const Navbar = () => {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("userId");
       localStorage.removeItem("userName");
+      localStorage.removeItem("userData");
       setUserName("");
       navigate("/login");
     } catch (err) {
