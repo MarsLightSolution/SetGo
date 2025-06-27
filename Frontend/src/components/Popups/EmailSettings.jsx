@@ -1,11 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 function EmailSettings() {
   const [newsletter, setNewsletter] = useState(false);
   const [messagesFromUsers, setMessagesFromUsers] = useState(true);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const userId = localStorage.getItem("userId");
+
+  const handleToggleNewsletter = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`http://localhost:8080/newsletter/${userId}`);
+      setNewsletter(res.data.data.newsletter);
+    } catch (err) {
+      console.error("Error toggling newsletter:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleMessages = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`http://localhost:8080/messageforuser/${userId}`);
+      setMessagesFromUsers(res.data.data.messageforuser);
+    } catch (err) {
+      console.error("Error toggling messages:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Optional: fetch current state from backend on mount if available
+    // You can implement separate API to get user preferences if needed
+  }, []);
 
   const sidebarItems = [
     { label: "Profile information", icon: "👤", path: "/profile" },
@@ -14,29 +47,6 @@ function EmailSettings() {
     { label: "Data protection", icon: "🛡️", path: "/dataprotection" },
     { label: "Emails", icon: "🔔", path: "/emailsettings", active: true },
     { label: "About Classified Ads", icon: "❤️", path: "/aboutclassifieds" }
-  ];
-
-  const footerLinks = [
-    {
-      title: "Classifieds",
-      items: ["about", "career", "press", "magazine", "engagement", "apps"]
-    },
-    {
-      title: "Information",
-      items: ["help", "safety", "child-protection", "privacy-policy", "privacy-settings", "terms"]
-    },
-    {
-      title: "For companies",
-      items: ["real-estate", "infopoint", "packages", "advertising"]
-    },
-    {
-      title: "Social Media",
-      items: ["facebook", "youtube", "instagram", "threads", "pinterest", "tiktok"]
-    },
-    {
-      title: "Generally",
-      items: ["searches", "ads-overview", "company-pages", "car-valuation"]
-    }
   ];
 
   return (
@@ -87,7 +97,7 @@ function EmailSettings() {
                   type="checkbox"
                   className="sr-only"
                   checked={newsletter}
-                  onChange={() => setNewsletter(!newsletter)}
+                  onChange={handleToggleNewsletter}
                 />
                 <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${newsletter ? 'bg-green-600' : 'bg-gray-300'}`}>
                   <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${newsletter ? 'translate-x-5' : ''}`}></div>
@@ -108,7 +118,7 @@ function EmailSettings() {
                   type="checkbox"
                   className="sr-only"
                   checked={messagesFromUsers}
-                  onChange={() => setMessagesFromUsers(!messagesFromUsers)}
+                  onChange={handleToggleMessages}
                 />
                 <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${messagesFromUsers ? 'bg-green-600' : 'bg-gray-300'}`}>
                   <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${messagesFromUsers ? 'translate-x-5' : ''}`}></div>

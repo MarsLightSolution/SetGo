@@ -24,23 +24,23 @@ function AccountSettings() {
   const { profile, updateField } = useUserProfile();
 
   const handleBillingUpdate = async (newAddress) => {
-  try {
-    const userId = profile._id; // Make sure _id exists in your profile data
-    const res = await axios.patch(`http://localhost:8080/billingaddress/${userId}/billingAddress`, {
-      billingAddress: newAddress,
-    });
+    try {
+      const userId = profile._id; // Make sure _id exists in your profile data
+      const res = await axios.patch(`http://localhost:8080/billingaddress/${userId}/billingAddress`, {
+        billingAddress: newAddress,
+      });
 
-    if (res.status === 200) {
-      updateField('billingAddress', newAddress);
-    } else {
-      console.error('Unexpected response:', res);
-      alert('Failed to update billing address.');
+      if (res.status === 200) {
+        updateField('billingAddress', newAddress);
+      } else {
+        console.error('Unexpected response:', res);
+        alert('Failed to update billing address.');
+      }
+    } catch (error) {
+      console.error('Error updating billing address:', error);
+      alert('An error occurred while updating billing address.');
     }
-  } catch (error) {
-    console.error('Error updating billing address:', error);
-    alert('An error occurred while updating billing address.');
-  }
-};
+  };
 
   const handlePhoneUpdate = (newNumber) => {
     updateField('phoneNumber', newNumber);
@@ -56,6 +56,34 @@ function AccountSettings() {
     setNewEmail('');
     setRepeatEmail('');
     setEmailPassword('');
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    try {
+      const userId = profile._id;
+      const res = await axios.delete(`http://localhost:8080/deleteuser/${userId}`);
+
+      if (res.status === 200) {
+        alert("Account deleted successfully.");
+        await fetch("http://localhost:8080/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      // Clear localStorage and refresh page
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userName");
+      navigate("/login");
+    }
+    }
+     catch (error) {
+      console.error("Delete account error:", error);
+      alert("An error occurred while deleting your account.");
+    }
   };
 
   return (
@@ -178,7 +206,7 @@ function AccountSettings() {
 
           {/* Delete Account */}
           <div className="flex justify-end">
-            <button className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium">
+            <button onClick={handleDeleteAccount} className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium">
               <Trash2 className="w-4 h-4" />
               Delete user account
             </button>

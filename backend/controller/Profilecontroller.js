@@ -4,6 +4,7 @@ require('dotenv').config();
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
+const bcrypt = require('bcrypt');
 
 const client = twilio(accountSid, authToken);
 
@@ -39,7 +40,7 @@ module.exports.nameupdate = async (req, res) => {
         // Update user
         const user = await User.findByIdAndUpdate(
             userId,
-            { profileName: trimmedName },
+            { username: trimmedName },
             { new: true, runValidators: true }
         );
 
@@ -173,6 +174,44 @@ module.exports.updateBillingAddress = async (req, res) => {
     res.status(200).json({
       message: 'Billing address updated successfully.',
       data: user
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+module.exports.updatePassword = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { password } = req.body;
+
+    // Basic validation
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ message: 'Password must be a non-empty string.' });
+    }
+
+    const trimmedPassword = password.trim();
+
+    if (trimmedPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(trimmedPassword, 10);
+
+    // Update user password
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json({
+      message: 'Password updated successfully.',
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
