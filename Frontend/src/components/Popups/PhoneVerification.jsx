@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import axios from "axios";
+import {  useNavigate } from "react-router-dom";
 
 function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
   const [selectedCountry, setSelectedCountry] = useState("Germany +49");
@@ -8,7 +9,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate();
   const countries = [
     "Germany +49",
     "India +91",
@@ -53,7 +54,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
   };
 
   const handleHelp = () => {
-    console.log("Help requested");
+    navigate("/login");
   };
 
   return (

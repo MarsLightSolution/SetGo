@@ -5,7 +5,6 @@ import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
 import Form from './pages/Form'
 import Login from './pages/Login'
-import Postcard1 from './Components/Popups/Postcard1'
 import PhoneVerification from './Components/Popups/PhoneVerification'
 import SmsVerify from './Components/Popups/SmsVerify'
 import ProfileMgmt from './Components/Popups/ProfileMgmt'
@@ -28,7 +27,6 @@ function App() {
         <Route path='/' element={<Home/>}/>
         <Route path='/register' element={<Register/>}/>
         <Route path='/login' element={<Login/>}/>
-        <Route path='/postcard1' element={<Postcard1/>}/>
         <Route path='/phoneverify' element={<PhoneVerification/>}/>
         <Route path='/SMS' element={<SmsVerify/>}/>
         <Route path='/form' element={<Form/>}/>

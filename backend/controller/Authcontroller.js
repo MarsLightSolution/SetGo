@@ -26,19 +26,19 @@ module.exports.signup = async (req, res) => {
       return res.status(400).json({ error: "Username can only contain alphanumeric characters" });
     }
 
-    if (username.length < 3 || username.length > 10) {
+    if (username.length < 3 || username.length > 16) {
       return res.status(400).json({ error: "Username must be between 3 and 20 characters long" });
     }
 
+    
     // Check for existing email or username
+        const existingUsername = await User.findOne({ username });
+        if (existingUsername) {
+          return res.status(400).json({ error:"Username is already taken" });
+        }
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(400).json({ error: "Email is already registered" });
-    }
-
-    const existingUsername = await User.findOne({ username });
-    if (existingUsername) {
-      return res.status(400).json({ error:"Username is already taken" });
     }
 
     // Generate verification token
