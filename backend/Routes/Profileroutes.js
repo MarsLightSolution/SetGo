@@ -10,6 +10,7 @@ router.delete('/deleteuser/:id',Profilecontroller.deleteUserAccount);
 router.get('/newsletter/:id',Profilecontroller.toggleNewsletterPreference);
 router.get('/messageforuser/:id',Profilecontroller.toggleMessagePreference);
 router.get('/userdata/:id',Profilecontroller.getUserProfile);
+router.patch('/updatepassword/:id',Profilecontroller.updatePassword);
 router.post('/emailverify',Profilecontroller.verifyEmail);
 
 module.exports = router

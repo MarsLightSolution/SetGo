@@ -1,11 +1,58 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
+import axios from 'axios';
 
 function NewPasswordModal({ onClose }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const handlePasswordSave = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (newPassword !== confirmPassword) {
+      setErrorMsg("Passwords do not match.");
+      return;
+    }
+
+    if (newPassword.trim().length < 6) {
+      setErrorMsg("Password must be at least 6 characters.");
+      return;
+    }
+
+    const userId = localStorage.getItem("userId"); // ✅ Corrected
+
+    if (!userId) {
+      setErrorMsg("User not found.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.patch(`http://localhost:8080/updatepassword/${userId}`, {
+        password: newPassword.trim()
+      });
+
+      if (res.status === 200) {
+        setSuccessMsg("Password updated successfully.");
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          onClose();
+        }, 1000);
+      }
+    } catch (err) {
+      console.error("Password update failed:", err);
+      setErrorMsg(err.response?.data?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative p-6 bg-white rounded-xl shadow-xl w-[500px]">
@@ -37,7 +84,6 @@ function NewPasswordModal({ onClose }) {
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
             >
               {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
-
             </button>
           </div>
         </div>
@@ -59,10 +105,16 @@ function NewPasswordModal({ onClose }) {
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
             >
               {showConfirm ? <Eye size={20} /> : <EyeOff size={20} />}
-
             </button>
           </div>
         </div>
+
+        {/* Error / Success Message */}
+        {(errorMsg || successMsg) && (
+          <div className={`text-sm ${errorMsg ? "text-red-500" : "text-green-600"} text-right pr-1`}>
+            {errorMsg || successMsg}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-3 pt-2">
@@ -72,8 +124,12 @@ function NewPasswordModal({ onClose }) {
           >
             Cancel
           </button>
-          <button className="px-6 py-2 text-base text-white bg-green-600 rounded-md hover:bg-green-700">
-            Save Password
+          <button
+            onClick={handlePasswordSave}
+            className="px-6 py-2 text-base text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? "Saving..." : "Save Password"}
           </button>
         </div>
       </div>

@@ -49,6 +49,32 @@ function AccountSettings() {
 
   const handlePhoneUpdate = (newNumber) => {
     updateField('phoneNumber', newNumber);
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
+    if (!confirmDelete) return;
+    try {
+      const userId = profile._id;
+      const res = await axios.delete(`http://localhost:8080/deleteuser/${userId}`);
+
+      if (res.status === 200) {
+        alert("Account deleted successfully.");
+        await fetch("http://localhost:8080/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      // Clear localStorage and refresh page
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userName");
+      navigate("/login");
+    }
+    }
+     catch (error) {
+      console.error("Delete account error:", error);
+      alert("An error occurred while deleting your account.");
     toast.success('Phone number updated successfully');
   };
 
@@ -163,6 +189,7 @@ function AccountSettings() {
                     1. One to your current email address<br />
                     2. One to your new email to confirm ownership
                   </p>
+
                   <input disabled type="text" value={profile.email} className="w-full px-4 py-2 border border-gray-300 rounded bg-gray-100 text-sm" />
                   <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="New email address" />
                   <input type="email" value={repeatEmail} onChange={(e) => setRepeatEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded text-sm" placeholder="Repeat new email address" />
@@ -173,7 +200,6 @@ function AccountSettings() {
                       {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
                   </div>
-
                   <div className="flex gap-4 mt-4 justify-end">
                     <button onClick={() => setShowEmailForm(false)} className="px-4 py-2 border border-gray-400 rounded text-sm hover:bg-gray-100">Cancel</button>
                     <button onClick={handleEmailSave} className="px-4 py-2 bg-green-200 text-green-800 rounded text-sm hover:bg-green-300">Save new email address</button>
@@ -206,12 +232,12 @@ function AccountSettings() {
               <label className="text-sm font-medium text-gray-700 w-40">Billing address</label>
               <div className="text-gray-900 text-sm">{profile.billingAddress || 'N/A'}</div>
             </div>
-            <button onClick={() => setShowBillingModal(true)} className="text-green-600 hover:text-green-700 text-sm">Edit</button>
+            <button className="text-green-600 hover:text-green-700 text-sm" onClick={() => setShowBillingModal(true)}>Edit</button>
           </div>
 
           {/* Delete */}
           <div className="flex justify-end">
-            <button className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium">
+            <button onClick={handleDeleteAccount} className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium">
               <Trash2 className="w-4 h-4" />
               Delete user account
             </button>
@@ -221,8 +247,6 @@ function AccountSettings() {
 
       {/* Billing Modal */}
       <AddressModal isOpen={showBillingModal} onClose={() => setShowBillingModal(false)} onSave={handleBillingUpdate} />
-
-      {/* Phone Modal Flow */}
       <AnimatePresence>
         {popupStep && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
