@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { uploadPictures } = require("../middlewares/multer.middleware.js");
-// const { verifyJWT } = require("../middlewares/auth.middlewares.js");
-// const { verifyToken } = require("../middlewares/auth.js");
+const verifyJWT = require("../middlewares/jwt.middleware.js");
 
 const {
   addProduct,
@@ -10,7 +9,7 @@ const {
 } = require("../controller/product.controller.js");
 
 router.post("/add"
-  , uploadPictures.fields([
+  , verifyJWT, uploadPictures.fields([
     { name: "pictures", maxCount: 20 }
   ]), addProduct);
 
