@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
 import { MdOutlineAddCircle } from "react-icons/md";
-
+import { useSelector } from "react-redux";
 const Navbar = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
@@ -34,6 +34,7 @@ const Navbar = () => {
       console.error("Logout error:", err);
     }
   };
+const wishlist=useSelector(state=>state.wishlist.totalItems);
 
   return (
     <div className="w-full">
@@ -56,6 +57,7 @@ const Navbar = () => {
                 Register
               </button>
               <span className="text-sm text-gray-500">or</span>
+              <span className="text-sm text-gray-500">{wishlist}</span>
               <button
                 className="flex items-center gap-2 bg-lime-400 px-4 py-1 rounded-full text-sm font-medium"
                 onClick={() => navigate("/login")}
