@@ -300,6 +300,10 @@ module.exports.logout = async (req, res) => {
     if (user) {
       user.refreshToken = null;
       await user.save({ validateBeforeSave: false });
+
+
+      const redisKey = `login:${user.email}`; // Delete user entry from redis
+      await redisClient.del(redisKey);
     }
 
     // Clear the refresh token cookie
