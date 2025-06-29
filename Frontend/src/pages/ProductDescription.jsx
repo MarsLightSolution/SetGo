@@ -1,18 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
 import { LocationOn, CalendarToday } from "@mui/icons-material";
 
 const ProductDetail = () => {
-  const { id } = useParams(); // Get product ID from URL
-  const { wishlist } = useSelector((state) => state.wishlist);
+  const { id } = useParams();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Find product by ID from wishlist or product list (mock here)
-  const product = wishlist.find((item) => item._id === id);
+  const fetchProductById = async () => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/products/product/${id}`);
+      const result = await res.json();
+      setProduct(result.data);
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      setProduct(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (!product) {
-    return <div className="text-center text-gray-600 mt-10">Product not found</div>;
-  }
+  useEffect(() => {
+    fetchProductById();
+  }, [id]);
+
+  if (loading) return <div className="text-center text-gray-600 mt-10">Loading...</div>;
+  if (!product) return <div className="text-center text-red-500 mt-10">Product not found</div>;
 
   return (
     <div className="max-w-5xl mx-auto bg-white shadow-md mt-10 p-6 rounded-md">
@@ -46,7 +59,7 @@ const ProductDetail = () => {
       </div>
 
       {/* Description */}
-      <div className="text-gray-700 leading-relaxed mt-4">
+      <div className="text-gray-700 leading-relaxed mt-4 whitespace-pre-line">
         {product.description || "Keine Beschreibung verfügbar."}
       </div>
     </div>
