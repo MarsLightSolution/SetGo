@@ -14,90 +14,91 @@ import Footer from "../components/common/Footer";
 import toast from "react-hot-toast";
 
 const Form = () => {
-  const [formData, setFormData] = useState({
-    offerType: "offer",
-    title: "",
-    category: "",
-    price: "",
-    description: "",
-    postalCode: "",
-    location: "",
-    streetNo: "",
-    showFullAddress: false,
-    name: "",
-    termsAccepted: false,
-    subscribe: false,
-  });
+const [formData, setFormData] = useState({
+  offerType: "offer",
+  title: "",
+  category: "",
+  price: "",
+  description: "",
+  postalCode: "",
+  location: "",
+  streetNo: "",
+  showFullAddress: false,
+  name: "",
+  termsAccepted: false,
+  subscribe: false,
+  pictures: [], // 🔥 Important
+});
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
+const handleChange = (e) => {
+  const { name, value, type, checked, files } = e.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: type === "checkbox" ? checked : type === "file" ? files : value,
+  }));
+};
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const formDataToSend = new FormData();
-    formDataToSend.append("title", formData.title);
-    formDataToSend.append("category", formData.category);
-    formDataToSend.append("price", formData.price);
-    formDataToSend.append("description", formData.description);
-    formDataToSend.append("name", formData.name);
-    formDataToSend.append("offerType", formData.offerType);
-    formDataToSend.append(
-      "termsAccepted",
-      formData.termsAccepted ? "true" : "false"
-    );
-    formDataToSend.append(
-      "showFullAddress",
-      formData.showFullAddress ? "true" : "false"
-    );
-    formDataToSend.append("subscribe", formData.subscribe ? "true" : "false");
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // Nested object field: location
-    formDataToSend.append("location[postalCode]", formData.postalCode);
-    formDataToSend.append("location[streetNo]", formData.streetNo || "");
+  const formDataToSend = new FormData();
+  formDataToSend.append("title", formData.title);
+  formDataToSend.append("category", formData.category);
+  formDataToSend.append("price", formData.price);
+  formDataToSend.append("description", formData.description);
+  formDataToSend.append("name", formData.name);
+  formDataToSend.append("offerType", formData.offerType);
+  formDataToSend.append("termsAccepted", formData.termsAccepted ? "true" : "false");
+  formDataToSend.append("showFullAddress", formData.showFullAddress ? "true" : "false");
+  formDataToSend.append("subscribe", formData.subscribe ? "true" : "false");
+  formDataToSend.append("postalCode", formData.postalCode);
+  formDataToSend.append("streetNo", formData.streetNo || "");
 
-    // File uploads: pictures (assumed as multiple)
-    if (formData.pictures && formData.pictures.length > 0) {
-      for (let i = 0; i < formData.pictures.length; i++) {
-        formDataToSend.append("pictures", formData.pictures[i]);
-      }
+  if (formData.pictures && formData.pictures.length > 0) {
+    for (let i = 0; i < formData.pictures.length; i++) {
+      formDataToSend.append("pictures", formData.pictures[i]);
     }
-    console.log(formData);
+  }
 
-    try {
-      const res = await fetch("http://localhost:8080/api/products/add", {
-        method: "POST",
-        body: formDataToSend,
-      });
-      if (!res.ok) {
-        throw new Error("Failed to submit form");
-      }
-      const data = await response.json();
-      // console.log(data);
+  try {
+    const res = await fetch("http://localhost:8080/api/products/add", {
+      method: "POST",
+      body: formDataToSend,
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
       toast.success("Form submitted successfully");
+
+      
       setFormData({
+        offerType: "offer",
         title: "",
         category: "",
         price: "",
         description: "",
-        name: "",
-        offerType: "",
-        termsAccepted: false,
-        showFullAddress: false,
-        subscribe: false,
         postalCode: "",
+        location: "",
         streetNo: "",
+        showFullAddress: false,
+        name: "",
+        termsAccepted: false,
+        subscribe: false,
         pictures: [],
       });
-    } catch (error) {
-      console.error("Error submitting ad:", error);
+
+      // Optional: If you use an actual HTML form element, reset file inputs too
+      e.target.reset();
+    } else {
+      toast.error(data.message || "Something went wrong");
     }
-  };
+  } catch (error) {
+    console.error("Error submitting ad:", error);
+    toast.error("Failed to submit form");
+  }
+};
+
 
   return (
     <>
@@ -264,7 +265,7 @@ const Form = () => {
               helperText="Tip: By default, we only display the postal code and city. To show full address, check the box below."
             />
 
-            <TextField
+            {/* <TextField
               label="Description"
               name="description"
               value={formData.description}
@@ -273,11 +274,11 @@ const Form = () => {
               rows={4}
               sx={{ width: "41rem" }}
               helperText="You have 4000 characters left"
-            />
+            /> */}
           </div>
 
           {/* Upload Section */}
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <label className="block font-medium mb-2">
               Pictures (recommended)
             </label>
@@ -310,7 +311,7 @@ const Form = () => {
               }
               label="Show full address"
             />
-          </div>
+          </div> */}
 
           {/* Your Details */}
           <div>
