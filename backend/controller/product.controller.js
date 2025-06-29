@@ -1,10 +1,8 @@
 // controllers/product.controller.js
-const ApiError    = require("../utils/ApiError.js");
-const ApiResponse = require("../utils/ApiResponse.js");
-const Product     = require("../models/product.model.js");
-const asyncHandler = require("../utils/asyncHandler.js"); // if you have one
-// const { uploadOnCloudinary } = require("../utils/cloudinary.js");
-
+const ApiError      = require("../utils/ApiError");
+const ApiResponse   = require("../utils/ApiResponse");
+const Product       = require("../models/product.model");
+const asyncHandler  = require("../utils/asyncHandler");
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -21,41 +19,36 @@ const addProduct = asyncHandler(async (req, res) => {
     subscribe,
   } = req.body;
 
-  console.log(req.body);
-
-  /* 1️⃣ basic field validation */
-  if (!termsAccepted) {
+  if (!termsAccepted)
     throw new ApiError(400, "You must accept the terms and conditions.");
-  }
 
-  /* 2️⃣ picture validation */
-  console.log("req.files:", req.files);          // should be { pictures: [ ... ] }
+  if (!req.user?._id)
+    throw new ApiError(401, "User authentication required.");
 
-  if (!req.files?.pictures || req.files.pictures.length === 0) {
+  if (!req.files?.pictures?.length)
     throw new ApiError(400, "At least one picture is required.");
-  }
-  if (req.files.pictures.length > 20) {
+
+  if (req.files.pictures.length > 20)
     throw new ApiError(400, "You can upload a maximum of 20 pictures.");
-  }
 
-  /* 3️⃣ store the image paths (or Cloudinary URLs) */
-  // const pictures = [];
-  const pictures = req.files.pictures.map(file => file.path)
+  const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
 
-  /* 4️⃣ create the product */
   const product = await Product.create({
     title,
     category,
     price: Number(price),
     description,
     pictures,
-    location: { postalCode: postalCode || "1", streetNo: streetNo || "" },
+    location: {
+      postalCode,
+      street: streetNo || "",
+    },
     name,
-    termsAccepted: termsAccepted === "true" || termsAccepted === true,
-    owner: req.user?._id || null,
+    termsAccepted: termsAccepted === true || termsAccepted === "true",
+    owner: req.user._id,
     offerType,
-    showFullAddress: showFullAddress === "true" || showFullAddress === true,
-    subscribe: subscribe === "true" || subscribe === true,
+    showFullAddress: showFullAddress === true || showFullAddress === "true",
+    subscribe: subscribe === true || subscribe === "true",
   });
 
   res
@@ -63,16 +56,23 @@ const addProduct = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, product, "Product added successfully."));
 });
 
-
-const getPaginatedProducts = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, category } = req.query;
+const getProducts = asyncHandler(async (req, res) => {
+  const { category, page = 1, limit = 10 } = req.query;
 
   const pipeline = [];
-  if (category?.trim()) pipeline.push({ $match: { category: category.trim() } });
+
+  if (category?.trim()) {
+    pipeline.push({
+      $match: {
+        category: new RegExp(`^${category.trim()}$`, "i"), // case-insensitive
+      },
+    });
+  }
+
   pipeline.push({ $sort: { createdAt: -1 } });
 
   const options = {
-    page:  Number(page),
+    page: Number(page),
     limit: Number(limit),
     customLabels: {
       docs:        "products",
@@ -88,7 +88,8 @@ const getPaginatedProducts = asyncHandler(async (req, res) => {
 
   const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
 
-  res.status(200).json(new ApiResponse(200, result, "Paginated product list."));
+  res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
 
-module.exports = { addProduct, getPaginatedProducts };
+
+module.exports = { addProduct, getProducts };
