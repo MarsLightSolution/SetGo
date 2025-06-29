@@ -41,7 +41,7 @@ const addProduct = asyncHandler(async (req, res) => {
     description,
     pictures,
     location: {
-      postalCode,
+      postalCode:postalCode || "",
       street: streetNo || "",
     },
     name,
