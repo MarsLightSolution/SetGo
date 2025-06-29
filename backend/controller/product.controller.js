@@ -3,6 +3,7 @@ const ApiError      = require("../utils/ApiError");
 const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
 const asyncHandler  = require("../utils/asyncHandler");
+const mongoose = require("mongoose");
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
