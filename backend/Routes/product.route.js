@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { uploadPictures } = require("../middlewares/multer.middleware.js");
+// const { uploadPictures } = require("../middlewares/multer.middleware.js");
 const verifyJWT = require("../middlewares/jwt.middleware.js");
 
 const {
@@ -8,10 +8,10 @@ const {
   getPaginatedProducts
 } = require("../controller/product.controller.js");
 
-router.post("/add"
-  , verifyJWT, uploadPictures.fields([
-    { name: "pictures", maxCount: 20 }
-  ]), addProduct);
+// router.post("/add"
+//   , verifyJWT, uploadPictures.fields([
+//     { name: "pictures", maxCount: 20 }
+//   ]), addProduct);
 
 
 // // Get all products 
