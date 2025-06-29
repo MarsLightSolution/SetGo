@@ -19,6 +19,9 @@ import NewPassword from './Components/Popups/NewPassword'
 import RenewPassword from './Components/Popups/RenewPassword'
 import EmailNotification from './Components/Popups/EmailNotification'
 import useUserProfile from './Hooks/useUserProfile'
+import UserInfo from './Components/UserInfo/UserInfo'
+
+
 function App() {
   return (
     <div >
@@ -41,6 +44,8 @@ function App() {
         <Route path='/aboutclassifieds' element={<AboutClassifieds/>}/>
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
+        <Route path='/userinfo' element={<UserInfo/>}/>
+       
         
       </Routes>
     </div>
