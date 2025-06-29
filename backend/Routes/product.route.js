@@ -10,7 +10,7 @@ const {
 } = require("../controller/product.controller.js");
 
 router.post("/add"
-  , uploadPictures.fields([
+  , verifyJWT,uploadPictures.fields([
     { name: "pictures", maxCount: 8 }
   ]), addProduct);
 

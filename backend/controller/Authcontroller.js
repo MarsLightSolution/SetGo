@@ -215,8 +215,8 @@ module.exports.login = async (req, res) => {
     const refreshToken = generateRefreshToken(user);
 
     // Optionally save refreshToken in DB or Redis
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    // user.refreshToken = refreshToken;
+    // await user.save({ validateBeforeSave: false });
 
     // 5️⃣ Set refresh token as HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {

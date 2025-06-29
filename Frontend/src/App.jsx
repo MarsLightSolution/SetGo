@@ -18,13 +18,7 @@ import Confirm from './pages/Confirm'
 import NewPassword from './Components/Popups/NewPassword'
 import RenewPassword from './Components/Popups/RenewPassword'
 import EmailNotification from './Components/Popups/EmailNotification'
-import useUserProfile from './Hooks/useUserProfile'
 import UserInfo from './Components/UserInfo/UserInfo'
-
-
-import Postcard1 from './Components/Pop-ups/Postcard1'
-import PhoneVerification from './Components/Pop-ups/PhoneVerification'
-import SmsVerify from './Components/Pop-ups/SmsVerify'
 import Wishlist from './pages/Wishlist'
 import ProductDetail from './pages/ProductDescription'
 function App() {
