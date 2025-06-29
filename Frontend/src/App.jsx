@@ -45,8 +45,6 @@ function App() {
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
         <Route path='/userinfo' element={<UserInfo/>}/>
-       
-        
       </Routes>
     </div>
   )
