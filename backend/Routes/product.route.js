@@ -10,14 +10,18 @@ const {
 } = require("../controller/product.controller.js");
 
 router.post("/add"
+  ,verifyJWT
   , uploadPictures.fields([
 
     { name: "pictures", maxCount: 8 }
   ]), addProduct);
 
-router.get("/getProducts",getProducts);
 
-router.get("/product/:id", getProductById);
+// // Get all products 
+router.get("/getProducts"
+  ,verifyJWT,getProducts);
+
+router.get("/product/:id",verifyJWT, getProductById);
 // Test route
 router.route("/try").post((req, res) => {
   res.send("Test passed");
