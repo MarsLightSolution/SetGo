@@ -5,11 +5,12 @@ const verifyJWT = require("../middlewares/jwt.middleware.js");
 
 const {
   addProduct,
-  getProducts
+  getProducts,
+  getProductById
 } = require("../controller/product.controller.js");
 
 router.post("/add"
-  , verifyJWT, uploadPictures.fields([
+  , uploadPictures.fields([
     { name: "pictures", maxCount: 8 }
   ]), addProduct);
 
@@ -18,6 +19,7 @@ router.post("/add"
 router.get("/getProducts"
   ,getProducts);
 
+router.get("/product/:id", getProductById);
 // Test route
 router.route("/try").post((req, res) => {
   res.send("Test passed");
