@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { uploadPictures } = require("../middlewares/multer.middleware.js");
+const  uploadPictures  = require("../middlewares/multer.middleware.js");
 const verifyJWT = require("../middlewares/jwt.middleware.js");
 
 const {
@@ -10,6 +10,7 @@ const {
 } = require("../controller/product.controller.js");
 
 router.post("/add"
+  ,verifyJWT
   , uploadPictures.fields([
     { name: "pictures", maxCount: 8 }
   ]), addProduct);
@@ -17,9 +18,9 @@ router.post("/add"
 
 // // Get all products 
 router.get("/getProducts"
-  ,getProducts);
+  ,verifyJWT,getProducts);
 
-router.get("/product/:id", getProductById);
+router.get("/product/:id",verifyJWT, getProductById);
 // Test route
 router.route("/try").post((req, res) => {
   res.send("Test passed");
