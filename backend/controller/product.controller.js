@@ -87,9 +87,25 @@ const getProducts = asyncHandler(async (req, res) => {
   };
 
   const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
+  
+
 
   res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
 
+const getProductById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-module.exports = { addProduct, getProducts };
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid product ID");
+  }
+
+  const product = await Product.findById(id);
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  res.status(200).json(new ApiResponse(200, product, "Fetched product by ID"));
+});
+
+module.exports = { addProduct, getProducts,getProductById };
