@@ -22,6 +22,11 @@ import useUserProfile from './Hooks/useUserProfile'
 import UserInfo from './Components/UserInfo/UserInfo'
 
 
+import Postcard1 from './Components/Pop-ups/Postcard1'
+import PhoneVerification from './Components/Pop-ups/PhoneVerification'
+import SmsVerify from './Components/Pop-ups/SmsVerify'
+import Wishlist from './pages/Wishlist'
+import ProductDetail from './pages/ProductDescription'
 function App() {
   return (
     <div >
@@ -45,6 +50,8 @@ function App() {
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
         <Route path='/userinfo' element={<UserInfo/>}/>
+        <Route path='/wishlist' element={<Wishlist/>}/>
+        <Route path='/product/:id' element={<ProductDetail/>}/>
       </Routes>
     </div>
   )
