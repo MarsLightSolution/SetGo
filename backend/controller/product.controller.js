@@ -4,6 +4,7 @@ const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
 const asyncHandler  = require("../utils/asyncHandler");
 const mongoose = require("mongoose");
+const User = require('../models/user');
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -50,6 +51,17 @@ const addProduct = asyncHandler(async (req, res) => {
     offerType,
     showFullAddress: showFullAddress === true || showFullAddress === "true",
     subscribe: subscribe === true || subscribe === "true",
+  });
+
+  await User.findByIdAndUpdate(req.user._id, {
+    $push: {
+      sell: {
+        productId: product._id,
+        price: product.price,
+        quantity: 1, // default, adjust if needed
+        isSold: false,
+      },
+    },
   });
 
   res
