@@ -73,6 +73,20 @@ const Form = () => {
       const data = await response.json();
       // console.log(data);
       console.log("Ad submitted successfully:", data);
+      setFormData({
+  title: "",
+  category: "",
+  price: "",
+  description: "",
+  name: "",
+  offerType: "",
+  termsAccepted: false,
+  showFullAddress: false,
+  subscribe: false,
+  postalCode: "",
+  streetNo: "",
+  pictures: [],
+});
     } catch (error) {
       console.error("Error submitting ad:", error);
     }
