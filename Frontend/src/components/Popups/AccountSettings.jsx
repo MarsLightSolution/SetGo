@@ -67,17 +67,17 @@ function AccountSettings() {
 
       const res = await axios.delete(`http://localhost:8080/deleteuser/${profile._id}`);
       if (res.status === 200) {
-        alert("Account deleted successfully.");
         await fetch("http://localhost:8080/logout", {
           method: "POST",
           credentials: "include",
         });
-
-        // Clear localStorage and refresh page
         localStorage.removeItem("accessToken");
         localStorage.removeItem("userId");
         localStorage.removeItem("userName");
-        navigate("/login");
+        localStorage.removeItem("userData");
+         setTimeout(() => {
+          window.location.href = "/register";
+        }, 1000);
       }
     } catch (error) {
       console.error("Delete account error:", error);

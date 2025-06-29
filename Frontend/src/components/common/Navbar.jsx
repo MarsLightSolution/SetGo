@@ -24,7 +24,6 @@ const Navbar = () => {
         method: "POST",
         credentials: "include",
       });
-
       localStorage.removeItem("accessToken");
       localStorage.removeItem("userId");
       localStorage.removeItem("userName");
