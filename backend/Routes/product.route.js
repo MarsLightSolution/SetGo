@@ -13,10 +13,8 @@ const {
 //     { name: "pictures", maxCount: 20 }
 //   ]), addProduct);
 
-
 // // Get all products 
-router.get("/getProducts"
-  ,getPaginatedProducts);
+router.get("/getProducts", getPaginatedProducts);
 
 // Test route
 router.route("/try").post((req, res) => {

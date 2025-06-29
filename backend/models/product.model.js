@@ -55,7 +55,19 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     required: true,
   },
-  createdAt: {
+  isBuy: {
+    type: Boolean,
+    default: false
+  },
+  isSell: {
+    type: Boolean,
+    default: false
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  owner: {
     type: Date,
     default: Date.now,
   }

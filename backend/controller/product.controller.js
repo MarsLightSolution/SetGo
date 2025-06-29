@@ -19,6 +19,9 @@ const addProduct = asyncHandler(async (req, res) => {
     offerType,
     showFullAddress,
     subscribe,
+    isBuy,
+    isSell,
+    quantity
   } = req.body;
 
   console.log(req.body);
@@ -52,11 +55,44 @@ const addProduct = asyncHandler(async (req, res) => {
     location: { postalCode: postalCode || "1", streetNo: streetNo || "" },
     name,
     termsAccepted: termsAccepted === "true" || termsAccepted === true,
-    owner: req.user?._id || null,
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
     subscribe: subscribe === "true" || subscribe === true,
+    isBuy: isBuy === "true" || isBuy === true,
+    isSell: isSell === "true" || isSell === true,
+    owner: req.user?._id || null,
   });
+
+  const userId = req.user?._id;
+
+  const userUpdatePayload = {};
+  
+  if (product.isBuy) {
+    userUpdatePayload.$push = {
+      buy: {
+        productId: product._id,
+        purchasedAt: new Date(),
+        quantity: Number(quantity || 1),
+        price: Number(price),
+      }
+    };
+  }
+
+  if (product.isSell) {
+    userUpdatePayload.$push = {
+      sell: {
+        productId: product._id,
+        listedAt: new Date(),
+        quantity: Number(quantity || 1),
+        price: Number(price),
+        isSold: false
+      }
+    };
+  }
+
+  if (Object.keys(userUpdatePayload).length > 0) {
+    await User.findByIdAndUpdate(userId, userUpdatePayload, { new: true });
+  }
 
   res
     .status(201)
