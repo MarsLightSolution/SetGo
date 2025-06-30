@@ -4,8 +4,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import Footer from "../components/common/Footer";
 import { Link } from "react-router-dom";
+import bannerImage from "../assets/images/banner1.png";
 
-// AdCard styled with Tailwind
+/* ---------- AdCard (unchanged) ---------- */
 const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
@@ -43,50 +44,78 @@ const AdCard = ({ image, title, location, ad, price }) => {
   );
 };
 
-// ---------------- Home ----------------
+/* ---------- Home with pagination ---------- */
 const Home = () => {
-  const [latestAds, setLatestAds] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [latestAds, setLatestAds]         = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
-  const fetchProducts = async (category = "All Products") => {
+
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages : 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+    nextPage   : null,
+    prevPage   : null,
+  });
+
+  const PAGE_SIZE = 10; // tweak if you want more / fewer per page
+
+  /* fetchProducts now accepts page & limit */
+  const fetchProducts = async (category = "All Products", page = 1) => {
     try {
-      const query = category !== "All Products" ? `?category=${category}` : "";
-      const response = await fetch(
-        `http://localhost:8080/api/products/getProducts${query}`
+      const params = new URLSearchParams({
+        page,
+        limit: PAGE_SIZE,
+      });
+      if (category !== "All Products") params.append("category", category);
+
+      const res    = await fetch(
+        `http://localhost:8080/api/products/getProducts?${params.toString()}`
       );
-      const result = await response.json();
-      const ads = Array.isArray(result?.data?.products)
-        ? result.data.products
-        : [];
-      setLatestAds(ads);
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
+      const json   = await res.json();
+
+      /* your custom labels: products, totalPages, etc. */
+      const {
+        products     = [],
+        totalPages   = 1,
+        currentPage  = 1,
+        hasNextPage,
+        hasPrevPage,
+        nextPage,
+        prevPage,
+      } = json.data ?? {};
+
+      setLatestAds(products);
+      setPagination({
+        currentPage,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+        nextPage,
+        prevPage,
+      });
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
     }
   };
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch("http://localhost:8080/api/categories");
-      const result = await response.json();
-      if (Array.isArray(result?.data?.categories)) {
-        setCategories(["All Products", ...result.data.categories]); // optional default
-      } else {
-        console.warn("Categories not received as expected");
-      }
-    } catch (error) {
-      console.error("Failed to fetch categories:", error);
-    }
-  };
+
+  /* run every time category OR page changes */
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, []);
+    fetchProducts(activeCategory, pagination.currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory, pagination.currentPage]);
 
-  const handleCategoryClick = (category) => {
-    setActiveCategory(category);
-    fetchProducts(category);
+  const handleCategoryClick = (cat) => {
+    setActiveCategory(cat);
+    /* reset to first page when category changes */
+    setPagination((p) => ({ ...p, currentPage: 1 }));
   };
 
-  const category = [
+  const goToPage = (page) =>
+    setPagination((p) => ({ ...p, currentPage: page }));
+
+  /* static portal categories */
+  const categories = [
     "All Products",
     "Cars & Motorcycles",
     "Real Estate",
@@ -101,19 +130,17 @@ const Home = () => {
     <>
       <div className="min-h-screen bg-gray-100">
         <div className="flex flex-col md:flex-row px-6 py-6">
-          {/* Sidebar */}
-          <div className="w-full md:w-1/4 mb-4 md:mb-0">
+          {/* ---------- Sidebar ---------- */}
+          <aside className="w-full md:w-1/4 mb-4 md:mb-0">
             <div className="bg-white p-4 rounded shadow">
               <h2 className="text-lg font-semibold mb-2">Categories</h2>
               <ul className="text-sm space-y-1 pl-4 text-gray-700">
-                {category.map((cat, index) => (
+                {categories.map((cat) => (
                   <li
-                    key={index}
+                    key={cat}
                     onClick={() => handleCategoryClick(cat)}
                     className={`cursor-pointer hover:underline ${
-                      activeCategory === cat
-                        ? "font-semibold text-green-700"
-                        : ""
+                      activeCategory === cat ? "font-semibold text-green-700" : ""
                     }`}
                   >
                     {cat}
@@ -121,20 +148,33 @@ const Home = () => {
                 ))}
               </ul>
             </div>
-          </div>
+          </aside>
 
-          {/* Main Content */}
-          <div className="w-full md:w-3/4 md:pl-6">
-            {/* Hero Banner */}
-            <div className="bg-white h-40 mb-6 flex items-center justify-center rounded shadow">
-              <h1 className="text-xl font-semibold">Join Now</h1>
-            </div>
+          {/* ---------- Main ---------- */}
+          <main className="w-full md:w-3/4 md:pl-6">
+            {/* Hero */}
+            <section className="py-6">
+              <div className="max-w-4xl mx-auto px-4 relative">
+                <img
+                  src={bannerImage}
+                  alt="User Banner"
+                  className="w-full h-[233px] object-cover rounded-xl shadow"
+                />
+                <div className="absolute bottom-6 left-10">
+                  <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg">
+                    Join Now
+                  </button>
+                </div>
+              </div>
+            </section>
 
             {/* Latest Ads */}
-            <h2 className="text-xl font-semibold text-gray-800">Latest Ads</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Latest Ads
+            </h2>
             <div className="flex flex-wrap gap-6">
-              {latestAds.map((ad, index) => (
-                <div key={index} className="mb-6">
+              {latestAds.map((ad) => (
+                <div key={ad._id} className="mb-6">
                   <Link to={`product/${ad._id}`}>
                     <AdCard
                       image={`http://localhost:8080/${
@@ -151,22 +191,37 @@ const Home = () => {
               ))}
             </div>
 
-            {/* Company Websites */}
-            <h2 className="text-xl font-semibold text-gray-800 mt-12">
-              Company websites in Germany
-            </h2>
-            <div className="flex flex-wrap gap-6">
-              {[...Array(3)].map((_, i) => (
-                <AdCard
-                  image="https://via.placeholder.com/150"
-                  title="Original BMW leather"
-                  location="Hamburg"
-                  ad={{ _id: `company-${i}` }}
-                  price={250}
-                />
-              ))}
+            {/* ---------- Pager ---------- */}
+            <div className="flex justify-center items-center gap-4 mt-6">
+              <button
+                disabled={!pagination.hasPrevPage}
+                onClick={() => goToPage(pagination.prevPage)}
+                className={`px-4 py-1 rounded ${
+                  pagination.hasPrevPage
+                    ? "bg-gray-200 hover:bg-gray-300"
+                    : "bg-gray-100 cursor-not-allowed"
+                }`}
+              >
+                Prev
+              </button>
+
+              <span className="text-sm text-gray-700">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+
+              <button
+                disabled={!pagination.hasNextPage}
+                onClick={() => goToPage(pagination.nextPage)}
+                className={`px-4 py-1 rounded ${
+                  pagination.hasNextPage
+                    ? "bg-gray-200 hover:bg-gray-300"
+                    : "bg-gray-100 cursor-not-allowed"
+                }`}
+              >
+                Next
+              </button>
             </div>
-          </div>
+          </main>
         </div>
         <Footer />
       </div>
