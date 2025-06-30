@@ -5,21 +5,31 @@ import { like, unlike } from "../slices/wishSlice";
 import Footer from "../components/common/Footer";
 import { Link } from "react-router-dom";
 import bannerImage from "../assets/images/banner1.png";
+import { useNavigate } from "react-router-dom";
 
 /* ---------- AdCard (unchanged) ---------- */
 const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
   const liked = ad && likedAds.some((item) => item._id === ad._id);
 
   const handleLikeToggle = () => {
+
+
     liked ? dispatch(unlike(ad)) : dispatch(like(ad));
+  };
+    const handleCardClick = () => {
+    navigate(`/products/product/${ad._id}`); // Open detail page on card click
   };
 
   return (
-    <div className="relative group hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between shadow-[rgba(0,_0,_0,_0.24)_0px_3px_8px] hover:shadow-[0px_0px_95px_53px_#00000024] gap-3 p-4 rounded-xl w-[250px] bg-white">
+    <div onClick={handleCardClick} 
+    className="relative group hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between shadow-[rgba(0,_0,_0,_0.24)_0px_3px_8px] hover:shadow-[0px_0px_95px_53px_#00000024] gap-3 p-4 rounded-xl w-[250px] bg-white">
       <button
-        onClick={handleLikeToggle}
+        onClick={(e)=>{
+          e.stopPropagation();
+          handleLikeToggle();}}
         className={`absolute top-2 right-2 transition duration-300 text-lg ${
           liked ? "text-red-500" : "text-gray-400"
         }`}
@@ -175,7 +185,6 @@ const Home = () => {
             <div className="flex flex-wrap gap-6">
               {latestAds.map((ad) => (
                 <div key={ad._id} className="mb-6">
-                  <Link to={`product/${ad._id}`}>
                     <AdCard
                       image={`http://localhost:8080/${
                         ad.pictures?.[0]?.replace(/\\/g, "/") ||
@@ -186,7 +195,6 @@ const Home = () => {
                       ad={ad}
                       price={ad.price}
                     />
-                  </Link>
                 </div>
               ))}
             </div>
