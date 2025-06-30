@@ -1,10 +1,12 @@
 const TempUser = require("../models/tempuser");
-const User = require("../models/user");
+const User = require("../models/user.js");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const redisClient = require("../utils/redisClient")
 require("dotenv").config();
+
 module.exports.signup = async (req, res) => {
   try {
     const { email, username, password } = req.body;
@@ -169,24 +171,54 @@ module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const redisKey = `login:${email}`;
 
-    if (!user) {
-      return res.status(404).json({ message: "The email address you entered is incorrect." });
+    // 1️⃣ Try fetching user from Redis first
+    const cachedUserData = await redisClient.get(redisKey);
+
+    let user;
+
+    if (cachedUserData) {
+      console.log("✅ User found in Redis cache");
+      user = JSON.parse(cachedUserData);
+    } else {
+      // 2️⃣ Fallback to MongoDB if not in Redis
+      user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({ message: "The email address you entered is incorrect." });
+      }
+
+      // Only cache what's needed (avoid full sensitive object)
+      const safeToCache = {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        password: user.password, // hashed
+        role: user.role
+      };
+
+      // Save to Redis for 24 hours
+      await redisClient.set(redisKey, JSON.stringify(safeToCache), {
+        EX: 60 * 60 * 24 // 24 hours
+      });
+      console.log("💾 User data cached in Redis");
     }
+
+    // 3️⃣ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "The password you entered is incorrect." });
     }
 
+
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
     // Optionally save refreshToken in DB or Redis
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    // user.refreshToken = refreshToken;
+    // await user.save({ validateBeforeSave: false });
 
-    // Set refresh token in HttpOnly cookie
+    // 5️⃣ Set refresh token as HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -194,9 +226,9 @@ module.exports.login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    res.json({
+    return res.json({
       success: true,
-      accessToken:"Bearer " + accessToken,
+      accessToken: "Bearer " + accessToken,
       userId: user._id,
       userName: user.username,
       role: user.role,
@@ -207,6 +239,7 @@ module.exports.login = async (req, res) => {
     return res.status(500).json({ message: "Internal server error." });
   }
 };
+
 module.exports.refreshAccessToken = async (req, res) => {
   const token = req.cookies.refreshToken;
   if (!token) {
@@ -267,6 +300,10 @@ module.exports.logout = async (req, res) => {
     if (user) {
       user.refreshToken = null;
       await user.save({ validateBeforeSave: false });
+
+
+      const redisKey = `login:${user.email}`; // Delete user entry from redis
+      await redisClient.del(redisKey);
     }
 
     // Clear the refresh token cookie
