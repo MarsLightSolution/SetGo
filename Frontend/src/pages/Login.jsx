@@ -2,42 +2,70 @@ import React, { useState } from "react";
 import { Heart, MessageSquareText, Pencil } from "lucide-react";
 import Footer from "../components/common/Footer";
 import { useNavigate } from "react-router-dom";
+import {
+  showSuccessToast,
+  showErrorToast,
+  ToastifyContainer,
+} from "../Hooks/Tostify";
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
-  const res = await fetch("http://localhost:8080/login", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  });
+      const res = await fetch("http://localhost:8080/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-  const data = await res.json();
-  console.log(data);
+      const data = await res.json();
+      console.log("Login response:", data);
 
-  if (res.status === 200 || res.status === 201) {
-    localStorage.setItem("userId", data.userId);
-    localStorage.setItem("accessToken", data.accessToken);
-    localStorage.setItem("userName", data.userName);
-    alert("Login successful!");
-    window.location.href = "/"; // full reload
-  } else {
-    alert(data.error || "Login failed");
-  }
-} catch (err) {
-  console.error("Login error:", err);
-  alert("An error occurred. Please try again.");
-}
+      if (res.status === 200 || res.status === 201) {
+        localStorage.setItem("userId", data.userId);
+        localStorage.setItem("accessToken", data.accessToken);
+        localStorage.setItem("userName", data.userName);
+
+        const userRes = await fetch(`http://localhost:8080/userdata/${data.userId}`, {
+          method: "GET",
+        });
+
+        const userData = await userRes.json();
+        if (userRes.ok) {
+          localStorage.setItem("userData", JSON.stringify(userData.data));
+        } else {
+          console.warn("Failed to fetch user details:", userData.message || userData.error);
+        }
+
+        showSuccessToast("Login successful!");
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      } else {
+        showErrorToast(data?.error || data?.message || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      showErrorToast("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
     <>
+      <ToastifyContainer />
+
       <div className="min-h-screen bg-white flex text-black items-center justify-center px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl w-full">
           {/* Left Side: Login Form */}
@@ -68,16 +96,45 @@ const Login = () => {
               </div>
 
               <div className="text-sm mt-2">
-                <a href="#" className="text-green-700 underline">
+                <button
+                  type="button"
+                  onClick={() => navigate("/renewpassword")}
+                  className="text-green-700 underline"
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
 
               <button
                 type="submit"
-                className="bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full mt-4"
+                disabled={loading}
+                className={`bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full mt-4 flex items-center justify-center ${
+                  loading ? "opacity-60 cursor-not-allowed" : ""
+                }`}
               >
-                Login
+                {loading ? (
+                  <svg
+                    className="animate-spin h-5 w-5 mr-2 text-black"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                ) : null}
+                {loading ? "Logging in..." : "Login"}
               </button>
             </form>
           </div>
@@ -104,7 +161,7 @@ const Login = () => {
 
             <button
               className="bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full w-fit"
-              onClick={() => window.location.href = "/register"}
+              onClick={() => (window.location.href = "/register")}
             >
               Register in 30 seconds
             </button>

@@ -2,6 +2,7 @@
 const ApiError      = require("../utils/ApiError");
 const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
+const user          = require("../models/user")
 const asyncHandler  = require("../utils/asyncHandler");
 const mongoose = require("mongoose");
 const User = require('../models/user');
@@ -26,6 +27,7 @@ const addProduct = asyncHandler(async (req, res) => {
 
   if (!termsAccepted)
     throw new ApiError(400, "You must accept the terms and conditions.");
+  console.log(req);
 
   if (!req.user?._id)
     throw new ApiError(401, "User authentication required.");
@@ -49,7 +51,9 @@ const addProduct = asyncHandler(async (req, res) => {
       street: streetNo || "",
     },
     name,
-    termsAccepted: termsAccepted === "true" || termsAccepted === true,
+    termsAccepted: termsAccepted === true || termsAccepted === "true",
+    owner: req.user._id || "",
+
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
     subscribe: subscribe === "true" || subscribe === true,

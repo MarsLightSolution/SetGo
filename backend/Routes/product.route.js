@@ -12,6 +12,7 @@ const {
 router.post("/add"
   ,verifyJWT
   , uploadPictures.fields([
+
     { name: "pictures", maxCount: 8 }
   ]), addProduct);
 
