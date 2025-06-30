@@ -1,5 +1,5 @@
-import multer from "multer";
-import path from "path";
+const multer =require("multer");
+const path =require("path");
 
 // Store all files in ./uploads with unique names
 const storage = multer.diskStorage({
@@ -10,7 +10,7 @@ const storage = multer.diskStorage({
   },
 });
 
-export const uploadPictures = multer({
+ const uploadPictures = multer({
   storage,
   limits: { files: 20 },           // hard-cap at 20 for safety
   fileFilter: (req, file, cb) => {
@@ -28,3 +28,4 @@ export const uploadPictures = multer({
   }
 },
 });
+module.exports=uploadPictures
