@@ -54,7 +54,7 @@ const productSchema = new mongoose.Schema(
     },
 
     createdAt: { type: Date, default: Date.now },
-  },
+  
   isBuy: {
     type: Boolean,
     default: false
@@ -70,9 +70,10 @@ const productSchema = new mongoose.Schema(
   owner: {
     type: Date,
     default: Date.now,
-  }
-});
+  },
+},
   { timestamps: true }
+
 );
 productSchema.plugin(mongooseAggregatePaginate);
 module.exports = mongoose.model("Product", productSchema);
