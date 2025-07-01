@@ -11,12 +11,15 @@ const {
 router.post("/add"
   ,verifyJWT
   , uploadPictures.fields([
+
     { name: "pictures", maxCount: 8 }
   ]), addProduct);
+
 
 // // Get all products 
 router.get("/getProducts"
   ,verifyJWT,getProducts);
+
 router.get("/product/:id",verifyJWT, getProductById);
 // Test route
 router.route("/try").post((req, res) => {

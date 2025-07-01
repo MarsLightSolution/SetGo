@@ -2,6 +2,7 @@
 const ApiError      = require("../utils/ApiError");
 const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
+const user          = require("../models/user")
 const asyncHandler  = require("../utils/asyncHandler");
 const mongoose = require("mongoose");
 const User = require('../models/user');
@@ -26,9 +27,10 @@ const addProduct = asyncHandler(async (req, res) => {
 
   if (!termsAccepted)
     throw new ApiError(400, "You must accept the terms and conditions.");
+  console.log(req);
 
-  if (!req.user?._id)
-    throw new ApiError(401, "User authentication required.");
+  // if (!req.user?._id)
+  //   throw new ApiError(401, "User authentication required.");
 
   if (!req.files?.pictures?.length)
     throw new ApiError(400, "At least one picture is required.");
@@ -49,52 +51,54 @@ const addProduct = asyncHandler(async (req, res) => {
       street: streetNo || "",
     },
     name,
-    termsAccepted: termsAccepted === "true" || termsAccepted === true,
+    termsAccepted: termsAccepted === true || termsAccepted === "true",
+    owner: "",
+
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
     subscribe: subscribe === "true" || subscribe === true,
     isBuy: isBuy === "true" || isBuy === true,
     isSell: isSell === "true" || isSell === true,
-    owner: req.user?._id || null,
+    owner: "",
   });
 
-  await User.findByIdAndUpdate(req.user._id, {
-    $push: {
-      sell: {
-        productId: product._id,
-        price: product.price,
-        quantity: 1, // default, adjust if needed
-        isSold: false,
-      },
-    },
-  });
+  // await User.findByIdAndUpdate(req.user._id, {
+  //   $push: {
+  //     sell: {
+  //       productId: product._id,
+  //       price: product.price,
+  //       quantity: 1, // default, adjust if needed
+  //       isSold: false,
+  //     },
+  //   },
+  // });
 
-  const userId = req.user?._id;
+  // const userId = req.user?._id;
 
   const userUpdatePayload = {};
   
-  if (product.isBuy) {
-    userUpdatePayload.$push = {
-      buy: {
-        productId: product._id,
-        purchasedAt: new Date(),
-        quantity: Number(quantity || 1),
-        price: Number(price),
-      }
-    };
-  }
+  // if (product.isBuy) {
+  //   userUpdatePayload.$push = {
+  //     buy: {
+  //       productId: product._id,
+  //       purchasedAt: new Date(),
+  //       quantity: Number(quantity || 1),
+  //       price: Number(price),
+  //     }
+  //   };
+  // }
 
-  if (product.isSell) {
-    userUpdatePayload.$push = {
-      sell: {
-        productId: product._id,
-        listedAt: new Date(),
-        quantity: Number(quantity || 1),
-        price: Number(price),
-        isSold: false
-      }
-    };
-  }
+  // if (product.isSell) {
+  //   userUpdatePayload.$push = {
+  //     sell: {
+  //       productId: product._id,
+  //       listedAt: new Date(),
+  //       quantity: Number(quantity || 1),
+  //       price: Number(price),
+  //       isSold: false
+  //     }
+  //   };
+  // }
 
   if (Object.keys(userUpdatePayload).length > 0) {
     await User.findByIdAndUpdate(userId, userUpdatePayload, { new: true });

@@ -59,6 +59,7 @@ const productSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+<<<<<<< HEAD
     isBuy: {
       type: Boolean,
       default: false,
@@ -72,7 +73,30 @@ const productSchema = new mongoose.Schema(
       ref: "User",
     },
   },
+=======
+
+    createdAt: { type: Date, default: Date.now },
+  
+  isBuy: {
+    type: Boolean,
+    default: false
+  },
+  isSell: {
+    type: Boolean,
+    default: false
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  owner: {
+    type: Date,
+    default: Date.now,
+  },
+},
+>>>>>>> d5b61aeb4e5a236ceb65da6078acf400673cb787
   { timestamps: true }
+
 );
 
 productSchema.plugin(mongooseAggregatePaginate);
