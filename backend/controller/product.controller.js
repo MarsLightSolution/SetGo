@@ -2,10 +2,10 @@
 const ApiError      = require("../utils/ApiError");
 const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
-const user          = require("../models/user")
+const User          = require("../models/user");
 const asyncHandler  = require("../utils/asyncHandler");
-const mongoose = require("mongoose");
-const User = require('../models/user');
+const mongoose      = require("mongoose");
+const logger        = require("../utils/logger");
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -25,20 +25,25 @@ const addProduct = asyncHandler(async (req, res) => {
     quantity
   } = req.body;
 
-  if (!termsAccepted)
+  logger.info(`[AddProduct] Request body received`, { body: req.body });
+
+  if (!termsAccepted) {
+    logger.warn(`[AddProduct] Terms not accepted`);
     throw new ApiError(400, "You must accept the terms and conditions.");
-  console.log(req);
+  }
 
-  // if (!req.user?._id)
-  //   throw new ApiError(401, "User authentication required.");
-
-  if (!req.files?.pictures?.length)
+  if (!req.files?.pictures?.length) {
+    logger.warn(`[AddProduct] No pictures uploaded`);
     throw new ApiError(400, "At least one picture is required.");
+  }
 
-  if (req.files.pictures.length > 20)
+  if (req.files.pictures.length > 20) {
+    logger.warn(`[AddProduct] Too many pictures uploaded`);
     throw new ApiError(400, "You can upload a maximum of 20 pictures.");
+  }
 
   const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
+  logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
   const product = await Product.create({
     title,
@@ -47,7 +52,7 @@ const addProduct = asyncHandler(async (req, res) => {
     description,
     pictures,
     location: {
-      postalCode:postalCode || "",
+      postalCode: postalCode || "",
       street: streetNo || "",
     },
     name,
@@ -62,64 +67,59 @@ const addProduct = asyncHandler(async (req, res) => {
     owner: "",
   });
 
-  // await User.findByIdAndUpdate(req.user._id, {
-  //   $push: {
-  //     sell: {
-  //       productId: product._id,
-  //       price: product.price,
-  //       quantity: 1, // default, adjust if needed
-  //       isSold: false,
-  //     },
-  //   },
-  // });
+  logger.info(`[AddProduct] Product created`, { productId: product._id });
 
-  // const userId = req.user?._id;
-
+  // --- Commented user update ---
+  /*
+  const userId = req.user?._id;
   const userUpdatePayload = {};
-  
-  // if (product.isBuy) {
-  //   userUpdatePayload.$push = {
-  //     buy: {
-  //       productId: product._id,
-  //       purchasedAt: new Date(),
-  //       quantity: Number(quantity || 1),
-  //       price: Number(price),
-  //     }
-  //   };
-  // }
 
-  // if (product.isSell) {
-  //   userUpdatePayload.$push = {
-  //     sell: {
-  //       productId: product._id,
-  //       listedAt: new Date(),
-  //       quantity: Number(quantity || 1),
-  //       price: Number(price),
-  //       isSold: false
-  //     }
-  //   };
-  // }
+  if (product.isBuy) {
+    userUpdatePayload.$push = {
+      buy: {
+        productId: product._id,
+        purchasedAt: new Date(),
+        quantity: Number(quantity || 1),
+        price: Number(price),
+      }
+    };
+  }
+
+  if (product.isSell) {
+    userUpdatePayload.$push = {
+      sell: {
+        productId: product._id,
+        listedAt: new Date(),
+        quantity: Number(quantity || 1),
+        price: Number(price),
+        isSold: false
+      }
+    };
+  }
 
   if (Object.keys(userUpdatePayload).length > 0) {
     await User.findByIdAndUpdate(userId, userUpdatePayload, { new: true });
+    logger.info(`[AddProduct] User updated`, { userId: userId });
   }
+  */
 
-  res
-    .status(201)
-    .json(new ApiResponse(201, product, "Product added successfully."));
+  res.status(201).json(new ApiResponse(201, product, "Product added successfully."));
 });
 
 const getProducts = asyncHandler(async (req, res) => {
   const { category, page = 1, limit = 10 } = req.query;
+
+  logger.info(`[GetProducts] Query`, { category, page, limit });
 
   const pipeline = [];
 
   if (category?.trim()) {
     pipeline.push({
       $match: {
-        category: new RegExp(`^${category.trim()}$`, "i"), // case-insensitive
+        category: new RegExp(`^${category.trim()}$`, "i"),
       },
     });
+    logger.info(`[GetProducts] Filter applied for category`, { category });
   }
 
   pipeline.push({ $sort: { createdAt: -1 } });
@@ -140,8 +140,8 @@ const getProducts = asyncHandler(async (req, res) => {
   };
 
   const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
-  
 
+  logger.info(`[GetProducts] Retrieved products`, { total: result.totalProducts });
 
   res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
@@ -150,15 +150,20 @@ const getProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
+    logger.warn(`[GetProductById] Invalid ID`, { id });
     throw new ApiError(400, "Invalid product ID");
   }
 
   const product = await Product.findById(id);
+
   if (!product) {
+    logger.warn(`[GetProductById] Product not found`, { id });
     throw new ApiError(404, "Product not found");
   }
+
+  logger.info(`[GetProductById] Product found`, { id });
 
   res.status(200).json(new ApiResponse(200, product, "Fetched product by ID"));
 });
 
-module.exports = { addProduct, getProducts,getProductById };
+module.exports = { addProduct, getProducts, getProductById };
