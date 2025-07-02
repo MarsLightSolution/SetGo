@@ -21,32 +21,32 @@ import EmailNotification from './Components/Popups/EmailNotification'
 import UserInfo from './Components/UserInfo/UserInfo'
 import Wishlist from './pages/Wishlist'
 import ProductDetail from './pages/ProductDescription'
+import ProtectedRoute from './Hooks/ProtectedRoute'
+import PublicRoute from './Hooks/PublicRoute'
 function App() {
   return (
     <div >
       <Navbar/>
       <Routes>
         <Route path='/' element={<Home/>}/>
-        <Route path='/register' element={<Register/>}/>
-        <Route path='/login' element={<Login/>}/>
+        <Route path='/register' element={<PublicRoute><Register/></PublicRoute>}/>
+        <Route path='/login' element={<PublicRoute><Login/></PublicRoute>}/>
         <Route path='/phoneverify' element={<PhoneVerification/>}/>
         <Route path='/SMS' element={<SmsVerify/>}/>
-        <Route path='/form' element={<Form/>}/>
+        <Route path='/form' element={<ProtectedRoute><Form/></ProtectedRoute>}/>
         <Route path='/renewpassword' element={<RenewPassword/>}/>
         <Route path='/confirm' element={<Confirm/>}/>
         <Route path='/pverify' element={<PVerify/>}/>
-        <Route path='/profile' element={<ProfileMgmt/>}/>
-        <Route path='/accountsettings' element={<AccountSettings/>}/>
-        <Route path='/paymentsettings' element={<PaymentSettings/>}/>
-        <Route path='/dataprotection' element={<DataProtection/>}/>
-        <Route path='/emailsettings' element={<EmailSettings/>}/>
-        <Route path='/aboutclassifieds' element={<AboutClassifieds/>}/>
-        <Route path='/newpassword' element={<NewPassword/>}/>
-        <Route path='/emailnotify' element={<EmailNotification/>}/>
-        <Route path='/userinfo' element={<UserInfo/>}/>
-        <Route path='/wishlist' element={<Wishlist/>}/>
+        <Route path='/profile' element={<ProtectedRoute><ProfileMgmt/></ProtectedRoute>}/>
+        <Route path='/accountsettings' element={<ProtectedRoute><AccountSettings/></ProtectedRoute>}/>
+        <Route path='/paymentsettings' element={<ProtectedRoute><PaymentSettings/></ProtectedRoute>}/>
+        <Route path='/dataprotection' element={<ProtectedRoute><DataProtection/></ProtectedRoute>}/>
+        <Route path='/emailsettings' element={<ProtectedRoute><EmailSettings/></ProtectedRoute>}/>
+        <Route path='/aboutclassifieds' element={<ProtectedRoute><AboutClassifieds/></ProtectedRoute>}/>
+        <Route path='/newpassword' element={<ProtectedRoute><NewPassword/></ProtectedRoute>}/>
+        <Route path='/emailnotify' element={<ProtectedRoute><EmailNotification/></ProtectedRoute>}/>
+        <Route path='/wishlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
         <Route path='/product/:id' element={<ProductDetail/>}/>
-        <Route path='/watchlist' element={<Wishlist/>}/>
         <Route path='products/product/:id' element={<ProductDetail/>}/>
       </Routes>
     </div>
