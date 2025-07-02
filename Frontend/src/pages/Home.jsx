@@ -58,22 +58,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
 const Home = () => {
   const [latestAds, setLatestAds]         = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
-<<<<<<< HEAD
   const token = localStorage.getItem("accessToken");
-  const fetchProducts = async (category = "All Products") => {
-    try {
-      const query = category !== "All Products" ? `?category=${category}` : "";
-      const response = await fetch(
-        `http://localhost:8080/api/products/getProducts${query}`
-        ,
-        {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:`${token}`,
-        },
-      }
-=======
-
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages : 1,
@@ -95,8 +80,13 @@ const Home = () => {
       if (category !== "All Products") params.append("category", category);
 
       const res    = await fetch(
-        `http://localhost:8080/api/products/getProducts?${params.toString()}`
->>>>>>> d5b61aeb4e5a236ceb65da6078acf400673cb787
+        `http://localhost:8080/api/products/getProducts?${params.toString()}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization:`${token}`,
+          },
+        }
       );
       const json   = await res.json();
 
