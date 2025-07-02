@@ -44,13 +44,10 @@ function App() {
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
         <Route path='/userinfo' element={<UserInfo/>}/>
-<<<<<<< HEAD
         <Route path='/wishlist' element={<Wishlist/>}/>
         <Route path='/product/:id' element={<ProductDetail/>}/>
-=======
         <Route path='/watchlist' element={<Wishlist/>}/>
         <Route path='products/product/:id' element={<ProductDetail/>}/>
->>>>>>> d5b61aeb4e5a236ceb65da6078acf400673cb787
       </Routes>
     </div>
   )
