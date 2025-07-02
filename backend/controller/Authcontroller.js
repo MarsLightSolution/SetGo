@@ -223,6 +223,7 @@ module.exports.refreshAccessToken = async (req, res) => {
   try {
     // Verify refresh token
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    console.log(process.env.REFRESH_TOKEN_SECRET);
 
     const user = await User.findById(decoded.id);
     if (!user || user.refreshToken !== token) {
@@ -243,16 +244,13 @@ module.exports.refreshAccessToken = async (req, res) => {
   }
 };
 module.exports.verifyJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  const authHeader = req.cookies.refreshToken;
+  if (!authHeader) {
     return res.status(401).json({ message: "Access token missing or invalid" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decoded = jwt.verify(authHeader, process.env.REFRESH_TOKEN_SECRET);
     req.user = decoded; // Attach user info to request
     next();
   } catch (err) {
@@ -281,11 +279,7 @@ module.exports.logout = async (req, res) => {
     }
 
     // Clear the refresh token cookie
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-    });
+    res.clearCookie("refreshToken");
 
     res.status(200).json({ message: "Logged out successfully" });
 
