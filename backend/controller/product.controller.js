@@ -1,4 +1,5 @@
 // controllers/product.controller.js
+
 const ApiError      = require("../utils/ApiError");
 const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
@@ -118,7 +119,15 @@ const getProducts = asyncHandler(async (req, res) => {
       $match: {
         category: new RegExp(`^${category.trim()}$`, "i"),
       },
+      name,
+      termsAccepted,
+      owner: req.user?._id || null,
+      offerType,
+      location,
+      showFullAddress,
+      subscribe,
     });
+
     logger.info(`[GetProducts] Filter applied for category`, { category });
   }
 
@@ -153,6 +162,38 @@ const getProductById = asyncHandler(async (req, res) => {
     logger.warn(`[GetProductById] Invalid ID`, { id });
     throw new ApiError(400, "Invalid product ID");
   }
+};
+
+// GET Paginated Products
+const getPaginatedProducts = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, category } = req.query;
+
+    // Build aggregation pipeline
+    const pipeline = [];
+
+    if (category && typeof category === "string" && category.trim() !== "") {
+      pipeline.push({ $match: { category: category.trim() } });
+    }
+
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    const aggregate = Product.aggregate(pipeline);
+
+    const options = {
+      page:  parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      customLabels: {
+        docs:         "products",
+        totalDocs:    "totalProducts",
+        page:         "currentPage",
+        totalPages:   "totalPages",
+        hasNextPage:  "hasNextPage",
+        hasPrevPage:  "hasPrevPage",
+        nextPage:     "nextPage",
+        prevPage:     "prevPage",
+      },
+    };
 
   const product = await Product.findById(id);
 
@@ -167,3 +208,4 @@ const getProductById = asyncHandler(async (req, res) => {
 });
 
 module.exports = { addProduct, getProducts, getProductById };
+

@@ -91,39 +91,6 @@ const userSchema = new mongoose.Schema({
         default: Date.now
       }
     }
-  ],
-  buy: [
-    {
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product'
-      },
-      purchasedAt: {
-        type: Date,
-        default: Date.now
-      },
-      quantity: Number,
-      price: Number
-    }
-  ],
-
-  sell: [
-    {
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product'
-      },
-      listedAt: {
-        type: Date,
-        default: Date.now
-      },
-      quantity: Number,
-      price: Number,
-      isSold: {
-        type: Boolean,
-        default: false
-      }
-    }
   ]
 }, { timestamps: true });
 

@@ -18,11 +18,14 @@ import Confirm from './pages/Confirm'
 import NewPassword from './Components/Popups/NewPassword'
 import RenewPassword from './Components/Popups/RenewPassword'
 import EmailNotification from './Components/Popups/EmailNotification'
+import useUserProfile from './Hooks/useUserProfile'
 import UserInfo from './Components/UserInfo/UserInfo'
+
 import Wishlist from './pages/Wishlist'
 import ProductDetail from './pages/ProductDescription'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
+
 function App() {
   return (
     <div >
@@ -48,6 +51,7 @@ function App() {
         <Route path='/wishlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
         <Route path='/product/:id' element={<ProductDetail/>}/>
         <Route path='products/product/:id' element={<ProductDetail/>}/>
+
       </Routes>
     </div>
   )
