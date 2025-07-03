@@ -3,11 +3,13 @@ import { Favorite, FavoriteBorder } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import Footer from "../components/common/Footer";
-import { Link } from "react-router-dom";
-import bannerImage from "../assets/images/banner1.png";
 import { useNavigate } from "react-router-dom";
+import bannerImage from "../assets/images/banner1.png";
+import leftadImage from "../assets/images/ad01.png";
+import rightadImage from "../assets/images/ad02.png";
 
-/* ---------- AdCard (unchanged) ---------- */
+// AdCard and SectionWithAds remain unchanged...
+
 const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -15,21 +17,23 @@ const AdCard = ({ image, title, location, ad, price }) => {
   const liked = ad && likedAds.some((item) => item._id === ad._id);
 
   const handleLikeToggle = () => {
-
-
     liked ? dispatch(unlike(ad)) : dispatch(like(ad));
   };
-    const handleCardClick = () => {
-    navigate(`/products/product/${ad._id}`); // Open detail page on card click
+
+  const handleCardClick = () => {
+    navigate(`/products/product/${ad._id}`);
   };
 
   return (
-    <div onClick={handleCardClick} 
-    className="relative group hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between shadow-[rgba(0,_0,_0,_0.24)_0px_3px_8px] hover:shadow-[0px_0px_95px_53px_#00000024] gap-3 p-4 rounded-xl w-[250px] bg-white">
+    <div
+      onClick={handleCardClick}
+      className="relative group hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between shadow-md hover:shadow-lg gap-3 p-3 rounded-xl w-[200px] bg-white"
+    >
       <button
-        onClick={(e)=>{
+        onClick={(e) => {
           e.stopPropagation();
-          handleLikeToggle();}}
+          handleLikeToggle();
+        }}
         className={`absolute top-2 right-2 transition duration-300 text-lg ${
           liked ? "text-red-500" : "text-gray-400"
         }`}
@@ -37,7 +41,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
         {liked ? <Favorite /> : <FavoriteBorder />}
       </button>
 
-      <div className="w-full h-[180px] flex justify-center items-center">
+      <div className="w-full h-[140px] flex justify-center items-center">
         <img
           src={image}
           alt="ad"
@@ -46,91 +50,116 @@ const AdCard = ({ image, title, location, ad, price }) => {
       </div>
 
       <div className="w-full text-left">
-        <p className="truncate text-gray-700 font-semibold text-lg">{title}</p>
-        <p className="text-gray-400 font-normal text-sm mt-1">{location}</p>
-        <p className="text-green-700 font-bold text-md mt-2">${price}</p>
+        <p className="truncate text-gray-700 font-semibold text-sm">{title}</p>
+        <p className="text-gray-400 font-normal text-xs mt-1">{location}</p>
+        <p className="text-green-700 font-bold text-sm mt-2">${price}</p>
       </div>
     </div>
   );
 };
 
-/* ---------- Home with pagination ---------- */
+const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
+  <div className="bg-white p-4 rounded shadow mt-3">
+    <h2 className="text-xl font-semibold text-gray-800 mb-4">{title}</h2>
+    <div className="flex flex-wrap gap-4">
+      {ads.map((ad) => (
+        <AdCard
+          key={ad._id}
+          image={`http://localhost:8080/${
+            ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"
+          }`}
+          title={ad.title}
+          location={ad.location?.postalCode || "Unknown"}
+          ad={ad}
+          price={ad.price}
+        />
+      ))}
+    </div>
+    <div className="flex justify-center items-center gap-4 mt-6">
+      <button
+        disabled={!pagination.hasPrevPage}
+        onClick={() =>
+          onPageChange((p) => ({ ...p, currentPage: pagination.prevPage }))
+        }
+        className={`px-4 py-1 rounded ${
+          pagination.hasPrevPage
+            ? "bg-gray-200 hover:bg-gray-300"
+            : "bg-gray-100 cursor-not-allowed"
+        }`}
+      >
+        Prev
+      </button>
+      <span className="text-sm text-gray-700">
+        Page {pagination.currentPage} of {pagination.totalPages}
+      </span>
+      <button
+        disabled={!pagination.hasNextPage}
+        onClick={() =>
+          onPageChange((p) => ({ ...p, currentPage: pagination.nextPage }))
+        }
+        className={`px-4 py-1 rounded ${
+          pagination.hasNextPage
+            ? "bg-gray-200 hover:bg-gray-300"
+            : "bg-gray-100 cursor-not-allowed"
+        }`}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+);
+
 const Home = () => {
-  const [latestAds, setLatestAds]         = useState([]);
+  const [latestAds, setLatestAds] = useState([]);
+  const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
   const token = localStorage.getItem("accessToken");
-  const [pagination, setPagination] = useState({
+  const PAGE_SIZE = 12;
+
+  const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
+  const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
-    totalPages : 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-    nextPage   : null,
-    prevPage   : null,
   });
 
-  const PAGE_SIZE = 10; // tweak if you want more / fewer per page
-
-  /* fetchProducts now accepts page & limit */
-  const fetchProducts = async (category = "All Products", page = 1) => {
+  const fetchProducts = async (type, page) => {
     try {
-      const params = new URLSearchParams({
-        page,
-        limit: PAGE_SIZE,
-      });
-      if (category !== "All Products") params.append("category", category);
+      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+      if (type === "category" && activeCategory !== "All Products") {
+        params.append("category", activeCategory);
+      }
 
-      const res    = await fetch(
+      const res = await fetch(
         `http://localhost:8080/api/products/getProducts?${params.toString()}`,
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization:`${token}`,
+            Authorization: `${token}`,
           },
         }
       );
-      const json   = await res.json();
+      const json = await res.json();
+      const { products = [], ...pagination } = json.data ?? {};
 
-      /* your custom labels: products, totalPages, etc. */
-      const {
-        products     = [],
-        totalPages   = 1,
-        currentPage  = 1,
-        hasNextPage,
-        hasPrevPage,
-        nextPage,
-        prevPage,
-      } = json.data ?? {};
-
-      setLatestAds(products);
-      setPagination({
-        currentPage,
-        totalPages,
-        hasNextPage,
-        hasPrevPage,
-        nextPage,
-        prevPage,
-      });
+      if (type === "category") {
+        setLatestAds(products);
+        setLatestPagination(pagination);
+      } else {
+        setRecommendedAds(products);
+        setRecommendedPagination(pagination);
+      }
     } catch (err) {
-      console.error("Failed to fetch products:", err);
+      console.error("Fetch failed:", err);
     }
   };
 
-  /* run every time category OR page changes */
   useEffect(() => {
-    fetchProducts(activeCategory, pagination.currentPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory, pagination.currentPage]);
+    fetchProducts("category", latestPagination.currentPage);
+  }, [activeCategory, latestPagination.currentPage]);
 
-  const handleCategoryClick = (cat) => {
-    setActiveCategory(cat);
-    /* reset to first page when category changes */
-    setPagination((p) => ({ ...p, currentPage: 1 }));
-  };
+  useEffect(() => {
+    fetchProducts("recommended", recommendedPagination.currentPage);
+  }, [recommendedPagination.currentPage]);
 
-  const goToPage = (page) =>
-    setPagination((p) => ({ ...p, currentPage: page }));
-
-  /* static portal categories */
   const categories = [
     "All Products",
     "Cars & Motorcycles",
@@ -142,104 +171,229 @@ const Home = () => {
     "Service",
   ];
 
-  return (
-    <>
-      <div className="min-h-screen bg-gray-100">
-        <div className="flex flex-col md:flex-row px-6 py-6">
-          {/* ---------- Sidebar ---------- */}
-          <aside className="w-full md:w-1/4 mb-4 md:mb-0">
-            <div className="bg-white p-4 rounded shadow">
-              <h2 className="text-lg font-semibold mb-2">Categories</h2>
-              <ul className="text-sm space-y-1 pl-4 text-gray-700">
-                {categories.map((cat) => (
-                  <li
-                    key={cat}
-                    onClick={() => handleCategoryClick(cat)}
-                    className={`cursor-pointer hover:underline ${
-                      activeCategory === cat ? "font-semibold text-green-700" : ""
-                    }`}
-                  >
-                    {cat}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </aside>
+  const galleryData = [
+    { title: "XVS 950 Midnightstar", location: "Oelde", price: "5,195 €" },
+    { title: "Washing machine", location: "Mönchengladbach", price: "333 €" },
+    { title: "Transport trolleys", location: "Bad Buchau", price: "115 €" },
+    { title: "Camping gear set", location: "Dresden", price: "150 €" },
+    { title: "Horses help children", location: "Schlutup", price: "VB" },
+  ];
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const visibleCount = 3;
 
-          {/* ---------- Main ---------- */}
-          <main className="w-full md:w-3/4 md:pl-6">
-            {/* Hero */}
-            <section className="py-6">
-              <div className="max-w-4xl mx-auto px-4 relative">
-                <img
-                  src={bannerImage}
-                  alt="User Banner"
-                  className="w-full h-[233px] object-cover rounded-xl shadow"
-                />
-                <div className="absolute bottom-6 left-10">
-                  <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg">
-                    Join Now
+  const companyWebsites = [
+    { name: "Flipkart", description: "Shop electronics, fashion, more" },
+    { name: "Amazon", description: "Online shopping destination" },
+    { name: "Myntra", description: "Fashion & lifestyle store" },
+    { name: "Snapdeal", description: "Deals and discounts online" },
+    { name: "Ajio", description: "Trendy clothes and accessories" },
+    { name: "Tata Cliq", description: "Luxury fashion & lifestyle" },
+    { name: "Reliance Digital", description: "Electronics & gadgets" },
+  ];
+  const [companyIndex, setCompanyIndex] = useState(0);
+  const visibleCompanyCount = 5;
+
+  return (
+    <div className="min-h-screen bg-gray-100 pt-[2rem]">
+      <div className="w-full flex justify-center">
+        <div className="w-full max-w-screen-xl px-4 flex gap-4 items-start">
+          {/* Sticky Left Ad */}
+          <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
+            <img
+              src={leftadImage}
+              alt="Left Ad"
+              className="w-full h-[550px] object-cover rounded"
+            />
+          </div>
+
+          {/* Scrollable main content */}
+          <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
+            <div className="relative">
+              <img
+                src={bannerImage}
+                alt="Banner"
+                className="w-full h-[233px] object-cover rounded-xl shadow"
+              />
+              <div className="absolute bottom-4 left-6 z-10">
+                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg">
+                  Join Now
+                </button>
+              </div>
+            </div>
+
+            {/* Category & Gallery */}
+            <div className="flex gap-4">
+              <div className="bg-white p-4 rounded shadow w-[38%] h-[350px] overflow-y-auto">
+                <h2 className="text-lg font-semibold mb-3">Categories</h2>
+                <ul className="text-sm space-y-4 pl-2 text-gray-700">
+                  {categories.map((cat) => (
+                    <li
+                      key={cat}
+                      onClick={() => {
+                        setActiveCategory(cat);
+                        setLatestPagination((p) => ({ ...p, currentPage: 1 }));
+                      }}
+                      className={`cursor-pointer hover:underline ${
+                        activeCategory === cat
+                          ? "font-semibold text-green-700"
+                          : ""
+                      }`}
+                    >
+                      {cat}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="bg-white p-4 rounded shadow flex-1">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Gallery</h2>
+                  <div className="flex gap-2">
+                    <button
+                      className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                      onClick={() =>
+                        setGalleryIndex((prev) => Math.max(prev - 1, 0))
+                      }
+                      disabled={galleryIndex === 0}
+                    >
+                      &#8592;
+                    </button>
+                    <button
+                      className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                      onClick={() =>
+                        setGalleryIndex((prev) =>
+                          Math.min(prev + 1, galleryData.length - visibleCount)
+                        )
+                      }
+                      disabled={
+                        galleryIndex >= galleryData.length - visibleCount
+                      }
+                    >
+                      &#8594;
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  {galleryData
+                    .slice(galleryIndex, galleryIndex + visibleCount)
+                    .map((item, index) => (
+                      <div
+                        key={index}
+                        className="w-[180px] bg-white border rounded shadow-sm flex-shrink-0 relative"
+                      >
+                        <div className="w-full h-[200px] bg-gray-100 flex justify-center items-center">
+                          <span className="text-sm text-gray-400">
+                            Image {galleryIndex + index + 1}
+                          </span>
+                        </div>
+                        <div className="p-2">
+                          <p className="text-sm font-medium text-gray-800">
+                            {item.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {item.location}
+                          </p>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-lime-400 text-xs font-bold px-2 py-[2px] rounded-sm">
+                          {item.price}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            <SectionWithAds
+              title="Latest Ads"
+              ads={latestAds}
+              pagination={latestPagination}
+              onPageChange={setLatestPagination}
+            />
+
+            <SectionWithAds
+              title="Recommended For You"
+              ads={recommendedAds}
+              pagination={recommendedPagination}
+              onPageChange={setRecommendedPagination}
+            />
+
+            {/* Company Websites */}
+            <div className="bg-white p-4 mt-3 rounded shadow">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Company Websites
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                    onClick={() =>
+                      setCompanyIndex((prev) => Math.max(prev - 1, 0))
+                    }
+                    disabled={companyIndex === 0}
+                  >
+                    &#8592;
+                  </button>
+                  <button
+                    className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                    onClick={() =>
+                      setCompanyIndex((prev) =>
+                        Math.min(
+                          prev + 1,
+                          companyWebsites.length - visibleCompanyCount
+                        )
+                      )
+                    }
+                    disabled={
+                      companyIndex >=
+                      companyWebsites.length - visibleCompanyCount
+                    }
+                  >
+                    &#8594;
                   </button>
                 </div>
               </div>
-            </section>
 
-            {/* Latest Ads */}
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Latest Ads
-            </h2>
-            <div className="flex flex-wrap gap-6">
-              {latestAds.map((ad) => (
-                <div key={ad._id} className="mb-6">
-                    <AdCard
-                      image={`http://localhost:8080/${
-                        ad.pictures?.[0]?.replace(/\\/g, "/") ||
-                        "uploads/placeholder.jpg"
-                      }`}
-                      title={ad.title}
-                      location={ad.location?.postalCode || "Unknown"}
-                      ad={ad}
-                      price={ad.price}
-                    />
-                </div>
-              ))}
+              <div className="flex gap-4 overflow-hidden">
+                {companyWebsites
+                  .slice(companyIndex, companyIndex + visibleCompanyCount)
+                  .map((site, index) => (
+                    <div
+                      key={index}
+                      className="w-[19%] bg-white border rounded shadow-sm flex-shrink-0 relative"
+                    >
+                      <div className="w-full h-[140px] bg-gray-100 flex justify-center items-center">
+                        <span className="text-sm text-gray-400">
+                          Logo {companyIndex + index + 1}
+                        </span>
+                      </div>
+                      <div className="p-2">
+                        <p className="text-sm font-medium text-gray-800">
+                          {site.name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {site.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </div>
 
-            {/* ---------- Pager ---------- */}
-            <div className="flex justify-center items-center gap-4 mt-6">
-              <button
-                disabled={!pagination.hasPrevPage}
-                onClick={() => goToPage(pagination.prevPage)}
-                className={`px-4 py-1 rounded ${
-                  pagination.hasPrevPage
-                    ? "bg-gray-200 hover:bg-gray-300"
-                    : "bg-gray-100 cursor-not-allowed"
-                }`}
-              >
-                Prev
-              </button>
+            <Footer />
+          </div>
 
-              <span className="text-sm text-gray-700">
-                Page {pagination.currentPage} of {pagination.totalPages}
-              </span>
-
-              <button
-                disabled={!pagination.hasNextPage}
-                onClick={() => goToPage(pagination.nextPage)}
-                className={`px-4 py-1 rounded ${
-                  pagination.hasNextPage
-                    ? "bg-gray-200 hover:bg-gray-300"
-                    : "bg-gray-100 cursor-not-allowed"
-                }`}
-              >
-                Next
-              </button>
-            </div>
-          </main>
+          {/* Sticky Right Ad */}
+          <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
+            <img
+              src={rightadImage}
+              alt="Right Ad"
+              className="w-full h-[550px] object-cover rounded"
+            />
+          </div>
         </div>
-        <Footer />
       </div>
-    </>
+    </div>
   );
 };
 
