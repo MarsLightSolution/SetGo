@@ -40,6 +40,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  walletBalance: {
+    type: Number,
+    default: 0
+  },
+  transactionHistory: [
+    {
+      transactionId: String,
+      type: String,
+      amount: Number,
+      date: { type: Date, default: Date.now }
+    }
+  ],
   activity: [
     {
       action: String,
