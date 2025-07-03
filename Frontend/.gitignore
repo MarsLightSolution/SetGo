@@ -1,59 +1,24 @@
-# Node modules
-node_modules/
-
 # Logs
-logs/
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Runtime data
-pids/
-*.pid
-*.seed
-*.pid.lock
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm/
-
-# Optional eslint cache
-.eslintcache
-
-# dotenv environment variables
-.env
-.env.local
-.env.*.local
+node_modules
+dist
+dist-ssr
+*.local
 
 # Editor directories and files
-.vscode/
-.idea/
-*.sublime-workspace
-
-# OS-specific
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-Thumbs.db
-
-# Build output
-dist/
-build/
-tmp/
-temp/
-
-# Coverage reports
-coverage/
-
-# Misc
-*.tgz
-*.swp
-
-# Ignore compiled files
-*.out
-*.class
-
-# Lock file (optional, if you're not using npm or want to avoid conflicts)
-/uploads/
-package-lock.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

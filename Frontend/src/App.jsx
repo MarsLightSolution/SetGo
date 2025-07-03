@@ -18,9 +18,10 @@ import Confirm from './pages/Confirm'
 import NewPassword from './Components/Popups/NewPassword'
 import RenewPassword from './Components/Popups/RenewPassword'
 import EmailNotification from './Components/Popups/EmailNotification'
+import useUserProfile from './Hooks/useUserProfile'
 import UserInfo from './Components/UserInfo/UserInfo'
-import Wishlist from './pages/Wishlist'
-import ProductDetail from './pages/ProductDescription'
+
+
 function App() {
   return (
     <div >
@@ -44,10 +45,6 @@ function App() {
         <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<EmailNotification/>}/>
         <Route path='/userinfo' element={<UserInfo/>}/>
-        <Route path='/wishlist' element={<Wishlist/>}/>
-        <Route path='/product/:id' element={<ProductDetail/>}/>
-        <Route path='/watchlist' element={<Wishlist/>}/>
-        <Route path='products/product/:id' element={<ProductDetail/>}/>
       </Routes>
     </div>
   )

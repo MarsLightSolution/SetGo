@@ -24,7 +24,7 @@ app.use('/api/assets', express.static(path.join(__dirname, 'assets')));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.resolve("uploads")));
+
 app.use("/", require("./Routes"));
 
 const port = process.env.PORT || 8080;
