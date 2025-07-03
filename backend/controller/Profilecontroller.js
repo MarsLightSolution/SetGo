@@ -1,7 +1,9 @@
-const User = require('../models/user'); // Adjust path as needed
+const User = require('../models/user');
 const twilio = require('twilio');
 const bcrypt = require('bcrypt');
+const logger = require('../utils/logger');
 require('dotenv').config();
+
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
@@ -9,135 +11,145 @@ const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
 const client = twilio(accountSid, authToken);
 
 module.exports.nameupdate = async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const { profileName } = req.body;
+  try {
+    const userId = req.params.id;
+    const { profileName } = req.body;
 
-        // Basic checks
-        if (!profileName || typeof profileName !== 'string') {
-            return res.status(400).json({ message: 'Profile name must be a non-empty string.' });
-        }
+    logger.info(`[NameUpdate] Request received`, { userId, profileName });
 
-        const trimmedName = profileName.trim();
-
-        // Custom validation
-        const nameRegex = /^[A-Za-z\s'-]+$/;
-
-        if (trimmedName.length === 0) {
-            return res.status(400).json({ message: 'Profile name cannot be empty or just spaces.' });
-        }
-
-        if (trimmedName.length > 16 || trimmedName.length <3) {
-            return res.status(400).json({ message: 'Profile name cannot be longer than 16 characters.' });
-        }
-
-        if (!nameRegex.test(trimmedName)) {
-            return res.status(400).json({
-                message: 'Profile name must contain only letters, spaces, hyphens (-), or apostrophes (\'). Numbers or special characters are not allowed.'
-            });
-        }
-
-        // Update user
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { username: trimmedName },
-            { new: true, runValidators: true }
-        );
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
-
-        res.status(200).json({
-            message: 'Profile name updated successfully.',
-            data: user
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Server error', error: err.message });
+    if (!profileName || typeof profileName !== 'string') {
+      logger.warn(`[NameUpdate] Invalid profile name`);
+      return res.status(400).json({ message: 'Profile name must be a non-empty string.' });
     }
+
+    const trimmedName = profileName.trim();
+    const nameRegex = /^[A-Za-z\s'-]+$/;
+
+    if (trimmedName.length === 0) {
+      logger.warn(`[NameUpdate] Name empty after trim`);
+      return res.status(400).json({ message: 'Profile name cannot be empty or just spaces.' });
+    }
+
+    if (trimmedName.length > 16 || trimmedName.length < 3) {
+      logger.warn(`[NameUpdate] Name length out of range`);
+      return res.status(400).json({ message: 'Profile name must be 3-16 characters long.' });
+    }
+
+    if (!nameRegex.test(trimmedName)) {
+      logger.warn(`[NameUpdate] Invalid name format`);
+      return res.status(400).json({
+        message: 'Profile name must contain only letters, spaces, hyphens (-), or apostrophes (\').'
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { username: trimmedName },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      logger.warn(`[NameUpdate] User not found`, { userId });
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    logger.info(`[NameUpdate] Name updated`, { userId });
+    res.status(200).json({ message: 'Profile name updated successfully.', data: user });
+
+  } catch (err) {
+    logger.error(`[NameUpdate] Server error`, { error: err.message });
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 };
 
 module.exports.updateDeliveryAddress = async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const { deliveryAddress } = req.body;
+  try {
+    const userId = req.params.id;
+    const { deliveryAddress } = req.body;
 
-        // Basic validation
-        if (!deliveryAddress || typeof deliveryAddress !== 'string') {
-            return res.status(400).json({ message: 'Delivery address must be a non-empty string.' });
-        }
+    logger.info(`[UpdateDeliveryAddress] Request`, { userId, deliveryAddress });
 
-        const trimmedAddress = deliveryAddress.trim();
-
-        if (trimmedAddress.length === 0) {
-            return res.status(400).json({ message: 'Delivery address cannot be empty or just spaces.' });
-        }
-
-        if (trimmedAddress.length > 300) {
-            return res.status(400).json({ message: 'Delivery address cannot exceed 300 characters.' });
-        }
-
-        // Update user
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { deliveryAddress: trimmedAddress },
-            { new: true, runValidators: true }
-        );
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
-
-        res.status(200).json({
-            message: 'Delivery address updated successfully.',
-            data: user
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Server error', error: err.message });
+    if (!deliveryAddress || typeof deliveryAddress !== 'string') {
+      logger.warn(`[UpdateDeliveryAddress] Invalid delivery address`);
+      return res.status(400).json({ message: 'Delivery address must be a non-empty string.' });
     }
+
+    const trimmedAddress = deliveryAddress.trim();
+
+    if (trimmedAddress.length === 0) {
+      logger.warn(`[UpdateDeliveryAddress] Address empty after trim`);
+      return res.status(400).json({ message: 'Delivery address cannot be empty or just spaces.' });
+    }
+
+    if (trimmedAddress.length > 300) {
+      logger.warn(`[UpdateDeliveryAddress] Address too long`);
+      return res.status(400).json({ message: 'Delivery address cannot exceed 300 characters.' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { deliveryAddress: trimmedAddress },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      logger.warn(`[UpdateDeliveryAddress] User not found`, { userId });
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    logger.info(`[UpdateDeliveryAddress] Updated`, { userId });
+    res.status(200).json({ message: 'Delivery address updated successfully.', data: user });
+
+  } catch (err) {
+    logger.error(`[UpdateDeliveryAddress] Server error`, { error: err.message });
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 };
 
 module.exports.verifyOTP = async (req, res) => {
-    const { phoneNumber, code, userId } = req.body;
+  const { phoneNumber, code, userId } = req.body;
 
-    if (!phoneNumber || !code || !userId) {
-        return res.status(400).json({ message: "Phone number, code, and userId are required" });
+  logger.info(`[VerifyOTP] Request`, { phoneNumber, userId });
+
+  if (!phoneNumber || !code || !userId) {
+    logger.warn(`[VerifyOTP] Missing fields`);
+    return res.status(400).json({ message: "Phone number, code, and userId are required" });
+  }
+
+  try {
+    const response = await client.verify.v2.services(verifySid)
+      .verificationChecks.create({ to: phoneNumber, code });
+
+    logger.info(`[VerifyOTP] Twilio response`, { status: response.status });
+
+    if (response.status === 'approved') {
+      const existingUser = await User.findOne({ phoneNumber });
+      if (existingUser && existingUser._id.toString() !== userId) {
+        logger.warn(`[VerifyOTP] Phone already in use`, { phoneNumber });
+        return res.status(409).json({ message: 'Phone number is already in use' });
+      }
+
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { phoneNumber },
+        { new: true, runValidators: true }
+      );
+
+      if (!user) {
+        logger.warn(`[VerifyOTP] User not found`, { userId });
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      logger.info(`[VerifyOTP] Phone updated`, { userId });
+      return res.status(200).json({ message: "OTP verified and phone number updated", verified: true, data: user });
+    } else {
+      logger.warn(`[VerifyOTP] Invalid OTP`, { phoneNumber });
+      return res.status(400).json({ message: "Invalid OTP", verified: false });
     }
-
-    try {
-        const response = await client.verify.v2.services(verifySid)
-            .verificationChecks.create({ to: phoneNumber, code });
-
-        if (response.status === 'approved') {
-            // Check if phone number is already taken
-            const existingUser = await User.findOne({ phoneNumber });
-            if (existingUser && existingUser._id.toString() !== userId) {
-                return res.status(409).json({ message: 'Phone number is already in use' });
-            }
-
-            // Update phone number
-            const user = await User.findByIdAndUpdate(
-                userId,
-                { phoneNumber },
-                { new: true, runValidators: true }
-            );
-
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-
-            return res.status(200).json({
-                message: "OTP verified and phone number updated",
-                verified: true,
-                data: user
-            });
-        } else {
-            return res.status(400).json({ message: "Invalid OTP", verified: false });
-        }
-    } catch (error) {
-        console.error('Error verifying OTP:', error.message);
-        return res.status(500).json({ message: "OTP verification failed", error: error.message });
-    }
+  } catch (error) {
+    logger.error(`[VerifyOTP] Twilio error`, { error: error.message });
+    return res.status(500).json({ message: "OTP verification failed", error: error.message });
+  }
 };
 
 module.exports.updateBillingAddress = async (req, res) => {
@@ -145,22 +157,25 @@ module.exports.updateBillingAddress = async (req, res) => {
     const userId = req.params.id;
     const { billingAddress } = req.body;
 
-    // Basic validation
+    logger.info(`[UpdateBillingAddress] Request`, { userId, billingAddress });
+
     if (!billingAddress || typeof billingAddress !== 'string') {
+      logger.warn(`[UpdateBillingAddress] Invalid billing address`);
       return res.status(400).json({ message: 'Billing address must be a non-empty string.' });
     }
 
     const trimmedAddress = billingAddress.trim();
 
     if (trimmedAddress.length === 0) {
+      logger.warn(`[UpdateBillingAddress] Address empty after trim`);
       return res.status(400).json({ message: 'Billing address cannot be empty or just spaces.' });
     }
 
     if (trimmedAddress.length > 300) {
+      logger.warn(`[UpdateBillingAddress] Address too long`);
       return res.status(400).json({ message: 'Billing address cannot exceed 300 characters.' });
     }
 
-    // Update user
     const user = await User.findByIdAndUpdate(
       userId,
       { billingAddress: trimmedAddress },
@@ -168,14 +183,15 @@ module.exports.updateBillingAddress = async (req, res) => {
     );
 
     if (!user) {
+      logger.warn(`[UpdateBillingAddress] User not found`, { userId });
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    res.status(200).json({
-      message: 'Billing address updated successfully.',
-      data: user
-    });
+    logger.info(`[UpdateBillingAddress] Updated`, { userId });
+    res.status(200).json({ message: 'Billing address updated successfully.', data: user });
+
   } catch (err) {
+    logger.error(`[UpdateBillingAddress] Server error`, { error: err.message });
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -185,21 +201,22 @@ module.exports.updatePassword = async (req, res) => {
     const userId = req.params.id;
     const { password } = req.body;
 
-    // Basic validation
+    logger.info(`[UpdatePassword] Request`, { userId });
+
     if (!password || typeof password !== 'string') {
+      logger.warn(`[UpdatePassword] Invalid password`);
       return res.status(400).json({ message: 'Password must be a non-empty string.' });
     }
 
     const trimmedPassword = password.trim();
 
     if (trimmedPassword.length < 6) {
+      logger.warn(`[UpdatePassword] Password too short`);
       return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
     }
 
-    // Hash the new password
     const hashedPassword = await bcrypt.hash(trimmedPassword, 10);
 
-    // Update user password
     const user = await User.findByIdAndUpdate(
       userId,
       { password: hashedPassword },
@@ -207,13 +224,15 @@ module.exports.updatePassword = async (req, res) => {
     );
 
     if (!user) {
+      logger.warn(`[UpdatePassword] User not found`, { userId });
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    res.status(200).json({
-      message: 'Password updated successfully.',
-    });
+    logger.info(`[UpdatePassword] Password updated`, { userId });
+    res.status(200).json({ message: 'Password updated successfully.' });
+
   } catch (err) {
+    logger.error(`[UpdatePassword] Server error`, { error: err.message });
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -222,22 +241,20 @@ module.exports.deleteUserAccount = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Optional: Add confirmation check or authentication here
+    logger.info(`[DeleteUserAccount] Request`, { userId });
 
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
+      logger.warn(`[DeleteUserAccount] User not found`, { userId });
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    res.status(200).json({
-      message: 'User account deleted successfully.',
-      data: {
-        id: deletedUser._id,
-        email: deletedUser.email
-      }
-    });
+    logger.info(`[DeleteUserAccount] Deleted`, { userId });
+    res.status(200).json({ message: 'User account deleted successfully.', data: { id: deletedUser._id, email: deletedUser.email } });
+
   } catch (err) {
+    logger.error(`[DeleteUserAccount] Server error`, { error: err.message });
     res.status(500).json({ message: 'Server error while deleting user', error: err.message });
   }
 };
@@ -246,18 +263,22 @@ module.exports.toggleNewsletterPreference = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found.' });
+    logger.info(`[ToggleNewsletter] Request`, { userId });
 
-    // Toggle the value
+    const user = await User.findById(userId);
+    if (!user) {
+      logger.warn(`[ToggleNewsletter] User not found`, { userId });
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
     user.newsletter = !user.newsletter;
     await user.save();
 
-    res.status(200).json({
-      message: `Newsletter preference toggled to ${user.newsletter}`,
-      data: user
-    });
+    logger.info(`[ToggleNewsletter] Preference toggled`, { userId, newsletter: user.newsletter });
+    res.status(200).json({ message: `Newsletter preference toggled to ${user.newsletter}`, data: user });
+
   } catch (err) {
+    logger.error(`[ToggleNewsletter] Server error`, { error: err.message });
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -266,77 +287,85 @@ module.exports.toggleMessagePreference = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found.' });
+    logger.info(`[ToggleMessagePreference] Request`, { userId });
 
-    // Toggle the value
+    const user = await User.findById(userId);
+    if (!user) {
+      logger.warn(`[ToggleMessagePreference] User not found`, { userId });
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
     user.messageforuser = !user.messageforuser;
     await user.save();
 
-    res.status(200).json({
-      message: `Message service preference toggled to ${user.messageforuser}`,
-      data: user
-    });
+    logger.info(`[ToggleMessagePreference] Toggled`, { userId, messageforuser: user.messageforuser });
+    res.status(200).json({ message: `Message service preference toggled to ${user.messageforuser}`, data: user });
+
   } catch (err) {
+    logger.error(`[ToggleMessagePreference] Server error`, { error: err.message });
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
 module.exports.getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Find the user by ID
-    const user = await User.findById(userId).select('-password -__v'); // Exclude sensitive fields
+    logger.info(`[GetUserProfile] Request`, { userId });
+
+    const user = await User.findById(userId).select('-password -__v');
 
     if (!user) {
+      logger.warn(`[GetUserProfile] User not found`, { userId });
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    res.status(200).json({
-      message: 'User profile retrieved successfully.',
-      data: user
-    });
+    logger.info(`[GetUserProfile] Found`, { userId });
+    res.status(200).json({ message: 'User profile retrieved successfully.', data: user });
+
   } catch (err) {
+    logger.error(`[GetUserProfile] Server error`, { error: err.message });
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
 module.exports.verifyEmail = async (req, res) => {
   const { userId, password, newEmail } = req.body;
 
+  logger.info(`[VerifyEmail] Request`, { userId, newEmail });
+
   try {
-    // Check required fields
     if (!userId || !password || !newEmail) {
+      logger.warn(`[VerifyEmail] Missing fields`);
       return res.status(400).json({ message: 'User ID, password, and new email are required.' });
     }
 
-    // Find user by ID
     const user = await User.findById(userId);
-
     if (!user) {
+      logger.warn(`[VerifyEmail] User not found`, { userId });
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    // Check if password matches
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
+      logger.warn(`[VerifyEmail] Incorrect password`);
       return res.status(401).json({ message: 'Incorrect password.' });
     }
 
-    // Check if new email is already taken
     const existingUser = await User.findOne({ email: newEmail });
     if (existingUser) {
+      logger.warn(`[VerifyEmail] Email already in use`, { newEmail });
       return res.status(409).json({ message: 'New email is already in use.' });
     }
 
-    // Update email
     user.email = newEmail;
     await user.save();
 
+    logger.info(`[VerifyEmail] Email updated`, { userId, newEmail });
     res.status(200).json({ message: 'Email updated successfully.', email: user.email });
 
   } catch (err) {
-    console.error('Error updating email:', err);
+    logger.error(`[VerifyEmail] Server error`, { error: err.message });
     res.status(500).json({ message: 'Server error.' });
   }
 };

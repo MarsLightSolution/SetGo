@@ -4,6 +4,10 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+
+const redisClient = require("../utils/redisClient");
+const logger = require("../utils/logger");
+
 require("dotenv").config();
 module.exports.signup = async (req, res) => {
   try {
@@ -30,12 +34,12 @@ module.exports.signup = async (req, res) => {
       return res.status(400).json({ error: "Username must be between 3 and 20 characters long" });
     }
 
-    
     // Check for existing email or username
-        const existingUsername = await User.findOne({ username });
-        if (existingUsername) {
-          return res.status(400).json({ error:"Username is already taken" });
-        }
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ error: "Username is already taken" });
+    }
+
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(400).json({ error: "Email is already registered" });
@@ -56,6 +60,7 @@ module.exports.signup = async (req, res) => {
     });
 
     await newUser.save();
+    logger.info(`[Signup] Temp user created: ${username}`);
 
     // Send verification email
     const transporter = nodemailer.createTransport({
@@ -63,53 +68,52 @@ module.exports.signup = async (req, res) => {
       port: 587,
       secure: false,
       auth: {
-        user:process.env.EMAIL_USER,
+        user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
     const verificationLink = `http://localhost:8080/verifyemail?token=${token}`;
 
-   const mailOptions = {
-  from: "yourgmail@gmail.com",
-  to: email,
-  subject: "Email Verification - Action Required",
-  html: `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-      <h2 style="color: #4CAF50;">Hi ${username},</h2>
-      <p>Thank you for signing up! To complete your registration, please verify your email address by clicking the button below.</p>
-      
-      <p><strong>Note:</strong> This verification link is valid for only <strong>15 minutes</strong>. If you do not verify within that time, the registration will expire.</p>
-      
-      <p style="text-align: center; margin: 30px 0;">
-        <a href="${verificationLink}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px;">
-          Verify My Email
-        </a>
-      </p>
-      
-      <p>If the button above doesn't work, copy and paste the following URL into your browser:</p>
-      <p><a href="${verificationLink}">${verificationLink}</a></p>
+    const mailOptions = {
+      from: "yourgmail@gmail.com",
+      to: email,
+      subject: "Email Verification - Action Required",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2 style="color: #4CAF50;">Hi ${username},</h2>
+          <p>Thank you for signing up! To complete your registration, please verify your email address by clicking the button below.</p>
+          <p><strong>Note:</strong> This verification link is valid for only <strong>15 minutes</strong>.</p>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${verificationLink}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px;">
+              Verify My Email
+            </a>
+          </p>
+          <p>If the button above doesn't work, copy and paste the following URL into your browser:</p>
+          <p><a href="${verificationLink}">${verificationLink}</a></p>
+          <p>If you did not request this email, you can safely ignore it.</p>
+          <br/>
+          <p>Best regards,</p>
+          <p><strong>Your Company Team</strong></p>
+        </div>
+      `,
+    };
 
-      <p>If you did not request this email, you can safely ignore it.</p>
-      <br/>
-      <p>Best regards,</p>
-      <p><strong>Your Company Team</strong></p>
-    </div>
-  `,
-};
     await transporter.sendMail(mailOptions);
+    logger.info(`[Signup] Verification email sent to ${email}`);
 
     res.status(201).json({ message: "Signup successful. Please check your email to verify your account." });
 
   } catch (error) {
-    console.error("Signup error:", error);
+    logger.error(`[Signup] Error: ${error.stack}`);
     res.status(500).json({ error: "Server error" });
   }
 };
+
 module.exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
-    console.log(token);
+    logger.info(`[VerifyEmail] Token received: ${token}`);
 
     if (!token) {
       return res.status(400).send("Verification token is required.");
@@ -128,6 +132,7 @@ module.exports.verifyEmail = async (req, res) => {
 
     if (existingUser) {
       await TempUser.deleteOne({ _id: tempUser._id });
+      logger.warn(`[VerifyEmail] User already exists for token: ${token}`);
       return res.status(409).send("User already exists in permanent database.");
     }
 
@@ -139,29 +144,29 @@ module.exports.verifyEmail = async (req, res) => {
     });
 
     await permanentUser.save();
-
- 
     await TempUser.deleteOne({ _id: tempUser._id });
+
+    logger.info(`[VerifyEmail] Email verified for user: ${permanentUser.email}`);
     return res.redirect(`http://localhost:5173/confirm?verified=true&email=${encodeURIComponent(permanentUser.email)}`);
   } catch (error) {
-    console.error("Verification error:", error);
+    logger.error(`[VerifyEmail] Error: ${error.stack}`);
     return res.status(500).send("An error occurred during email verification.");
   }
 };
 
 const generateAccessToken = (user) => {
   return jwt.sign(
-    { id: user.id, fullName: user.username},
+    { id: user.id, fullName: user.username },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "15m" } // access token valid for 15 mins
+    { expiresIn: "15m" }
   );
 };
 
 const generateRefreshToken = (user) => {
   return jwt.sign(
-    { id: user.id,fullName: user.username },
+    { id: user.id, fullName: user.username },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" } // refresh token valid for 7 days
+    { expiresIn: "7d" }
   );
 };
 
@@ -169,13 +174,44 @@ module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
 
-    if (!user) {
-      return res.status(404).json({ message: "The email address you entered is incorrect." });
+    const redisKey = `login:${email}`;
+
+    // 1️⃣ Try fetching user from Redis first
+    const cachedUserData = await redisClient.get(redisKey);
+
+    let user;
+
+    if (cachedUserData) {
+      console.log("✅ User found in Redis cache");
+      user = JSON.parse(cachedUserData);
+    } else {
+      // 2️⃣ Fallback to MongoDB if not in Redis
+      user = await User.findOne({ email });
+      if (!user) {
+        return res.status(404).json({ message: "The email address you entered is incorrect." });
+      }
+
+      // Only cache what's needed (avoid full sensitive object)
+      const safeToCache = {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        password: user.password, // hashed
+        role: user.role
+      };
+
+      // Save to Redis for 24 hours
+      await redisClient.set(redisKey, JSON.stringify(safeToCache), {
+        EX: 60 * 60 * 24 // 24 hours
+      });
+      console.log("💾 User data cached in Redis");
     }
+
+    // 3️⃣ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      logger.warn(`[Login] Incorrect password for ${email}`);
       return res.status(400).json({ message: "The password you entered is incorrect." });
     }
 
@@ -191,10 +227,13 @@ module.exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({
+
+    logger.info(`[Login] User logged in: ${email}`);
+    return res.json({
+
       success: true,
       accessToken:"Bearer " + accessToken,
       userId: user._id,
@@ -203,7 +242,7 @@ module.exports.login = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    logger.error(`[Login] Error: ${err.stack}`);
     return res.status(500).json({ message: "Internal server error." });
   }
 };
@@ -214,79 +253,81 @@ module.exports.refreshAccessToken = async (req, res) => {
   }
 
   try {
-    // Verify refresh token
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    console.log(process.env.REFRESH_TOKEN_SECRET);
 
     const user = await User.findById(decoded.id);
     if (!user || user.refreshToken !== token) {
+      logger.warn(`[RefreshToken] Invalid refresh token for user id: ${decoded.id}`);
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    // Generate a new access token
     const newAccessToken = generateAccessToken(user);
 
+    logger.info(`[RefreshToken] Access token refreshed for user id: ${decoded.id}`);
     res.json({
       success: true,
       accessToken: "Bearer " + newAccessToken,
     });
 
   } catch (err) {
-    console.error(err);
+    logger.error(`[RefreshToken] Error: ${err.stack}`);
     return res.status(403).json({ message: "Refresh token expired or invalid" });
   }
 };
-module.exports.verifyJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+module.exports.verifyJWT = (req, res, next) => {
+  const authHeader = req.cookies.refreshToken;
+  if (!authHeader) {
     return res.status(401).json({ message: "Access token missing or invalid" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    req.user = decoded; // Attach user info to request
+    const decoded = jwt.verify(authHeader, process.env.REFRESH_TOKEN_SECRET);
+    req.user = decoded;
+    logger.info(`[verifyJWT] Valid token for user id: ${decoded.id}`);
     next();
   } catch (err) {
-    console.error(err);
+    logger.error(`[verifyJWT] Invalid or expired token: ${err.stack}`);
     return res.status(403).json({ message: "Access token expired or invalid" });
   }
 };
+
 module.exports.logout = async (req, res) => {
   try {
     const token = req.cookies.refreshToken;
     if (!token) {
-      return res.status(200).json({ message: "Logged out successfully" }); // No token to clear
+      return res.status(200).json({ message: "Logged out successfully" });
     }
 
-    // Optional: Clear refresh token from database
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
     const user = await User.findById(decoded.id);
 
     if (user) {
       user.refreshToken = null;
       await user.save({ validateBeforeSave: false });
+
+
+      const redisKey = `login:${user.email}`;
+      await redisClient.del(redisKey);
+      logger.info(`[Logout] User logged out and cache cleared: ${user.email}`);
     }
 
     // Clear the refresh token cookie
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-    });
+    res.clearCookie("refreshToken");
 
     res.status(200).json({ message: "Logged out successfully" });
 
   } catch (err) {
-    console.error("Logout error:", err);
+    logger.error(`[Logout] Error: ${err.stack}`);
     return res.status(500).json({ message: "Failed to logout" });
   }
 };
+
 module.exports.forgetpassword = async (req, res) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
@@ -296,13 +337,12 @@ module.exports.forgetpassword = async (req, res) => {
       return res.status(404).json({ error: "User not found or email not verified" });
     }
 
-    // Generate token and set expiration
     const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetToken = resetToken;
-    user.resetTokenExpiration = Date.now() + 3600000; // 1 hour
+    user.resetTokenExpiration = Date.now() + 3600000;
     await user.save();
+    logger.info(`[ForgetPassword] Reset token created for: ${email}`);
 
-    // Create transporter
     const transporter = nodemailer.createTransport({
       service: "gmail",
       port: 587,
@@ -313,10 +353,8 @@ module.exports.forgetpassword = async (req, res) => {
       },
     });
 
-    // Construct reset link
     const resetLink = `http://localhost:8080/verifytoken?token=${resetToken}`;
 
-    // Prepare email
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
@@ -325,29 +363,31 @@ module.exports.forgetpassword = async (req, res) => {
         <div style="font-family: Arial, sans-serif; line-height: 1.6;">
           <h2>Password Reset Request</h2>
           <p>Hi ${user.username || "User"},</p>
-          <p>We received a request to reset your password. Click the button below to reset it:</p>
+          <p>Click below to reset your password:</p>
           <p style="text-align: center; margin: 30px 0;">
             <a href="${resetLink}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px;">
               Reset Password
             </a>
           </p>
-          <p>If the button above doesn't work, copy and paste this link in your browser:</p>
+          <p>If the button doesn't work, copy and paste this link in your browser:</p>
           <p><a href="${resetLink}">${resetLink}</a></p>
           <p>This link is valid for 1 hour.</p>
-          <p>If you did not request this, please ignore this email.</p>
+          <p>If you didn't request this, please ignore it.</p>
         </div>
       `,
     };
 
     await transporter.sendMail(mailOptions);
+    logger.info(`[ForgetPassword] Reset email sent to: ${email}`);
 
     res.status(200).json({ message: "Password reset link sent to your email." });
 
   } catch (error) {
-    console.error("Forget password error:", error);
+    logger.error(`[ForgetPassword] Error: ${error.stack}`);
     res.status(500).json({ error: "Something went wrong. Please try again later." });
   }
 };
+
 module.exports.verifyResetToken = async (req, res) => {
   try {
     const { token } = req.query;
@@ -365,14 +405,14 @@ module.exports.verifyResetToken = async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired token" });
     }
 
+    logger.info(`[VerifyResetToken] Valid reset token for: ${user.email}`);
     return res.redirect(`http://localhost:5173/newpassword?token=${token}`);
   } catch (error) {
-    console.error("Token verification error:", error);
+    logger.error(`[VerifyResetToken] Error: ${error.stack}`);
     return res.status(500).json({ error: "Server error during token verification" });
   }
 };
 
-// 2. RESET PASSWORD
 module.exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.query;
@@ -402,9 +442,10 @@ module.exports.resetPassword = async (req, res) => {
 
     await user.save();
 
+    logger.info(`[ResetPassword] Password reset for: ${user.email}`);
     return res.status(200).json({ message: "Password has been reset successfully" });
   } catch (error) {
-    console.error("Reset Password Error:", error);
+    logger.error(`[ResetPassword] Error: ${error.stack}`);
     return res.status(500).json({ error: "Something went wrong. Please try again later." });
   }
 };
