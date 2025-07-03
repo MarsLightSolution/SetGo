@@ -162,38 +162,6 @@ const getProductById = asyncHandler(async (req, res) => {
     logger.warn(`[GetProductById] Invalid ID`, { id });
     throw new ApiError(400, "Invalid product ID");
   }
-};
-
-// GET Paginated Products
-const getPaginatedProducts = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10, category } = req.query;
-
-    // Build aggregation pipeline
-    const pipeline = [];
-
-    if (category && typeof category === "string" && category.trim() !== "") {
-      pipeline.push({ $match: { category: category.trim() } });
-    }
-
-    pipeline.push({ $sort: { createdAt: -1 } });
-
-    const aggregate = Product.aggregate(pipeline);
-
-    const options = {
-      page:  parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      customLabels: {
-        docs:         "products",
-        totalDocs:    "totalProducts",
-        page:         "currentPage",
-        totalPages:   "totalPages",
-        hasNextPage:  "hasNextPage",
-        hasPrevPage:  "hasPrevPage",
-        nextPage:     "nextPage",
-        prevPage:     "prevPage",
-      },
-    };
 
   const product = await Product.findById(id);
 
@@ -207,5 +175,73 @@ const getPaginatedProducts = async (req, res, next) => {
   res.status(200).json(new ApiResponse(200, product, "Fetched product by ID"));
 });
 
-module.exports = { addProduct, getProducts, getProductById };
+// GET Paginated Products
+// const getPaginatedProducts = async (req, res, next) => {
+//   try {
+//     const { page = 1, limit = 10, category } = req.query;
+
+//     // Build aggregation pipeline
+//     const pipeline = [];
+
+//     if (category && typeof category === "string" && category.trim() !== "") {
+//       pipeline.push({ $match: { category: category.trim() } });
+//     }
+
+//     pipeline.push({ $sort: { createdAt: -1 } });
+
+//     const aggregate = Product.aggregate(pipeline);
+
+//     const options = {
+//       page:  parseInt(page, 10),
+//       limit: parseInt(limit, 10),
+//       customLabels: {
+//         docs:         "products",
+//         totalDocs:    "totalProducts",
+//         page:         "currentPage",
+//         totalPages:   "totalPages",
+//         hasNextPage:  "hasNextPage",
+//         hasPrevPage:  "hasPrevPage",
+//         nextPage:     "nextPage",
+//         prevPage:     "prevPage",
+//       },
+//     };
+//   }
+// });
+
+const getPaginatedProducts = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, category } = req.query;
+
+  const pipeline = [];
+
+  if (category && typeof category === "string" && category.trim() !== "") {
+    pipeline.push({ $match: { category: category.trim() } });
+  }
+
+  pipeline.push({ $sort: { createdAt: -1 } });
+
+  const aggregate = Product.aggregate(pipeline);
+
+  const options = {
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+    customLabels: {
+      docs: "products",
+      totalDocs: "totalProducts",
+      page: "currentPage",
+      totalPages: "totalPages",
+      hasNextPage: "hasNextPage",
+      hasPrevPage: "hasPrevPage",
+      nextPage: "nextPage",
+      prevPage: "prevPage",
+    },
+  };
+
+  const result = await Product.aggregatePaginate(aggregate, options);
+
+  logger.info(`[GetPaginatedProducts] Retrieved products`, { total: result.totalProducts });
+
+  res.status(200).json(new ApiResponse(200, result, "Paginated products fetched successfully."));
+});
+
+module.exports = { addProduct, getProducts, getProductById, getPaginatedProducts };
 
