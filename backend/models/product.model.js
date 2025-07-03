@@ -1,64 +1,88 @@
-const mongoose = require('mongoose');
-const mongooseAggregatePaginate = require('mongoose-aggregate-paginate-v2');
+const mongoose = require("mongoose");
+const mongooseAggregatePaginate = require("mongoose-aggregate-paginate-v2");
 
-
-const productSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 200,
-  },
-  category: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-  description: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 4000,
-  },
-  pictures: {
-    type: [String], 
-    validate: {
-      validator: function (v) {
-        return v.length <= 20;
-      },
-      message: 'You can upload a maximum of 20 pictures.',
+const productSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
     },
-  },
-  location: {
-    postalCode: {
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 4000,
+    },
+    pictures: {
+      type: [String],
+      validate: {
+        validator: (v) => v.length <= 8,
+        message: "You can upload a maximum of 8 pictures.",
+      },
+    },
+    location: {
+      postalCode: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      street: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
+    name: {
       type: String,
       required: true,
       trim: true,
     },
-    street: {
-      type: String,
-      default: '',
-      trim: true,
-    }
-  },
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  termsAccepted: {
+    termsAccepted: {
+      type: Boolean,
+      required: true,
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    createdAt: { type: Date, default: Date.now },
+  
+  isBuy: {
     type: Boolean,
-    required: true,
+    default: false
   },
-  createdAt: {
+  isSell: {
+    type: Boolean,
+    default: false
+  },
+  createdBy: {
     type: Date,
     default: Date.now,
-  }
-});
+  },
+  owner: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User'
+  },
+},
+  { timestamps: true }
+
+);
+
 productSchema.plugin(mongooseAggregatePaginate);
-module.exports = mongoose.model('Product', productSchema);
+
+module.exports = mongoose.model("Product", productSchema);
