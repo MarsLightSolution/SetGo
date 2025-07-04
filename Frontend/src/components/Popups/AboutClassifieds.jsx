@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Footer from '../../Components/common/Footer.jsx';
 
 function AboutClassifieds() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ function AboutClassifieds() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
+      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden mb-10">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
@@ -70,6 +71,9 @@ function AboutClassifieds() {
           </div>
         </div>
       </div>
+
+      {/* Footer outside the flex container */}
+      <Footer />
     </motion.div>
   );
 }

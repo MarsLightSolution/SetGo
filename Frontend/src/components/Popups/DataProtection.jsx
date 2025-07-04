@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye } from "lucide-react";
 import { motion } from 'framer-motion';
+import Footer from '../common/Footer';
 
 function DataProtection() {
   const navigate = useNavigate();
@@ -80,6 +81,9 @@ function DataProtection() {
             </div>
           </div>
         </div>
+      </div>
+       <div className="mt-10">
+        <Footer />
       </div>
     </motion.div>
   );

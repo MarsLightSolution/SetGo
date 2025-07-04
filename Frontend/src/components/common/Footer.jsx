@@ -1,82 +1,89 @@
 import React from "react";
 
 const Footer = () => {
-  const classifiedsItems = [
-    "About Us",
-    "Career",
-    "Press",
-    "Classified Magazines",
-    "Engagement",
-    "Mobile Apps",
-  ];
-
-  const informationItems = [
-    "Help",
-    "Tips for your safety",
-    "Child and Youth Protection",
-    "Privacy policy",
-    "Privacy settings",
-    "Terms of use",
-    "Imprint",
-  ];
-
-  const companiesItems = [
-    "Classified real estate",
-    "Pro infopoint",
-    "Pro packages for companies",
-    "Advertising on Classified",
+  const footerColumns = [
+    {
+      title: "Classifieds",
+      links: [
+        "About Us",
+        "Career",
+        "Press",
+        "Classifieds Magazine",
+        "Engagement",
+        "Mobile Apps",
+      ],
+    },
+    {
+      title: "Information",
+      links: [
+        "Help",
+        "Tips for your safety",
+        "Child and your protection",
+        "Privacy Policy",
+        "Privacy Settings",
+        "Terms of use",
+      ],
+    },
+    {
+      title: "For companies",
+      links: [
+        "Classified Real Estate",
+        "PRO Infopoint",
+        "PRO Packages for companies",
+        "Advertising on classifieds",
+      ],
+    },
+    {
+      title: "Social Media",
+      links: [
+        "Facebook",
+        "Youtube",
+        "Instagram",
+        "Threads",
+        "Pinterest",
+        "Tik Tok",
+      ],
+    },
+    {
+      title: "Generally",
+      links: [
+        "Popular searches",
+        "Ads Overview",
+        "Overview of company pages",
+        "Car valuation",
+      ],
+    },
   ];
 
   return (
-    <div className="bg-[#F4F2EF] ">
-      <div className="w-full py-10 text-black px-4 lg:px-10">
-        <div className="border-b border-richblack-700 pb-10">
-          <div className="flex flex-col lg:flex-row justify-between gap-10">
-            {/* Column 1 */}
-            <div className="flex flex-col gap-3">
-              <div className="font-semibold text-[20px] mb-2">Classifieds</div>
-              {classifiedsItems.map((item, idx) => (
-                <p key={idx} className="text-sm hover:underline text-[20px] cursor-pointer">
-                  {item}
-                </p>
-              ))}
-            </div>
-
-            {/* Column 2 */}
-            <div className="flex flex-col gap-3">
-              <div className="font-semibold text-[20px] mb-2">Information</div>
-              {informationItems.map((item, idx) => (
-                <p key={idx} className="text-sm hover:underline text-[20px] cursor-pointer">
-                  {item}
-                </p>
-              ))}
-            </div>
-
-            {/* Column 3 */}
-            <div className="flex flex-col gap-3">
-              <div className="font-semibold text-[20px] mb-2">For companies</div>
-              {companiesItems.map((item, idx) => (
-                <p key={idx} className="text-sm hover:underline text-[20px] cursor-pointer">
-                  {item}
-                </p>
-              ))}
-            </div>
-
-            {/* Column 4 & 5 */}
-            {Array(2).fill(0).map((_, index) => (
-              <div key={index} className="flex flex-col gap-3">
-                <div className="font-semibold text-[20px] mb-2">Classifieds</div>
-                {classifiedsItems.map((item, idx) => (
-                  <p key={idx} className="text-sm hover:underline  text-[20px] cursor-pointer">
-                    {item}
-                  </p>
+    <footer className="bg-white mt-1">
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          {footerColumns.map((col, i) => (
+            <div key={i}>
+              <h3 className="font-semibold text-gray-900 mb-4">{col.title}</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                {col.links.map((link, j) => (
+                  <li key={j}>
+                    <a href="#" className="hover:text-green-800 transition-colors">
+                      {link}
+                    </a>
+                  </li>
                 ))}
-              </div>
-            ))}
-          </div>
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-gray-200 mt-8 pt-6 text-center text-xs text-gray-500 space-y-1">
+          <p>
+            Copyright © 2005-2025 Marktplaats B.V. All rights reserved.
+            Designated trademarks belong to their respective owners.
+          </p>
+          <p>The classifieds services are operated by kleinanzeigen.de GmbH.</p>
         </div>
       </div>
-    </div>
+    </footer>
   );
 };
 

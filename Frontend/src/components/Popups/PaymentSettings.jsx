@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, X } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Footer from '../common/Footer';
 
 function PaymentSettings() {
   const [showPayoutModal, setShowPayoutModal] = useState(false);
@@ -98,6 +99,9 @@ function PaymentSettings() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="mt-10">
+        <Footer />
       </div>
     </motion.div>
   );

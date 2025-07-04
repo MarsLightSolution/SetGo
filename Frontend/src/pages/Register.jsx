@@ -91,7 +91,8 @@ const Register = () => {
     <>
       <ToastifyContainer />
 
-      <div className="min-h-screen flex items-center text-black justify-center bg-[#f5f3f0]">
+      <div className="py-8 flex items-center text-black justify-center bg-[#f5f3f0]">
+
         <div className="w-full max-w-md bg-white px-6 py-8 rounded-md text-center">
           <h2 className="text-lg text-black font-semibold mb-4">
             Register in 30 seconds
@@ -132,7 +133,7 @@ const Register = () => {
                 className="absolute right-3 top-2/5 transform -translate-y-1/2 cursor-pointer text-gray-500"
                 onClick={() => setShowPassword((prev) => !prev)}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
               </span>
             </div>
 
