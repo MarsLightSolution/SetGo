@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { Heart, MessageSquareText, Pencil } from "lucide-react";
+import {
+  Heart,
+  MessageSquareText,
+  Pencil,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import Footer from "../components/common/Footer";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,6 +17,7 @@ import {
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -36,15 +43,19 @@ const Login = () => {
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("userName", data.userName);
 
-        const userRes = await fetch(`http://localhost:8080/userdata/${data.userId}`, {
-          method: "GET",
-        });
+        const userRes = await fetch(
+          `http://localhost:8080/userdata/${data.userId}`,
+          { method: "GET" }
+        );
 
         const userData = await userRes.json();
         if (userRes.ok) {
           localStorage.setItem("userData", JSON.stringify(userData.data));
         } else {
-          console.warn("Failed to fetch user details:", userData.message || userData.error);
+          console.warn(
+            "Failed to fetch user details:",
+            userData.message || userData.error
+          );
         }
 
         showSuccessToast("Login successful!");
@@ -66,8 +77,8 @@ const Login = () => {
     <>
       <ToastifyContainer />
 
-      <div className="min-h-screen bg-white flex text-black items-center justify-center px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl w-full">
+      <div className="py-8 flex items-center justify-center bg-[#f5f3f0] text-black">
+        <div className="bg-white rounded-md shadow-md p-8 max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Left Side: Login Form */}
           <div>
             <h2 className="text-lg font-semibold mb-2">Log In</h2>
@@ -84,22 +95,29 @@ const Login = () => {
                   className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
-              <div>
+
+              <div className="relative">
                 <label className="block mb-1 font-medium">Password</label>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full border border-gray-300 rounded-md px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
+                <span
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-3/4 transform -translate-y-1/2 cursor-pointer text-gray-500"
+                >
+                  {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                </span>
               </div>
 
               <div className="text-sm mt-2">
                 <button
                   type="button"
                   onClick={() => navigate("/renewpassword")}
-                  className="text-green-700 underline"
+                  className="text-green-700 underline cursor-pointer"
                 >
                   Forgot your password?
                 </button>
@@ -108,11 +126,11 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full mt-4 flex items-center justify-center ${
+                className={`bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full mt-4 flex items-center justify-center cursor-pointer ${
                   loading ? "opacity-60 cursor-not-allowed" : ""
                 }`}
               >
-                {loading ? (
+                {loading && (
                   <svg
                     className="animate-spin h-5 w-5 mr-2 text-black"
                     xmlns="http://www.w3.org/2000/svg"
@@ -133,7 +151,7 @@ const Login = () => {
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     ></path>
                   </svg>
-                ) : null}
+                )}
                 {loading ? "Logging in..." : "Login"}
               </button>
             </form>
@@ -160,7 +178,7 @@ const Login = () => {
             </ul>
 
             <button
-              className="bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full w-fit"
+              className="bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full w-fit cursor-pointer"
               onClick={() => (window.location.href = "/register")}
             >
               Register in 30 seconds
@@ -168,6 +186,7 @@ const Login = () => {
           </div>
         </div>
       </div>
+
       <Footer />
     </>
   );

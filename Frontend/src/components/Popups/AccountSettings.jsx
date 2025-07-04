@@ -11,6 +11,7 @@ import NewPasswordModal from '../Settings/NewPasswordModal';
 import useUserProfile from '../../Hooks/useUserProfile';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
+import Footer from '../common/Footer'; // ✅ Added Footer import
 
 function AccountSettings() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ function AccountSettings() {
 
   const handleBillingUpdate = async (newAddress) => {
     if (!profile || !profile._id) {
-      toast.error('User  profile is not available.');
+      toast.error('User profile is not available.');
       return;
     }
 
@@ -61,7 +62,7 @@ function AccountSettings() {
 
     try {
       if (!profile || !profile._id) {
-        toast.error('User  profile is not available.');
+        toast.error('User profile is not available.');
         return;
       }
 
@@ -71,11 +72,8 @@ function AccountSettings() {
           method: "POST",
           credentials: "include",
         });
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("userName");
-        localStorage.removeItem("userData");
-         setTimeout(() => {
+        localStorage.clear();
+        setTimeout(() => {
           window.location.href = "/register";
         }, 1000);
       }
@@ -118,12 +116,11 @@ function AccountSettings() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 py-10"
+      className="min-h-screen bg-gray-50 py-10 flex flex-col"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Toastify */}
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Loader Overlay */}
@@ -133,8 +130,8 @@ function AccountSettings() {
         </div>
       )}
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
+      {/* Main Card */}
+      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden mb-10">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
@@ -160,7 +157,7 @@ function AccountSettings() {
           </nav>
         </div>
 
-        {/* Main */}
+               {/* Main */}
         <div className="flex-1 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Account settings</h2>
 
@@ -242,7 +239,7 @@ function AccountSettings() {
             <button className="text-green-600 hover:text-green-700 text-sm" onClick={() => setShowBillingModal(true)}>Edit</button>
           </div>
 
-          {/* Delete */}
+          {/* Example: Delete button at the end */}
           <div className="flex justify-end">
             <button onClick={handleDeleteAccount} className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium">
               <Trash2 className="w-4 h-4" />
@@ -252,7 +249,7 @@ function AccountSettings() {
         </div>
       </div>
 
-      {/* Billing Modal */}
+      {/* Modals */}
       <AddressModal isOpen={showBillingModal} onClose={() => setShowBillingModal(false)} onSave={handleBillingUpdate} />
       <AnimatePresence>
         {popupStep && (
@@ -279,7 +276,6 @@ function AccountSettings() {
         )}
       </AnimatePresence>
 
-      {/* Password Modal */}
       <AnimatePresence>
         {showPasswordModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
@@ -295,6 +291,11 @@ function AccountSettings() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ✅ Footer with margin on top */}
+      <div className="mt-8">
+        <Footer />
+      </div>
     </motion.div>
   );
 }

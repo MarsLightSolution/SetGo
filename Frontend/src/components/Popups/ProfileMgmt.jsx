@@ -8,6 +8,7 @@ import {
   showErrorToast,
   ToastifyContainer,
 } from '../../Hooks/Tostify';
+import Footer from '../common/Footer'; // Import Footer
 
 function ProfileMgmt() {
   const navigate = useNavigate();
@@ -59,10 +60,11 @@ function ProfileMgmt() {
       showErrorToast(err.response?.data?.message || 'Failed to update address');
     }
   };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
+    <div className="min-h-screen bg-gray-50 py-10 flex flex-col">
       <ToastifyContainer />
-      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
+      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden mb-10">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
@@ -98,7 +100,7 @@ function ProfileMgmt() {
               <span className="mr-3">✉️</span> Emails
             </button>
             <button
-              onClick={() => navigate('/aboutclassieds')}
+              onClick={() => navigate('/aboutclassifieds')}
               className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
             >
               <span className="mr-3">❤️</span> About Classified Ads
@@ -197,6 +199,11 @@ function ProfileMgmt() {
         onClose={() => setShowAddressModal(false)}
         onSave={handleAddressUpdate}
       />
+
+      {/* Footer with top margin */}
+      <div className="mt-10">
+        <Footer />
+      </div>
     </div>
   );
 }

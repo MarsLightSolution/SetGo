@@ -173,17 +173,17 @@ module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const redisKey = `login:${email}`;
+    // const redisKey = `login:${email}`;
 
     // 1️⃣ Try fetching user from Redis first
-    const cachedUserData = await redisClient.get(redisKey);
+    // const cachedUserData = await redisClient.get(redisKey);
 
     let user;
 
-    if (cachedUserData) {
-      console.log("✅ User found in Redis cache");
-      user = JSON.parse(cachedUserData);
-    } else {
+    // if (cachedUserData) {
+    //   console.log("✅ User found in Redis cache");
+    //   user = JSON.parse(cachedUserData);
+    // } else {
       // 2️⃣ Fallback to MongoDB if not in Redis
       user = await User.findOne({ email });
       if (!user) {
@@ -191,20 +191,20 @@ module.exports.login = async (req, res) => {
       }
 
       // Only cache what's needed (avoid full sensitive object)
-      const safeToCache = {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        password: user.password, // hashed
-        role: user.role
-      };
+      // const safeToCache = {
+      //   _id: user._id,
+      //   username: user.username,
+      //   email: user.email,
+      //   password: user.password, // hashed
+      //   role: user.role
+      // };
 
       // Save to Redis for 24 hours
-      await redisClient.set(redisKey, JSON.stringify(safeToCache), {
-        EX: 60 * 60 * 24 // 24 hours
-      });
-      console.log("💾 User data cached in Redis");
-    }
+      // await redisClient.set(redisKey, JSON.stringify(safeToCache), {
+      //   EX: 60 * 60 * 24 // 24 hours
+      // });
+      // console.log("💾 User data cached in Redis");
+    
 
     // 3️⃣ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
@@ -305,8 +305,8 @@ module.exports.logout = async (req, res) => {
       user.refreshToken = null;
       await user.save({ validateBeforeSave: false });
 
-      const redisKey = `login:${user.email}`;
-      await redisClient.del(redisKey);
+      // const redisKey = `login:${user.email}`;
+      // await redisClient.del(redisKey);
       logger.info(`[Logout] User logged out and cache cleared: ${user.email}`);
     }
 

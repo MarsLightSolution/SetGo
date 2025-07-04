@@ -1,7 +1,7 @@
 import { Routes,Route } from 'react-router-dom'
 import './App.css'
 import Register from './pages/Register'
-import Navbar from './components/common/Navbar'
+import Navbar from './Components/common/Navbar'
 import Home from './pages/Home'
 import Form from './pages/Form'
 import Login from './pages/Login'
@@ -23,6 +23,8 @@ import Wishlist from './pages/Wishlist'
 import ProductDetail from './pages/ProductDescription'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
+import UserPage from './pages/UserPage'
+import MySearch from './pages/MySearch'
 function App() {
   return (
     <div >
@@ -45,9 +47,13 @@ function App() {
         <Route path='/aboutclassifieds' element={<ProtectedRoute><AboutClassifieds/></ProtectedRoute>}/>
         <Route path='/newpassword' element={<ProtectedRoute><NewPassword/></ProtectedRoute>}/>
         <Route path='/emailnotify' element={<ProtectedRoute><EmailNotification/></ProtectedRoute>}/>
-        <Route path='/wishlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
+        <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
         <Route path='/product/:id' element={<ProductDetail/>}/>
         <Route path='products/product/:id' element={<ProductDetail/>}/>
+        <Route path='userpage' element={<UserPage/>}/>
+        <Route path='mysearch' element={<MySearch/>}/>
+        <Route path='userinfo' element={<UserInfo/>}/>
+       
       </Routes>
     </div>
   )

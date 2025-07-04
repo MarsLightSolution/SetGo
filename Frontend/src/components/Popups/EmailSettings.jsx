@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import Footer from '../common/Footer';
 
 function EmailSettings() {
   const [newsletter, setNewsletter] = useState(false);
@@ -127,6 +128,9 @@ function EmailSettings() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="mt-10">
+        <Footer />
       </div>
     </motion.div>
   );
