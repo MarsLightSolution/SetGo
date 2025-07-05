@@ -4,9 +4,9 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const redisClient = require("../utils/redisClient");
 const logger = require("../utils/logger");
 require("dotenv").config();
+const axios = require("axios")
 
 module.exports.signup = async (req, res) => {
   try {
@@ -34,7 +34,12 @@ module.exports.signup = async (req, res) => {
     }
 
     // Check for existing email or username
-    const existingUsername = await User.findOne({ username });
+    const existingUsername = await User.findOne({
+      $or: [
+        { "username.en": username },
+        { "username.de": username }
+      ]
+    });
     if (existingUsername) {
       return res.status(400).json({ error: "Username is already taken" });
     }
@@ -50,10 +55,27 @@ module.exports.signup = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Translate username to German
+    let translatedUsername = "";
+    try {
+      const response = await axios.post("http://localhost:5000/translate", {
+        q: username,
+        source: "en",
+        target: "de"
+      });
+      translatedUsername = response.data.translatedText;
+    } catch (err) {
+      console.error("Translation failed, using English only:", err.message);
+      translatedUsername = username; // fallback
+    }
+
     // Save temp user
     const newUser = new TempUser({
       email,
-      username,
+      username: {
+        en: username,
+        de: translatedUsername
+      },
       password: hashedPassword,
       token,
     });
@@ -173,37 +195,10 @@ module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const redisKey = `login:${email}`;
 
-    // 1️⃣ Try fetching user from Redis first
-    const cachedUserData = await redisClient.get(redisKey);
-
-    let user;
-
-    if (cachedUserData) {
-      console.log("✅ User found in Redis cache");
-      user = JSON.parse(cachedUserData);
-    } else {
-      // 2️⃣ Fallback to MongoDB if not in Redis
-      user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({ message: "The email address you entered is incorrect." });
-      }
-
-      // Only cache what's needed (avoid full sensitive object)
-      const safeToCache = {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        password: user.password, // hashed
-        role: user.role
-      };
-
-      // Save to Redis for 24 hours
-      await redisClient.set(redisKey, JSON.stringify(safeToCache), {
-        EX: 60 * 60 * 24 // 24 hours
-      });
-      console.log("💾 User data cached in Redis");
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "The email address you entered is incorrect." });
     }
 
     // 3️⃣ Compare password
@@ -212,7 +207,6 @@ module.exports.login = async (req, res) => {
       logger.warn(`[Login] Incorrect password for ${email}`);
       return res.status(400).json({ message: "The password you entered is incorrect." });
     }
-
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -305,9 +299,7 @@ module.exports.logout = async (req, res) => {
       user.refreshToken = null;
       await user.save({ validateBeforeSave: false });
 
-      const redisKey = `login:${user.email}`;
-      await redisClient.del(redisKey);
-      logger.info(`[Logout] User logged out and cache cleared: ${user.email}`);
+      logger.info(`[Logout] User logged out : ${user.email}`);
     }
 
     // Clear the refresh token cookie
