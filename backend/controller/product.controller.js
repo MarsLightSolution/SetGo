@@ -1,11 +1,12 @@
 // controllers/product.controller.js
-const ApiError      = require("../utils/ApiError");
-const ApiResponse   = require("../utils/ApiResponse");
-const Product       = require("../models/product.model");
-const User          = require("../models/user");
-const asyncHandler  = require("../utils/asyncHandler");
-const mongoose      = require("mongoose");
-const logger        = require("../utils/logger");
+const ApiError = require("../utils/ApiError");
+const ApiResponse = require("../utils/ApiResponse");
+const Product = require("../models/product.model");
+const User = require("../models/user");
+const asyncHandler = require("../utils/asyncHandler");
+const mongoose = require("mongoose");
+const logger = require("../utils/logger");
+const axios = require("axios")
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -45,71 +46,56 @@ const addProduct = asyncHandler(async (req, res) => {
   const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
   logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
+  const translateText = async (text) => {
+    const response = await axios.post("http://localhost:5000/translate", {
+      q: text,
+      source: "en",
+      target: "de"
+    }, {
+      headers: { "Content-Type": "application/json" }
+    });
+    return response.data.translatedText;
+  };
+
+  const translatedTitle = await translateText(title);
+  const translatedCategory = await translateText(category);
+  const translatedDescription = await translateText(description);
+  const translatedName = await translateText(name);
+
   const product = await Product.create({
-    title,
-    category,
+    title: { en: title, de: translatedTitle },
+    category: { en: category, de: translatedCategory },
     price: Number(price),
-    description,
-    pictures,
+    description: { en: description, de: translatedDescription },
+    pictures: "",
     location: {
       postalCode: postalCode || "",
       street: streetNo || "",
     },
-    name,
+    name: { en: name, de: translatedName },
     termsAccepted: termsAccepted === true || termsAccepted === "true",
-    owner: "",
-
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
     subscribe: subscribe === "true" || subscribe === true,
     isBuy: isBuy === "true" || isBuy === true,
     isSell: isSell === "true" || isSell === true,
-    owner: "",
+    owner: req.user?._id || "" // ✅ if you have user auth
   });
 
   logger.info(`[AddProduct] Product created`, { productId: product._id });
 
-  // --- Commented user update ---
-  /*
-  const userId = req.user?._id;
-  const userUpdatePayload = {};
-
-  if (product.isBuy) {
-    userUpdatePayload.$push = {
-      buy: {
-        productId: product._id,
-        purchasedAt: new Date(),
-        quantity: Number(quantity || 1),
-        price: Number(price),
-      }
-    };
-  }
-
-  if (product.isSell) {
-    userUpdatePayload.$push = {
-      sell: {
-        productId: product._id,
-        listedAt: new Date(),
-        quantity: Number(quantity || 1),
-        price: Number(price),
-        isSold: false
-      }
-    };
-  }
-
-  if (Object.keys(userUpdatePayload).length > 0) {
-    await User.findByIdAndUpdate(userId, userUpdatePayload, { new: true });
-    logger.info(`[AddProduct] User updated`, { userId: userId });
-  }
-  */
-
   res.status(201).json(new ApiResponse(201, product, "Product added successfully."));
 });
 
-const getProducts = asyncHandler(async (req, res) => {
-  const { category, page = 1, limit = 10 } = req.query;
 
-  logger.info(`[GetProducts] Query`, { category, page, limit });
+const getProducts = asyncHandler(async (req, res) => {
+  const { category, page = 1, limit = 10, lang = "en" } = req.query;
+
+
+  const validLangs = ["en", "de"];
+  const selectedLang = validLangs.includes(lang) ? lang : "en";
+
+  logger.info(`[GetProducts] Query`, { category, page, limit, lang: selectedLang });
 
   const pipeline = [];
 
@@ -128,18 +114,37 @@ const getProducts = asyncHandler(async (req, res) => {
     page: Number(page),
     limit: Number(limit),
     customLabels: {
-      docs:        "products",
-      totalDocs:   "totalProducts",
-      page:        "currentPage",
-      totalPages:  "totalPages",
+      docs: "products",
+      totalDocs: "totalProducts",
+      page: "currentPage",
+      totalPages: "totalPages",
       hasNextPage: "hasNextPage",
       hasPrevPage: "hasPrevPage",
-      nextPage:    "nextPage",
-      prevPage:    "prevPage",
+      nextPage: "nextPage",
+      prevPage: "prevPage",
     },
   };
 
   const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
+
+  logger.info(`[GetProducts] Retrieved products`, { total: result.totalProducts });
+
+  result.products = result.products.map(prod => ({
+    _id: prod._id,
+    title: prod.title[selectedLang] || prod.title.en,
+    category: prod.category[selectedLang] || prod.category.en,
+    price: prod.price,
+    description: prod.description[selectedLang] || prod.description.en,
+    pictures: prod.pictures,
+    location: prod.location,
+    name: prod.name[selectedLang] || prod.name.en,
+    termsAccepted: prod.termsAccepted,
+    owner: prod.owner,
+    isBuy: prod.isBuy,
+    isSell: prod.isSell,
+    createdAt: prod.createdAt,
+    updatedAt: prod.updatedAt
+  }));
 
   logger.info(`[GetProducts] Retrieved products`, { total: result.totalProducts });
 
@@ -148,6 +153,10 @@ const getProducts = asyncHandler(async (req, res) => {
 
 const getProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { lang = "en" } = req.query;
+
+  const validLangs = ["en", "de"];
+  const selectedLang = validLangs.includes(lang) ? lang : "en";
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     logger.warn(`[GetProductById] Invalid ID`, { id });
@@ -161,9 +170,26 @@ const getProductById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  const productResponse = {
+    _id: product._id,
+    title: product.title[selectedLang] || product.title.en,
+    category: product.category[selectedLang] || product.category.en,
+    price: product.price,
+    description: product.description[selectedLang] || product.description.en,
+    pictures: product.pictures,
+    location: product.location,
+    name: product.name[selectedLang] || product.name.en,
+    termsAccepted: product.termsAccepted,
+    owner: product.owner,
+    isBuy: product.isBuy,
+    isSell: product.isSell,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+  };
+
   logger.info(`[GetProductById] Product found`, { id });
 
-  res.status(200).json(new ApiResponse(200, product, "Fetched product by ID"));
+  res.status(200).json(new ApiResponse(200, productResponse, "Fetched product by ID"));
 });
 
 module.exports = { addProduct, getProducts, getProductById };

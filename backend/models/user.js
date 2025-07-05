@@ -2,23 +2,20 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   profileName: {
-    type: String,
-    required: false,
-    trim: true
+    en: { type: String, required: false, trim: true },
+    de: { type: String, required: false, trim: true },
   },
   deliveryAddress: {
-    type: String,
-    required: false,
-    default:"NA"
+    en: { type: String, required: false, default: "NA" },
+    de: { type: String, required: false, default: "NA" },
   },
   billingAddress: {
-    type: String,
-    required: false,
-    default:"NA"
+    en: { type: String, required: false, default: "NA" },
+    de: { type: String, required: false, default: "NA" },
   },
   phoneNumber: {
-    type: String,
-    required: false,
+    en: { type: String, required: false },
+    de: { type: String, required: false },
   },
   email: {
     type: String,
@@ -28,9 +25,8 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   username: {
-    type: String,
-    required: true,
-    unique: true
+    en: { type: String, required: true, unique: true },
+    de: { type: String, required: true, unique: true },
   },
   emailVerified: {
     type: Boolean,
@@ -72,24 +68,24 @@ const userSchema = new mongoose.Schema({
     }
   ],
   newsletter: {
-      type: Boolean,
-      default: false
+    type: Boolean,
+    default: false
   },
   messageforuser: {
-      type: Boolean,
-      default: false
+    type: Boolean,
+    default: false
   },
 
   refreshToken: {
     type: String, // for JWT refresh token
-    required: false     
+    required: false
   },
   resetToken: {
     type: String, // for password reset token
     required: false
   },
   resetTokenExpiration: {
-    type: Date 
+    type: Date
   },
   messagesFromUsers: [
     {
