@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
-
 // AdCard and SectionWithAds remain unchanged...
 
 const AdCard = ({ image, title, location, ad, price }) => {
@@ -115,6 +114,9 @@ const Home = () => {
   const [activeCategory, setActiveCategory] = useState("All Products");
   const token = localStorage.getItem("accessToken");
   const PAGE_SIZE = 12;
+  const filter=useSelector((state)=>state.filter);
+    const [products, setProducts] = useState([]);
+  const [filtered, setFiltered] = useState([]);
 
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
   const [recommendedPagination, setRecommendedPagination] = useState({
@@ -127,7 +129,11 @@ const Home = () => {
       if (type === "category" && activeCategory !== "All Products") {
         params.append("category", activeCategory);
       }
-
+    if (filter.minPrice) params.append("minPrice", filter.minPrice);
+    if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
+    if (filter.condition) params.append("condition", filter.condition);
+    if (filter.radius) params.append("radius", filter.radius);
+    if (filter.city) params.append("city", filter.city);
       const res = await fetch(
         `http://localhost:8080/api/products/getProducts?${params.toString()}`,
         {
@@ -154,11 +160,15 @@ const Home = () => {
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
-  }, [activeCategory, latestPagination.currentPage]);
+  }, [activeCategory, latestPagination.currentPage,filter]);
 
   useEffect(() => {
     fetchProducts("recommended", recommendedPagination.currentPage);
   }, [recommendedPagination.currentPage]);
+  useEffect(() => {
+  // Reset to page 1 when filters change
+  setLatestPagination((prev) => ({ ...prev, currentPage: 1 }));
+}, [filter]);
 
   const categories = [
     "All Products",
