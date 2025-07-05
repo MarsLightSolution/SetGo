@@ -1,9 +1,23 @@
+import React, { useEffect, useState } from "react";
+
 const PaymentDialog = ({ onClose, product, user }) => {
   if (!product || !user) return null;
 
-  const walletBalance = user.walletBalance || 0;
+  const [walletBalance, setWalletBalance] = useState(user.walletBalance || 0);
+  const [isPaid, setIsPaid] = useState(false);
   const productPrice = product.price || 0;
   const needsTopUp = walletBalance < productPrice;
+  const remainingBalance = walletBalance - productPrice;
+
+  const handlePayment = () => {
+    if (needsTopUp) {
+      alert("Please add money to wallet before proceeding.");
+      return;
+    }
+    setWalletBalance(remainingBalance); // simulate deduction
+    setIsPaid(true);
+    alert("Payment successful. Thank you!");
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -36,7 +50,7 @@ const PaymentDialog = ({ onClose, product, user }) => {
         </div>
 
         {/* Delivery Info */}
-        <div className="border rounded p-4 mb-4 text-sm">
+        <div className="border rounded p-4 mb-2 text-sm">
           <p className="text-gray-700 font-semibold mb-1">Deliver To</p>
           <p className="text-gray-600">{user.profileName || user.username}</p>
           <p className="text-gray-600">{user.deliveryAddress || "Not Provided"}</p>
@@ -44,18 +58,22 @@ const PaymentDialog = ({ onClose, product, user }) => {
           <p className="text-gray-600">{user.phoneNumber || "No phone number"}</p>
         </div>
 
+        {/* Deduction Reason (only after payment) */}
+        {isPaid && (
+          <div className="text-green-600 text-sm mb-4">
+            ₹{productPrice} was deducted from your wallet for purchasing "{product.title}".
+          </div>
+        )}
+
+        {/* Pay Button */}
         <button
-          onClick={() => {
-            if (needsTopUp) {
-              alert("Please add money to wallet before proceeding.");
-              return;
-            }
-            alert("Redirecting to payment gateway...");
-            onClose();
-          }}
-          className="w-full bg-lime-500 hover:bg-lime-600 text-white font-semibold py-2 rounded"
+          onClick={handlePayment}
+          className={`w-full ${
+            needsTopUp ? "bg-gray-300 cursor-not-allowed" : "bg-lime-500 hover:bg-lime-600"
+          } text-white font-semibold py-2 rounded`}
+          disabled={needsTopUp || isPaid}
         >
-          Proceed to Pay ₹{productPrice}
+          {isPaid ? `Paid ₹${productPrice}` : `Proceed to Pay ₹${productPrice}`}
         </button>
 
         <div className="text-xs text-center text-gray-500 mt-4">
