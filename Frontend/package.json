@@ -20,6 +20,7 @@
     "axios": "^1.10.0",
     "framer-motion": "^12.19.1",
     "lucide-react": "^0.518.0",
+    "rc-slider": "^11.1.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",

@@ -9,7 +9,7 @@ const {
 } = require("../controller/product.controller.js");
 
 router.post("/add"
-  ,verifyJWT
+  // ,verifyJWT
   , uploadPictures.fields([
 
     { name: "pictures", maxCount: 8 }
@@ -18,9 +18,12 @@ router.post("/add"
 
 // // Get all products 
 router.get("/getProducts"
-  ,verifyJWT,getProducts);
+  // ,verifyJWT
+  ,getProducts);
 
-router.get("/product/:id",verifyJWT, getProductById);
+router.get("/product/:id"
+  // ,verifyJWT
+  , getProductById);
 // Test route
 router.route("/try").post((req, res) => {
   res.send("Test passed");
