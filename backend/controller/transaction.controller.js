@@ -8,15 +8,15 @@ const asyncHandler  = require("../utils/asyncHandler");
 // transfer money from one account to another
 const fundTransfer = asyncHandler(async(req,res)=>{
     try {
+        console.log(req.body);
         const newTransaction = new Transaction(req.body);
         await newTransaction.save();
-
-        await User.findByIdAndUpdate(req.body.sender,{
-            $inc:{balance: -req.body.amount},
+        await User.findByIdAndUpdate(req.body.senderId,{
+            $inc:{walletBalance: -req.body.amount},
         });
 
-        await User.findByIdAndUpdate(req.body.receiver,{
-            $inc:{balance : req.body.amount}
+        await User.findByIdAndUpdate(req.body.receiverId,{
+            $inc:{walletBalance : req.body.amount}
         });
 
         res.send({
@@ -25,6 +25,7 @@ const fundTransfer = asyncHandler(async(req,res)=>{
             success:true,
         });
     } catch(error){
+        console.log(error);
         res.send({
             Message:"Transaction failed",
             data:error.Message,
