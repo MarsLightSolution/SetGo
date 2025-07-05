@@ -3,7 +3,7 @@ const mongooseAggregatePaginate = require('mongoose-aggregate-paginate-v2');
 
 const e_transactionSchema = new mongoose.Schema(
     {
-        userId:{
+        senderId:{
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true
@@ -22,10 +22,6 @@ const e_transactionSchema = new mongoose.Schema(
             type: Number,
             required: true,
             min: 0
-        },
-        balanceAfter: {
-            type: Number,
-            required: true
         },
         description: {
             type: String,

@@ -10,7 +10,11 @@ const User =require("../models/user.js");
 
 
 // verify the transaction
-router.post("/verifyTransaction", verifyJWT ,verifyUser);
-router.post("/transferFund", verifyJWT ,fundTransfer);
+router.post("/verifyTransaction"
+    , verifyJWT 
+    ,verifyUser);
+router.post("/transferFund"
+    // , verifyJWT 
+    ,fundTransfer);
 
 module.exports = router;
