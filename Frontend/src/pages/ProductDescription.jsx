@@ -23,6 +23,7 @@ const ProductDetail = () => {
       );
       const result = await res.json();
       setProduct(result.data);
+      setOwner(result.data._id);
     } catch (error) {
       console.error("Error fetching product:", error);
       setProduct(null);
@@ -31,7 +32,7 @@ const ProductDetail = () => {
     }
   };
 const [user, setUser] = useState(null);
-
+const [owner,setOwner] = useState(null);
 useEffect(() => {
   const storedUser = localStorage.getItem("userData");
   if (storedUser) {
@@ -42,6 +43,7 @@ useEffect(() => {
     }
   }
 }, []);
+
   useEffect(() => {
     fetchProductById();
   }, [id]);
@@ -113,6 +115,8 @@ useEffect(() => {
     onClose={() => setShowPaymentDialog(false)}
     product={product}
     user={user} // ✅ FIXED: Now dialog receives `user`
+    owner={owner}
+
   />
 )}
     </>

@@ -3,9 +3,7 @@ import React, { useState, useMemo } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* ------------------------------------------------------------------ */
-/*  Lottie URLs                                                        */
-/* ------------------------------------------------------------------ */
+/* ---------------- Lottie URLs ---------------- */
 const LOTTIES = {
   LOADING:
     "https://lottie.host/b929aa99-cfcf-4ce7-bdf5-61cad2c3f6f8/wL9y4hrffB.lottie",
@@ -29,27 +27,35 @@ const LottieWrap = ({ type }) => (
       src={LOTTIES[type]}
       loop
       autoplay
-      /* Bigger size → fills most of modal */
-      style={{ width: "100%", height: 280 }}
+      style={{ width: "100%", height: 280 }} // fills most of the dialog
     />
   </motion.div>
 );
 
-const PaymentDialog = ({ product, user, onClose }) => {
-  if (!product || !user) return null; // guard
+/* ------------------------------------------------------------------ */
+/*  MAIN COMPONENT                                                     */
+/* ------------------------------------------------------------------ */
+const PaymentDialog = ({
+  product,
+  user,
+  owner,
+  onClose,
+  onPaymentSuccess, // OPTIONAL callback → receives backend JSON on success
+}) => {
+  if (!product || !user || !owner) return null; // guard
 
-  /* ---------------- state ---------------- */
+  /* ---------------- State ---------------- */
   const [walletBalance, setWalletBalance] = useState(user.walletBalance ?? 0);
   const [useWallet, setUseWallet] = useState(false);
-  const [onlineMethod, setOnlineMethod] = useState(""); // "UPI" | "CARD" | …
+  const [onlineMethod, setOnlineMethod] = useState(""); // "UPI" | "CARD"
   const [status, setStatus] = useState("READY"); // READY | LOADING | SUCCESS | FAILURE
 
-  /* ---------------- derived ---------------- */
+  /* ---------------- Derived amounts ---------------- */
   const price = product.price ?? 0;
   const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
   const remainder = price - walletDeduction;
 
-  /* ---------------- helpers ---------------- */
+  /* ---------------- UI helper ---------------- */
   const Radio = ({ value, label }) => (
     <label className="flex items-center gap-2 cursor-pointer">
       <input
@@ -64,7 +70,7 @@ const PaymentDialog = ({ product, user, onClose }) => {
     </label>
   );
 
-  /* Button label + disabled logic */
+  /* Pay / Retry button text */
   const payLabel = useMemo(() => {
     if (status === "LOADING") return "Processing…";
     if (status === "SUCCESS") return "Paid";
@@ -78,27 +84,71 @@ const PaymentDialog = ({ product, user, onClose }) => {
     status === "LOADING" ||
     (status === "READY" && remainder > 0 && !onlineMethod);
 
-  /* ---------------- main handler ---------------- */
+  /* ---------------- Main Pay / Retry handler ---------------- */
   const handlePay = async () => {
+    /* Retry path */
     if (status === "FAILURE") {
-      setStatus("READY"); // retry path
+      setStatus("READY");
       return;
     }
     if (isPayDisabled) return;
 
+    /* Wallet‑only path */
+    if (remainder === 0) {
+      await walletTransferFlow();
+    } else {
+      // 👉 place your online‑gateway integration here
+      console.log(
+        `Would pay ₹${remainder} via ${onlineMethod} (wallet used ₹${walletDeduction})`
+      );
+    }
+  };
+
+  /* ---------------- Wallet transfer flow ---------------- */
+  const walletTransferFlow = async () => {
     setStatus("LOADING");
 
+    /* generate simple IDs */
+    const orderId = `${Date.now()}`;
+    const txnId = `txn_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+
+    const payload = {
+      senderId: user._id ?? user.id,
+      receiverId: owner._id ?? owner.id,
+      type: "transfer",
+      amount: price,
+      description: `Payment for order ${orderId}`,
+      transactionId: txnId,
+      referenceId: `order_${orderId}`,
+      source: "purchase",
+      // 🔒 DO NOT include 'status' – backend sets it
+    };
+
     try {
-      /* Replace with real API calls */
-      await new Promise((res) => setTimeout(res, 2000));
+      const res = await fetch(
+        "http://localhost:8080/api/transaction/transferFund",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      /* On success */
-      setWalletBalance((b) => b - walletDeduction);
-      setStatus("SUCCESS");
+      const data = await res.json().catch(() => ({})); // fallback if no JSON
 
-      /* Auto‑close after showing success */
-      setTimeout(onClose, 4800);
+      if (res.ok) {
+        setWalletBalance((b) => b - price);
+        setStatus("SUCCESS");
+        /* Pass the backend response up if caller wants it */
+        onPaymentSuccess?.(data);
+        /* auto‑close after 1.8 s */
+        setTimeout(onClose, 4800);
+      } else {
+        console.error("Transfer failed:", data);
+        setStatus("FAILURE");
+      }
     } catch (err) {
+      console.error("Network error:", err);
       setStatus("FAILURE");
     }
   };
@@ -118,7 +168,7 @@ const PaymentDialog = ({ product, user, onClose }) => {
 
         <h2 className="text-xl font-bold mb-4 text-center">Complete Payment</h2>
 
-        {/* Order summary */}
+        {/* Order Summary */}
         <section className="border rounded p-4 mb-4">
           <p className="font-semibold">Order Summary</p>
           <div className="flex justify-between mt-2">
@@ -167,7 +217,7 @@ const PaymentDialog = ({ product, user, onClose }) => {
           </div>
         )}
 
-        {/* Online method radios */}
+        {/* Online radios */}
         {remainder > 0 && (
           <>
             <p className="font-semibold mb-2">Choose Online Method</p>
@@ -178,7 +228,7 @@ const PaymentDialog = ({ product, user, onClose }) => {
           </>
         )}
 
-        {/* Lottie area (shows only when not READY) */}
+        {/* Lottie animation */}
         <AnimatePresence mode="wait">
           {status !== "READY" && (
             <div className="flex items-center justify-center mb-4">
@@ -189,7 +239,7 @@ const PaymentDialog = ({ product, user, onClose }) => {
           )}
         </AnimatePresence>
 
-        {/* Pay / Retry button – hidden after success */}
+        {/* Pay / Retry button (hidden after success) */}
         {status !== "SUCCESS" && (
           <button
             onClick={handlePay}

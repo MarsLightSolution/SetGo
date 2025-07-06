@@ -1,67 +1,107 @@
+// controllers/transaction.controller.js
 const express = require("express");
 const router = express.Router();
-const Transaction = require('../models/transaction.model.js');
-const verifyJWT = require('../middlewares/auth.middlewares.js');
-const { Message } = require('twilio/lib/twiml/MessagingResponse.js');
-const User =require("../models/user.js");
-const asyncHandler  = require("../utils/asyncHandler");
-// transfer money from one account to another
-const fundTransfer = asyncHandler(async(req,res)=>{
-    try {
-        console.log(req.body);
-        const newTransaction = new Transaction(req.body);
-        await newTransaction.save();
-        await User.findByIdAndUpdate(req.body.senderId,{
-            $inc:{walletBalance: -req.body.amount},
-        });
+const Transaction = require("../models/transaction.model.js");
+const User = require("../models/user.js");
+const asyncHandler = require("../utils/asyncHandler");
 
-        await User.findByIdAndUpdate(req.body.receiverId,{
-            $inc:{walletBalance : req.body.amount}
-        });
+/* -----------------------------------------------------------
+   Fund transfer – now checks sender has enough balance
+----------------------------------------------------------- */
+const fundTransfer = asyncHandler(async (req, res) => {
+  const { senderId, receiverId, amount } = req.body;
 
-        res.send({
-            Message:"Transaction successful",
-            data:newTransaction,
-            success:true,
-        });
-    } catch(error){
-        console.log(error);
-        res.send({
-            Message:"Transaction failed",
-            data:error.Message,
-            success:false,
-        });
-    }
+  // 1️⃣ Basic sanity check
+  if (amount <= 0) {
+    return res.status(400).json({
+      message: "Amount must be greater than 0",
+      success: false,
+    });
+  }
 
+  // 2️⃣ Get sender wallet balance
+  const sender = await User.findById(senderId).select("walletBalance");
+  if (!sender) {
+    return res.status(404).json({
+      message: "Sender account not found",
+      success: false,
+    });
+  }
+
+  // 3️⃣ Insufficient funds?
+  if (sender.walletBalance < amount) {
+    return res.status(400).json({
+      message: "Insufficient wallet balance",
+      success: false,
+    });
+  }
+
+  // 4️⃣ Proceed with transfer
+  const session = await User.startSession();
+  try {
+    session.startTransaction();
+
+    const newTransaction = await Transaction.create([req.body], { session });
+
+    // deduct from sender
+    await User.findByIdAndUpdate(
+      senderId,
+      { $inc: { walletBalance: -amount } },
+      { session }
+    );
+
+    // credit to receiver
+    await User.findByIdAndUpdate(
+      receiverId,
+      { $inc: { walletBalance: amount } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.json({
+      message: "Transaction successful",
+      data: newTransaction[0],
+      success: true,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error(error);
+    return res.status(500).json({
+      message: "Transaction failed",
+      data: error.message,
+      success: false,
+    });
+  }
 });
 
-// verify the transaction
-const verifyUser = asyncHandler(async(req,res)=>{
-    try{
-        const user = await User.findOne({_id:req.body.receiver});
-        if(user){
-            res.send({
-                Message:"Account Verified",
-                data:user,
-                success:true,
-            });
-        }
-        else{
-            res.send({
-                Message:"Account not found",
-                data:null,
-                success:false,
-            });
-        }
-    }catch(error){
-        res.send({
-            Message:"Account not found",
-            data:error.Message,
-            success:false,
-        });
+/* -----------------------------------------------------------
+   Verify receiver exists (unchanged)
+----------------------------------------------------------- */
+const verifyUser = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findById(req.body.receiver);
+    if (user) {
+      return res.json({
+        message: "Account Verified",
+        data: user,
+        success: true,
+      });
     }
-
+    res.status(404).json({
+      message: "Account not found",
+      data: null,
+      success: false,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Account lookup error",
+      data: error.message,
+      success: false,
+    });
+  }
 });
 
-
-module.exports = {fundTransfer,verifyUser};
+module.exports = { fundTransfer, verifyUser };
