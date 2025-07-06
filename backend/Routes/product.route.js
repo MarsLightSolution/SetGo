@@ -25,6 +25,7 @@ router.get("/product/:id"
   // ,verifyJWT
   , getProductById);
 // Test route
+
 router.route("/try").post((req, res) => {
   res.send("Test passed");
 });
