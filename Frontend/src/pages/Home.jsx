@@ -4,10 +4,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import Footer from "../components/common/Footer";
 import { useNavigate } from "react-router-dom";
-import bannerImage from "../assets/images/banner1.png";
-import leftadImage from "../assets/images/ad01.png";
-import rightadImage from "../assets/images/ad02.png";
-// AdCard and SectionWithAds remain unchanged...
 
 const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
@@ -51,7 +47,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
       <div className="w-full text-left">
         <p className="truncate text-gray-700 font-semibold text-sm">{title}</p>
         <p className="text-gray-400 font-normal text-xs mt-1">{location}</p>
-        <p className="text-green-700 font-bold text-sm mt-2">${price}</p>
+        <p className="text-green-700 font-bold text-sm mt-2">₹{price}</p>
       </div>
     </div>
   );
@@ -113,27 +109,27 @@ const Home = () => {
   const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
   const token = localStorage.getItem("accessToken");
+  const userId = JSON.parse(localStorage.getItem("user"))?._id;
   const PAGE_SIZE = 12;
-  const filter=useSelector((state)=>state.filter);
-    const [products, setProducts] = useState([]);
-  const [filtered, setFiltered] = useState([]);
 
+  const filter = useSelector((state) => state.filter);
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
-  const [recommendedPagination, setRecommendedPagination] = useState({
-    currentPage: 1,
-  });
+  const [recommendedPagination, setRecommendedPagination] = useState({ currentPage: 1 });
 
   const fetchProducts = async (type, page) => {
     try {
-      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+      const params = new URLSearchParams({
+        page,
+        limit: PAGE_SIZE,
+        userId,
+        minPrice: filter.minPrice?.toString() || "0",
+        maxPrice: filter.maxPrice?.toString() || "1000000",
+      });
+
       if (type === "category" && activeCategory !== "All Products") {
         params.append("category", activeCategory);
       }
-    if (filter.minPrice) params.append("minPrice", filter.minPrice);
-    if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
-    if (filter.condition) params.append("condition", filter.condition);
-    if (filter.radius) params.append("radius", filter.radius);
-    if (filter.city) params.append("city", filter.city);
+
       const res = await fetch(
         `http://localhost:8080/api/products/getProducts?${params.toString()}`,
         {
@@ -160,249 +156,33 @@ const Home = () => {
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
-  }, [activeCategory, latestPagination.currentPage,filter]);
+  }, [activeCategory, latestPagination.currentPage, filter]);
 
   useEffect(() => {
     fetchProducts("recommended", recommendedPagination.currentPage);
   }, [recommendedPagination.currentPage]);
+
   useEffect(() => {
-  // Reset to page 1 when filters change
-  setLatestPagination((prev) => ({ ...prev, currentPage: 1 }));
-}, [filter]);
-
-  const categories = [
-    "All Products",
-    "Cars & Motorcycles",
-    "Real Estate",
-    "Jobs",
-    "Household & Furniture",
-    "Electronics",
-    "Leisure, Hobby & Neighborhood",
-    "Service",
-  ];
-
-  const galleryData = [
-    { title: "XVS 950 Midnightstar", location: "Oelde", price: "5,195 €" },
-    { title: "Washing machine", location: "Mönchengladbach", price: "333 €" },
-    { title: "Transport trolleys", location: "Bad Buchau", price: "115 €" },
-    { title: "Camping gear set", location: "Dresden", price: "150 €" },
-    { title: "Horses help children", location: "Schlutup", price: "VB" },
-  ];
-  const [galleryIndex, setGalleryIndex] = useState(0);
-  const visibleCount = 3;
-
-  const companyWebsites = [
-    { name: "Flipkart", description: "Shop electronics, fashion, more" },
-    { name: "Amazon", description: "Online shopping destination" },
-    { name: "Myntra", description: "Fashion & lifestyle store" },
-    { name: "Snapdeal", description: "Deals and discounts online" },
-    { name: "Ajio", description: "Trendy clothes and accessories" },
-    { name: "Tata Cliq", description: "Luxury fashion & lifestyle" },
-    { name: "Reliance Digital", description: "Electronics & gadgets" },
-  ];
-  const [companyIndex, setCompanyIndex] = useState(0);
-  const visibleCompanyCount = 5;
+    setLatestPagination((prev) => ({ ...prev, currentPage: 1 }));
+  }, [filter]);
 
   return (
     <div className="min-h-screen bg-gray-100 pt-[2rem]">
-      <div className="w-full flex justify-center">
-        <div className="w-full max-w-screen-xl px-4 flex gap-4 items-start">
-          {/* Sticky Left Ad */}
-          <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
-            <img
-              src={leftadImage}
-              alt="Left Ad"
-              className="w-full h-[550px] object-cover rounded"
-            />
-          </div>
+      <SectionWithAds
+        title="Latest Ads"
+        ads={latestAds}
+        pagination={latestPagination}
+        onPageChange={setLatestPagination}
+      />
 
-          {/* Scrollable main content */}
-          <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
-            <div className="relative">
-              <img
-                src={bannerImage}
-                alt="Banner"
-                className="w-full h-[233px] object-cover rounded-xl shadow"
-              />
-              <div className="absolute bottom-4 left-6 z-10">
-                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg">
-                  Join Now
-                </button>
-              </div>
-            </div>
+      <SectionWithAds
+        title="Recommended For You"
+        ads={recommendedAds}
+        pagination={recommendedPagination}
+        onPageChange={setRecommendedPagination}
+      />
 
-            {/* Category & Gallery */}
-            <div className="flex gap-4">
-              <div className="bg-white p-4 rounded shadow w-[38%] h-[350px] overflow-y-auto">
-                <h2 className="text-lg font-semibold mb-3">Categories</h2>
-                <ul className="text-sm space-y-4 pl-2 text-gray-700">
-                  {categories.map((cat) => (
-                    <li
-                      key={cat}
-                      onClick={() => {
-                        setActiveCategory(cat);
-                        setLatestPagination((p) => ({ ...p, currentPage: 1 }));
-                      }}
-                      className={`cursor-pointer hover:underline ${
-                        activeCategory === cat
-                          ? "font-semibold text-green-700"
-                          : ""
-                      }`}
-                    >
-                      {cat}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-white p-4 rounded shadow flex-1">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Gallery</h2>
-                  <div className="flex gap-2">
-                    <button
-                      className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                      onClick={() =>
-                        setGalleryIndex((prev) => Math.max(prev - 1, 0))
-                      }
-                      disabled={galleryIndex === 0}
-                    >
-                      &#8592;
-                    </button>
-                    <button
-                      className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                      onClick={() =>
-                        setGalleryIndex((prev) =>
-                          Math.min(prev + 1, galleryData.length - visibleCount)
-                        )
-                      }
-                      disabled={
-                        galleryIndex >= galleryData.length - visibleCount
-                      }
-                    >
-                      &#8594;
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  {galleryData
-                    .slice(galleryIndex, galleryIndex + visibleCount)
-                    .map((item, index) => (
-                      <div
-                        key={index}
-                        className="w-[180px] bg-white border rounded shadow-sm flex-shrink-0 relative"
-                      >
-                        <div className="w-full h-[200px] bg-gray-100 flex justify-center items-center">
-                          <span className="text-sm text-gray-400">
-                            Image {galleryIndex + index + 1}
-                          </span>
-                        </div>
-                        <div className="p-2">
-                          <p className="text-sm font-medium text-gray-800">
-                            {item.title}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {item.location}
-                          </p>
-                        </div>
-                        <div className="absolute top-2 right-2 bg-lime-400 text-xs font-bold px-2 py-[2px] rounded-sm">
-                          {item.price}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-
-            <SectionWithAds
-              title="Latest Ads"
-              ads={latestAds}
-              pagination={latestPagination}
-              onPageChange={setLatestPagination}
-            />
-
-            <SectionWithAds
-              title="Recommended For You"
-              ads={recommendedAds}
-              pagination={recommendedPagination}
-              onPageChange={setRecommendedPagination}
-            />
-
-            {/* Company Websites */}
-            <div className="bg-white p-4 mt-3 rounded shadow">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Company Websites
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                    onClick={() =>
-                      setCompanyIndex((prev) => Math.max(prev - 1, 0))
-                    }
-                    disabled={companyIndex === 0}
-                  >
-                    &#8592;
-                  </button>
-                  <button
-                    className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                    onClick={() =>
-                      setCompanyIndex((prev) =>
-                        Math.min(
-                          prev + 1,
-                          companyWebsites.length - visibleCompanyCount
-                        )
-                      )
-                    }
-                    disabled={
-                      companyIndex >=
-                      companyWebsites.length - visibleCompanyCount
-                    }
-                  >
-                    &#8594;
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-4 overflow-hidden">
-                {companyWebsites
-                  .slice(companyIndex, companyIndex + visibleCompanyCount)
-                  .map((site, index) => (
-                    <div
-                      key={index}
-                      className="w-[19%] bg-white border rounded shadow-sm flex-shrink-0 relative"
-                    >
-                      <div className="w-full h-[140px] bg-gray-100 flex justify-center items-center">
-                        <span className="text-sm text-gray-400">
-                          Logo {companyIndex + index + 1}
-                        </span>
-                      </div>
-                      <div className="p-2">
-                        <p className="text-sm font-medium text-gray-800">
-                          {site.name}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {site.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            <Footer />
-          </div>
-
-          {/* Sticky Right Ad */}
-          <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
-            <img
-              src={rightadImage}
-              alt="Right Ad"
-              className="w-full h-[550px] object-cover rounded"
-            />
-          </div>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 };

@@ -6,6 +6,7 @@ const {
   addProduct,
   getProducts,
   getProductById,
+  markProductAsSold
 } = require("../controller/product.controller.js");
 
 router.post("/add"
@@ -29,5 +30,7 @@ router.get("/product/:id"
 router.route("/try").post((req, res) => {
   res.send("Test passed");
 });
+
+router.patch("/mark-sold/:productId", markProductAsSold);
 
 module.exports = router;

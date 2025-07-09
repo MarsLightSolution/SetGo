@@ -1,18 +1,14 @@
+// PaymentDialog.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* Lottie URLs */
 const LOTTIES = {
-  LOADING:
-    "https://lottie.host/b929aa99-cfcf-4ce7-bdf5-61cad2c3f6f8/wL9y4hrffB.lottie",
-  SUCCESS:
-    "https://lottie.host/4d55262c-ea7c-48e2-9743-3d432f018cab/ziPzpGQKjj.lottie",
-  FAILURE:
-    "https://lottie.host/8eb74ef8-201e-44fc-a8a2-48f1737f298a/c0sZhMohd4.lottie",
+  LOADING: "https://lottie.host/b929aa99-cfcf-4ce7-bdf5-61cad2c3f6f8/wL9y4hrffB.lottie",
+  SUCCESS: "https://lottie.host/4d55262c-ea7c-48e2-9743-3d432f018cab/ziPzpGQKjj.lottie",
+  FAILURE: "https://lottie.host/8eb74ef8-201e-44fc-a8a2-48f1737f298a/c0sZhMohd4.lottie",
 };
 
-/* Fade‑scale wrapper */
 const LottieWrap = ({ type }) => (
   <motion.div
     key={type}
@@ -31,32 +27,22 @@ const LottieWrap = ({ type }) => (
   </motion.div>
 );
 
-const PaymentDialog = ({
-  product,
-  user,
-  owner,
-  onClose,
-  onPaymentSuccess,
-}) => {
+const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
   if (!product || !user || !owner) return null;
 
-  /* ------------ state ------------ */
-  const [walletBalance, setWalletBalance] = useState(user.walletBalance ?? 0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [onlineMethod, setOnlineMethod] = useState("");
   const [status, setStatus] = useState("READY");
 
-  /* sync with parent */
   useEffect(() => {
     setWalletBalance(user.walletBalance ?? 0);
-  }, [user.walletBalance]);
+  }, [user]);
 
-  /* ------------ amounts ------------ */
   const price = product.price ?? 0;
   const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
   const remainder = price - walletDeduction;
 
-  /* ------------ UI helpers ------------ */
   const Radio = ({ value, label }) => (
     <label className="flex items-center gap-2 cursor-pointer">
       <input
@@ -81,10 +67,8 @@ const PaymentDialog = ({
   }, [status, price, remainder, onlineMethod]);
 
   const isPayDisabled =
-    status === "LOADING" ||
-    (status === "READY" && remainder > 0 && !onlineMethod);
+    status === "LOADING" || (status === "READY" && remainder > 0 && !onlineMethod);
 
-  /* ------------ actions ------------ */
   const handlePay = async () => {
     if (status === "FAILURE") {
       setStatus("READY");
@@ -116,19 +100,27 @@ const PaymentDialog = ({
     };
 
     try {
-      const res = await fetch(
-        "http://localhost:8080/api/transaction/transferFund",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      const res = await fetch("http://localhost:8080/api/transaction/transferFund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
         setStatus("SUCCESS");
-        onPaymentSuccess?.(price); // tell parent how much was paid
+        try {
+          await fetch(`http://localhost:8080/api/products/mark-sold/${product._id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+        } catch (err) {
+          console.warn("Failed to update product as sold", err);
+        }
+
+        onPaymentSuccess?.(price);
         setTimeout(onClose, 1800);
       } else {
         setStatus("FAILURE");
@@ -137,9 +129,10 @@ const PaymentDialog = ({
       console.error(err);
       setStatus("FAILURE");
     }
+
+
   };
 
-  /* ------------ render ------------ */
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white max-w-md w-full rounded-xl shadow-lg p-6 relative">
@@ -151,11 +144,8 @@ const PaymentDialog = ({
           &times;
         </button>
 
-        <h2 className="text-xl font-bold mb-4 text-center">
-          Complete Payment
-        </h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Complete Payment</h2>
 
-        {/* Order summary */}
         <section className="border rounded p-4 mb-4">
           <p className="font-semibold">Order Summary</p>
           <div className="flex justify-between mt-2">
@@ -165,16 +155,13 @@ const PaymentDialog = ({
           <div className="flex justify-between mt-1">
             <span>Wallet Balance</span>
             <span
-              className={`font-semibold ${
-                walletBalance ? "text-green-600" : "text-red-500"
-              }`}
+              className={`font-semibold ${walletBalance ? "text-green-600" : "text-red-500"}`}
             >
               ₹{walletBalance}
             </span>
           </div>
         </section>
 
-        {/* Wallet toggle */}
         <label className="flex items-center gap-2 mb-4 cursor-pointer">
           <input
             type="checkbox"
@@ -187,7 +174,6 @@ const PaymentDialog = ({
           </span>
         </label>
 
-        {/* Wallet info */}
         {useWallet && (
           <div className="bg-green-50 text-green-700 text-sm p-3 rounded mb-4">
             {remainder === 0
@@ -196,7 +182,6 @@ const PaymentDialog = ({
           </div>
         )}
 
-        {/* Online radios */}
         {remainder > 0 && (
           <>
             <p className="font-semibold mb-2">Choose Online Method</p>
@@ -207,29 +192,24 @@ const PaymentDialog = ({
           </>
         )}
 
-        {/* Lottie */}
         <AnimatePresence mode="wait">
           {status !== "READY" && (
             <div className="flex items-center justify-center mb-4">
-              {status === "LOADING" && <LottieWrap type="LOADING" />}
-              {status === "SUCCESS" && <LottieWrap type="SUCCESS" />}
-              {status === "FAILURE" && <LottieWrap type="FAILURE" />}
+              <LottieWrap type={status} />
             </div>
           )}
         </AnimatePresence>
 
-        {/* Pay / retry */}
         {status !== "SUCCESS" && (
           <button
             disabled={isPayDisabled}
             onClick={handlePay}
-            className={`w-full ${
-              isPayDisabled
-                ? "bg-gray-300 cursor-not-allowed"
-                : status === "FAILURE"
+            className={`w-full ${isPayDisabled
+              ? "bg-gray-300 cursor-not-allowed"
+              : status === "FAILURE"
                 ? "bg-indigo-600 hover:bg-indigo-700"
                 : "bg-lime-500 hover:bg-lime-600"
-            } text-white font-semibold py-2 rounded`}
+              } text-white font-semibold py-2 rounded`}
           >
             {payLabel}
           </button>

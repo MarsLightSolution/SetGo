@@ -1,8 +1,8 @@
-// controllers/userController.js
 const User = require('../models/user');
 const redisClient = require('../utils/redisClient');
 const logger = require('../utils/logger');
 
+// Get all users (cached)
 const getUsers = async (req, res) => {
   const cacheKey = 'userList';
 
@@ -42,4 +42,28 @@ const getUsers = async (req, res) => {
   }
 };
 
-module.exports = { getUsers };
+// ✅ New controller: Get a single user by ID
+const getUserById = async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    logger.info(`[GetUserById] Fetching user`, { userId });
+
+    const user = await User.findById(userId);
+    if (!user) {
+      logger.warn(`[GetUserById] User not found`, { userId });
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    logger.info(`[GetUserById] User fetched`, { userId });
+    return res.status(200).json({ data: user });
+  } catch (error) {
+    logger.error(`[GetUserById] Error`, { error: error.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = {
+  getUsers,
+  getUserById
+};

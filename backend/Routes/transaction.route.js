@@ -11,7 +11,7 @@ const User =require("../models/user.js");
 
 // verify the transaction
 router.post("/verifyTransaction"
-    , verifyJWT 
+    // , verifyJWT 
     ,verifyUser);
 router.post("/transferFund"
     // , verifyJWT 
