@@ -1,9 +1,10 @@
 // controllers/product.controller.js
+const asyncHandler  = require("../utils/asyncHandler");
 const ApiError      = require("../utils/ApiError");
 const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
 const User          = require("../models/user");
-const asyncHandler  = require("../utils/asyncHandler");
+
 const mongoose      = require("mongoose");
 const logger        = require("../utils/logger");
 
@@ -57,70 +58,46 @@ const addProduct = asyncHandler(async (req, res) => {
     },
     name,
     termsAccepted: termsAccepted === true || termsAccepted === "true",
-    owner: "",
-
+    owner: req.user?._id || "",
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
     subscribe: subscribe === "true" || subscribe === true,
     isBuy: isBuy === "true" || isBuy === true,
     isSell: isSell === "true" || isSell === true,
-    owner: "",
   });
 
   logger.info(`[AddProduct] Product created`, { productId: product._id });
-
-  // --- Commented user update ---
-  /*
-  const userId = req.user?._id;
-  const userUpdatePayload = {};
-
-  if (product.isBuy) {
-    userUpdatePayload.$push = {
-      buy: {
-        productId: product._id,
-        purchasedAt: new Date(),
-        quantity: Number(quantity || 1),
-        price: Number(price),
-      }
-    };
-  }
-
-  if (product.isSell) {
-    userUpdatePayload.$push = {
-      sell: {
-        productId: product._id,
-        listedAt: new Date(),
-        quantity: Number(quantity || 1),
-        price: Number(price),
-        isSold: false
-      }
-    };
-  }
-
-  if (Object.keys(userUpdatePayload).length > 0) {
-    await User.findByIdAndUpdate(userId, userUpdatePayload, { new: true });
-    logger.info(`[AddProduct] User updated`, { userId: userId });
-  }
-  */
 
   res.status(201).json(new ApiResponse(201, product, "Product added successfully."));
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-  const { category, page = 1, limit = 10 } = req.query;
+  const { category, page = 1, limit = 10, userId, minPrice = 0, maxPrice = 1000000 } = req.query;
 
-  logger.info(`[GetProducts] Query`, { category, page, limit });
+  logger.info(`[GetProducts] Query`, { category, page, limit, userId, minPrice, maxPrice });
 
   const pipeline = [];
 
-  if (category?.trim()) {
+  if (category?.trim() && category !== "All Products") {
     pipeline.push({
       $match: {
         category: new RegExp(`^${category.trim()}$`, "i"),
       },
     });
-    logger.info(`[GetProducts] Filter applied for category`, { category });
   }
+
+  pipeline.push({
+    $match: {
+      isSell: false,
+      price: {
+        $gte: Number(minPrice),
+        $lte: Number(maxPrice),
+      },
+      ...(userId && {
+        owner: { $ne: new mongoose.Types.ObjectId(userId) }
+      })
+    }
+  });
 
   pipeline.push({ $sort: { createdAt: -1 } });
 
@@ -166,4 +143,32 @@ const getProductById = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, product, "Fetched product by ID"));
 });
 
-module.exports = { addProduct, getProducts, getProductById };
+const markProductAsSold = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    logger.warn(`[MarkProductAsSold] Invalid product ID`, { productId });
+    throw new ApiError(400, "Invalid product ID");
+  }
+
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    logger.warn(`[MarkProductAsSold] Product not found`, { productId });
+    throw new ApiError(404, "Product not found");
+  }
+
+  if (product.isSell === true) {
+    logger.info(`[MarkProductAsSold] Product already marked as sold`, { productId });
+    return res.status(200).json(new ApiResponse(200, product, "Product already marked as sold."));
+  }
+
+  product.isSell = true;
+  await product.save();
+
+  logger.info(`[MarkProductAsSold] Product updated as sold`, { productId });
+
+  res.status(200).json(new ApiResponse(200, product, "Product marked as sold."));
+});
+
+module.exports = { addProduct, getProducts, getProductById, markProductAsSold };
