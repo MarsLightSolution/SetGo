@@ -78,6 +78,7 @@ const getProducts = asyncHandler(async (req, res) => {
 
   const pipeline = [];
 
+  // Category filter
   if (category?.trim() && category !== "All Products") {
     pipeline.push({
       $match: {
@@ -86,19 +87,21 @@ const getProducts = asyncHandler(async (req, res) => {
     });
   }
 
-  pipeline.push({
-    $match: {
-      isSell: false,
-      price: {
-        $gte: Number(minPrice),
-        $lte: Number(maxPrice),
-      },
-      ...(userId && {
-        owner: { $ne: new mongoose.Types.ObjectId(userId) }
-      })
-    }
-  });
+  // Main filter
+  const matchStage = {
+    isSell: false,
+    price: {
+      $gte: Number(minPrice),
+      $lte: Number(maxPrice),
+    },
+  };
 
+  // Exclude current user
+  if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+    matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
+  }
+
+  pipeline.push({ $match: matchStage });
   pipeline.push({ $sort: { createdAt: -1 } });
 
   const options = {
@@ -122,6 +125,7 @@ const getProducts = asyncHandler(async (req, res) => {
 
   res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
+
 
 const getProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
