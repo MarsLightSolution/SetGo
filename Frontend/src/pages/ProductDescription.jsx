@@ -1,7 +1,6 @@
-// ProductDetail.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { LocationOn, CalendarToday } from "@mui/icons-material";
+import { CalendarToday, LocationOn } from "@mui/icons-material";
 import PaymentDialog from "./PaymentDialog";
 
 const ProductDetail = () => {
@@ -76,41 +75,96 @@ const ProductDetail = () => {
 
   return (
     <>
-      <div className="max-w-5xl mx-auto bg-white shadow-md mt-10 p-6 rounded-md">
-        <div className="w-full h-[300px] flex justify-center mb-6">
-          <img
-            src={`http://localhost:8080/${product.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
-            alt={product.title}
-            className="object-contain h-full rounded-md"
-          />
-        </div>
+      <div className="max-w-6xl mx-auto mt-10 grid grid-cols-1 md:grid-cols-3 gap-8 p-4">
+        {/* Left Section: Main Info */}
+<div className="md:col-span-2">
+  <div className="bg-white rounded-md shadow p-4">
+    <img
+      src={`http://localhost:8080/${product.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
+      alt={product.title}
+      className="w-full h-[300px] object-contain mb-4 rounded-md"
+    />
 
-        <h1 className="text-2xl font-semibold text-gray-800 mb-2">{product.title}</h1>
-        <p className="text-green-600 font-bold text-xl mb-2">
-          ₹ {product.price?.toLocaleString("en-IN")}
-        </p>
+    {/* Title & Price */}
+    <h1 className="text-2xl font-bold text-gray-800 mb-2">
+      {product.title || "Product Title"}
+    </h1>
+    <p className="text-green-700 text-xl font-bold mb-3">
+      {product.price?.toLocaleString("de-DE")} € <span className="text-sm">VB</span>
+    </p>
 
-        <div className="flex items-center gap-4 text-gray-600 text-sm mb-4">
-          <div className="flex items-center gap-1">
-            <LocationOn fontSize="small" />
-            {product.location?.postalCode || "Unknown"} – Oranienburg
-          </div>
-          <div className="flex items-center gap-1">
-            <CalendarToday fontSize="small" />
-            {new Date().toLocaleDateString("en-IN")}
-          </div>
-        </div>
+    {/* Location + Date + Views */}
+    <div className="text-sm text-gray-600 flex items-center gap-6 mb-4">
+      <div className="flex items-center gap-1">
+        <LocationOn fontSize="small" />
+        {product.location?.postalCode || "Unknown"} – Oranienburg
+      </div>
+      <div className="flex items-center gap-1">
+        <CalendarToday fontSize="small" />
+        16.06.2025
+      </div>
+      <div className="flex items-center gap-1">
+        👁️ 7
+      </div>
+    </div>
 
-        <div className="text-gray-700 leading-relaxed mt-4 whitespace-pre-line">
-          {product.description || "No description available."}
-        </div>
+    {/* Grid Info */}
 
-        <button
-          className="bg-green-600 hover:bg-purple-50 rounded-lg text-white transition duration-300 ease-linear mt-5 border-2 border-green-600 font-semibold hover:text-green-700 p-3 px-10 tracking-wider uppercase"
-          onClick={handleBuyNow}
-        >
-          Buy Now
-        </button>
+
+    
+
+    {/* Description */}
+    <div className="text-gray-700 whitespace-pre-line leading-relaxed">
+      {product.description || "Keine Beschreibung verfügbar."}
+    </div>
+
+    {/* Button */}
+    <button
+      className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-semibold"
+      onClick={handleBuyNow}
+    >
+     Buy Now
+    </button>
+  </div>
+</div>
+
+
+        {/* Right Section: Seller Info */}
+{/* Right Section: Seller Info */}
+<div className="bg-white rounded-md shadow p-4 h-fit border border-gray-100">
+  <button className="w-full bg-lime-500 hover:bg-lime-600 text-white font-semibold py-2 rounded-md mb-3 flex items-center justify-center gap-2">
+    📩 Send Message
+  </button>
+
+  <button className="w-full border text-sm font-medium text-lime-600 border-lime-500 hover:bg-lime-50 py-2 rounded-md mb-2">
+    💚 Add to Watchlist
+  </button>
+
+  <button className="w-full border text-sm text-gray-700 hover:bg-gray-100 py-2 rounded-md mb-4">
+    🔗 Share Listing
+  </button>
+
+  {/* User Info */}
+  <div className="flex items-center gap-3 mb-3">
+    <div className="bg-gray-300 rounded-full w-10 h-10 flex items-center justify-center text-white text-lg font-bold">
+      {product.user?.name?.charAt(0) || product.name?.charAt(0) || "U"}
+    </div>
+    <div>
+      <p className="font-semibold text-sm text-gray-900">
+        {product.user?.name || product.name || "Unknown Seller"}
+      </p>
+      <p className="text-sm text-gray-500">Private User</p>
+      <p className="text-sm text-gray-500">Active since 16.06.2025</p>
+    </div>
+  </div>
+
+  <button className="w-full border border-green-600 text-green-700 font-medium py-1.5 rounded-md hover:bg-green-50 mb-4">
+    ➕ Follow
+  </button>
+
+</div>
+
+
       </div>
 
       {showPaymentDialog && dialogUser && (
