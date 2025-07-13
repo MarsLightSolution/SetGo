@@ -174,5 +174,21 @@ const markProductAsSold = asyncHandler(async (req, res) => {
 
   res.status(200).json(new ApiResponse(200, product, "Product marked as sold."));
 });
+const getProductsByCategory = asyncHandler(async (req, res) => {
+  const { category } = req.params;
 
-module.exports = { addProduct, getProducts, getProductById, markProductAsSold };
+  if (!category) {
+    throw new ApiError(400, "Category is required");
+  }
+
+  logger.info(`[getProductsByCategory] Fetching for category: ${category}`);
+
+  const products = await Product.find({
+    category: new RegExp(`^${category.trim()}$`, "i"),
+    isSell: false
+  }).sort({ createdAt: -1 });
+
+  res.status(200).json(new ApiResponse(200, products, "Fetched products by category"));
+});
+
+module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getProductsByCategory };

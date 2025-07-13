@@ -8,16 +8,23 @@ import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 
-// 🔹 AdCard component
+
 const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
   const liked = ad && likedAds.some((item) => item._id === ad._id);
 
-  const handleLikeToggle = () => {
-    liked ? dispatch(unlike(ad)) : dispatch(like(ad));
-  };
+ const handleLikeToggle = () => {
+  const token = localStorage.getItem("accessToken");
+
+  if (!token) {
+    alert("You need to login first to like items."); // or use a toast/snackbar
+    return;
+  }
+
+  liked ? dispatch(unlike(ad)) : dispatch(like(ad));
+};
 
   const handleCardClick = () => {
     navigate(`/products/product/${ad._id}`);
@@ -116,42 +123,68 @@ const Home = () => {
   const [activeCategory, setActiveCategory] = useState("All Products");
   const token = localStorage.getItem("accessToken");
   const PAGE_SIZE = 12;
-
+const filter=useSelector((state)=>state.filter);
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
 
-  const fetchProducts = async (type, page) => {
-    try {
-      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
-      if (type === "category" && activeCategory !== "All Products") {
-        params.append("category", activeCategory);
-      }
+const fetchProducts = async (type, page) => {
+  try {
+    const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
-      const res = await fetch(
-        `http://localhost:8080/api/products/getProducts?${params.toString()}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `${token}`,
-          },
-        }
-      );
-      const json = await res.json();
-      const { products = [], ...pagination } = json.data ?? {};
-
-      if (type === "category") {
-        setLatestAds(products);
-        setLatestPagination(pagination);
-      } else {
-        setRecommendedAds(products);
-        setRecommendedPagination(pagination);
-      }
-    } catch (err) {
-      console.error("Fetch failed:", err);
+    if (type === "category" && activeCategory !== "All Products") {
+      params.append("category", activeCategory);
     }
-  };
+
+    if (filter.minPrice) params.append("minPrice", filter.minPrice);
+    if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
+    if (filter.condition) params.append("condition", filter.condition);
+    if (filter.radius) params.append("radius", filter.radius);
+    if (filter.city) params.append("city", filter.city);
+
+    const token = localStorage.getItem("accessToken");
+    const userId = localStorage.getItem("userId");
+
+    // ✅ Append userId ONLY IF both token and userId exist
+    if (token && userId) {
+      params.append("userId", userId);
+    }
+
+    const res = await fetch(
+      `http://localhost:8080/api/products/getProducts?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      console.error("Failed to fetch products");
+      return;
+    }
+
+    const json = await res.json();
+    const { products = [], ...pagination } = json.data ?? {};
+
+    if (type === "category") {
+      setLatestAds(products);
+      setLatestPagination(pagination);
+    } else {
+      setRecommendedAds(products);
+      setRecommendedPagination(pagination);
+    }
+  } catch (err) {
+    console.error("Fetch failed:", err);
+  }
+};
+ 
+
+
+ 
+
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
