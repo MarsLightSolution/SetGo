@@ -159,8 +159,8 @@ const wishlist=useSelector(state=>state.wishlist.totalItems);
                     { label: "Show", path: "/userinfo" },
                     { label: "Settings", path: "/profile" },
                     { label: "Watchlist", path: "/watchlist" },
-                    { label: "Users", path: "/users" },
-                    { label: "Search Request", path: "/search-request" },
+                    { label: "Users", path: "/userpage" },
+                    { label: "Search Request", path: "/mysearch" },
                   ].map((item, index) => (
                     <div
                       key={index}
