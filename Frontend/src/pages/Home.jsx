@@ -8,7 +8,6 @@ import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 
-// AdCard and SectionWithAds remain unchanged...
 
 const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
@@ -16,9 +15,16 @@ const AdCard = ({ image, title, location, ad, price }) => {
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
   const liked = ad && likedAds.some((item) => item._id === ad._id);
 
-  const handleLikeToggle = () => {
-    liked ? dispatch(unlike(ad)) : dispatch(like(ad));
-  };
+ const handleLikeToggle = () => {
+  const token = localStorage.getItem("accessToken");
+
+  if (!token) {
+    alert("You need to login first to like items."); // or use a toast/snackbar
+    return;
+  }
+
+  liked ? dispatch(unlike(ad)) : dispatch(like(ad));
+};
 
   const handleCardClick = () => {
     navigate(`/products/product/${ad._id}`);
@@ -58,6 +64,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
   );
 };
 
+// 🔹 SectionWithAds component
 const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
   <div className="bg-white p-4 rounded shadow mt-3">
     <h2 className="text-xl font-semibold text-gray-800 mb-4">{title}</h2>
@@ -109,48 +116,75 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
   </div>
 );
 
+// 🔹 Main Home Component
 const Home = () => {
   const [latestAds, setLatestAds] = useState([]);
   const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
   const token = localStorage.getItem("accessToken");
   const PAGE_SIZE = 12;
-
+const filter=useSelector((state)=>state.filter);
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
 
-  const fetchProducts = async (type, page) => {
-    try {
-      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
-      if (type === "category" && activeCategory !== "All Products") {
-        params.append("category", activeCategory);
-      }
+const fetchProducts = async (type, page) => {
+  try {
+    const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
-      const res = await fetch(
-        `http://localhost:8080/api/products/getProducts?${params.toString()}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `${token}`,
-          },
-        }
-      );
-      const json = await res.json();
-      const { products = [], ...pagination } = json.data ?? {};
-
-      if (type === "category") {
-        setLatestAds(products);
-        setLatestPagination(pagination);
-      } else {
-        setRecommendedAds(products);
-        setRecommendedPagination(pagination);
-      }
-    } catch (err) {
-      console.error("Fetch failed:", err);
+    if (type === "category" && activeCategory !== "All Products") {
+      params.append("category", activeCategory);
     }
-  };
+
+    if (filter.minPrice) params.append("minPrice", filter.minPrice);
+    if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
+    if (filter.condition) params.append("condition", filter.condition);
+    if (filter.radius) params.append("radius", filter.radius);
+    if (filter.city) params.append("city", filter.city);
+
+    const token = localStorage.getItem("accessToken");
+    const userId = localStorage.getItem("userId");
+
+    // ✅ Append userId ONLY IF both token and userId exist
+    if (token && userId) {
+      params.append("userId", userId);
+    }
+
+    const res = await fetch(
+      `http://localhost:8080/api/products/getProducts?${params.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      console.error("Failed to fetch products");
+      return;
+    }
+
+    const json = await res.json();
+    const { products = [], ...pagination } = json.data ?? {};
+
+    if (type === "category") {
+      setLatestAds(products);
+      setLatestPagination(pagination);
+    } else {
+      setRecommendedAds(products);
+      setRecommendedPagination(pagination);
+    }
+  } catch (err) {
+    console.error("Fetch failed:", err);
+  }
+};
+ 
+
+
+ 
+
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
@@ -196,8 +230,8 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-100 pt-[2rem]">
       <div className="w-full flex justify-center">
-        <div className="w-full max-w-screen-xl px-4 flex gap-4 items-start">
-          {/* Sticky Left Ad */}
+        <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
+          {/* Left Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
             <img
               src={leftadImage}
@@ -206,8 +240,9 @@ const Home = () => {
             />
           </div>
 
-          {/* Scrollable main content */}
-          <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto">
+            {/* Banner */}
             <div className="relative">
               <img
                 src={bannerImage}
@@ -221,9 +256,10 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Category & Gallery */}
-            <div className="flex gap-4">
-              <div className="bg-white p-4 rounded shadow w-[38%] h-[350px] overflow-y-auto">
+            {/* Category + Gallery Section */}
+            <div className="flex flex-wrap gap-4">
+              {/* Category Box */}
+              <div className="bg-white p-4 rounded shadow w-full md:w-[38%] h-[350px] overflow-y-auto">
                 <h2 className="text-lg font-semibold mb-3">Categories</h2>
                 <ul className="text-sm space-y-4 pl-2 text-gray-700">
                   {categories.map((cat) => (
@@ -231,7 +267,10 @@ const Home = () => {
                       key={cat}
                       onClick={() => {
                         setActiveCategory(cat);
-                        setLatestPagination((p) => ({ ...p, currentPage: 1 }));
+                        setLatestPagination((p) => ({
+                          ...p,
+                          currentPage: 1,
+                        }));
                       }}
                       className={`cursor-pointer hover:underline ${
                         activeCategory === cat
@@ -245,7 +284,8 @@ const Home = () => {
                 </ul>
               </div>
 
-              <div className="bg-white p-4 rounded shadow flex-1">
+              {/* Gallery Box */}
+              <div className="bg-white p-4 rounded shadow flex-1 w-full md:w-[60%]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Gallery</h2>
                   <div className="flex gap-2">
@@ -304,6 +344,7 @@ const Home = () => {
               </div>
             </div>
 
+            {/* Ads Sections */}
             <SectionWithAds
               title="Latest Ads"
               ads={latestAds}
@@ -383,7 +424,7 @@ const Home = () => {
             <Footer />
           </div>
 
-          {/* Sticky Right Ad */}
+          {/* Right Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
             <img
               src={rightadImage}

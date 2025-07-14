@@ -1,39 +1,77 @@
 const mongoose = require("mongoose")
 
-const userSchema = new mongoose.Schema(
-  {
-    profileName: {
+const userSchema = new mongoose.Schema({
+  profileName: {
+    type: String,
+    required: false,
+    trim: true
+  },
+  deliveryAddress: {
+    type: String,
+    required: false,
+    default:"NA"
+  },
+  billingAddress: {
+    type: String,
+    required: false,
+    default:"NA"
+  },
+  phoneNumber: {
+    type: String,
+    required: false,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  username: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  walletBalance: {
+    type: Number,
+    default: 0
+  },
+  transactionHistory: [
+    {
+      transactionId: String,
       type: String,
-      required: false,
-      trim: true,
-    },
-    deliveryAddress: {
-      type: String,
-      required: false,
-      default: "NA",
-    },
-    billingAddress: {
-      type: String,
-      required: false,
-      default: "NA",
-    },
-    phoneNumber: {
-      type: String,
-      required: false,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    emailVerified: {
+      amount: Number,
+      date: { type: Date, default: Date.now }
+    }
+  ],
+  activity: [
+    {
+      action: String,
+      date: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ],
+  paymentAccounts: [
+    {
+      provider: String, // e.g., "PayPal", "Stripe"
+      accountId: String,
+      addedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ],
+  newsletter: {
       type: Boolean,
       default: false,
     },

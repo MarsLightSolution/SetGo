@@ -1,10 +1,11 @@
 // controllers/product.controller.js
+const asyncHandler  = require("../utils/asyncHandler");
 const ApiError      = require("../utils/ApiError");
 const ApiResponse   = require("../utils/ApiResponse");
 const Product       = require("../models/product.model");
-const asyncHandler  = require("../utils/asyncHandler");
-const mongoose = require("mongoose");
-const User = require("../models/user");
+const User          = require("../models/user");
+const mongoose      = require("mongoose");
+const logger        = require("../utils/logger");
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -94,11 +95,14 @@ const addProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-  const { category, page = 1, limit = 10 } = req.query;
+  const { category, page = 1, limit = 10, userId, minPrice = 0, maxPrice = 1000000 } = req.query;
+
+  logger.info(`[GetProducts] Query`, { category, page, limit, userId, minPrice, maxPrice });
 
   const pipeline = [];
 
-  if (category?.trim()) {
+  // Category filter
+  if (category?.trim() && category !== "All Products") {
     pipeline.push({
       $match: {
         category: new RegExp(`^${category.trim()}$`, "i"),
@@ -106,7 +110,21 @@ const getProducts = asyncHandler(async (req, res) => {
     });
   }
 
+  // Main filter
+  const matchStage = {
+    isSell: false,
+    price: {
+      $gte: Number(minPrice),
+      $lte: Number(maxPrice),
+    },
+  };
 
+  // Exclude current user
+  if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+    matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
+  }
+
+  pipeline.push({ $match: matchStage });
   pipeline.push({ $sort: { createdAt: -1 } });
 
   const options = {
@@ -129,6 +147,7 @@ const getProducts = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
 
+
 const getProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -144,6 +163,49 @@ const getProductById = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, product, "Fetched product by ID"));
 });
 
+const markProductAsSold = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    logger.warn(`[MarkProductAsSold] Invalid product ID`, { productId });
+    throw new ApiError(400, "Invalid product ID");
+  }
+
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    logger.warn(`[MarkProductAsSold] Product not found`, { productId });
+    throw new ApiError(404, "Product not found");
+  }
+
+  if (product.isSell === true) {
+    logger.info(`[MarkProductAsSold] Product already marked as sold`, { productId });
+    return res.status(200).json(new ApiResponse(200, product, "Product already marked as sold."));
+  }
+
+  product.isSell = true;
+  await product.save();
+
+  logger.info(`[MarkProductAsSold] Product updated as sold`, { productId });
+
+  res.status(200).json(new ApiResponse(200, product, "Product marked as sold."));
+});
+const getProductsByCategory = asyncHandler(async (req, res) => {
+  const { category } = req.params;
+
+  if (!category) {
+    throw new ApiError(400, "Category is required");
+  }
+
+  logger.info(`[getProductsByCategory] Fetching for category: ${category}`);
+
+  const products = await Product.find({
+    category: new RegExp(`^${category.trim()}$`, "i"),
+    isSell: false
+  }).sort({ createdAt: -1 });
+
+  res.status(200).json(new ApiResponse(200, products, "Fetched products by category"));
+});
 const getProductsByUser = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
@@ -199,4 +261,4 @@ const updateProduct = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedProduct, "Product updated successfully."));
 });
 
-module.exports = { addProduct, getProducts,getProductById, getProductsByUser, deleteProduct, updateProduct };
+module.exports = { addProduct, getProducts,getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory  };
