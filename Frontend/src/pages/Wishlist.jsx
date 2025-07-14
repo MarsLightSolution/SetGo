@@ -1,78 +1,114 @@
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { FaMapMarkerAlt } from "react-icons/fa";
+import { MdOutlineCalendarToday } from "react-icons/md";
+import Footer from "../components/common/Footer";
+import { unlike } from "../slices/wishSlice";
+// import { Link } from 'react-router-dom';
+import EmptyImage from '../assets/images/binocular.png';
 
 const Wishlist = () => {
-  const { wishlist, total } = useSelector((state) => state.wishlist);
+  const dispatch = useDispatch();
+  const { wishlist } = useSelector((state) => state.wishlist);
   const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     setTotalItems(wishlist.length);
   }, [wishlist]);
 
+  const handleRemove = (post) => {
+    dispatch(unlike(post));
+  };
+
   return (
-    <div>
-      {wishlist.length > 0 ? (
-        <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-center">
-          {/* Wishlist items */}
-          <div className="w-[100%] md:w-[60%] flex flex-col p-2 mx-auto mt-8">
-            <h1 className="text-3xl font-bold text-green-700 mb-6">Your Wishlist</h1>
-            <div className="flex flex-wrap gap-6 justify-start">
+    <div className="bg-[#f5f5f5] min-h-screen py-8 px-4 flex flex-col justify-between">
+      <div className="flex-grow">
+        {wishlist.length > 0 ? (
+          <div className="max-w-5xl mx-auto bg-white rounded-md shadow-md p-6 mb-10">
+            <h1 className="text-3xl font-bold text-green-700 mb-6">My Watchlist</h1>
+
+            <div className="flex flex-col gap-6">
               {wishlist.map((post, index) => (
                 <div
                   key={post._id || index}
-                  className="group hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between shadow-[rgba(0,_0,_0,_0.24)_0px_3px_8px] hover:shadow-[0px_0px_95px_53px_#00000024] gap-3 p-4 rounded-xl w-[250px]"
+                  className="border border-gray-100 p-4 rounded flex flex-col md:flex-row md:items-center justify-between"
                 >
-                  <div className="w-full h-[180px] flex justify-center items-center">
+                  {/* Image */}
+                  <div className="w-full md:w-[160px] h-[120px] flex items-center justify-center mb-4 md:mb-0">
                     <img
                       src={`http://localhost:8080/${post.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
                       alt="product"
                       className="h-full w-full object-contain rounded-md"
                     />
                   </div>
-                  <div className="w-full text-left">
-                    <p className="truncate text-gray-700 font-semibold text-lg">{post.title}</p>
-                    <p className="text-gray-400 font-normal text-sm mt-1">
-                      {post.description?.split(" ").slice(0, 10).join(" ") + "..."}
+
+                  {/* Info Section */}
+                  <div className="flex-1 md:ml-4 w-full">
+                    <div className="flex justify-between text-sm text-gray-500 mb-1">
+                      <span className="flex items-center gap-1">
+                        <FaMapMarkerAlt className="text-gray-400" />
+                        55278 Mommenheim
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MdOutlineCalendarToday className="text-gray-400" />
+                        Yesterday, 18:25
+                      </span>
+                    </div>
+
+                    <p className="font-bold text-lg text-black">{post.title || "Untitled product"}</p>
+                    <p className="text-sm text-gray-700 mt-1">
+                      {post.description?.split(" ").slice(0, 15).join(" ") + "..."}
                     </p>
-                    <p className="text-green-700 font-bold text-md mt-2">${post.price}</p>
+
+                    <p className="text-green-700 font-bold text-xl mt-2">
+                      € {post.price}
+                      <span className="text-sm font-normal text-green-700 ml-1">negotiable</span>
+                    </p>
+
+                    {/* ✅ Only Remove Button */}
+                    <div className="mt-2">
+                      <button
+                        onClick={() => handleRemove(post)}
+                        className="border border-green-800 text-green-800 hover:text-white hover:bg-green-700 transition px-4 py-1.5 rounded-full text-sm font-semibold"
+                      >
+                        Remove from watchlist
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        ) : (
+          <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-4">
+          {/* Empty Wishlist Image */}
+          <img
+            src={EmptyImage}
+            alt="Empty Wishlist"
+            className="w-40 h-40 object-contain mb-4 opacity-80"
+          />
 
-          {/* Summary Section */}
-          <div className="w-[100%] md:w-[40%] mt-5 flex flex-col">
-            <div className="flex flex-col p-5 gap-5 my-14 h-[100%] justify-between">
-              <div className="flex flex-col gap-5">
-                <div className="font-semibold text-xl text-green-800">Your Wishlist</div>
-                <div className="font-semibold text-5xl text-green-700 -mt-5">Summary</div>
-                <p className="text-xl">
-                  <span className="text-gray-700 font-semibold text-xl">Total Items: {totalItems}</span>
-                </p>
-              </div>
-              <div className="flex flex-col">
-                <p className="text-xl font-bold">
-                  <span className="text-gray-700 font-semibold">Total Amount: </span>${total}
-                </p>
-                <button className="bg-green-700 hover:bg-purple-50 rounded-lg text-white transition duration-300 ease-linear mt-5 border-2 border-green-600 font-bold hover:text-green-700 p-3 text-xl">
-                  Checkout Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="min-h-[80vh] flex flex-col items-center justify-center">
-          <h1 className="text-gray-700 font-semibold text-xl mb-2">Your wishlist is empty!</h1>
+          {/* Message */}
+          <h1 className="text-gray-700 font-semibold text-xl mb-2">
+            Your wishlist is currently empty.
+          </h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Looks like you haven't added any listings yet.
+          </p>
+
+          {/* Browse Listings Button */}
           <Link to="/">
-            <button className="bg-green-600 hover:bg-purple-50 rounded-lg text-white transition duration-300 ease-linear mt-5 border-2 border-green-600 font-semibold hover:text-green-700 p-3 px-10 tracking-wider uppercase">
+            <button className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md px-6 py-2 transition duration-300 border border-green-600 hover:bg-white hover:text-green-700">
               Browse Listings
             </button>
           </Link>
         </div>
-      )}
+        )}
+      </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };
