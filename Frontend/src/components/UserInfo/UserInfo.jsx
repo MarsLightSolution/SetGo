@@ -1,14 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import bannerImage from "../../assets/images/banner1.png";
 import nodataImage from "../../assets/images/nodata.png";
 
+// Replace this with actual user ID from context or props
+const mockUserId = "USER_OBJECT_ID_HERE";
+
 export default function UserInfo() {
   const navigate = useNavigate();
+  const [ads, setAds] = useState([]);
 
   const handlePlaceAdClick = () => {
     navigate("/form");
   };
+
+  useEffect(() => {
+    const fetchAds = async () => {
+      try {
+        const response = await axios.get(`/api/products/my-ads/${mockUserId}`);
+        setAds(response.data);
+      } catch (error) {
+        console.error("Error fetching ads", error);
+      }
+    };
+
+    fetchAds();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -39,7 +57,7 @@ export default function UserInfo() {
               <div className="flex items-center space-x-2">
                 <h2 className="text-xl font-bold">Username</h2>
               </div>
-              <p className="text-sm text-gray-500">0 ads available</p>
+              <p className="text-sm text-gray-500">{ads.length} ads available</p>
             </div>
           </div>
 
@@ -62,19 +80,42 @@ export default function UserInfo() {
 
       {/* My Ads Section */}
       <section className="max-w-4xl mx-auto px-4 py-4">
-        <div className="bg-white rounded-xl shadow p-5 text-center">
-          <div className="mb-4">
-            <img src={nodataImage} alt="Folder Illustration" className="mx-auto" />
-          </div>
-          <h4 className="text-lg font-semibold mb-1">Any Treasure left in the basement?</h4>
-          <p className="text-gray-600 mb-1">You can manage your ads here.</p>
-          <p className="text-gray-600 mb-4">Start advertising easily and for free.</p>
-          <button
-            onClick={handlePlaceAdClick}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium shadow cursor-pointer"
-          >
-            Place an ad
-          </button>
+        <div className="bg-white rounded-xl shadow p-5">
+          <h2 className="text-lg font-semibold mb-4">My Ads</h2>
+
+          {ads.length === 0 ? (
+            <div className="text-center">
+              <div className="mb-4">
+                <img src={nodataImage} alt="No Ads" className="mx-auto" />
+              </div>
+              <h4 className="text-lg font-semibold mb-1">Any Treasure left in the basement?</h4>
+              <p className="text-gray-600 mb-1">You can manage your ads here.</p>
+              <p className="text-gray-600 mb-4">Start advertising easily and for free.</p>
+              <button
+                onClick={handlePlaceAdClick}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium shadow"
+              >
+                Place an ad
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="flex gap-4 pb-2">
+                {ads.map((ad) => (
+                  <div key={ad._id} className="min-w-[250px] bg-gray-100 rounded-lg shadow p-3">
+                    <img
+                      src={ad.pictures?.[0] || nodataImage}
+                      alt={ad.title}
+                      className="h-40 w-full object-cover rounded mb-2"
+                    />
+                    <h4 className="font-semibold text-sm">{ad.title}</h4>
+                    <p className="text-gray-500 text-xs">₹{ad.price}</p>
+                    <p className="text-xs text-gray-400 truncate">{ad.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -116,9 +157,8 @@ export default function UserInfo() {
               </div>
             ))}
           </div>
-
           <div className="border-t border-gray-200 mt-8 pt-6 text-center text-xs text-gray-500 space-y-1">
-            <p>Copyright © 2005-2025 Marktplaats B.V. All rights reserved. Designated trademarks belong to their respective owners.</p>
+            <p>Copyright © 2005-2025 Marktplaats B.V. All rights reserved.</p>
             <p>The classifieds services are operated by kleinanzeigen.de GmbH.</p>
           </div>
         </div>

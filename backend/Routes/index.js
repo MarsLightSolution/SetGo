@@ -9,4 +9,5 @@ router.use('/redis', require('./redisRoutes.js'));
 router.use('/', require('./Twillioroutes.js'));
 router.use('/', require('./Profileroutes.js'));
 router.use("/api/products" ,productRoutes);
+router.use('/api/chat',require('./chat.js'));
 module.exports = router;

@@ -1,8 +1,8 @@
 // controllers/product.controller.js
-const ApiError = require("../utils/ApiError");
-const ApiResponse = require("../utils/ApiResponse");
-const Product = require("../models/product.model");
-const asyncHandler = require("../utils/asyncHandler");
+const ApiError      = require("../utils/ApiError");
+const ApiResponse   = require("../utils/ApiResponse");
+const Product       = require("../models/product.model");
+const asyncHandler  = require("../utils/asyncHandler");
 const mongoose = require("mongoose");
 const User = require("../models/user");
 
@@ -105,6 +105,7 @@ const getProducts = asyncHandler(async (req, res) => {
       },
     });
   }
+
 
   pipeline.push({ $sort: { createdAt: -1 } });
 
