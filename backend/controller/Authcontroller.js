@@ -237,16 +237,15 @@ module.exports.refreshAccessToken = async (req, res) => {
  * JWT PROTECTION MIDDLEWARE (expects Bearer header)
  *******************************************************************/
 module.exports.verifyJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  const authHeader = req.cookies.refreshToken;
+  if (!authHeader) {
     return res.status(401).json({ message: "Access token missing or invalid" });
   }
 
-  const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decoded = jwt.verify(authHeader, process.env.REFRESH_TOKEN_SECRET);
     req.user = decoded;
-    logger.info(`[verifyJWT] Valid token for user id ${decoded.id}`);
+    logger.info(`[verifyJWT] Valid token for user id: ${decoded.id}`);
     next();
   } catch (err) {
     logger.error(`[verifyJWT] Invalid or expired token: ${err.stack}`);
