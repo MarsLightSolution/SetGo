@@ -9,6 +9,8 @@ const {
   getProductsByUser,
   updateProduct,
   deleteProduct,
+  markProductAsSold,
+  getProductsByCategory
 } = require("../controller/product.controller.js");
 
 router.post("/add",
@@ -22,6 +24,14 @@ router.post("/add",
 // Get all products
 router.get("/getProducts", verifyJWT, getProducts);
 
+// // Get all products 
+router.get("/getProducts"
+  // ,verifyJWT
+  ,getProducts);
+
+router.get("/product/:id"
+  // ,verifyJWT
+  , getProductById);
 // Get product by ID
 router.get("/product/:id", verifyJWT, getProductById);
 
@@ -35,8 +45,12 @@ router.delete("/product/:id", verifyJWT, deleteProduct);
 router.patch("/product/:id", verifyJWT, updateProduct);
 
 // Test route
+
 router.route("/try").post((req, res) => {
   res.send("Test passed");
 });
+
+router.patch("/mark-sold/:productId", markProductAsSold);
+router.get('/category/:category', getProductsByCategory);
 router.route("/productadds")
 module.exports = router;
