@@ -21,6 +21,7 @@ import EmailNotification from './Components/Popups/EmailNotification'
 import UserInfo from './Components/UserInfo/UserInfo'
 import Wishlist from './pages/Wishlist'
 import ProductDetail from './pages/ProductDescription'
+import ChatApp from './components/Chat/chatapp'
 function App() {
   return (
     <div >
@@ -48,6 +49,7 @@ function App() {
         <Route path='/product/:id' element={<ProductDetail/>}/>
         <Route path='/watchlist' element={<Wishlist/>}/>
         <Route path='products/product/:id' element={<ProductDetail/>}/>
+        <Route path="/chat" element={<ChatApp/>}/>
       </Routes>
     </div>
   )

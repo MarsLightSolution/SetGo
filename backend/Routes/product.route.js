@@ -38,5 +38,5 @@ router.patch("/product/:id", verifyJWT, updateProduct);
 router.route("/try").post((req, res) => {
   res.send("Test passed");
 });
-
+router.route("/productadds")
 module.exports = router;
