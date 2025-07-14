@@ -9,5 +9,8 @@ router.post("/logout", Authcontroller.logout);
 router.post("/forgotpassword", Authcontroller.forgetpassword);
 router.get("/verifytoken", Authcontroller.verifyResetToken);
 router.post("/resetpassword", Authcontroller.resetPassword);
+router.get('/protected', Authcontroller.verifyJWT,(req, res) => {
+    res.json({ message: 'This is a protected route', user: req.user });
+  });
 
 module.exports = router

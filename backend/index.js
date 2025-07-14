@@ -1,13 +1,14 @@
-const express = require("express")
-const dotenv = require("dotenv").config()
-const mongoose = require("./config/mongoose")
-const cookieParser = require("cookie-parser")
-const path = require("path")
-const cors = require("cors")
+const express = require("express");
+const dotenv = require("dotenv").config();
+const mongoose = require("./config/mongoose");
+const cookieParser = require("cookie-parser");
+const path = require("path");
+const cors = require("cors");
+const logger = require("./utils/logger")
 const fs = require("fs")
-const http = require("http")
+const morgan = require("morgan")
+const http = require("http");
 const initializeSocket = require("./socket")
-
 const app = express()
 const server = http.createServer(app)
 
@@ -19,7 +20,7 @@ app.set("io", io)
 
 const corsOptions = {
   origin: "http://localhost:5173", // Updated React app URL
-  methods: "GET,POST,PUT,DELETE",
+  methods: "GET,POST,PUT,DELETE,PATCH",
   allowedHeaders: "Content-Type,Authorization",
   credentials: true,
 }
@@ -30,14 +31,24 @@ app.use(cors(corsOptions))
 if (!fs.existsSync("logs")) {
   fs.mkdirSync("logs")
 }
-
 // Create a write stream for HTTP request logs
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, 'logs', 'access.log'),
+  { flags: 'a' } // append mode
+);
 
-app.use("/api/assets", express.static(path.join(__dirname, "assets")))
-app.use(express.json())
-app.use(cookieParser())
-app.use(express.urlencoded({ extended: true }))
-app.use("/uploads", express.static(path.resolve("uploads")))
+// Use morgan middleware to log HTTP requests to file
+app.use(morgan('combined', { stream: accessLogStream }));
+
+// Also log HTTP requests to console in 'dev' format
+app.use(morgan('dev'));
+
+app.use('/api/assets', express.static(path.join(__dirname, 'assets')));
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.resolve("uploads")));
+app.use("/", require("./Routes"));
 
 
 // Your existing routes
@@ -50,5 +61,6 @@ server.listen(port, (err) => {
     console.log("Error:", err)
   } else {
     console.log(`Socket.IO server running on port ${port}`)
+    logger.info(`Server started on port ${port}`);
   }
 })
