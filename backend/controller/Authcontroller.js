@@ -136,48 +136,38 @@ module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const redisKey = `login:${email}`;
+    // const redisKey = `login:${email}`;
+
+    // 1️⃣ Try fetching user from Redis first
+    // const cachedUserData = await redisClient.get(redisKey);
 
     let user;
 
-    // 1️⃣ Try fetching from Redis
-    const cachedUserData = await redisClient.get(redisKey);
-
-    if (cachedUserData) {
-      console.log("✅ User found in Redis cache");
-
-      const cached = JSON.parse(cachedUserData);
-
-      // 2️⃣ Refetch from Mongo to get a full Mongoose document (to call save)
-      user = await User.findById(cached._id);
-      if (!user) {
-        await redisClient.del(redisKey); // Stale cache cleanup
-        return res.status(404).json({ message: "User not found." });
-      }
-    } else {
-      // 3️⃣ Fallback to DB
+    // if (cachedUserData) {
+    //   console.log("✅ User found in Redis cache");
+    //   user = JSON.parse(cachedUserData);
+    // } else {
+    //   // 2️⃣ Fallback to MongoDB if not in Redis
       user = await User.findOne({ email });
       if (!user) {
         return res.status(404).json({ message: "The email address you entered is incorrect." });
       }
 
-      // 4️⃣ Cache user for 24 hours
-      const safeToCache = {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        password: user.password, // hashed, still needed for comparison
-        role: user.role,
-      };
+      // // Only cache what's needed (avoid full sensitive object)
+      // const safeToCache = {
+      //   _id: user._id,
+      //   username: user.username,
+      //   email: user.email,
+      //   password: user.password, // hashed
+      //   role: user.role
+      // };
 
-      await redisClient.set(redisKey, JSON.stringify(safeToCache), {
-        EX: 60 * 60 * 24, // 24 hours
-      });
-
-      console.log("💾 User data cached in Redis");
-    }
-
-    // 5️⃣ Validate password
+      // Save to Redis for 24 hours
+      // await redisClient.set(redisKey, JSON.stringify(safeToCache), {
+      //   EX: 60 * 60 * 24 // 24 hours
+      // });
+      // console.log("💾 User data cached in Redis");
+    // 3️⃣ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       logger.warn(`[Login] Incorrect password for ${email}`);
@@ -286,8 +276,9 @@ module.exports.logout = async (req, res) => {
       user.refreshToken = null;
       await user.save({ validateBeforeSave: false });
 
-      await redisClient.del(`login:${user.email}`);
-      logger.info(`[Logout] User logged out and cache cleared: ${user.email}`);
+
+      // const redisKey = `login:${user.email}`; // Delete user entry from redis
+      // await redisClient.del(redisKey);
     }
 
     res.clearCookie("refreshToken");

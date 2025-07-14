@@ -6,9 +6,7 @@ const verifyJWT = require('../middlewares/auth.middlewares.js');
 const { Message } = require('twilio/lib/twiml/MessagingResponse.js');
 const User =require("../models/user.js");
 
-// transfer money from one account to another
-
-
+// tr
 // verify the transaction
 router.post("/verifyTransaction"
     // , verifyJWT 

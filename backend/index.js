@@ -7,22 +7,30 @@ const cors = require("cors");
 const logger = require("./utils/logger")
 const fs = require("fs")
 const morgan = require("morgan")
+const http = require("http");
+const initializeSocket = require("./socket")
+const app = express()
+const server = http.createServer(app)
 
-const app = express();
+// Initialize Socket.IO
+const io = initializeSocket(server)
 
-app.use('/api/assets', express.static(path.join(__dirname,'assets')));
+// Make io available to routes
+app.set("io", io)
+
 const corsOptions = {
-  origin: "http://localhost:5173", // Allow all origins (You can specify your frontend domain here)
-  methods: "GET,POST,PUT,DELETE",
+  origin: "http://localhost:5173", // Updated React app URL
+  methods: "GET,POST,PUT,DELETE,PATCH",
   allowedHeaders: "Content-Type,Authorization",
+  credentials: true,
 }
 
-// ✅ Enable CORS for frontend at http://localhost:5173
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true, // needed to allow cookies (like refresh token)
-}));
+app.use(cors(corsOptions))
 
+// Create logs directory if it doesn't exist
+if (!fs.existsSync("logs")) {
+  fs.mkdirSync("logs")
+}
 // Create a write stream for HTTP request logs
 const accessLogStream = fs.createWriteStream(
   path.join(__dirname, 'logs', 'access.log'),
@@ -42,11 +50,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.resolve("uploads")));
 app.use("/", require("./Routes"));
 
-const port = process.env.PORT || 8080;
-app.listen(port, (err) => {
+
+// Your existing routes
+app.use("/", require("./Routes"))
+
+const port = process.env.PORT || 8080
+
+server.listen(port, (err) => {
   if (err) {
-    console.log("Error:", err);
+    console.log("Error:", err)
   } else {
+    console.log(`Socket.IO server running on port ${port}`)
     logger.info(`Server started on port ${port}`);
   }
-});
+})

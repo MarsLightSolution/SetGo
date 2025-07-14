@@ -18,11 +18,14 @@ import Confirm from './pages/Confirm'
 import NewPassword from './Components/Popups/NewPassword'
 import RenewPassword from './Components/Popups/RenewPassword'
 import EmailNotification from './Components/Popups/EmailNotification'
-import UserInfo from './Components/UserInfo/UserInfo'
+import UserInfo from './components/UserInfo/UserInfo'
 import Wishlist from './pages/Wishlist'
 import ProductDetail from './pages/ProductDescription'
+import ChatApp from './components/Chat/chatapp'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
+import UserPage from './pages/Userpage'
+import MySearch from './pages/MySearch'
 function App() {
   return (
     <div >
@@ -43,11 +46,15 @@ function App() {
         <Route path='/dataprotection' element={<ProtectedRoute><DataProtection/></ProtectedRoute>}/>
         <Route path='/emailsettings' element={<ProtectedRoute><EmailSettings/></ProtectedRoute>}/>
         <Route path='/aboutclassifieds' element={<ProtectedRoute><AboutClassifieds/></ProtectedRoute>}/>
-        <Route path='/newpassword' element={<ProtectedRoute><NewPassword/></ProtectedRoute>}/>
+        <Route path='/newpassword' element={<NewPassword/>}/>
         <Route path='/emailnotify' element={<ProtectedRoute><EmailNotification/></ProtectedRoute>}/>
-        <Route path='/wishlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
+        <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
         <Route path='/product/:id' element={<ProductDetail/>}/>
         <Route path='products/product/:id' element={<ProductDetail/>}/>
+        <Route path="/chat" element={<ChatApp/>}/>
+        <Route path='/userinfo' element={<UserInfo/>}/>
+        <Route path='/userpage' element={<UserPage/>}/>
+        <Route path='/mysearch' element={<MySearch/>}/>
       </Routes>
     </div>
   )
