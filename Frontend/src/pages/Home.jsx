@@ -197,11 +197,11 @@ const Home = () => {
   ];
 
   const galleryData = [
-    { title: "XVS 950 Midnightstar", location: "Oelde", price: "5,195 €" },
-    { title: "Washing machine", location: "Mönchengladbach", price: "333 €" },
-    { title: "Transport trolleys", location: "Bad Buchau", price: "115 €" },
-    { title: "Camping gear set", location: "Dresden", price: "150 €" },
-    { title: "Horses help children", location: "Schlutup", price: "VB" },
+    { title: "XVS 950 Midnightstar", location: "Oelde", price: "5,195 €",image: "/images/bike.jpg"},
+    { title: "Washing machine", location: "Mönchengladbach", price: "333 €",image: "/images/washingMachine.png" },
+    { title: "Transport trolleys", location: "Bad Buchau", price: "115 €" ,image: "/images/transportTrolley.png" },
+    { title: "Camping gear set", location: "Dresden", price: "150 €", image: "/images/camping.png" },
+    { title: "Horses help children", location: "Schlutup", price: "VB", image: "/images/horse.jpg" },
   ];
   const [galleryIndex, setGalleryIndex] = useState(0);
   const visibleCount = 3;
@@ -225,7 +225,7 @@ const Home = () => {
   {
     name: "Snapdeal",
     description: "Deals and discounts online",
-    image: "/images/snapdeal.jpg",
+    image: "/images/snapdeal.png",
   },
   {
     name: "Ajio",
@@ -233,19 +233,16 @@ const Home = () => {
     image: "/images/ajio.jpg",
   },
   {
-    name: "Tata Cliq",
-    description: "Luxury fashion & lifestyle",
-    image: "/images/tatacliq.jpg",
-  },
-  {
     name: "Reliance Digital",
     description: "Electronics & gadgets",
-    image: "/images/reliancedigital.jpg",
+    image: "/images/reliance.jpg",
   },
 ];
 
+
   const [companyIndex, setCompanyIndex] = useState(0);
-  const visibleCompanyCount = 5;
+ const visibleCompanyCount = 5;
+  const maxCompanyIndex = Math.max(0, companyWebsites.length - visibleCompanyCount);
 
   return (
     <div className="min-h-screen bg-gray-100 pt-[2rem]">
@@ -345,11 +342,13 @@ const Home = () => {
                         key={index}
                         className="min-w-[150px] max-w-[180px] flex-1 bg-white border rounded shadow-sm relative"
                       >
-                        <div className="w-full h-[200px] bg-gray-100 flex justify-center items-center">
-                          <span className="text-sm text-gray-400">
-                            Image {galleryIndex + index + 1}
-                          </span>
-                        </div>
+                        <div className="w-full h-[200px] bg-white-500 flex justify-center items-center">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="h-full object-contain"
+                        />
+                      </div>
                         <div className="p-2">
                           <p className="text-sm font-medium text-gray-800">
                             {item.title}
@@ -382,60 +381,66 @@ const Home = () => {
             />
 
         {/* Company Websites */}
-        <div className="bg-white p-4 mt-3 rounded shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Company Websites</h2>
-            <div className="flex gap-2">
-              <button
-                className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                onClick={() => setCompanyIndex((prev) => Math.max(prev - 1, 0))}
-                disabled={companyIndex === 0}
-              >
-                &#8592;
-              </button>
-              <button
-                className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                onClick={() =>
-                  setCompanyIndex((prev) =>
-                    Math.min(prev + 1, companyWebsites.length - visibleCompanyCount)
-                  )
-                }
-                disabled={companyIndex >= companyWebsites.length - visibleCompanyCount}
-              >
-                &#8594;
-              </button>
-            </div>
-          </div>
-
-          <div className="flex gap-4 overflow-hidden">
-            {companyWebsites
-              .slice(companyIndex, companyIndex + visibleCompanyCount)
-              .map((site, index) => (
-                <div
-                  key={index}
-                  className="w-[22%] bg-white border rounded shadow-sm flex-shrink-0 relative"
-                >
-                  <div className="w-full h-[140px] bg-white flex justify-center items-center">
-                    {site.image ? (
-                      <img
-                        src={site.image}
-                        alt={site.name}
-                        className="h-[50px] object-contain"
-                      />
-                    ) : (
-                      <span className="text-sm text-gray-400">
-                        Logo {companyIndex + index + 1}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-2">
-                    <p className="text-sm font-medium text-gray-800">{site.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">{site.description}</p>
-                  </div>
-                </div>
-              ))}
-          </div>
+       <div className="bg-white p-4 mt-3 rounded shadow">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Company Websites</h2>
+        <div className="flex gap-2">
+          <button
+            className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+            onClick={() =>
+              setCompanyIndex((prev) =>
+                Math.max(prev - visibleCompanyCount, 0)
+              )
+            }
+            disabled={companyIndex === 0}
+          >
+            &#8592;
+          </button>
+          <button
+            className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+            onClick={() =>
+              setCompanyIndex((prev) =>
+                Math.min(prev + visibleCompanyCount, maxCompanyIndex)
+              )
+            }
+            disabled={companyIndex >= maxCompanyIndex}
+          >
+            &#8594;
+          </button>
         </div>
+      </div>
+
+      <div className="flex gap-4 overflow-hidden">
+        {companyWebsites
+          .slice(companyIndex, companyIndex + visibleCompanyCount)
+          .map((site, index) => (
+            <div
+              key={index}
+              className="w-[22%] bg-white border rounded shadow-sm flex-shrink-0 relative"
+            >
+              <div className="w-full h-[140px] bg-white flex justify-center items-center">
+                {site.image ? (
+                  <img
+                    src={site.image}
+                    alt={site.name}
+                    className="h-[50px] object-contain"
+                  />
+                ) : (
+                  <span className="text-sm text-gray-400">
+                    Logo {companyIndex + index + 1}
+                  </span>
+                )}
+              </div>
+              <div className="p-2">
+                <p className="text-sm font-medium text-gray-800">{site.name}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {site.description}
+                </p>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
 
             <Footer />
           </div>
