@@ -1,5 +1,6 @@
 const socketIo = require("socket.io")
-const User = require("./models/user")
+const User = require("./models/User")
+const mongoose = require("mongoose")
 
 function initializeSocket(server) {
   const io = socketIo(server, {
@@ -16,16 +17,35 @@ function initializeSocket(server) {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id)
 
-    // Handle user joining (using username instead of userId)
-    socket.on("join-user", async (username) => {
+    // Handle user joining (using email instead of username)
+    socket.on("join-user", async (userIdentifier) => {
       try {
-        socket.username = username
-        userSockets.set(username, socket.id)
+        let user = null
 
-        // Update user online status using username
-        await User.findOneAndUpdate({ username }, { isOnline: true, lastSeen: new Date() })
+        // Check if userIdentifier is a valid ObjectId
+        if (mongoose.Types.ObjectId.isValid(userIdentifier)) {
+          // Search by _id if it's a valid ObjectId
+          user = await User.findById(userIdentifier)
+        }
 
-        console.log(`User ${username} joined with socket ${socket.id}`)
+        // If not found by ID or not a valid ObjectId, search by email/username
+        if (!user) {
+          user = await User.findOne({
+            $or: [{ email: userIdentifier }, { username: userIdentifier }],
+          })
+        }
+
+        if (user) {
+          socket.userIdentifier = user.email // Use email as consistent identifier
+          userSockets.set(user.email, socket.id)
+
+          // Update user online status using email
+          await User.findOneAndUpdate({ email: user.email }, { isOnline: true, lastSeen: new Date() })
+
+          console.log(`User ${user.email} joined with socket ${socket.id}`)
+        } else {
+          console.log(`User not found for identifier: ${userIdentifier}`)
+        }
       } catch (error) {
         console.error("Error joining user:", error)
       }
@@ -34,13 +54,13 @@ function initializeSocket(server) {
     // Join a conversation room
     socket.on("join-conversation", (conversationId) => {
       socket.join(conversationId)
-      console.log(`User ${socket.username} joined conversation ${conversationId}`)
+      console.log(`User ${socket.userIdentifier} joined conversation ${conversationId}`)
     })
 
     // Leave a conversation room
     socket.on("leave-conversation", (conversationId) => {
       socket.leave(conversationId)
-      console.log(`User ${socket.username} left conversation ${conversationId}`)
+      console.log(`User ${socket.userIdentifier} left conversation ${conversationId}`)
     })
 
     // Handle typing indicator
@@ -53,13 +73,13 @@ function initializeSocket(server) {
     socket.on("disconnect", async () => {
       console.log("User disconnected:", socket.id)
 
-      if (socket.username) {
+      if (socket.userIdentifier) {
         try {
-          // Update user offline status using username
-          await User.findOneAndUpdate({ username: socket.username }, { isOnline: false, lastSeen: new Date() })
+          // Update user offline status using email
+          await User.findOneAndUpdate({ email: socket.userIdentifier }, { isOnline: false, lastSeen: new Date() })
 
-          userSockets.delete(socket.username)
-          console.log(`User ${socket.username} went offline`)
+          userSockets.delete(socket.userIdentifier)
+          console.log(`User ${socket.userIdentifier} went offline`)
         } catch (error) {
           console.error("Error updating user offline status:", error)
         }

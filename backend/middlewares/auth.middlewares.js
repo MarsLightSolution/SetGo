@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
-const User = require("../models/user");
+const User = require("../models/User");
 
 // Middleware: Verifies Bearer token and attaches user to req
 const verifyToken = asyncHandler(async (req, _res, next) => {
