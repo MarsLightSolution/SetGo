@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState} from "react";
 import {
   Heart,
   MessageSquareText,
@@ -13,37 +13,13 @@ import {
   showErrorToast,
   ToastifyContainer,
 } from "../Hooks/Tostify";
-
+import  setupAutoTokenRefresh  from "../Hooks/accesstoken";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const setupAutoTokenRefresh = () => {
-  const refreshInterval = setInterval(async () => {
-    try {
-      const res = await fetch("http://localhost:8080/refreshAccessToken", {
-        method: "POST",
-        credentials: "include", // Sends HTTP-only cookie
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem("accessToken", data.accessToken);
-        console.log("Access token refreshed");
-      } else {
-        console.warn("Refresh failed:", data?.message || data?.error);
-        clearInterval(refreshInterval); // Stop trying
-      }
-    } catch (err) {
-      console.error("Token refresh error:", err);
-      clearInterval(refreshInterval); // Stop trying
-    }
-  }, 14 * 60 * 1000); // every 14 mins
-};
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -215,5 +191,4 @@ const Login = () => {
     </>
   );
 };
-
 export default Login;
