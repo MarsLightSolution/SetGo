@@ -6,6 +6,8 @@ const Product       = require("../models/product.model");
 const User          = require("../models/user");
 const mongoose      = require("mongoose");
 const logger        = require("../utils/logger");
+const fs            = require("fs");
+const path          = require("path");
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -232,6 +234,16 @@ const deleteProduct = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  // Delete associated images from filesystem
+  if (product.pictures && product.pictures.length > 0) {
+    product.pictures.forEach((imgPath) => {
+      const fullPath = path.join(__dirname, "..", imgPath);
+      fs.unlink(fullPath, (err) => {
+        if (err) console.error("Failed to delete image:", fullPath, err);
+      });
+    });
+  }
+
   await Product.findByIdAndDelete(id);
 
   res
@@ -241,24 +253,120 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
 const updateProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const updateFields = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid product ID");
   }
 
-  const updatedProduct = await Product.findByIdAndUpdate(id, updateFields, {
-    new: true,
-    runValidators: true,
-  });
+  const product = await Product.findById(id);
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
 
-  if (!updatedProduct) {
-    throw new ApiError(404, "Product not found or not updated");
+  const {
+    title,
+    category,
+    price,
+    description,
+    postalCode,
+    streetNo,
+    name,
+    offerType,
+    showFullAddress,
+    subscribe,
+    isBuy,
+    isSell,
+    quantity,
+    termsAccepted,
+  } = req.body;
+
+  // Parse and validate boolean fields
+  const showFullAddressBool = showFullAddress === "true" || showFullAddress === true;
+  const subscribeBool = subscribe === "true" || subscribe === true;
+  const isBuyBool = isBuy === "true" || isBuy === true;
+  const isSellBool = isSell === "true" || isSell === true;
+  const termsAcceptedBool = termsAccepted === "true" || termsAccepted === true;
+
+  if (!termsAcceptedBool) {
+    throw new ApiError(400, "You must accept the terms and conditions.");
+  }
+
+  // Process new pictures if uploaded
+  const picturesRaw = Array.isArray(req.files?.pictures)
+    ? req.files.pictures
+    : req.files?.pictures
+    ? [req.files.pictures]
+    : [];
+
+  let pictures = product.pictures; // default to existing
+
+  if (picturesRaw.length > 0) {
+    if (picturesRaw.length > 20) {
+      throw new ApiError(400, "You can upload a maximum of 20 pictures.");
+    }
+
+    // Delete previous images from filesystem
+    product.pictures.forEach((imgPath) => {
+      const fullPath = path.join(__dirname, "..", imgPath);
+      fs.unlink(fullPath, (err) => {
+        if (err) console.error("Error deleting old image:", fullPath, err);
+      });
+    });
+
+    // Replace with new uploaded paths
+    pictures = picturesRaw.map((file) => file.path.replace(/\\/g, "/"));
+  }
+
+  // Update product fields
+  product.title = title || product.title;
+  product.category = category || product.category;
+  product.price = Number(price) || product.price;
+  product.description = description || product.description;
+  product.pictures = pictures;
+  product.name = name || product.name;
+  product.termsAccepted = termsAcceptedBool;
+  product.offerType = offerType || product.offerType;
+  product.showFullAddress = showFullAddressBool;
+  product.subscribe = subscribeBool;
+  product.isBuy = isBuyBool;
+  product.isSell = isSellBool;
+  product.location = {
+    postalCode: postalCode || product.location?.postalCode || "",
+    street: streetNo || product.location?.street || "",
+  };
+
+  await product.save();
+
+  // Optionally update user records (buy/sell history)
+  const userId = req.user?._id;
+  const pushObject = {};
+
+  if (isBuyBool) {
+    pushObject.buy = {
+      productId: product._id,
+      purchasedAt: new Date(),
+      quantity: Number(quantity || 1),
+      price: Number(price),
+    };
+  }
+
+  if (isSellBool) {
+    pushObject.sell = {
+      productId: product._id,
+      listedAt: new Date(),
+      quantity: Number(quantity || 1),
+      price: Number(price),
+      isSold: false,
+    };
+  }
+
+  if (userId && Object.keys(pushObject).length > 0) {
+    await User.findByIdAndUpdate(userId, { $push: pushObject }, { new: true });
   }
 
   res
     .status(200)
-    .json(new ApiResponse(200, updatedProduct, "Product updated successfully."));
+    .json(new ApiResponse(200, product, "Product updated successfully."));
 });
 
 module.exports = { addProduct, getProducts,getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory  };
