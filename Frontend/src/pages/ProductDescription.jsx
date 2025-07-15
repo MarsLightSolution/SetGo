@@ -1,109 +1,110 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { CalendarToday, LocationOn } from "@mui/icons-material"
-import PaymentDialog from "./PaymentDialog"
-import leftadImage from "../assets/images/ad01.png"
-import rightadImage from "../assets/images/ad02.png"
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { CalendarToday, LocationOn } from "@mui/icons-material";
+import PaymentDialog from "./PaymentDialog";
+import Footer from "../components/common/Footer"; 
+import leftadImage from "../assets/images/ad01.png";
+import rightadImage from "../assets/images/ad02.png";
 
 const ProductDetail = () => {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const token = localStorage.getItem("accessToken")
-  const [product, setProduct] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
-  const [dialogUser, setDialogUser] = useState(null)
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-  const [relatedProducts, setRelatedProducts] = useState([])
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [followLoading, setFollowLoading] = useState(false)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const token = localStorage.getItem("accessToken");
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [dialogUser, setDialogUser] = useState(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("userData")
+    const storedUser = localStorage.getItem("userData");
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser))
+        setUser(JSON.parse(storedUser));
       } catch (e) {
-        console.error("Error parsing userData:", e)
+        console.error("Error parsing userData:", e);
       }
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchProductById()
-  }, [id])
+    fetchProductById();
+  }, [id]);
 
   const fetchProductById = async () => {
     try {
       const res = await fetch(`http://localhost:8080/api/products/product/${id}`, {
         headers: {
           "Content-Type": "application/json",
-          Authorization:`${token}`,
+          Authorization: `${token}`,
         },
-      })
-      const result = await res.json()
-      setProduct(result.data)
+      });
+      const result = await res.json();
+      setProduct(result.data);
     } catch (error) {
-      console.error("Error fetching product:", error)
-      setProduct(null)
+      console.error("Error fetching product:", error);
+      setProduct(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchRelatedProducts = async (category) => {
     try {
-      const res = await fetch(`http://localhost:8080/api/products/category/${category}`)
-      const json = await res.json()
-      const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3)
-      setRelatedProducts(filtered || [])
+      const res = await fetch(`http://localhost:8080/api/products/category/${category}`);
+      const json = await res.json();
+      const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
+      setRelatedProducts(filtered || []);
     } catch (err) {
-      console.error("Failed to fetch related products", err)
+      console.error("Failed to fetch related products", err);
     }
-  }
+  };
 
   useEffect(() => {
     if (product?.category) {
-      fetchRelatedProducts(product.category)
+      fetchRelatedProducts(product.category);
     }
-  }, [product])
+  }, [product]);
 
   const handleBuyNow = async () => {
-    const userId = user?._id
-    const ownerId = product?.user?._id || product?.owner
+    const userId = user?._id;
+    const ownerId = product?.user?._id || product?.owner;
     if (!userId || !ownerId) {
-      alert("User or owner not loaded yet.")
-      return
+      alert("User or owner not loaded yet.");
+      return;
     }
     try {
-      const res = await fetch(`http://localhost:8080/users/get-users/${userId}`)
-      const json = await res.json()
+      const res = await fetch(`http://localhost:8080/users/get-users/${userId}`);
+      const json = await res.json();
       if (json?.data) {
-        setDialogUser(json.data)
-        setShowPaymentDialog(true)
+        setDialogUser(json.data);
+        setShowPaymentDialog(true);
       } else {
-        alert("Failed to load user data.")
+        alert("Failed to load user data.");
       }
     } catch (err) {
-      console.error("Error fetching user:", err)
-      alert("Error loading user data.")
+      console.error("Error fetching user:", err);
+      alert("Error loading user data.");
     }
-  }
+  };
 
   const handleSendMessage = async () => {
     if (!user) {
-      alert("Please login to send messages.")
-      return
+      alert("Please login to send messages.");
+      return;
     }
     if (!product?.user?.username && !product?.owner) {
-      alert("Product owner information not available.")
-      return
+      alert("Product owner information not available.");
+      return;
     }
 
-    const ownerUsername = product.user?.username || product.owner
-    navigate("/chat")
+    const ownerUsername = product.user?.username || product.owner;
+    navigate("/chat");
 
     setTimeout(() => {
       if (window.startChatConversation) {
@@ -111,77 +112,78 @@ const ProductDetail = () => {
           title: product.title,
           price: product.price,
           id: product._id,
-        }
-        window.startChatConversation(ownerUsername, productInfo)
+        };
+        window.startChatConversation(ownerUsername, productInfo);
       }
-    }, 1000)
-  }
+    }, 1000);
+  };
 
-  const ownerId = product?.user?._id || product?.owner || null
+  const ownerId = product?.user?._id || product?.owner || null;
 
-  // Check follow status
   useEffect(() => {
     if (user && ownerId) {
-      checkFollowStatus(user._id, ownerId)
+      checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId])
+  }, [user, ownerId]);
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
-      const res = await fetch(`http://localhost:8080/check/${followerId}/${followingId}`)
-      const data = await res.json()
-      setIsFollowing(data?.isFollowing)
+      const res = await fetch(`http://localhost:8080/check/${followerId}/${followingId}`);
+      const data = await res.json();
+      setIsFollowing(data?.isFollowing);
     } catch (err) {
-      console.error("Error checking follow status", err)
+      console.error("Error checking follow status", err);
     }
-  }
+  };
 
   const handleFollowToggle = async () => {
-  if (!user || !ownerId) return
-  setFollowLoading(true)
+    if (!user || !ownerId) return;
+    setFollowLoading(true);
 
-  try {
-    const endpoint = isFollowing
-      ? `http://localhost:8080/unfollow/${ownerId}`
-      : `http://localhost:8080/follow/${ownerId}`
+    try {
+      const endpoint = isFollowing
+        ? `http://localhost:8080/unfollow/${ownerId}`
+        : `http://localhost:8080/follow/${ownerId}`;
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${token}`,
-      },
-      body: JSON.stringify({ followerId: user._id })
-    })
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify({ followerId: user._id }),
+      });
 
-    const result = await res.json()
+      const result = await res.json();
 
-    if (res.ok && result.success !== false) {
-      // 🔄 Re-check from server instead of toggling blindly
-      await checkFollowStatus(user._id, ownerId)
-    } else {
-      alert("Follow/unfollow failed. Try again.")
+      if (res.ok && result.success !== false) {
+        await checkFollowStatus(user._id, ownerId);
+      } else {
+        alert("Follow/unfollow failed. Try again.");
+      }
+    } catch (err) {
+      console.error("Follow/Unfollow error:", err);
+      alert("An error occurred.");
+    } finally {
+      setFollowLoading(false);
     }
-  } catch (err) {
-    console.error("Follow/Unfollow error:", err)
-    alert("An error occurred.")
-  } finally {
-    setFollowLoading(false)
-  }
-}
+  };
 
+  if (loading) return <div className="text-center mt-10">Loading…</div>;
+  if (!product) return <div className="text-center text-red-500 mt-10">Product not found</div>;
 
-  if (loading) return <div className="text-center mt-10">Loading…</div>
-  if (!product) return <div className="text-center text-red-500 mt-10">Product not found</div>
+  const ownerName = product.user?.name || product.name || "Unknown Seller";
+  const ownerInitial = ownerName.charAt(0).toUpperCase();
 
   return (
     <>
-      <div className="min-h-screen bg-gray-100 pt-10">
+      <div className="min-h-screen bg-white-100 pt-3">
         <div className="w-full flex justify-center">
           <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
             <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
               <img src={leftadImage} alt="Left Ad" className="w-full h-[550px] object-cover rounded" />
             </div>
+
             <div className="flex-1 w-full lg:w-auto">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-4">
                 <div className="md:col-span-2">
@@ -193,7 +195,7 @@ const ProductDetail = () => {
                     />
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">{product.title || "Product Title"}</h1>
                     <p className="text-green-700 text-xl font-bold mb-3">
-                      {product.price?.toLocaleString("de-DE")} € <span className="text-sm">VB</span>
+                      {product.price?.toLocaleString("en-IN")} ₹ <span className="text-sm">VB</span>
                     </p>
                     <div className="text-sm text-gray-600 flex items-center gap-6 mb-4">
                       <div className="flex items-center gap-1">
@@ -202,9 +204,11 @@ const ProductDetail = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         <CalendarToday fontSize="small" />
-                        16.06.2025
+                        {new Date(product.createdAt).toLocaleDateString("en-GB")}
                       </div>
-                      <div className="flex items-center gap-1">👁️ 7</div>
+                      <div className="flex items-center gap-1">
+                        👁️ {product.views || 0}
+                      </div>
                     </div>
                     <div className="text-gray-700 whitespace-pre-line leading-relaxed">
                       {product.description || "Keine Beschreibung verfügbar."}
@@ -217,6 +221,7 @@ const ProductDetail = () => {
                     </button>
                   </div>
                 </div>
+
                 <div className="bg-white rounded-md shadow p-4 h-fit border border-gray-100">
                   <button
                     onClick={handleSendMessage}
@@ -232,14 +237,14 @@ const ProductDetail = () => {
                   </button>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="bg-gray-300 rounded-full w-10 h-10 flex items-center justify-center text-white text-lg font-bold">
-                      {product.user?.name?.charAt(0) || product.name?.charAt(0) || "U"}
+                      {ownerInitial}
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-gray-900">
-                        {product.user?.name || product.name || "Unknown Seller"}
-                      </p>
+                      <p className="font-semibold text-sm text-gray-900">{ownerName}</p>
                       <p className="text-sm text-gray-500">Private User</p>
-                      <p className="text-sm text-gray-500">Active since 16.06.2025</p>
+                      <p className="text-sm text-gray-500">
+                        Active since {new Date(product.createdAt).toLocaleDateString("en-GB")}
+                      </p>
                     </div>
                   </div>
                   {user?._id !== ownerId && (
@@ -247,7 +252,9 @@ const ProductDetail = () => {
                       onClick={handleFollowToggle}
                       disabled={followLoading}
                       className={`w-full border ${
-                        isFollowing ? "border-red-500 text-red-600 hover:bg-red-50" : "border-green-600 text-green-700 hover:bg-green-50"
+                        isFollowing
+                          ? "border-red-500 text-red-600 hover:bg-red-50"
+                          : "border-green-600 text-green-700 hover:bg-green-50"
                       } font-medium py-1.5 rounded-md mb-4`}
                     >
                       {followLoading ? "Loading..." : isFollowing ? "🚫 Unfollow" : "➕ Follow"}
@@ -292,6 +299,7 @@ const ProductDetail = () => {
                 </div>
               )}
             </div>
+
             <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
               <img src={rightadImage} alt="Right Ad" className="w-full h-[550px] object-cover rounded" />
             </div>
@@ -306,12 +314,13 @@ const ProductDetail = () => {
           user={dialogUser}
           owner={ownerId}
           onPaymentSuccess={() => {
-            console.log("Payment success")
+            console.log("Payment success");
           }}
         />
       )}
+      <Footer />
     </>
-  )
-}
+  );
+};
 
-export default ProductDetail
+export default ProductDetail;
