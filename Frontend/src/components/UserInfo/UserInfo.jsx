@@ -239,7 +239,7 @@ export default function UserInfo() {
                           </span>
                         )}
                       </p>
-                      <p className="text-lime-600 font-semibold text-base mt-1">₹ {ad.price}</p>
+                      <p className="text-green-700 font-semibold text-base mt-1">{ad.price} €</p>
                     </div>
 
                     {/* Buttons */}
