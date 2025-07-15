@@ -4,6 +4,7 @@ import { CalendarToday, LocationOn } from "@mui/icons-material";
 import PaymentDialog from "./PaymentDialog";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
+import Footer from "../components/common/Footer";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -105,7 +106,7 @@ const ProductDetail = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-100 pt-10">
+      <div className="min-h-screen bg-white-100 pt-3">
         <div className="w-full flex justify-center">
           <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
             {/* Left Ad */}
@@ -120,133 +121,145 @@ const ProductDetail = () => {
             {/* Main Content */}
             <div className="flex-1 w-full lg:w-auto">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-4">
-                {/* Product Info */}
-                <div className="md:col-span-2">
-                  <div className="bg-white rounded-md shadow p-4">
-                    <img
-                      src={`http://localhost:8080/${
-                        product.pictures?.[0]?.replace(/\\/g, "/") ||
-                        "uploads/placeholder.jpg"
-                      }`}
-                      alt={product.title}
-                      className="w-full h-[300px] object-contain mb-4 rounded-md"
-                    />
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                      {product.title || "Product Title"}
-                    </h1>
-                    <p className="text-green-700 text-xl font-bold mb-3">
-                      {product.price?.toLocaleString("de-DE")} €{" "}
-                      <span className="text-sm">VB</span>
-                    </p>
-                    <div className="text-sm text-gray-600 flex items-center gap-6 mb-4">
-                      <div className="flex items-center gap-1">
-                        <LocationOn fontSize="small" />
-                        {product.location?.postalCode || "Unknown"} – Oranienburg
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <CalendarToday fontSize="small" />
-                        16.06.2025
-                      </div>
-                      <div className="flex items-center gap-1">👁️ 7</div>
-                    </div>
-                    <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {product.description || "Keine Beschreibung verfügbar."}
-                    </div>
-                    <button
-                      className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-semibold"
-                      onClick={handleBuyNow}
-                    >
-                      Buy Now
-                    </button>
-                  </div>
-                </div>
+               {/* Product Info */}
+              <div className="md:col-span-2">
+        <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
+          <img
+            src={`http://localhost:8080/${
+              product.pictures?.[0]?.replace(/\\/g, "/") ||
+              "uploads/placeholder.jpg"
+            }`}
+            alt={product.title}
+            className="w-full h-[240px] object-contain rounded-lg"
+          />
+
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {product.title || "Product Title"}
+            </h1>
+            <p className="text-green-700 text-xl font-semibold">
+              {product.price?.toLocaleString("de-DE")} €{" "}
+              <span className="text-sm">VB</span>
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center text-sm text-gray-600 gap-x-4 gap-y-1">
+            <div className="flex items-center gap-1">
+              <LocationOn fontSize="small" />
+              {product.location?.postalCode || "Unknown"} – Oranienburg
+            </div>
+            <div className="flex items-center gap-1">
+              <CalendarToday fontSize="small" />
+              16.06.2025
+            </div>
+            <div className="flex items-center gap-1">👁️ 7</div>
+          </div>
+
+          <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+            {product.description || "Keine Beschreibung verfügbar."}
+          </div>
+
+          <button
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded font-medium transition"
+            onClick={handleBuyNow}
+          >
+            Buy Now
+          </button>
+        </div>
+      </div>
 
                 {/* Seller Info */}
-                <div className="bg-white rounded-md shadow p-4 h-fit border border-gray-100">
-                  <button className="w-full bg-lime-500 hover:bg-lime-600 text-white font-semibold py-2 rounded-md mb-3 flex items-center justify-center gap-2">
-                    📩 Send Message
-                  </button>
-                  <button className="w-full border text-sm font-medium text-lime-600 border-lime-500 hover:bg-lime-50 py-2 rounded-md mb-2">
-                    💚 Add to Watchlist
-                  </button>
-                  <button className="w-full border text-sm text-gray-700 hover:bg-gray-100 py-2 rounded-md mb-4">
-                    🔗 Share Listing
-                  </button>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="bg-gray-300 rounded-full w-10 h-10 flex items-center justify-center text-white text-lg font-bold">
-                      {product.user?.name?.charAt(0) ||
-                        product.name?.charAt(0) ||
-                        "U"}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-gray-900">
-                        {product.user?.name || product.name || "Unknown Seller"}
-                      </p>
-                      <p className="text-sm text-gray-500">Private User</p>
-                      <p className="text-sm text-gray-500">
-                        Active since 16.06.2025
-                      </p>
-                    </div>
-                  </div>
-                  <button className="w-full border border-green-600 text-green-700 font-medium py-1.5 rounded-md hover:bg-green-50 mb-4">
-                    ➕ Follow
-                  </button>
-                </div>
+                <div className="bg-white rounded-md shadow p-5 h-fit border border-gray-100 space-y-4">
+            <button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md flex items-center justify-center gap-2 cursor-pointer">
+              Send Message
+            </button>
+
+            <button className="w-full border text-sm font-medium text-green-600 border-green-500 hover:bg-green-50 py-2 rounded-md cursor-pointer">
+              Add to Watchlist
+            </button>
+
+            <button className="w-full border text-sm text-gray-700 hover:bg-gray-100 py-2 rounded-md cursor-pointer">
+              Share Listing
+            </button>
+
+            <div className="flex items-center gap-3">
+            <div className="bg-gray-300 rounded-full w-10 h-10 flex items-center justify-center text-white text-lg font-bold">
+              {product.user?.name?.charAt(0) ||
+                product.name?.charAt(0) ||
+                "U"}
+            </div>
+            <div>
+              <p className="font-semibold text-base text-gray-900">  {/* ← changed from text-sm to text-base */}
+                {product.user?.name || product.name || "Unknown Seller"}
+              </p>
+              <p className="text-sm text-gray-500">Private User</p>
+              <p className="text-sm text-gray-500">Active since 16.06.2025</p>
+            </div>
+          </div>
+
+            <button className="w-full border border-green-600 text-green-700 font-medium py-1.5 rounded-md hover:bg-green-50 cursor-pointer">
+              ➕ Follow
+            </button>
+          </div>
               </div>
 
               {/* Related Products */}
-              {relatedProducts.length > 0 && (
-                <div className="max-w-6xl mx-auto mt-16">
-                  <h2 className="text-xl font-semibold mb-6">
-                    This might also interest you
-                  </h2>
-                  <div className="grid grid-cols-1 gap-6">
-                    {relatedProducts.map((item) => (
-                      <div
-                        key={item._id}
-                        onClick={() =>
-                          (window.location.href = `/products/product/${item._id}`)
-                        }
-                        className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
-                      >
-                        <img
-                          src={`http://localhost:8080/${
-                            item.pictures?.[0]?.replace(/\\/g, "/") ||
-                            "uploads/placeholder.jpg"
-                          }`}
-                          alt={item.title}
-                          className="w-32 h-24 object-cover rounded-md"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm text-gray-500 flex items-center justify-between">
-                            <span>
-                              📍 {item.location?.postalCode || "Unknown"} Oranienburg
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {new Date(item.createdAt).toLocaleDateString("en-GB")}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-gray-800 mt-1 mb-1 line-clamp-1">
-                            {item.title}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-                            {item.description}
-                          </p>
-                          <div className="flex gap-4 text-sm font-semibold text-green-700">
-                            <span>₹ {item.price?.toLocaleString("en-IN")}</span>
-                            <span className="text-gray-500">
-                              {item.area || "—"} m²
-                            </span>
-                            <span className="text-gray-500">
-                              {item.rooms || "—"} rooms
-                            </span>
-                          </div>
+          {relatedProducts.length > 0 && (
+            <div className="w-full flex justify-center mt-10">
+              <div className="w-full max-w-screen-xl px-4 mb-10">
+                <h2 className="text-xl font-semibold mb-6">
+                  This might also interest you
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {relatedProducts.map((item) => (
+                    <div
+                      key={item._id}
+                      onClick={() =>
+                        (window.location.href = `/products/product/${item._id}`)
+                      }
+                     className="flex gap-5 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition-transform transform hover:-translate-y-1 hover:shadow-lg duration-300 min-h-[130px] min-w-[860px]"
+
+                    >
+                      <img
+                        src={`http://localhost:8080/${
+                          item.pictures?.[0]?.replace(/\\/g, "/") ||
+                          "uploads/placeholder.jpg"
+                        }`}
+                        alt={item.title}
+                        className="w-36 h-28 object-cover rounded-md flex-shrink-0"
+                      />
+                      <div className="flex flex-col justify-between flex-1">
+                        <div className="text-sm text-gray-500 flex items-center justify-between">
+                          <span>
+                            📍 {item.location?.postalCode || "Unknown"} Oranienburg
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(item.createdAt).toLocaleDateString("en-GB")}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-gray-800 mt-1 mb-1 line-clamp-1">
+                          {item.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-1">
+                          {item.description}
+                        </p>
+                        <div className="flex flex-wrap gap-4 text-sm font-semibold text-green-700">
+                          <span>₹ {item.price?.toLocaleString("en-IN")}</span>
+                          {/* <span className="text-gray-500">
+                            {item.area || "—"} m²
+                          </span>
+                          <span className="text-gray-500">
+                            {item.rooms || "—"} rooms
+                          </span> */}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
+            </div>
+          )}
+
             </div>
 
             {/* Right Ad */}
@@ -273,6 +286,7 @@ const ProductDetail = () => {
           }}
         />
       )}
+      <Footer/>
     </>
   );
 };
