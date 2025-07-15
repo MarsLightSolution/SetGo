@@ -42,7 +42,12 @@ router.get("/user/:userId/ads", verifyJWT, getProductsByUser);
 router.delete("/product/:id", verifyJWT, deleteProduct);
 
 // Update product by ID
-router.patch("/product/:id", verifyJWT, updateProduct);
+router.put(
+  "/product/:id",
+  verifyJWT,
+  uploadPictures.fields([{ name: "pictures", maxCount: 20 }]),
+  updateProduct
+);
 
 // Test route
 
