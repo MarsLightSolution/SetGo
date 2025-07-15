@@ -21,6 +21,30 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const setupAutoTokenRefresh = () => {
+  const refreshInterval = setInterval(async () => {
+    try {
+      const res = await fetch("http://localhost:8080/refreshAccessToken", {
+        method: "POST",
+        credentials: "include", // Sends HTTP-only cookie
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem("accessToken", data.accessToken);
+        console.log("Access token refreshed");
+      } else {
+        console.warn("Refresh failed:", data?.message || data?.error);
+        clearInterval(refreshInterval); // Stop trying
+      }
+    } catch (err) {
+      console.error("Token refresh error:", err);
+      clearInterval(refreshInterval); // Stop trying
+    }
+  }, 14 * 60 * 1000); // every 14 mins
+};
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -42,7 +66,7 @@ const Login = () => {
         localStorage.setItem("userId", data.userId);
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("userName", data.userName);
-
+        setupAutoTokenRefresh();
         const userRes = await fetch(
           `http://localhost:8080/userdata/${data.userId}`,
           { method: "GET" }

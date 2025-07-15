@@ -186,7 +186,7 @@ const Navbar = () => {
                 {(dropdownOpen || isDropdownPinned) && (
                   <div className="absolute top-full right-0 mt-2 w-40 bg-white shadow-lg rounded-lg border border-gray-200 z-50">
                     {[
-                      { label: "News", path: "/new" },
+                      { label: "News", path: "/chat" },
                       { label: "Show", path: "/userinfo" },
                       { label: "Settings", path: "/profile" },
                       { label: "Watchlist", path: "/watchlist" },
