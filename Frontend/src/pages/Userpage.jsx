@@ -70,23 +70,73 @@ const UserPage = () => {
           {loading ? (
             <p className="text-sm text-gray-600">Loading...</p>
           ) : currentList.length > 0 ? (
-            <div className="text-left space-y-2">
-              {currentList.map((user) => (
+          <div className="space-y-4">
+            {currentList.map((user, index) => {
+              const name = user.profileName || user.username || "Unnamed User";
+              const initials = name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .substring(0, 2)
+                .toUpperCase();
+
+              const isFollowing = following.some((f) => f._id === user._id);
+
+              // Optional: set of background colors for initials
+              const colors = [
+                "bg-pink-500",
+                "bg-blue-500",
+                "bg-green-500",
+                "bg-indigo-500",
+                "bg-yellow-500",
+                "bg-purple-500",
+              ];
+              const bgColor = colors[index % colors.length];
+
+              return (
                 <div
                   key={user._id}
-                  className="flex justify-between items-center border-b py-2 text-sm"
+                  className="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition"
                 >
-                  <div>
-                    <p className="font-medium">
-                      {user.profileName || user.username || "Unnamed User"}
-                    </p>
-                    {user.email && (
-                      <p className="text-gray-500">{user.email}</p>
-                    )}
+                  {/* Profile section */}
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-full text-white flex items-center justify-center text-md font-semibold ${bgColor}`}>
+                      {initials}
+                    </div>
+                    <div>
+                      <p className="text-base font-medium text-gray-800">{name}</p>
+                      {user.email && (
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+
+                  {/* Action section */}
+            <div className="flex flex-col items-end justify-center gap-1 text-right">
+              {activeTab === "followers" && (
+                <span
+                  className={`text-sm font-semibold ${
+                    isFollowing ? "text-green-600" : "text-pink-500"
+                  }`}
+                >
+                  {isFollowing ? "FOLLOWING" : "+"}
+                </span>
+              )}
+
+              <p className="text-xs text-gray-700 font-medium">
+                Ad Available: {typeof user.adsCount === "number" ? user.adsCount : 0}
+              </p>
+
+              <p className="text-xs text-gray-500">
+                Location: {user.location || "Unknown"}
+              </p>
             </div>
+                </div>
+              );
+            })}
+          </div>
+
+
           ) : (
             // Empty State
             <div className="flex flex-col items-center gap-4 mt-6">
