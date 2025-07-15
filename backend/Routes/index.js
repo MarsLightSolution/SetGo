@@ -12,4 +12,5 @@ router.use('/', require('./Profileroutes.js'));
 router.use("/api/products" ,productRoutes);
 router.use('/api/chat',require('./chat.js'));
 router.use("/api/transaction",transaction);
+router.use("/",require("./Followerroutes.js"));
 module.exports = router;
