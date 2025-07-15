@@ -122,51 +122,55 @@ const ProductDetail = () => {
             <div className="flex-1 w-full lg:w-auto">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-4">
                {/* Product Info */}
-              <div className="md:col-span-2">
-        <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
-          <img
-            src={`http://localhost:8080/${
-              product.pictures?.[0]?.replace(/\\/g, "/") ||
-              "uploads/placeholder.jpg"
-            }`}
-            alt={product.title}
-            className="w-full h-[240px] object-contain rounded-lg"
-          />
+      <div className="md:col-span-2">
+  <div className="bg-white rounded-xl shadow-md p-4 space-y-4">
+    <img
+      src={`http://localhost:8080/${
+        product.pictures?.[0]?.replace(/\\/g, "/") ||
+        "uploads/placeholder.jpg"
+      }`}
+      alt={product.title}
+      className="w-full h-[240px] object-contain rounded-lg"
+    />
 
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {product.title || "Product Title"}
-            </h1>
-            <p className="text-green-700 text-xl font-semibold">
-              {product.price?.toLocaleString("de-DE")} €{" "}
-              <span className="text-sm">VB</span>
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center text-sm text-gray-600 gap-x-4 gap-y-1">
-            <div className="flex items-center gap-1">
-              <LocationOn fontSize="small" />
-              {product.location?.postalCode || "Unknown"} – Oranienburg
-            </div>
-            <div className="flex items-center gap-1">
-              <CalendarToday fontSize="small" />
-              16.06.2025
-            </div>
-            <div className="flex items-center gap-1">👁️ 7</div>
-          </div>
-
-          <div className="text-gray-700 leading-relaxed whitespace-pre-line">
-            {product.description || "Keine Beschreibung verfügbar."}
-          </div>
-
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded font-medium transition"
-            onClick={handleBuyNow}
-          >
-            Buy Now
-          </button>
-        </div>
+    {/* Content with left padding */}
+    <div className="pl-4 space-y-3">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {product.title || "Product Title"}
+        </h1>
+        <p className="text-green-700 text-xl font-semibold">
+          {product.price?.toLocaleString("de-DE")} €{" "}
+          {/* <span className="text-sm">VB</span> */}
+        </p>
       </div>
+
+      <div className="flex flex-wrap items-center text-sm text-gray-600 gap-x-4 gap-y-1">
+        <div className="flex items-center gap-1">
+          <LocationOn fontSize="small" />
+          {product.location?.postalCode || "Unknown"} – Oranienburg
+        </div>
+        <div className="flex items-center gap-1">
+          <CalendarToday fontSize="small" />
+          16.06.2025
+        </div>
+        <div className="flex items-center gap-1">👁️ 7</div>
+      </div>
+
+      <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+        {product.description || "Keine Beschreibung verfügbar."}
+      </div>
+
+      <button
+        className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 text-sm rounded font-medium transition"
+        onClick={handleBuyNow}
+      >
+        Buy Now
+      </button>
+    </div>
+  </div>
+</div>
+
 
                 {/* Seller Info */}
                 <div className="bg-white rounded-md shadow p-5 h-fit border border-gray-100 space-y-4">
@@ -210,7 +214,8 @@ const ProductDetail = () => {
                 <h2 className="text-xl font-semibold mb-6">
                   This might also interest you
                 </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+               <div className="flex flex-col gap-6">
+
                   {relatedProducts.map((item) => (
                     <div
                       key={item._id}
@@ -244,7 +249,7 @@ const ProductDetail = () => {
                           {item.description}
                         </p>
                         <div className="flex flex-wrap gap-4 text-sm font-semibold text-green-700">
-                          <span>₹ {item.price?.toLocaleString("en-IN")}</span>
+                          <span>{item.price?.toLocaleString("en-IN")} €</span>
                           {/* <span className="text-gray-500">
                             {item.area || "—"} m²
                           </span>
