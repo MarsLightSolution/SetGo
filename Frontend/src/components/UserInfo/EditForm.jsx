@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   TextField,
   Button,
-  Checkbox,
-  FormControlLabel,
   MenuItem,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
@@ -19,13 +17,12 @@ const EditForm = () => {
     price: "",
     description: "",
     postalCode: "",
-    location: "",
     streetNo: "",
     showFullAddress: false,
     name: "",
     termsAccepted: false,
     subscribe: false,
-    pictures: [],
+    pictures: [], // for new uploads
   });
 
   const token = localStorage.getItem("accessToken");
@@ -38,11 +35,18 @@ const EditForm = () => {
         });
         const data = await res.json();
         if (res.ok) {
-          setFormData((prev) => ({ ...prev, ...data.data }));
+          const product = data.data;
+          setFormData((prev) => ({
+            ...prev,
+            ...product,
+            postalCode: product?.location?.postalCode || "",
+            streetNo: product?.location?.street || "",
+          }));
         } else {
           toast.error("Failed to load ad data");
         }
       } catch (err) {
+        console.log(err);
         toast.error("Error fetching ad");
       }
     };
@@ -53,7 +57,10 @@ const EditForm = () => {
     const { name, value, type, checked, files } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : type === "file" ? files : value,
+      [name]:
+        type === "checkbox" ? checked :
+        type === "file" ? Array.from(files) :
+        value,
     }));
   };
 
@@ -63,9 +70,9 @@ const EditForm = () => {
 
     for (const key in formData) {
       if (key === "pictures" && formData.pictures?.length > 0) {
-        for (let i = 0; i < formData.pictures.length; i++) {
-          updatedData.append("pictures", formData.pictures[i]);
-        }
+        formData.pictures.forEach((file) => {
+          updatedData.append("pictures", file);
+        });
       } else {
         updatedData.append(key, formData[key]);
       }
@@ -74,7 +81,9 @@ const EditForm = () => {
     try {
       const res = await fetch(`http://localhost:8080/api/products/product/${id}`, {
         method: "PUT",
-        headers: { Authorization: `${token}` },
+        headers: {
+          Authorization: `${token}`,
+        },
         body: updatedData,
       });
 
@@ -159,31 +168,22 @@ const EditForm = () => {
             fullWidth
           />
           <TextField
-            label="Location"
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            fullWidth
-          />
-        </div>
-
-        {/* Street and Name */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <TextField
             label="Street No."
             name="streetNo"
             value={formData.streetNo}
             onChange={handleChange}
             fullWidth
           />
-          <TextField
-            label="Your Name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            fullWidth
-          />
         </div>
+
+        {/* Name */}
+        <TextField
+          label="Your Name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          fullWidth
+        />
 
         {/* Upload */}
         <div className="mt-6">
@@ -193,27 +193,23 @@ const EditForm = () => {
             name="pictures"
             multiple
             accept="image/*"
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                pictures: Array.from(e.target.files),
-              })
-            }
+            onChange={handleChange}
           />
           <p className="text-sm text-gray-500 mt-2">
             Tip: Upload up to 20 images (max size 12 MB).
           </p>
         </div>
+
         {/* Submit Button */}
-      <div className="pt-4 flex justify-end">
-        <Button
+        <div className="pt-4 flex justify-end">
+          <Button
             type="submit"
             variant="contained"
             color="success"
-            size="medium" // ⬅️ Medium size
-        >
+            size="medium"
+          >
             Update Ad
-        </Button>
+          </Button>
         </div>
       </form>
     </div>

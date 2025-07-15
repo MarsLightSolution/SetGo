@@ -12,95 +12,95 @@ import {
 } from "@mui/material";
 import Footer from "../components/common/Footer";
 import toast from "react-hot-toast";
+import { CloudUpload as CloudUploadIcon } from "@mui/icons-material"; // ✅ added
 
 const Form = () => {
-const [formData, setFormData] = useState({
-  offerType: "offer",
-  title: "",
-  category: "",
-  price: "",
-  description: "",
-  postalCode: "",
-  location: "",
-  streetNo: "",
-  showFullAddress: false,
-  name: "",
-  termsAccepted: false,
-  subscribe: false,
-  pictures: [], // 🔥 Important
-});
+  const [formData, setFormData] = useState({
+    offerType: "offer",
+    title: "",
+    category: "",
+    price: "",
+    description: "",
+    postalCode: "",
+    location: "",
+    streetNo: "",
+    showFullAddress: false,
+    name: "",
+    termsAccepted: false,
+    subscribe: false,
+    pictures: [], // 🔥 Important
+  });
 
-const handleChange = (e) => {
-  const { name, value, type, checked, files } = e.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name]: type === "checkbox" ? checked : type === "file" ? files : value,
-  }));
-};
+  const handleChange = (e) => {
+    const { name, value, type, checked, files } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : type === "file" ? files : value,
+    }));
+  };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const formDataToSend = new FormData();
-  formDataToSend.append("title", formData.title);
-  formDataToSend.append("category", formData.category);
-  formDataToSend.append("price", formData.price);
-  formDataToSend.append("description", formData.description);
-  formDataToSend.append("name", formData.name);
-  formDataToSend.append("offerType", formData.offerType);
-  formDataToSend.append("termsAccepted", formData.termsAccepted ? "true" : "false");
-  formDataToSend.append("showFullAddress", formData.showFullAddress ? "true" : "false");
-  formDataToSend.append("subscribe", formData.subscribe ? "true" : "false");
-  formDataToSend.append("postalCode", formData.postalCode);
-  formDataToSend.append("streetNo", formData.streetNo || "");
+    const formDataToSend = new FormData();
+    formDataToSend.append("title", formData.title);
+    formDataToSend.append("category", formData.category);
+    formDataToSend.append("price", formData.price);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("name", formData.name);
+    formDataToSend.append("offerType", formData.offerType);
+    formDataToSend.append("termsAccepted", formData.termsAccepted ? "true" : "false");
+    formDataToSend.append("showFullAddress", formData.showFullAddress ? "true" : "false");
+    formDataToSend.append("subscribe", formData.subscribe ? "true" : "false");
+    formDataToSend.append("postalCode", formData.postalCode);
+    formDataToSend.append("streetNo", formData.streetNo || "");
 
-  if (formData.pictures && formData.pictures.length > 0) {
-    for (let i = 0; i < formData.pictures.length; i++) {
-      formDataToSend.append("pictures", formData.pictures[i]);
+    if (formData.pictures && formData.pictures.length > 0) {
+      for (let i = 0; i < formData.pictures.length; i++) {
+        formDataToSend.append("pictures", formData.pictures[i]);
+      }
     }
-  }
 
-  try {
-    const token = localStorage.getItem("accessToken"); // or however you store it
+    try {
+      const token = localStorage.getItem("accessToken");
 
-    const res = await fetch("http://localhost:8080/api/products/add", {
-      method: "POST",
-      headers: {
-        Authorization:`${token}`,
-      },
-      body: formDataToSend,
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      toast.success("Form submitted successfully");
-      setFormData({
-        offerType: "offer",
-        title: "",
-        category: "",
-        price: "",
-        description: "",
-        postalCode: "",
-        location: "",
-        streetNo: "",
-        showFullAddress: false,
-        name: "",
-        termsAccepted: false,
-        subscribe: false,
-        pictures: [],
+      const res = await fetch("http://localhost:8080/api/products/add", {
+        method: "POST",
+        headers: {
+          Authorization: `${token}`,
+        },
+        body: formDataToSend,
       });
 
-      e.target.reset();
-    } else {
-      toast.error(data.message || "Something went wrong");
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Form submitted successfully");
+        setFormData({
+          offerType: "offer",
+          title: "",
+          category: "",
+          price: "",
+          description: "",
+          postalCode: "",
+          location: "",
+          streetNo: "",
+          showFullAddress: false,
+          name: "",
+          termsAccepted: false,
+          subscribe: false,
+          pictures: [],
+        });
+
+        e.target.reset();
+      } else {
+        toast.error(data.message || "Something went wrong");
+      }
+    } catch (error) {
+      console.error("Error submitting ad:", error);
+      toast.error("Failed to submit form");
     }
-  } catch (error) {
-    console.error("Error submitting ad:", error);
-    toast.error("Failed to submit form");
-  }
-};
-  // Reset form data after submission`  
+  };
 
   return (
     <>
@@ -116,7 +116,6 @@ const handleSubmit = async (e) => {
             </h2>
 
             {/* Offer Type */}
-
             <FormControl component="fieldset" className="mb-4 ">
               <FormLabel>Bid Request</FormLabel>
               <RadioGroup
@@ -159,18 +158,12 @@ const handleSubmit = async (e) => {
                 sx={{ width: "41rem" }}
               >
                 <MenuItem value="">Choose your category</MenuItem>
-                <MenuItem value="Cars & Motorcycles">
-                  Cars & Motorcycles
-                </MenuItem>
+                <MenuItem value="Cars & Motorcycles">Cars & Motorcycles</MenuItem>
                 <MenuItem value="Real Estate">Real Estate</MenuItem>
                 <MenuItem value="Jobs">Jobs</MenuItem>
-                <MenuItem value="Household & Furniture">
-                  Household & Furniture
-                </MenuItem>
+                <MenuItem value="Household & Furniture">Household & Furniture</MenuItem>
                 <MenuItem value="Electronics">Electronics</MenuItem>
-                <MenuItem value="Leisure, Hobby & Neighborhood">
-                  Leisure, Hobby & Neighborhood
-                </MenuItem>
+                <MenuItem value="Leisure, Hobby & Neighborhood">Leisure, Hobby & Neighborhood</MenuItem>
                 <MenuItem value="Service">Service</MenuItem>
                 <MenuItem value="Other">Other</MenuItem>
               </TextField>
@@ -203,17 +196,40 @@ const handleSubmit = async (e) => {
               <label className="block font-medium mb-2">
                 Pictures (recommended)
               </label>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    pictures: Array.from(e.target.files),
-                  })
-                }
-              />
+
+              <div className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center cursor-pointer hover:border-green-600 transition-all">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  id="fileUpload"
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      pictures: Array.from(e.target.files),
+                    })
+                  }
+                  className="hidden"
+                />
+                <label htmlFor="fileUpload" className="cursor-pointer flex flex-col items-center">
+                  <CloudUploadIcon style={{ fontSize: 40, color: "gray" }} />
+                  <span className="text-gray-600 text-sm mt-2">Click to upload or drag files here</span>
+                  <span className="text-xs text-gray-500">Max 20 images (12MB each)</span>
+                </label>
+              </div>
+
+              {/* ✅ Show selected file names */}
+              {formData.pictures.length > 0 && (
+                <div className="mt-3 text-left text-sm text-gray-700">
+                  <p className="font-medium mb-1">Selected Images:</p>
+                  <ul className="list-disc ml-6">
+                    {formData.pictures.map((file, idx) => (
+                      <li key={idx}>{file.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <p className="text-sm text-gray-500 mt-2">
                 Tip: Upload up to 20 images (max size 12 MB). Images will be
                 perfect with our{" "}

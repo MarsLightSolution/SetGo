@@ -5,7 +5,8 @@ import io from "socket.io-client"
 
 export default function ChatApp() {
   const [currentUser, setCurrentUser] = useState(null)
-  const [isConnected, setIsConnected] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(true)
+  const [connectionError, setConnectionError] = useState(null)
   const [conversations, setConversations] = useState([])
   const [selectedConversation, setSelectedConversation] = useState(null)
   const [messages, setMessages] = useState([])
@@ -23,31 +24,65 @@ export default function ChatApp() {
     scrollToBottom()
   }, [messages])
 
-  // Connect user using existing username
-  const handleConnect = async () => {
-    const storedUserId = localStorage.getItem("userName")
+  // Auto-connect on component mount
+  useEffect(() => {
+    handleAutoConnect()
+  }, [])
+
+  // Auto-connect user using existing username from localStorage
+  const handleAutoConnect = async () => {
+    // Try multiple possible keys for user identification
+    const storedUserId =
+      localStorage.getItem("userId") || localStorage.getItem("username") || localStorage.getItem("userEmail")
+
+    // Also try to get from userData object
+    let userFromStorage = null
+    try {
+      const userData = localStorage.getItem("userData")
+      if (userData) {
+        const parsedUser = JSON.parse(userData)
+        userFromStorage = parsedUser.email || parsedUser.username || parsedUser._id
+      }
+    } catch (e) {
+      console.error("Error parsing userData:", e)
+    }
+
+    const userIdentifier = storedUserId || userFromStorage
+
+    if (!userIdentifier) {
+      setConnectionError("No user ID found in localStorage. Please login first.")
+      setIsConnecting(false)
+      return
+    }
 
     try {
+      setIsConnecting(true)
+      console.log("Attempting to connect with identifier:", userIdentifier)
+
       const response = await fetch("http://localhost:8080/api/chat/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: storedUserId,
+          username: userIdentifier.trim(),
         }),
       })
 
       const data = await response.json()
+      console.log("Connection response:", data)
+
       if (data.success) {
         setCurrentUser(data.user)
-        setIsConnected(true)
+        setConnectionError(null)
         initializeSocket(data.user)
         fetchConversations(data.user.userId)
       } else {
-        alert(data.message)
+        setConnectionError(data.message)
       }
     } catch (error) {
       console.error("Connection error:", error)
-      alert("Failed to connect")
+      setConnectionError("Failed to connect to chat server")
+    } finally {
+      setIsConnecting(false)
     }
   }
 
@@ -59,7 +94,7 @@ export default function ChatApp() {
 
     newSocket.on("connect", () => {
       console.log("Connected to Socket.IO")
-      newSocket.emit("join-user", user.userId) // user.userId is the username
+      newSocket.emit("join-user", user.userId) // This will be the email
     })
 
     newSocket.on("new-message", (data) => {
@@ -67,7 +102,9 @@ export default function ChatApp() {
         setMessages((prev) => [...prev, data.message])
       }
       // Update conversation list
-      fetchConversations(user.userId)
+      if (user) {
+        fetchConversations(user.userId)
+      }
     })
 
     newSocket.on("user-typing", (data) => {
@@ -85,9 +122,10 @@ export default function ChatApp() {
   }
 
   // Fetch conversations
-  const fetchConversations = async (username) => {
+  const fetchConversations = async (userIdentifier) => {
+    if (!userIdentifier) return
     try {
-      const response = await fetch(`http://localhost:8080/api/chat/conversations/${username}`)
+      const response = await fetch(`http://localhost:8080/api/chat/conversations/${userIdentifier}`)
       const data = await response.json()
       if (data.success) {
         setConversations(data.conversations)
@@ -99,6 +137,11 @@ export default function ChatApp() {
 
   // Start conversation with user
   const startConversation = async (targetUsername) => {
+    if (!currentUser) {
+      alert("Please wait, connecting to chat...")
+      return
+    }
+
     try {
       const response = await fetch("http://localhost:8080/api/chat/conversations", {
         method: "POST",
@@ -128,6 +171,8 @@ export default function ChatApp() {
 
   // Select conversation
   const selectConversation = async (conversation) => {
+    if (!currentUser) return
+
     // Leave previous conversation room
     if (selectedConversation && socket) {
       socket.emit("leave-conversation", selectedConversation._id)
@@ -153,7 +198,12 @@ export default function ChatApp() {
 
   // Send message
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return
+    if (!newMessage.trim() || !selectedConversation || !currentUser) {
+      if (!currentUser) {
+        alert("Please wait, connecting to chat...")
+      }
+      return
+    }
 
     try {
       const response = await fetch("http://localhost:8080/api/chat/messages", {
@@ -161,7 +211,7 @@ export default function ChatApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: selectedConversation._id,
-          senderId: currentUser.userId, // This is the username
+          senderId: currentUser.userId, // This will be the email
           text: newMessage.trim(),
         }),
       })
@@ -184,7 +234,7 @@ export default function ChatApp() {
 
   // Handle typing indicator
   const handleTyping = () => {
-    if (socket && selectedConversation) {
+    if (socket && selectedConversation && currentUser) {
       socket.emit("typing", {
         conversationId: selectedConversation._id,
         isTyping: true,
@@ -193,44 +243,67 @@ export default function ChatApp() {
     }
   }
 
+  // Function to start conversation from external source (like product page)
+  const startConversationFromExternal = async (targetUsername, productInfo = null) => {
+    if (!currentUser) {
+      // If not connected yet, wait for connection and retry
+      if (isConnecting) {
+        setTimeout(() => startConversationFromExternal(targetUsername, productInfo), 1000)
+        return
+      }
+      alert("Please wait, connecting to chat...")
+      return
+    }
+
+    try {
+      const response = await fetch("http://localhost:8080/api/chat/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participants: [currentUser.userId, targetUsername],
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setSelectedConversation(data.conversation)
+        setMessages([])
+        fetchConversations(currentUser.userId)
+
+        // Join conversation room
+        if (socket) {
+          socket.emit("join-conversation", data.conversation._id)
+        }
+
+        // If product info is provided, send an initial message about the product
+        if (productInfo) {
+          setTimeout(() => {
+            const productMessage = `Hi! I'm interested in your product: ${productInfo.title} - €${productInfo.price}`
+            setNewMessage(productMessage)
+          }, 500)
+        }
+      } else {
+        alert(data.message)
+      }
+    } catch (error) {
+      console.error("Error starting conversation:", error)
+    }
+  }
+
+  // Expose function globally for external access
+  useEffect(() => {
+    window.startChatConversation = startConversationFromExternal
+    return () => {
+      delete window.startChatConversation
+    }
+  }, [currentUser, socket])
+
   const styles = {
     container: {
       display: "flex",
       height: "100vh",
       backgroundColor: "#f3f4f6",
       fontFamily: "Arial, sans-serif",
-    },
-    loginContainer: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "100%",
-      backgroundColor: "white",
-      padding: "40px",
-    },
-    loginForm: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "16px",
-      width: "300px",
-    },
-    input: {
-      padding: "12px 16px",
-      border: "1px solid #d1d5db",
-      borderRadius: "8px",
-      fontSize: "14px",
-      outline: "none",
-    },
-    button: {
-      backgroundColor: "#3b82f6",
-      color: "white",
-      border: "none",
-      padding: "12px 16px",
-      borderRadius: "8px",
-      cursor: "pointer",
-      fontSize: "14px",
-      fontWeight: "500",
     },
     sidebar: {
       width: "33.333333%",
@@ -254,6 +327,25 @@ export default function ChatApp() {
       color: "#6b7280",
       marginBottom: "16px",
     },
+    connectionStatus: {
+      fontSize: "12px",
+      padding: "4px 8px",
+      borderRadius: "4px",
+      marginBottom: "16px",
+      textAlign: "center",
+    },
+    connectionStatusConnecting: {
+      backgroundColor: "#fef3c7",
+      color: "#92400e",
+    },
+    connectionStatusConnected: {
+      backgroundColor: "#d1fae5",
+      color: "#065f46",
+    },
+    connectionStatusError: {
+      backgroundColor: "#fee2e2",
+      color: "#991b1b",
+    },
     searchContainer: {
       display: "flex",
       gap: "8px",
@@ -274,6 +366,7 @@ export default function ChatApp() {
       borderRadius: "6px",
       cursor: "pointer",
       fontSize: "12px",
+      opacity: currentUser ? 1 : 0.5,
     },
     conversationsList: {
       flex: 1,
@@ -286,6 +379,7 @@ export default function ChatApp() {
       cursor: "pointer",
       borderBottom: "1px solid #f3f4f6",
       transition: "background-color 0.2s",
+      opacity: currentUser ? 1 : 0.5,
     },
     conversationItemSelected: {
       backgroundColor: "#dbeafe",
@@ -431,6 +525,7 @@ export default function ChatApp() {
       borderRadius: "8px",
       fontSize: "14px",
       outline: "none",
+      opacity: currentUser ? 1 : 0.5,
     },
     sendButton: {
       backgroundColor: "#3b82f6",
@@ -440,6 +535,7 @@ export default function ChatApp() {
       borderRadius: "8px",
       cursor: "pointer",
       fontSize: "14px",
+      opacity: currentUser ? 1 : 0.5,
     },
     emptyState: {
       flex: 1,
@@ -465,21 +561,20 @@ export default function ChatApp() {
     },
   }
 
-  // Login Screen
-  if (!isConnected) {
-    return (
-      <div style={styles.loginContainer}>
-        <h1 style={{ marginBottom: "32px", color: "#1f2937" }}>Connect to Chat</h1>
-        <div style={styles.loginForm}>
-          <button style={styles.button} onClick={handleConnect}>
-            Connect to Chat
-          </button>
-          <p style={{ fontSize: "12px", color: "#6b7280", textAlign: "center" }}>
-            Using stored user credentials from localStorage
-          </p>
-        </div>
-      </div>
-    )
+  // Get connection status component
+  const getConnectionStatus = () => {
+    if (isConnecting) {
+      return (
+        <div style={{ ...styles.connectionStatus, ...styles.connectionStatusConnecting }}>Connecting to chat...</div>
+      )
+    }
+    if (connectionError) {
+      return <div style={{ ...styles.connectionStatus, ...styles.connectionStatusError }}>{connectionError}</div>
+    }
+    if (currentUser) {
+      return <div style={{ ...styles.connectionStatus, ...styles.connectionStatusConnected }}>● Connected</div>
+    }
+    return null
   }
 
   return (
@@ -488,22 +583,29 @@ export default function ChatApp() {
       <div style={styles.sidebar}>
         <div style={styles.sidebarHeader}>
           <h2 style={styles.sidebarTitle}>Chat App</h2>
-          <div style={styles.userInfo}>
-            Logged in as: <strong>{currentUser?.userName}</strong> (@{currentUser?.userId})
-          </div>
+
+          {getConnectionStatus()}
+
+          {currentUser && (
+            <div style={styles.userInfo}>
+              Logged in as: <strong>{currentUser.userName}</strong> ({currentUser.userId})
+            </div>
+          )}
 
           <div style={styles.searchContainer}>
             <input
               style={styles.searchInput}
               type="text"
-              placeholder="Enter Username to chat"
+              placeholder="Enter Email to chat"
               value={searchUsername}
               onChange={(e) => setSearchUsername(e.target.value)}
+              disabled={!currentUser}
             />
             <button
               style={styles.searchButton}
+              disabled={!currentUser}
               onClick={() => {
-                if (searchUsername.trim()) {
+                if (searchUsername.trim() && currentUser) {
                   startConversation(searchUsername.trim())
                   setSearchUsername("")
                 }
@@ -516,7 +618,7 @@ export default function ChatApp() {
 
         <div style={styles.conversationsList}>
           {conversations.map((conversation) => {
-            const otherUser = conversation.participants.find((p) => p.userId !== currentUser.userId)
+            const otherUser = conversation.participants.find((p) => p.userId !== currentUser?.userId)
             return (
               <div
                 key={conversation._id}
@@ -524,9 +626,9 @@ export default function ChatApp() {
                   ...styles.conversationItem,
                   ...(selectedConversation?._id === conversation._id ? styles.conversationItemSelected : {}),
                 }}
-                onClick={() => selectConversation(conversation)}
+                onClick={() => currentUser && selectConversation(conversation)}
                 onMouseEnter={(e) => {
-                  if (selectedConversation?._id !== conversation._id) {
+                  if (selectedConversation?._id !== conversation._id && currentUser) {
                     e.currentTarget.style.backgroundColor = "#f9fafb"
                   }
                 }}
@@ -542,13 +644,19 @@ export default function ChatApp() {
                 </div>
                 <div style={styles.conversationContent}>
                   <h3 style={styles.conversationName}>
-                    {otherUser?.userName || "Unknown"} (@{otherUser?.userId || "Unknown"})
+                    {otherUser?.userName || "Unknown"} ({otherUser?.userId || "Unknown"})
                   </h3>
                   <p style={styles.conversationMessage}>{conversation.lastMessage || "No messages yet"}</p>
                 </div>
               </div>
             )
           })}
+
+          {!isConnecting && conversations.length === 0 && (
+            <div style={{ padding: "20px", textAlign: "center", color: "#6b7280" }}>
+              {currentUser ? "No conversations yet. Start a new chat!" : "Please wait for connection..."}
+            </div>
+          )}
         </div>
       </div>
 
@@ -560,20 +668,21 @@ export default function ChatApp() {
             <div style={styles.chatHeader}>
               <div style={styles.avatarContainer}>
                 <div style={styles.chatAvatar}>
-                  {selectedConversation.participants.find((p) => p.userId !== currentUser.userId)?.userName?.[0] || "?"}
+                  {selectedConversation.participants.find((p) => p.userId !== currentUser?.userId)?.userName?.[0] ||
+                    "?"}
                 </div>
-                {selectedConversation.participants.find((p) => p.userId !== currentUser.userId)?.isOnline && (
+                {selectedConversation.participants.find((p) => p.userId !== currentUser?.userId)?.isOnline && (
                   <div style={styles.onlineIndicator}></div>
                 )}
               </div>
               <div>
                 <h3 style={styles.chatHeaderName}>
-                  {selectedConversation.participants.find((p) => p.userId !== currentUser.userId)?.userName ||
+                  {selectedConversation.participants.find((p) => p.userId !== currentUser?.userId)?.userName ||
                     "Unknown"}
                 </h3>
                 <p style={styles.chatHeaderStatus}>
-                  @{selectedConversation.participants.find((p) => p.userId !== currentUser.userId)?.userId || "Unknown"}
-                  {selectedConversation.participants.find((p) => p.userId !== currentUser.userId)?.isOnline && (
+                  {selectedConversation.participants.find((p) => p.userId !== currentUser?.userId)?.userId || "Unknown"}
+                  {selectedConversation.participants.find((p) => p.userId !== currentUser?.userId)?.isOnline && (
                     <span style={{ color: "#10b981", marginLeft: "8px" }}>● Online</span>
                   )}
                 </p>
@@ -587,12 +696,12 @@ export default function ChatApp() {
                   key={message._id}
                   style={{
                     ...styles.messageContainer,
-                    ...(message.senderId === currentUser.userId
+                    ...(message.senderId === currentUser?.userId
                       ? styles.messageContainerUser
                       : styles.messageContainerOther),
                   }}
                 >
-                  {message.senderId !== currentUser.userId && (
+                  {message.senderId !== currentUser?.userId && (
                     <div style={styles.messageAvatar}>
                       {selectedConversation.participants.find((p) => p.userId === message.senderId)?.userName?.[0] ||
                         "?"}
@@ -601,7 +710,7 @@ export default function ChatApp() {
                   <div
                     style={{
                       ...styles.messageBubble,
-                      ...(message.senderId === currentUser.userId
+                      ...(message.senderId === currentUser?.userId
                         ? styles.messageBubbleUser
                         : styles.messageBubbleOther),
                     }}
@@ -624,16 +733,19 @@ export default function ChatApp() {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   onFocus={handleTyping}
-                  placeholder="Type a message..."
+                  placeholder={currentUser ? "Type a message..." : "Connecting..."}
+                  disabled={!currentUser}
                 />
-                <button onClick={handleSendMessage} style={styles.sendButton}>
+                <button onClick={handleSendMessage} style={styles.sendButton} disabled={!currentUser}>
                   Send
                 </button>
               </div>
             </div>
           </>
         ) : (
-          <div style={styles.emptyState}>Select a conversation or start a new chat</div>
+          <div style={styles.emptyState}>
+            {currentUser ? "Select a conversation or start a new chat" : "Connecting to chat..."}
+          </div>
         )}
       </div>
     </div>
