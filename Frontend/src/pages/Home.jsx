@@ -8,23 +8,22 @@ import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 
-
 const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
   const liked = ad && likedAds.some((item) => item._id === ad._id);
 
- const handleLikeToggle = () => {
-  const token = localStorage.getItem("accessToken");
+  const handleLikeToggle = () => {
+    const token = localStorage.getItem("accessToken");
 
-  if (!token) {
-    alert("You need to login first to like items."); // or use a toast/snackbar
-    return;
-  }
+    if (!token) {
+      alert("You need to login first to like items.");
+      return;
+    }
 
-  liked ? dispatch(unlike(ad)) : dispatch(like(ad));
-};
+    liked ? dispatch(unlike(ad)) : dispatch(like(ad));
+  };
 
   const handleCardClick = () => {
     navigate(`/products/product/${ad._id}`);
@@ -64,7 +63,6 @@ const AdCard = ({ image, title, location, ad, price }) => {
   );
 };
 
-// 🔹 SectionWithAds component
 const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
   <div className="bg-white p-4 rounded shadow mt-3">
     <h2 className="text-xl font-semibold text-gray-800 mb-4">{title}</h2>
@@ -116,75 +114,68 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
   </div>
 );
 
-// 🔹 Main Home Component
 const Home = () => {
   const [latestAds, setLatestAds] = useState([]);
   const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
   const token = localStorage.getItem("accessToken");
   const PAGE_SIZE = 12;
-const filter=useSelector((state)=>state.filter);
+  const filter = useSelector((state) => state.filter);
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
 
-const fetchProducts = async (type, page) => {
-  try {
-    const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+  const fetchProducts = async (type, page) => {
+    try {
+      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
-    if (type === "category" && activeCategory !== "All Products") {
-      params.append("category", activeCategory);
-    }
-
-    if (filter.minPrice) params.append("minPrice", filter.minPrice);
-    if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
-    if (filter.condition) params.append("condition", filter.condition);
-    if (filter.radius) params.append("radius", filter.radius);
-    if (filter.city) params.append("city", filter.city);
-
-    const token = localStorage.getItem("accessToken");
-    const userId = localStorage.getItem("userId");
-
-    // ✅ Append userId ONLY IF both token and userId exist
-    if (token && userId) {
-      params.append("userId", userId);
-    }
-
-    const res = await fetch(
-      `http://localhost:8080/api/products/getProducts?${params.toString()}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${token}`,
-        },
+      if (type === "category" && activeCategory !== "All Products") {
+        params.append("category", activeCategory);
       }
-    );
 
-    if (!res.ok) {
-      console.error("Failed to fetch products");
-      return;
+      if (filter.minPrice) params.append("minPrice", filter.minPrice);
+      if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
+      if (filter.condition) params.append("condition", filter.condition);
+      if (filter.radius) params.append("radius", filter.radius);
+      if (filter.city) params.append("city", filter.city);
+
+      const token = localStorage.getItem("accessToken");
+      const userId = localStorage.getItem("userId");
+
+      if (token && userId) {
+        params.append("userId", userId);
+      }
+
+      const res = await fetch(
+        `http://localhost:8080/api/products/getProducts?${params.toString()}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Failed to fetch products");
+        return;
+      }
+
+      const json = await res.json();
+      const { products = [], ...pagination } = json.data ?? {};
+
+      if (type === "category") {
+        setLatestAds(products);
+        setLatestPagination(pagination);
+      } else {
+        setRecommendedAds(products);
+        setRecommendedPagination(pagination);
+      }
+    } catch (err) {
+      console.error("Fetch failed:", err);
     }
-
-    const json = await res.json();
-    const { products = [], ...pagination } = json.data ?? {};
-
-    if (type === "category") {
-      setLatestAds(products);
-      setLatestPagination(pagination);
-    } else {
-      setRecommendedAds(products);
-      setRecommendedPagination(pagination);
-    }
-  } catch (err) {
-    console.error("Fetch failed:", err);
-  }
-};
- 
-
-
- 
-
+  };
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
@@ -216,14 +207,43 @@ const fetchProducts = async (type, page) => {
   const visibleCount = 3;
 
   const companyWebsites = [
-    { name: "Flipkart", description: "Shop electronics, fashion, more" },
-    { name: "Amazon", description: "Online shopping destination" },
-    { name: "Myntra", description: "Fashion & lifestyle store" },
-    { name: "Snapdeal", description: "Deals and discounts online" },
-    { name: "Ajio", description: "Trendy clothes and accessories" },
-    { name: "Tata Cliq", description: "Luxury fashion & lifestyle" },
-    { name: "Reliance Digital", description: "Electronics & gadgets" },
-  ];
+  {
+    name: "Flipkart",
+    description: "Shop electronics, fashion, more",
+    image: "/images/flipkart.svg",
+  },
+  {
+    name: "Amazon",
+    description: "Online shopping destination",
+    image: "/images/amazon.png",
+  },
+  {
+    name: "Myntra",
+    description: "Fashion & lifestyle store",
+    image: "/images/myntra.jpg",
+  },
+  {
+    name: "Snapdeal",
+    description: "Deals and discounts online",
+    image: "/images/snapdeal.jpg",
+  },
+  {
+    name: "Ajio",
+    description: "Trendy clothes and accessories",
+    image: "/images/ajio.jpg",
+  },
+  {
+    name: "Tata Cliq",
+    description: "Luxury fashion & lifestyle",
+    image: "/images/tatacliq.jpg",
+  },
+  {
+    name: "Reliance Digital",
+    description: "Electronics & gadgets",
+    image: "/images/reliancedigital.jpg",
+  },
+];
+
   const [companyIndex, setCompanyIndex] = useState(0);
   const visibleCompanyCount = 5;
 
@@ -258,7 +278,7 @@ const fetchProducts = async (type, page) => {
 
             {/* Category + Gallery Section */}
             <div className="flex flex-wrap gap-4">
-              {/* Category Box */}
+              {/* Categories */}
               <div className="bg-white p-4 rounded shadow w-full md:w-[38%] h-[350px] overflow-y-auto">
                 <h2 className="text-lg font-semibold mb-3">Categories</h2>
                 <ul className="text-sm space-y-4 pl-2 text-gray-700">
@@ -284,7 +304,7 @@ const fetchProducts = async (type, page) => {
                 </ul>
               </div>
 
-              {/* Gallery Box */}
+              {/* Gallery */}
               <div className="bg-white p-4 rounded shadow flex-1 w-full md:w-[60%]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Gallery</h2>
@@ -302,7 +322,10 @@ const fetchProducts = async (type, page) => {
                       className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                       onClick={() =>
                         setGalleryIndex((prev) =>
-                          Math.min(prev + 1, galleryData.length - visibleCount)
+                          Math.min(
+                            prev + 1,
+                            galleryData.length - visibleCount
+                          )
                         )
                       }
                       disabled={
@@ -314,13 +337,13 @@ const fetchProducts = async (type, page) => {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
                   {galleryData
                     .slice(galleryIndex, galleryIndex + visibleCount)
                     .map((item, index) => (
                       <div
                         key={index}
-                        className="w-[180px] bg-white border rounded shadow-sm flex-shrink-0 relative"
+                        className="min-w-[150px] max-w-[180px] flex-1 bg-white border rounded shadow-sm relative"
                       >
                         <div className="w-full h-[200px] bg-gray-100 flex justify-center items-center">
                           <span className="text-sm text-gray-400">
@@ -344,7 +367,6 @@ const fetchProducts = async (type, page) => {
               </div>
             </div>
 
-            {/* Ads Sections */}
             <SectionWithAds
               title="Latest Ads"
               ads={latestAds}
@@ -359,71 +381,64 @@ const fetchProducts = async (type, page) => {
               onPageChange={setRecommendedPagination}
             />
 
-            {/* Company Websites */}
-            <div className="bg-white p-4 mt-3 rounded shadow">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Company Websites
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                    onClick={() =>
-                      setCompanyIndex((prev) => Math.max(prev - 1, 0))
-                    }
-                    disabled={companyIndex === 0}
-                  >
-                    &#8592;
-                  </button>
-                  <button
-                    className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                    onClick={() =>
-                      setCompanyIndex((prev) =>
-                        Math.min(
-                          prev + 1,
-                          companyWebsites.length - visibleCompanyCount
-                        )
-                      )
-                    }
-                    disabled={
-                      companyIndex >=
-                      companyWebsites.length - visibleCompanyCount
-                    }
-                  >
-                    &#8594;
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-4 overflow-hidden">
-                {companyWebsites
-                  .slice(companyIndex, companyIndex + visibleCompanyCount)
-                  .map((site, index) => (
-                    <div
-                      key={index}
-                      className="w-[19%] bg-white border rounded shadow-sm flex-shrink-0 relative"
-                    >
-                      <div className="w-full h-[140px] bg-gray-100 flex justify-center items-center">
-                        <span className="text-sm text-gray-400">
-                          Logo {companyIndex + index + 1}
-                        </span>
-                      </div>
-                      <div className="p-2">
-                        <p className="text-sm font-medium text-gray-800">
-                          {site.name}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {site.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+        {/* Company Websites */}
+        <div className="bg-white p-4 mt-3 rounded shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">Company Websites</h2>
+            <div className="flex gap-2">
+              <button
+                className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                onClick={() => setCompanyIndex((prev) => Math.max(prev - 1, 0))}
+                disabled={companyIndex === 0}
+              >
+                &#8592;
+              </button>
+              <button
+                className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                onClick={() =>
+                  setCompanyIndex((prev) =>
+                    Math.min(prev + 1, companyWebsites.length - visibleCompanyCount)
+                  )
+                }
+                disabled={companyIndex >= companyWebsites.length - visibleCompanyCount}
+              >
+                &#8594;
+              </button>
             </div>
+          </div>
+
+          <div className="flex gap-4 overflow-hidden">
+            {companyWebsites
+              .slice(companyIndex, companyIndex + visibleCompanyCount)
+              .map((site, index) => (
+                <div
+                  key={index}
+                  className="w-[22%] bg-white border rounded shadow-sm flex-shrink-0 relative"
+                >
+                  <div className="w-full h-[140px] bg-white flex justify-center items-center">
+                    {site.image ? (
+                      <img
+                        src={site.image}
+                        alt={site.name}
+                        className="h-[50px] object-contain"
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-400">
+                        Logo {companyIndex + index + 1}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-sm font-medium text-gray-800">{site.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">{site.description}</p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
 
             <Footer />
           </div>
-
           {/* Right Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
             <img
