@@ -10,6 +10,12 @@ import rightadImage from "../assets/images/ad02.png";
 import UserIcon from "../assets/icons/user.svg";
 import SaveIcon from "../assets/icons/save.svg";
 import EyeIcon from "../assets/icons/eye.svg";
+import ShareModal from "../components/Popups/ShareModal";
+import { useDispatch, useSelector } from "react-redux";
+import { like, unlike } from "../slices/wishSlice";
+import { toast } from "react-toastify";
+
+
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -23,6 +29,29 @@ const ProductDetail = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  const dispatch = useDispatch();
+const { wishlist } = useSelector((state) => state.wishlist);
+const isWishlisted = wishlist.some((item) => item._id === product?._id);
+
+const handleAddToWatchlist = (e) => {
+  e.stopPropagation();
+
+  if (!token) {
+    alert("Please login to add to watchlist.");
+    return;
+  }
+
+  if (isWishlisted) {
+    dispatch(unlike(product));
+    toast.info("Removed from your watchlist");
+  } else {
+    dispatch(like(product));
+    toast.success("Added to your watchlist");
+  }
+};
+
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userData");
@@ -226,7 +255,7 @@ const ProductDetail = () => {
                       {product.title || "Product Title"}
                     </h1>
                     <p className="text-green-700 text-xl font-bold mb-3">
-                      ₹ {product.price?.toLocaleString("en-IN")}€{" "}
+                      {product.price?.toLocaleString("en-IN")}€{" "}
                       <span className="text-sm">VB</span>
                     </p>
 
@@ -360,10 +389,17 @@ const ProductDetail = () => {
                     </button>
 
                     {/* Outlined Buttons */}
-                    <button className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer">
-                      Add to watchlist
-                    </button>
-                    <button className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer">
+                  <button
+  onClick={handleAddToWatchlist}
+  className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+>
+  {isWishlisted ? "Remove from watchlist" : "Add to watchlist"}
+</button>
+
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+                    >
                       Share ad
                     </button>
 
@@ -514,6 +550,13 @@ const ProductDetail = () => {
           }}
         />
       )}
+      {showShareModal && (
+        <ShareModal
+          product={product}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+
       <Footer />
     </>
   );
