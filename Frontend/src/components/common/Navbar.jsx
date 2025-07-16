@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
 import { FaFilter } from "react-icons/fa";
@@ -53,6 +53,22 @@ const Navbar = () => {
   };
   const wishlist = useSelector((state) => state.wishlist.totalItems);
 
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+        setIsDropdownPinned(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <>
       <div className="w-full sticky top-0 z-50 bg-white">
@@ -106,7 +122,7 @@ const Navbar = () => {
 
         {/* Search & Icons Row */}
         <div className="bg-lime-400 py-4">
-          <div className="max-w-[864px] mx-auto flex items-center justify-between gap-4 px-1">
+          <div className="max-w-[900px] mx-auto flex items-center justify-between gap-4 px-1">
             {/* Search Box */}
             <div className="flex bg-white rounded-full shadow px-4 h-12 w-full items-center gap-3">
               {/* Search Input */}
@@ -126,8 +142,15 @@ const Navbar = () => {
                 <FaFilter className="text-lime-800" />
               </button>
               {/* Category Select */}
-              <select className="text-sm text-gray-700 outline-none w-[25%] border-l border-gray-300 pl-4">
-                <option>All categories</option>
+              <select className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4">
+                <option>All Products</option>
+                <option>Cars & Motorcycles</option>
+                <option>Real Estate</option>
+                <option>Jobs</option>
+                <option>Household & Furniture</option>
+                <option>Electronics</option>
+                <option>Leisure, Hobby & Neighborhood</option>
+                <option>Service</option>
               </select>
 
               {/* Location Input */}
@@ -135,7 +158,7 @@ const Navbar = () => {
                 <FaMapMarkerAlt className="text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Postal code"
+                  placeholder="Postal"
                   className="outline-none text-sm w-full"
                 />
               </div>
@@ -165,13 +188,8 @@ const Navbar = () => {
               </div>
 
               {/* Mine Dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => {
-                  if (!isDropdownPinned) setDropdownOpen(false);
-                }}
-              >
+              {/* Mine Dropdown */}
+              <div ref={dropdownRef} className="relative">
                 <div
                   className="flex items-center gap-1 cursor-pointer"
                   onClick={() => {
