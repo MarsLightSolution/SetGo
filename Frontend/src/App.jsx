@@ -27,6 +27,7 @@ import PublicRoute from './Hooks/PublicRoute'
 import UserPage from './pages/Userpage'
 import MySearch from './pages/MySearch'
 import EditForm from './components/UserInfo/EditForm'
+import TransactionHistory from './pages/TransactionHistory'
 function App() {
   return (
     <div >
@@ -57,6 +58,7 @@ function App() {
         <Route path='/userpage' element={<UserPage/>}/>
         <Route path='/mysearch' element={<MySearch/>}/>
         <Route path='/editform/:id' element={<EditForm/>}/>
+        <Route path="/my/transactions" element={<TransactionHistory />} />
       </Routes>
     </div>
   )
