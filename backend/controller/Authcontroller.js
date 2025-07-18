@@ -1,7 +1,7 @@
 // controllers/authController.js
 
 const TempUser = require("../models/tempuser");
-const User = require("../models/user.js");
+const User = require("../models/User");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");

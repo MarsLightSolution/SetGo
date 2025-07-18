@@ -1,132 +1,219 @@
-const User = require("../models/user");
-const Conversation = require("../models/Conversation");
-const Message = require("../models/message");
-// Connect user by username
+// controllers/chatController.js
+const User = require("../models/User")
+const Conversation = require("../models/Conversation")
+const Message = require("../models/Message")
+const mongoose = require("mongoose")
+
+const findUserByIdentifier = async (identifier) => {
+  let user = null
+  if (mongoose.Types.ObjectId.isValid(identifier)) {
+    user = await User.findById(identifier)
+  }
+  if (!user) {
+    user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    })
+  }
+  return user
+}
+
 exports.connectUser = async (req, res) => {
-  const { username, displayName } = req.body;
-  if (!username) return res.json({ success: false, message: "Username is required" });
+  try {
+    const { username, displayName } = req.body
+    if (!username) return res.json({ success: false, message: "Username is required" })
 
-  const user = await User.findOne({ username });
-  if (!user) return res.json({ success: false, message: "User not found. Please register first." });
+    const user = await findUserByIdentifier(username)
+    if (!user) return res.json({ success: false, message: "User not found. Please register first." })
 
-  user.isOnline = true;
-  user.lastSeen = new Date();
-  if (displayName) user.chatDisplayName = displayName;
-  await user.save();
+    user.isOnline = true
+    user.lastSeen = new Date()
+    if (displayName) user.chatDisplayName = displayName
+    await user.save()
 
-  res.json({
-    success: true,
-    user: {
-      userId: user.username,
-      userName: user.chatDisplayName || user.profileName || user.username,
+    const chatUser = {
+      userId: user.email,
+      userName: user.chatDisplayName || user.profileName || user.username || user.email,
       email: user.email,
       _id: user._id,
-    },
-  });
-};
+    }
 
-exports.getUsers = async (req, res) => {
-  const users = await User.find({}, "username profileName chatDisplayName isOnline lastSeen email");
-  const chatUsers = users.map(u => ({
-    userId: u.username,
-    userName: u.chatDisplayName || u.profileName || u.username,
-    email: u.email,
-    isOnline: u.isOnline,
-    lastSeen: u.lastSeen,
-  }));
-  res.json({ success: true, users: chatUsers });
-};
+    res.json({ success: true, user: chatUser })
+  } catch (error) {
+    console.error("Connect error:", error)
+    res.json({ success: false, message: "Failed to connect" })
+  }
+}
 
-exports.getUserByUsername = async (req, res) => {
-  const user = await User.findOne(
-    { username: req.params.username },
-    "username profileName chatDisplayName email isOnline lastSeen"
-  );
-  if (!user) return res.json({ success: false, message: "User not found" });
-
-  res.json({
-    success: true,
-    user: {
-      userId: user.username,
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, "username profileName chatDisplayName isOnline lastSeen email")
+    const chatUsers = users.map((user) => ({
+      userId: user.email,
       userName: user.chatDisplayName || user.profileName || user.username,
       email: user.email,
       isOnline: user.isOnline,
       lastSeen: user.lastSeen,
-    },
-  });
-};
+    }))
+    res.json({ success: true, users: chatUsers })
+  } catch (error) {
+    console.error("Get users error:", error)
+    res.json({ success: false, message: "Failed to fetch users" })
+  }
+}
 
 exports.getConversations = async (req, res) => {
-  const { username } = req.params;
-  const conversations = await Conversation.find({ "participants.userId": username }).sort({ lastMessageTime: -1 });
-  res.json({ success: true, conversations });
-};
+  try {
+    const { userIdentifier } = req.params
+    const user = await findUserByIdentifier(userIdentifier)
+    if (!user) return res.json({ success: false, message: "User not found" })
+
+    const conversations = await Conversation.find({
+      "participants.userId": user.email,
+    }).sort({ lastMessageTime: -1 })
+
+    const enrichedConversations = await Promise.all(
+      conversations.map(async (conversation) => {
+        const enrichedParticipants = await Promise.all(
+          conversation.participants.map(async (participant) => {
+            const participantUser = await User.findOne({ email: participant.userId })
+            return {
+              ...participant.toObject(),
+              isOnline: participantUser?.isOnline || false,
+              lastSeen: participantUser?.lastSeen || null,
+            }
+          })
+        )
+        return { ...conversation.toObject(), participants: enrichedParticipants }
+      })
+    )
+
+    res.json({ success: true, conversations: enrichedConversations })
+  } catch (error) {
+    console.error("Get conversations error:", error)
+    res.json({ success: false, message: "Failed to fetch conversations" })
+  }
+}
 
 exports.createConversation = async (req, res) => {
-  const { participants } = req.body;
-  if (!participants || participants.length !== 2)
-    return res.json({ success: false, message: "Two participants required" });
+  try {
+    const { participants } = req.body
+    if (!participants || participants.length !== 2) {
+      return res.json({ success: false, message: "Two participants required" })
+    }
 
-  let conversation = await Conversation.findOne({
-    $and: [
-      { "participants.userId": participants[0] },
-      { "participants.userId": participants[1] },
-    ],
-  });
+    const user1 = await findUserByIdentifier(participants[0])
+    const user2 = await findUserByIdentifier(participants[1])
 
-  if (!conversation) {
-    const [user1, user2] = await Promise.all([
-      User.findOne({ username: participants[0] }),
-      User.findOne({ username: participants[1] }),
-    ]);
-    if (!user1 || !user2) return res.json({ success: false, message: "One or both users not found" });
+    if (!user1 || !user2) {
+      return res.json({
+        success: false,
+        message: `One or both users not found. User1: ${user1 ? "found" : "not found"}, User2: ${user2 ? "found" : "not found"}`,
+      })
+    }
 
-    conversation = await Conversation.create({
-      participants: [
-        {
-          userId: user1.username,
-          userName: user1.chatDisplayName || user1.profileName || user1.username,
-        },
-        {
-          userId: user2.username,
-          userName: user2.chatDisplayName || user2.profileName || user2.username,
-        },
+    const user1Email = user1.email
+    const user2Email = user2.email
+
+    let conversation = await Conversation.findOne({
+      $and: [
+        { "participants.userId": user1Email },
+        { "participants.userId": user2Email },
       ],
-    });
-  }
+    })
 
-  res.json({ success: true, conversation });
-};
+    if (!conversation) {
+      conversation = new Conversation({
+        participants: [
+          { userId: user1Email, userName: user1.chatDisplayName || user1.profileName || user1.username || user1.email },
+          { userId: user2Email, userName: user2.chatDisplayName || user2.profileName || user2.username || user2.email },
+        ],
+      })
+      await conversation.save()
+    }
+
+    const enrichedParticipants = await Promise.all(
+      conversation.participants.map(async (participant) => {
+        const user = await User.findOne({ email: participant.userId })
+        return {
+          ...participant.toObject(),
+          isOnline: user?.isOnline || false,
+          lastSeen: user?.lastSeen || null,
+        }
+      })
+    )
+
+    const enrichedConversation = {
+      ...conversation.toObject(),
+      participants: enrichedParticipants,
+    }
+
+    res.json({ success: true, conversation: enrichedConversation })
+  } catch (error) {
+    console.error("Create conversation error:", error)
+    res.json({ success: false, message: "Failed to create conversation" })
+  }
+}
 
 exports.getMessages = async (req, res) => {
-  const messages = await Message.find({ conversationId: req.params.conversationId })
-    .sort({ timestamp: 1 })
-    .limit(100);
-  res.json({ success: true, messages });
-};
+  try {
+    const { conversationId } = req.params
+    const messages = await Message.find({ conversationId }).sort({ timestamp: 1 }).limit(100)
+    res.json({ success: true, messages })
+  } catch (error) {
+    console.error("Get messages error:", error)
+    res.json({ success: false, message: "Failed to fetch messages" })
+  }
+}
 
 exports.sendMessage = async (req, res) => {
-  const { conversationId, senderId, text } = req.body;
-  if (!conversationId || !senderId || !text)
-    return res.json({ success: false, message: "Missing required fields" });
+  try {
+    const { conversationId, senderId, text } = req.body
+    if (!conversationId || !senderId || !text) return res.json({ success: false, message: "Missing required fields" })
 
-  const sender = await User.findOne({ username: senderId });
-  if (!sender) return res.json({ success: false, message: "Sender not found" });
+    const sender = await User.findOne({ email: senderId })
+    if (!sender) return res.json({ success: false, message: "Sender not found" })
 
-  const message = await Message.create({
-    conversationId,
-    senderId,
-    senderName: sender.chatDisplayName || sender.profileName || sender.username,
-    text,
-  });
+    const message = new Message({
+      conversationId,
+      senderId,
+      senderName: sender.chatDisplayName || sender.profileName || sender.username || sender.email,
+      text,
+    })
+    await message.save()
 
-  await Conversation.findByIdAndUpdate(conversationId, {
-    lastMessage: text,
-    lastMessageTime: new Date(),
-  });
+    await Conversation.findByIdAndUpdate(conversationId, {
+      lastMessage: text,
+      lastMessageTime: new Date(),
+    })
 
-  const io = req.app.get("io");
-  io.to(conversationId).emit("new-message", { conversationId, message });
+    const io = req.app.get("io")
+    if (io) {
+      io.to(conversationId).emit("new-message", { conversationId, message })
+    }
 
-  res.json({ success: true, message });
-};
+    res.json({ success: true, message })
+  } catch (error) {
+    console.error("Send message error:", error)
+    res.json({ success: false, message: "Failed to send message" })
+  }
+}
+
+exports.getUserByUsername = async (req, res) => {
+  try {
+    const { username } = req.params
+    const user = await findUserByIdentifier(username)
+    if (!user) return res.json({ success: false, message: "User not found" })
+
+    const chatUser = {
+      userId: user.email,
+      userName: user.chatDisplayName || user.profileName || user.username,
+      email: user.email,
+      isOnline: user.isOnline,
+      lastSeen: user.lastSeen,
+    }
+    res.json({ success: true, user: chatUser })
+  } catch (error) {
+    console.error("Get user error:", error)
+    res.json({ success: false, message: "Failed to fetch user" })
+  }
+}
