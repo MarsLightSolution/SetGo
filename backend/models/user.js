@@ -45,13 +45,13 @@ const userSchema = new mongoose.Schema({
     default: 0
   },
   transactionHistory: [
-    {
-      transactionId: String,
-      type: String,
-      amount: Number,
-      date: { type: Date, default: Date.now }
-    }
-  ],
+  {
+    transactionId: String,
+    amount: Number,
+    direction: { type: String, enum: ["debit", "credit"] },
+    createdAt: { type: Date, default: Date.now },
+  },
+],
   activity: [
     {
       action: String,
