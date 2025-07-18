@@ -28,7 +28,9 @@ import PublicRoute from './Hooks/PublicRoute'
 import UserPage from './pages/Userpage'
 import MySearch from './pages/MySearch'
 import EditForm from './components/UserInfo/EditForm'
+import TransactionHistory from './pages/TransactionHistory'
 import setupAutoTokenRefresh from './Hooks/accesstoken.js'
+
 function App() {
   useEffect(() => {
     const accessToken = localStorage.getItem("accessToken");
@@ -65,6 +67,8 @@ function App() {
         <Route path='/userpage' element={<UserPage/>}/>
         <Route path='/mysearch' element={<MySearch/>}/>
         <Route path='/editform/:id' element={<EditForm/>}/>
+        <Route path="/my/transactions" element={<TransactionHistory />} />
+
       </Routes>
     </div>
   )

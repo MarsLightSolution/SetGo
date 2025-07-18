@@ -9,7 +9,7 @@ const asyncHandler = require("../utils/asyncHandler");
    Fund transfer – now checks sender has enough balance
 ----------------------------------------------------------- */
 const fundTransfer = asyncHandler(async (req, res) => {
-  const { senderId, receiverId, amount } = req.body;
+  const { senderId, receiverId, amount,transactionId } = req.body;
 
   // 1️⃣ Basic sanity check
   if (amount <= 0) {
@@ -43,17 +43,35 @@ const fundTransfer = asyncHandler(async (req, res) => {
 
     const newTransaction = await Transaction.create([req.body], { session });
 
-    // deduct from sender
     await User.findByIdAndUpdate(
       senderId,
-      { $inc: { walletBalance: -amount } },
+      {
+        $inc: { walletBalance: -amount },
+        $push: {
+          transactionHistory: {
+            transactionId,
+            amount,
+            direction: "debit",
+            createdAt: new Date(),
+          },
+        },
+      },
       { session }
     );
 
-    // credit to receiver
     await User.findByIdAndUpdate(
       receiverId,
-      { $inc: { walletBalance: amount } },
+      {
+        $inc: { walletBalance: amount },
+        $push: {
+          transactionHistory: {
+            transactionId,
+            amount,
+            direction: "credit",
+            createdAt: new Date(),
+          },
+        },
+      },
       { session }
     );
 
