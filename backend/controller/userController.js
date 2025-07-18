@@ -1,6 +1,12 @@
 const User = require('../models/user');
+const Transaction= require('../models/transaction.model');
 const redisClient = require('../utils/redisClient');
 const logger = require('../utils/logger');
+const asyncHandler = require("../utils/asyncHandler");
+const mongoose = require("mongoose");
+const ApiError = require('../utils/ApiError');
+const ApiResponse = require('../utils/ApiResponse');
+
 
 // Get all users (cached)
 const getUsers = async (req, res) => {
@@ -62,8 +68,70 @@ const getUserById = async (req, res) => {
     return res.status(500).json({ error: 'Server error' });
   }
 };
+// GET /api/users/:id/transactions
+const getUserTransactions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id))
+    throw new ApiError(400, "Invalid user id");
+
+  // ① Fetch user with only the wallet and transactionHistory
+  const user = await User.findById(id, "transactionHistory walletBalance username");
+  if (!user) throw new ApiError(404, "User not found");
+
+  // ② Pull all distinct txn IDs to resolve counterparties
+  const txnIds = user.transactionHistory.map((h) => h.transactionId);
+
+  // ③ Fetch sender & receiver for each txn in one query
+  const txDocs = await Transaction.find(
+    { transactionId: { $in: txnIds } },
+    "transactionId senderId receiverId status"
+  ).lean();
+
+  // ④ Create a map for fast lookup
+  const txnMap = new Map(txDocs.map((t) => [t.transactionId, t]));
+
+  // ⑤ Build response array and compute totals
+  let totalCredit = 0;
+  let totalDebit = 0;
+
+  const transactions = await Promise.all(
+    user.transactionHistory
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(async (h) => {
+        const tx = txnMap.get(h.transactionId);
+        let counterpartyId =
+          h.direction === "debit" ? tx?.receiverId : tx?.senderId;
+
+        if (h.direction === "credit") totalCredit += h.amount;
+        if (h.direction === "debit") totalDebit += h.amount;
+
+        const cp = counterpartyId
+          ? await User.findById(counterpartyId, "username").lean()
+          : null;
+
+        return {
+          ...h.toObject(),
+          status: tx?.status || "unknown",
+          counterparty: cp ? { _id: cp._id, username: cp.username } : null,
+        };
+      })
+  );
+
+  res.json(
+    new ApiResponse(200, {
+      transactions,
+      totalCredit,
+      totalDebit,
+      walletBalance: user.walletBalance,
+    }, "User transactions")
+  );
+});
+
+
 
 module.exports = {
   getUsers,
-  getUserById
+  getUserById,
+  getUserTransactions
 };
