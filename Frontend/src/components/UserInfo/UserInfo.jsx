@@ -33,8 +33,6 @@ const ConfirmDialog = ({ onConfirm, onCancel }) => (
     </div>
   </div>
 );
-
-
 export default function UserInfo() {
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
@@ -42,9 +40,7 @@ export default function UserInfo() {
   const [confirmAdId, setConfirmAdId] = useState(null); // for modal
   const userId = localStorage.getItem("userId");
   const token = localStorage.getItem("accessToken");
-
   const sliderRef = useRef(null);
-
   const scrollSlider = (direction) => {
     if (!sliderRef.current) return;
     const amount = direction === "left" ? -300 : 300;
@@ -135,7 +131,9 @@ export default function UserInfo() {
             </div>
             <div>
               <h2 className="text-xl font-bold">Username</h2>
-              <p className="text-sm text-gray-500">{ads.length} ads available</p>
+              <p className="text-sm text-gray-500">
+                {ads.length} ads available
+              </p>
             </div>
           </div>
 
@@ -162,9 +160,13 @@ export default function UserInfo() {
           <div className="mb-4">
             <img src={nodataImage} alt="No data" className="mx-auto" />
           </div>
-          <h4 className="text-lg font-semibold mb-1">Any Treasure left in the basement?</h4>
+          <h4 className="text-lg font-semibold mb-1">
+            Any Treasure left in the basement?
+          </h4>
           <p className="text-gray-600 mb-1">You can manage your ads here.</p>
-          <p className="text-gray-600 mb-4">Start advertising easily and for free.</p>
+          <p className="text-gray-600 mb-4">
+            Start advertising easily and for free.
+          </p>
           <button
             onClick={() => navigate("/form")}
             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium shadow cursor-pointer"
@@ -183,13 +185,13 @@ export default function UserInfo() {
               <div className="flex gap-2">
                 <button
                   onClick={() => scrollSlider("left")}
-                  className="border rounded-full p-2 hover:bg-gray-200"
+                  className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                 >
                   &#8592;
                 </button>
                 <button
                   onClick={() => scrollSlider("right")}
-                  className="border rounded-full p-2 hover:bg-gray-200"
+                  className="w-8 h-8 border border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                 >
                   &#8594;
                 </button>
@@ -213,7 +215,10 @@ export default function UserInfo() {
                   <div className="h-44 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
                     {ad.pictures?.[0] ? (
                       <img
-                        src={`http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
+                        src={`http://localhost:8080/${
+                          ad.pictures?.[0]?.replace(/\\/g, "/") ||
+                          "uploads/placeholder.jpg"
+                        }`}
                         alt={ad.title}
                         className="h-full w-full object-cover rounded-t-lg"
                       />
@@ -225,7 +230,9 @@ export default function UserInfo() {
                   {/* Content */}
                   <div className="flex flex-col justify-between flex-grow p-4">
                     <div>
-                      <h3 className="text-base font-semibold text-gray-800">{ad.title}</h3>
+                      <h3 className="text-base font-semibold text-gray-800">
+                        {ad.title}
+                      </h3>
                       <p className="text-sm text-gray-500 break-words">
                         {expandedAdId === ad._id
                           ? ad.description
@@ -235,11 +242,15 @@ export default function UserInfo() {
                             onClick={() => toggleExpand(ad._id)}
                             className="text-blue-600 cursor-pointer ml-1 hover:underline"
                           >
-                            {expandedAdId === ad._id ? " Show less" : " ...more"}
+                            {expandedAdId === ad._id
+                              ? " Show less"
+                              : " ...more"}
                           </span>
                         )}
                       </p>
-                      <p className="text-lime-600 font-semibold text-base mt-1">₹ {ad.price}</p>
+                      <p className="text-green-700 font-semibold text-base mt-1">
+                        {ad.price} €
+                      </p>
                     </div>
 
                     {/* Buttons */}
@@ -278,21 +289,39 @@ export default function UserInfo() {
 
 // Icons
 const UserIcon = () => (
-  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+  <svg
+    className="w-4 h-4 text-gray-400"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
     <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
     <circle cx="12" cy="7" r="4" />
   </svg>
 );
 
 const ClockIcon = () => (
-  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+  <svg
+    className="w-4 h-4 text-gray-400"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
     <circle cx="12" cy="12" r="10" />
     <path d="M12 6v6l4 2" />
   </svg>
 );
 
 const CheckIcon = () => (
-  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+  <svg
+    className="w-4 h-4 text-green-500"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
     <path d="M5 13l4 4L19 7" />
   </svg>
 );

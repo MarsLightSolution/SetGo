@@ -1,5 +1,6 @@
-import { Routes,Route } from 'react-router-dom'
+import { Routes,Route, } from 'react-router-dom'
 import './App.css'
+import { useEffect } from 'react'
 import Register from './pages/Register'
 import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
@@ -28,7 +29,15 @@ import UserPage from './pages/Userpage'
 import MySearch from './pages/MySearch'
 import EditForm from './components/UserInfo/EditForm'
 import TransactionHistory from './pages/TransactionHistory'
+import setupAutoTokenRefresh from './Hooks/accesstoken.js'
+
 function App() {
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (accessToken) {
+      setupAutoTokenRefresh();
+    }
+  }, []);
   return (
     <div >
       <Navbar/>
@@ -59,6 +68,7 @@ function App() {
         <Route path='/mysearch' element={<MySearch/>}/>
         <Route path='/editform/:id' element={<EditForm/>}/>
         <Route path="/my/transactions" element={<TransactionHistory />} />
+
       </Routes>
     </div>
   )
