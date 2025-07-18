@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import {
   TextField,
@@ -12,13 +13,13 @@ import {
   ToastifyContainer,
 } from "../../Hooks/Tostify"
 
+
 const EditForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const maxDescriptionLength = 1000;
   const token = localStorage.getItem("accessToken");
-  const fileInputRef = useRef(null); // ✅ Ref added to reset input
-
+  const fileInputRef = useRef(null); // ✅ Ref added to reset inpu
   const [formData, setFormData] = useState({
     offerType: "offer",
     title: "",
@@ -65,6 +66,7 @@ const EditForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
+
     let updatedValue =
       type === "checkbox" ? checked : type === "file" ? files : value;
 
@@ -168,11 +170,11 @@ const EditForm = () => {
       showErrorToast("Please fix the highlighted errors");
       return;
     }
-
     const updatedData = new FormData();
 
     for (const key in formData) {
       if (key === "pictures" && formData.pictures?.length > 0) {
+
         formData.pictures.forEach((file) => {
           updatedData.append("pictures", file);
         });
@@ -184,6 +186,7 @@ const EditForm = () => {
     try {
       const res = await fetch(`http://localhost:8080/api/products/product/${id}`, {
         method: "PUT",
+
         headers: {
           Authorization: `${token}`,
         },

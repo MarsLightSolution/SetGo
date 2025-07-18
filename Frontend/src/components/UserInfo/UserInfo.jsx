@@ -33,7 +33,6 @@ const ConfirmDialog = ({ onConfirm, onCancel }) => (
     </div>
   </div>
 );
-
 export default function UserInfo() {
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
@@ -41,9 +40,7 @@ export default function UserInfo() {
   const [confirmAdId, setConfirmAdId] = useState(null); // for modal
   const userId = localStorage.getItem("userId");
   const token = localStorage.getItem("accessToken");
-
   const sliderRef = useRef(null);
-
   const scrollSlider = (direction) => {
     if (!sliderRef.current) return;
     const amount = direction === "left" ? -300 : 300;
