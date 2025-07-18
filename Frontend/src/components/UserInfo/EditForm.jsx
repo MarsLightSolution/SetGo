@@ -1,24 +1,26 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import {
   TextField,
   Button,
+  Checkbox,
+  FormControlLabel,
   MenuItem,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { CloudUpload as CloudUploadIcon } from "@mui/icons-material";
 import {
   showSuccessToast,
   showErrorToast,
   ToastifyContainer,
 } from "../../Hooks/Tostify"
-
 const EditForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const maxDescriptionLength = 1000;
   const token = localStorage.getItem("accessToken");
   const fileInputRef = useRef(null); // ✅ Ref added to reset input
-
   const [formData, setFormData] = useState({
     offerType: "offer",
     title: "",
@@ -26,6 +28,7 @@ const EditForm = () => {
     price: "",
     description: "",
     postalCode: "",
+    location: "",
     streetNo: "",
     showFullAddress: false,
     name: "",
@@ -34,8 +37,10 @@ const EditForm = () => {
     pictures: [],
   });
 
+
   const [previewImages, setPreviewImages] = useState([]);
   const [errors, setErrors] = useState({});
+  const token = localStorage.getItem("accessToken");
 
   useEffect(() => {
     const fetchAd = async () => {
@@ -45,6 +50,7 @@ const EditForm = () => {
         });
         const data = await res.json();
         if (res.ok) {
+
           const product = data.data;
           setFormData((prev) => ({
             ...prev,
@@ -168,7 +174,14 @@ const EditForm = () => {
       showErrorToast("Please fix the highlighted errors");
       return;
     }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : type === "file" ? files : value,
+    }));
+  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const updatedData = new FormData();
 
     for (const key in formData) {
@@ -176,6 +189,9 @@ const EditForm = () => {
         formData.pictures.forEach((file) => {
           updatedData.append("pictures", file);
         });
+        for (let i = 0; i < formData.pictures.length; i++) {
+          updatedData.append("pictures", formData.pictures[i]);
+        }
       } else {
         updatedData.append(key, formData[key]);
       }
@@ -289,12 +305,97 @@ const EditForm = () => {
           </div>
 
           {/* Name */}
+    <div className="min-h-screen bg-gray-50 flex justify-center py-10 px-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl space-y-6"
+      >
+        <h2 className="text-xl font-semibold text-green-700 border-b pb-2 mb-4">Edit Ad</h2>
+
+        {/* Title and Category */}
+        <div className="flex flex-col gap-6">
+          <TextField
+            label="Title"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+            fullWidth
+          />
+
+          <TextField
+            select
+            label="Category"
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            fullWidth
+          >
+            <MenuItem value="Cars & Motorcycles">Cars & Motorcycles</MenuItem>
+            <MenuItem value="Real Estate">Real Estate</MenuItem>
+            <MenuItem value="Jobs">Jobs</MenuItem>
+            <MenuItem value="Household & Furniture">Household & Furniture</MenuItem>
+            <MenuItem value="Electronics">Electronics</MenuItem>
+            <MenuItem value="Leisure, Hobby & Neighborhood">Leisure, Hobby & Neighborhood</MenuItem>
+            <MenuItem value="Service">Service</MenuItem>
+            <MenuItem value="Other">Other</MenuItem>
+          </TextField>
+        </div>
+
+        {/* Price and Description */}
+        <div className="flex flex-col gap-6">
+          <TextField
+            label="Price"
+            name="price"
+            value={formData.price}
+            onChange={handleChange}
+            fullWidth
+          />
+
+          <TextField
+            label="Description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            multiline
+            rows={4}
+            fullWidth
+          />
+        </div>
+
+        {/* Location */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <TextField
+            label="Postal Code"
+            name="postalCode"
+            value={formData.postalCode}
+            onChange={handleChange}
+            fullWidth
+          />
+          <TextField
+            label="Location"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            fullWidth
+          />
+        </div>
+
+        {/* Street and Name */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <TextField
+            label="Street No."
+            name="streetNo"
+            value={formData.streetNo}
+            onChange={handleChange}
+            fullWidth
+          />
           <TextField
             label="Your Name"
             name="name"
             value={formData.name}
             onChange={handleChange}
             fullWidth
+
             error={!!errors.name}
             helperText={errors.name}
           />

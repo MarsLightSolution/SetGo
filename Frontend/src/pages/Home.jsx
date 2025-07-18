@@ -114,8 +114,6 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
     </div>
   </div>
 );
-
-
 const Home = () => {
   const [latestAds, setLatestAds] = useState([]);
   const [recommendedAds, setRecommendedAds] = useState([]);
@@ -144,7 +142,6 @@ const Home = () => {
 
       const token = localStorage.getItem("accessToken");
       const userId = localStorage.getItem("userId");
-
       if (token && userId) {
         params.append("userId", userId);
       }
@@ -336,6 +333,7 @@ const Home = () => {
 
               {/* Gallery */}
               {/* gallery items here */}
+
               <div className="bg-white p-4 rounded shadow flex-1 w-full md:w-[60%]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Gallery</h2>
@@ -354,6 +352,7 @@ const Home = () => {
                     </button>
                   </div>
                 </div>
+
 
                 <div
                   ref={galleryRef}
@@ -401,7 +400,6 @@ const Home = () => {
               pagination={recommendedPagination}
               onPageChange={setRecommendedPagination}
             />
-
             {/* Company Websites */}
             <div className="bg-white p-4 mt-3 rounded shadow">
               <div className="flex justify-between items-center mb-4">
@@ -458,8 +456,35 @@ const Home = () => {
                 ))}
               </div>
             </div>
+          </div>
 
-            <Footer />
+          <div className="flex gap-4 overflow-hidden">
+            {companyWebsites
+              .slice(companyIndex, companyIndex + visibleCompanyCount)
+              .map((site, index) => (
+                <div
+                  key={index}
+                  className="w-[22%] bg-white border rounded shadow-sm flex-shrink-0 relative"
+                >
+                  <div className="w-full h-[140px] bg-white flex justify-center items-center">
+                    {site.image ? (
+                      <img
+                        src={site.image}
+                        alt={site.name}
+                        className="h-[50px] object-contain"
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-400">
+                        Logo {companyIndex + index + 1}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-sm font-medium text-gray-800">{site.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">{site.description}</p>
+                  </div>
+                </div>
+              ))}
           </div>
           {/* Right Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">

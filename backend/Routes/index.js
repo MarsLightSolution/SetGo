@@ -13,4 +13,5 @@ router.use("/api/products" ,productRoutes);
 router.use('/api/chat',require('./chat.js'));
 router.use("/api/transaction",transaction);
 router.use("/",require("./Followerroutes.js"));
+router.use('/api/payment', require('./paymentroutes.js'));
 module.exports = router;

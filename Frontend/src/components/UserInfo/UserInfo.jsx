@@ -33,7 +33,6 @@ const ConfirmDialog = ({ onConfirm, onCancel }) => (
     </div>
   </div>
 );
-
 export default function UserInfo() {
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
@@ -41,9 +40,7 @@ export default function UserInfo() {
   const [confirmAdId, setConfirmAdId] = useState(null); // for modal
   const userId = localStorage.getItem("userId");
   const token = localStorage.getItem("accessToken");
-
   const sliderRef = useRef(null);
-
   const scrollSlider = (direction) => {
     if (!sliderRef.current) return;
     const amount = direction === "left" ? -300 : 300;
@@ -137,6 +134,7 @@ export default function UserInfo() {
               <p className="text-sm text-gray-500">
                 {ads.length} ads available
               </p>
+
             </div>
           </div>
 
@@ -222,6 +220,7 @@ export default function UserInfo() {
                           ad.pictures?.[0]?.replace(/\\/g, "/") ||
                           "uploads/placeholder.jpg"
                         }`}
+
                         alt={ad.title}
                         className="h-full w-full object-cover rounded-t-lg"
                       />
