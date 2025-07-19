@@ -347,12 +347,14 @@ const Home = () => {
                     <button
                       className="w-8 h-8 border border-gray-300 cursor-pointer rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                       onClick={() => scrollGallery("right")}
+
                     >
                       &#8594;
                     </button>
                   </div>
                 </div>
 
+               </div>
                 <div
                   ref={galleryRef}
                   className="flex gap-4 overflow-x-auto scroll-smooth hide-scrollbar pb-2"
@@ -399,7 +401,6 @@ const Home = () => {
               pagination={recommendedPagination}
               onPageChange={setRecommendedPagination}
             />
-
             {/* Company Websites */}
             <div className="bg-white p-4 mt-3 rounded shadow">
               <div className="flex justify-between items-center mb-4">
