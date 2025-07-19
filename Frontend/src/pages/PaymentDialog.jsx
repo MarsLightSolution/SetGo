@@ -79,7 +79,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
     if (remainder === 0) {
       await walletTransfer();
     } else {
-      alert("Online gateway not wired yet.");
+      await onlineTransfer();
     }
   };
 
@@ -129,8 +129,41 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       console.error(err);
       setStatus("FAILURE");
     }
+  };
 
+  const onlineTransfer = async () => {
+    setStatus("LOADING");
+    const orderId = Date.now().toString();
+    const txnId = `txn_${orderId}_${Math.floor(Math.random() * 1e6)}`;
+    const payload = {
+      userId: user._id,
+      receiverId: owner,
+      type: "transfer",
+      amount: price,
+      description: `Payment for order ${orderId}`,
+      transactionId: txnId,
+      referenceId: `order_${orderId}`,
+      source: "purchase",
+      product: product._id,
+    };
 
+    try {
+      const res = await fetch("http://localhost:8080/api/payment/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (data.success === true) {
+        window.location.href = data.url; // redirect to payment page
+      } else {
+        setStatus("FAILURE");
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus("FAILURE");
+    }
   };
 
   return (
@@ -154,9 +187,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
           </div>
           <div className="flex justify-between mt-1">
             <span>Wallet Balance</span>
-            <span
-              className={`font-semibold ${walletBalance ? "text-green-600" : "text-red-500"}`}
-            >
+            <span className={`font-semibold ${walletBalance ? "text-green-600" : "text-red-500"}`}>
               ₹{walletBalance}
             </span>
           </div>
@@ -169,9 +200,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
             onChange={(e) => setUseWallet(e.target.checked)}
             disabled={!walletBalance || status !== "READY"}
           />
-          <span>
-            Use Wallet {walletBalance > 0 && `(up to ₹${walletBalance})`}
-          </span>
+          <span>Use Wallet {walletBalance > 0 && `(up to ₹${walletBalance})`}</span>
         </label>
 
         {useWallet && (
@@ -186,7 +215,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
           <>
             <p className="font-semibold mb-2">Choose Online Method</p>
             <div className="flex flex-col gap-2 mb-4">
-              <Radio value="UPI" label="UPI" />
               <Radio value="CARD" label="Credit / Debit Card" />
             </div>
           </>

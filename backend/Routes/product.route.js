@@ -22,9 +22,6 @@ router.post("/add",
   addProduct
 );
 
-// Get all products
-router.get("/getProducts", verifyJWT, getProducts);
-
 // // Get all products 
 router.get("/getProducts"
   // ,verifyJWT
@@ -34,7 +31,7 @@ router.get("/product/:id"
   // ,verifyJWT
   , getProductById);
 // Get product by ID
-router.get("/product/:id", verifyJWT, getProductById);
+// router.get("/product/:id", verifyJWT, getProductById);
 
 // Get all ads/products by a specific user
 router.get("/user/:userId/ads", verifyJWT, getProductsByUser);
