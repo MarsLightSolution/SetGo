@@ -49,7 +49,7 @@ router.put(
 
 
 router.get("/nearby"
-  ,verifyJWT
+  // ,verifyJWT
   , getNearbyProducts);  
 // Test route
 

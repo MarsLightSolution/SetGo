@@ -31,23 +31,23 @@ const productSchema = new mongoose.Schema(
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point",
         required: true,
+        default: "Point"
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
         required: true,
-      },
-      postalCode: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      street: {
-        type: String,
-        default: "",
-        trim: true,
-      },
+      }
+    },
+    postalCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    street: {
+      type: String,
+      default: "",
+      trim: true,
     },
     name: {
       en: { type: String, required: true, trim: true },
@@ -78,6 +78,7 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Index for Geo Queries
 productSchema.index({ location: "2dsphere" });
 
 productSchema.plugin(mongooseAggregatePaginate);

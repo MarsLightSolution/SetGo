@@ -111,6 +111,7 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
 );
 
 const Home = () => {
+  
   const [latestAds, setLatestAds] = useState([]);
   const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
@@ -121,57 +122,83 @@ const Home = () => {
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
+const { priceRange, condition, radius, city, latitude, longitude } = useSelector((state) => state.filter);
 
-  const fetchProducts = async (type, page) => {
-    try {
-      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+const fetchProducts = async (type, page) => {
+  try {
+    const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
-      if (type === "category" && activeCategory !== "All Products") {
-        params.append("category", activeCategory);
-      }
-
-      if (filter.minPrice) params.append("minPrice", filter.minPrice);
-      if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
-      if (filter.condition) params.append("condition", filter.condition);
-      if (filter.radius) params.append("radius", filter.radius);
-      if (filter.city) params.append("city", filter.city);
-
-      const token = localStorage.getItem("accessToken");
-      const userId = localStorage.getItem("userId");
-
-      if (token && userId) {
-        params.append("userId", userId);
-      }
-
-      const res = await fetch(
-        `http://localhost:8080/api/products/getProducts?${params.toString()}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!res.ok) {
-        console.error("Failed to fetch products");
-        return;
-      }
-
-      const json = await res.json();
-      const { products = [], ...pagination } = json.data ?? {};
-
-      if (type === "category") {
-        setLatestAds(products);
-        setLatestPagination(pagination);
-      } else {
-        setRecommendedAds(products);
-        setRecommendedPagination(pagination);
-      }
-    } catch (err) {
-      console.error("Fetch failed:", err);
+  if (type === "nearby" && latitude && longitude) {
+    params.append("latitude", latitude);
+    params.append("longitude", longitude);
+    params.append("radiusInKm", radius || 10); // default 10km
+  }
+    // Category-based filter
+    if (type === "category" && activeCategory !== "All Products") {
+      params.append("category", activeCategory);
     }
-  };
+
+    // Location filters (used for both latest & recommended)
+    if (latitude && longitude) {
+      params.append("latitude", latitude);
+      params.append("longitude", longitude);
+      params.append("radiusInKm", radius || 10); // default radius
+    }
+
+    // Other filters
+    if (filter.minPrice) params.append("minPrice", filter.minPrice);
+    if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
+    if (filter.condition) params.append("condition", filter.condition);
+    if (filter.radius) params.append("radius", filter.radius);
+    if (filter.city) params.append("city", filter.city);
+
+    // Auth details
+    const token = localStorage.getItem("accessToken");
+    const userId = localStorage.getItem("userId");
+
+    if (token && userId) {
+      params.append("userId", userId);
+    }
+
+    // API endpoint based on type
+    let endpoint = "http://localhost:8080/api/products/getProducts";
+
+    if (type === "recommended" && latitude && longitude) {
+      // Use separate API for nearby products
+      endpoint = "http://localhost:8080/api/products/nearby";
+    }
+
+    const res = await fetch(`${endpoint}?${params.toString()}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch products");
+      return;
+    }
+
+    const json = await res.json();
+    const { products = [], ...pagination } = json.data ?? {};
+
+    if (type === "category") {
+      setLatestAds(products);
+      setLatestPagination(pagination);
+    } else {
+      setRecommendedAds(products);
+      setRecommendedPagination(pagination);
+    }
+  } catch (err) {
+    console.error("Fetch failed:", err);
+  }
+};
+useEffect(() => {
+  if (latitude && longitude) {
+    fetchProducts("nearby", 1); // Replace with your actual fetching logic
+  }
+}, [latitude, longitude]);
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
@@ -394,6 +421,12 @@ const Home = () => {
               pagination={recommendedPagination}
               onPageChange={setRecommendedPagination}
             />
+            <SectionWithAds
+  title="Nearby Products Around You"
+  ads={recommendedAds}
+  pagination={recommendedPagination}
+  onPageChange={setRecommendedPagination}
+/>
 
             {/* Company Websites */}
             <div className="bg-white p-4 mt-3 rounded shadow">
