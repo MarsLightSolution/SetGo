@@ -11,6 +11,7 @@ import {
   setCondition,
   setRadius,
   setCity,
+  setLocationFilter,
 } from "../../slices/FilterSlice";
 import "rc-slider/assets/index.css";
 const Navbar = () => {
@@ -68,6 +69,33 @@ const Navbar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+const handleNearbyClick = () => {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      // ✅ Dispatch to Redux
+      dispatch(setLocationFilter({ latitude, longitude }));
+navigate("/");
+      // You can now trigger your fetch or update state
+      console.log("Location set:", latitude, longitude);
+    },
+    (error) => {
+      if (error.code === error.PERMISSION_DENIED) {
+        alert("Please allow location access to fetch nearby products.");
+      } else {
+        alert("Unable to fetch your location. Try again.");
+      }
+      console.error(error);
+    }
+  );
+};
 
   return (
     <>
@@ -322,13 +350,19 @@ const Navbar = () => {
                   console.log("setPriceRange", setPriceRange);
                   dispatch(setPriceRange(priceRange));
                   dispatch(setCondition(condition));
-                  dispatch(setRadius(radius));
+                  dispatch(setRadius(Number(radius))); // Ensure it's a number
                   dispatch(setCity(selectedCity));
                   setShowFilter(false);
                 }}
                 className="px-4 py-2 text-sm bg-lime-500 text-white rounded"
               >
                 Apply Filters
+              </button>
+              <button
+                className="bg-lime-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-lime-700"
+                onClick={handleNearbyClick}
+              >
+                Nearby Products
               </button>
             </div>
           </div>

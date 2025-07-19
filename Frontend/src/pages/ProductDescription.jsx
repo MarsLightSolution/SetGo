@@ -14,8 +14,19 @@ import ShareModal from "../components/Popups/ShareModal";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import { toast } from "react-toastify";
-
-
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+// Fix default icon issue with Leaflet in React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -293,6 +304,35 @@ const handleAddToWatchlist = (e) => {
 
                   {/* EXTRA INFO CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4 mt-6">
+                  {/* MAP LOCATION CONTAINER */}
+{product.location?.coordinates && (
+  <div className="bg-white rounded-md shadow p-4 mt-6">
+    <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
+    <MapContainer
+      center={[
+        product.location.coordinates[1], // latitude
+        product.location.coordinates[0], // longitude
+      ]}
+      zoom={13}
+      scrollWheelZoom={false}
+      style={{ height: "300px", width: "100%" }}
+    >
+      <TileLayer
+        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <Marker
+        position={[
+          product.location.coordinates[1], // latitude
+          product.location.coordinates[0], // longitude
+        ]}
+      >
+        <Popup>{product.title || "Product location"}</Popup>
+      </Marker>
+    </MapContainer>
+  </div>
+)}
+
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
                       <div>
                         <div className="font-semibold text-gray-800">Type</div>

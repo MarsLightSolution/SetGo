@@ -8,7 +8,7 @@ const mongoose = require("mongoose");
 const logger = require("../utils/logger");
 const fs = require("fs");
 const path = require("path");
-const axios = require("axios")
+const axios = require("axios");
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -27,7 +27,7 @@ const addProduct = asyncHandler(async (req, res) => {
     isSell,
     quantity,
     latitude,
-    longitude
+    longitude,
   } = req.body;
 
   logger.info(`[AddProduct] Request body received`, { body: req.body });
@@ -37,12 +37,13 @@ const addProduct = asyncHandler(async (req, res) => {
     throw new ApiError(400, "You must accept the terms and conditions.");
   }
 
-  if (!req.user?._id)
-    throw new ApiError(401, "User authentication required.");
+  if (!req.user?._id) throw new ApiError(401, "User authentication required.");
 
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
-    : req.files?.pictures ? [req.files.pictures] : [];
+    : req.files?.pictures
+    ? [req.files.pictures]
+    : [];
 
   if (!picturesRaw.length)
     throw new ApiError(400, "At least one picture is required.");
@@ -56,22 +57,29 @@ const addProduct = asyncHandler(async (req, res) => {
   }
 
   // const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
-  let pictures = []
+  let pictures = [];
   logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
   const translateText = async (text) => {
     try {
-      const response = await axios.post("http://localhost:5000/translate", {
-        q: text,
-        source: "en",
-        target: "de"
-      }, {
-        headers: { "Content-Type": "application/json" }
-      });
+      const response = await axios.post(
+        "http://localhost:5000/translate",
+        {
+          q: text,
+          source: "en",
+          target: "de",
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       return response.data.translatedText;
     } catch (error) {
-      logger.warn(`[Translation] Failed to translate "${text}". Using fallback (en).`, { error: error.message });
+      logger.warn(
+        `[Translation] Failed to translate "${text}". Using fallback (en).`,
+        { error: error.message }
+      );
       return text; // fallback to English text if translation fails
     }
   };
@@ -90,9 +98,9 @@ const addProduct = asyncHandler(async (req, res) => {
     location: {
       type: "Point",
       coordinates: [Number(longitude), Number(latitude)],
-      postalCode: postalCode || "",
-      street: streetNo || "",
     },
+    postalCode: postalCode || "",
+    street: streetNo || "",
     name: { en: name, de: translatedName },
     termsAccepted: termsAccepted === "true" || termsAccepted === true,
     offerType,
@@ -121,7 +129,7 @@ const addProduct = asyncHandler(async (req, res) => {
       listedAt: new Date(),
       quantity: Number(quantity || 1),
       price: Number(price),
-      isSold: false
+      isSold: false,
     };
   }
 
@@ -201,7 +209,10 @@ const getProducts = asyncHandler(async (req, res) => {
     },
   };
 
-  const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
+  const result = await Product.aggregatePaginate(
+    Product.aggregate(pipeline),
+    options
+  );
 
   // Language-aware response mapping
   result.products = result.products.map((prod) => ({
@@ -221,11 +232,14 @@ const getProducts = asyncHandler(async (req, res) => {
     updatedAt: prod.updatedAt,
   }));
 
-  logger.info(`[GetProducts] Retrieved products`, { total: result.totalProducts });
+  logger.info(`[GetProducts] Retrieved products`, {
+    total: result.totalProducts,
+  });
 
-  res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
+  res
+    .status(200)
+    .json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
-
 
 const getProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -258,8 +272,12 @@ const markProductAsSold = asyncHandler(async (req, res) => {
   }
 
   if (product.isSell === true) {
-    logger.info(`[MarkProductAsSold] Product already marked as sold`, { productId });
-    return res.status(200).json(new ApiResponse(200, product, "Product already marked as sold."));
+    logger.info(`[MarkProductAsSold] Product already marked as sold`, {
+      productId,
+    });
+    return res
+      .status(200)
+      .json(new ApiResponse(200, product, "Product already marked as sold."));
   }
 
   product.isSell = true;
@@ -267,7 +285,9 @@ const markProductAsSold = asyncHandler(async (req, res) => {
 
   logger.info(`[MarkProductAsSold] Product updated as sold`, { productId });
 
-  res.status(200).json(new ApiResponse(200, product, "Product marked as sold."));
+  res
+    .status(200)
+    .json(new ApiResponse(200, product, "Product marked as sold."));
 });
 const getProductsByCategory = asyncHandler(async (req, res) => {
   const { category } = req.params;
@@ -280,10 +300,12 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
 
   const products = await Product.find({
     category: new RegExp(`^${category.trim()}$`, "i"),
-    isSell: false
+    isSell: false,
   }).sort({ createdAt: -1 });
 
-  res.status(200).json(new ApiResponse(200, products, "Fetched products by category"));
+  res
+    .status(200)
+    .json(new ApiResponse(200, products, "Fetched products by category"));
 });
 const getProductsByUser = asyncHandler(async (req, res) => {
   const { userId } = req.params;
@@ -292,11 +314,15 @@ const getProductsByUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid user ID");
   }
 
-  const userProducts = await Product.find({ owner: userId }).sort({ createdAt: -1 });
+  const userProducts = await Product.find({ owner: userId }).sort({
+    createdAt: -1,
+  });
 
-  res.status(200).json(
-    new ApiResponse(200, userProducts, "Fetched user's ads successfully.")
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, userProducts, "Fetched user's ads successfully.")
+    );
 });
 
 const deleteProduct = asyncHandler(async (req, res) => {
@@ -358,7 +384,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Parse and validate boolean fields
-  const showFullAddressBool = showFullAddress === "true" || showFullAddress === true;
+  const showFullAddressBool =
+    showFullAddress === "true" || showFullAddress === true;
   const subscribeBool = subscribe === "true" || subscribe === true;
   const isBuyBool = isBuy === "true" || isBuy === true;
   const isSellBool = isSell === "true" || isSell === true;
@@ -372,8 +399,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
-      ? [req.files.pictures]
-      : [];
+    ? [req.files.pictures]
+    : [];
 
   let pictures = product.pictures; // default to existing
 
@@ -446,7 +473,6 @@ const updateProduct = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, product, "Product updated successfully."));
 });
 
-
 const getNearbyProducts = asyncHandler(async (req, res) => {
   const {
     latitude,
@@ -467,24 +493,48 @@ const getNearbyProducts = asyncHandler(async (req, res) => {
       $geoNear: {
         near: {
           type: "Point",
-          coordinates: [Number(longitude), Number(latitude)],
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
         },
         distanceField: "distance",
         spherical: true,
         maxDistance: radiusInMeters,
+        distanceMultiplier: 0.001, // Convert distance from meters to km
       },
     },
+    { $sort: { distance: 1 } },
   ]);
 
   const options = {
     page: Number(page),
     limit: Number(limit),
+    customLabels: {
+      docs: "products",
+      totalDocs: "totalProducts",
+      page: "currentPage",
+      totalPages: "totalPages",
+      hasNextPage: "hasNextPage",
+      hasPrevPage: "hasPrevPage",
+      nextPage: "nextPage",
+      prevPage: "prevPage",
+    },
   };
 
   const result = await Product.aggregatePaginate(aggregate, options);
 
-  res.status(200).json(new ApiResponse(200, result, "Nearby products fetched"));
+  res
+    .status(200)
+    .json(new ApiResponse(200, result, "Nearby products fetched successfully."));
 });
 
 // module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getNearbyProducts };
-module.exports = { addProduct, getProducts, getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory, getNearbyProducts };
+module.exports = {
+  addProduct,
+  getProducts,
+  getProductById,
+  getProductsByUser,
+  deleteProduct,
+  updateProduct,
+  markProductAsSold,
+  getProductsByCategory,
+  getNearbyProducts,
+};
