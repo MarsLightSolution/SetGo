@@ -4,16 +4,12 @@ const mongooseAggregatePaginate = require("mongoose-aggregate-paginate-v2");
 const productSchema = new mongoose.Schema(
   {
     title: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 200,
+      en: { type: String, required: true, trim: true, maxlength: 200 },
+      de: { type: String, trim: true, maxlength: 200 },
     },
     category: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true,
+      en: { type: String, required: true, trim: true, index: true },
+      de: { type: String, trim: true, index: true },
     },
     price: {
       type: Number,
@@ -21,10 +17,8 @@ const productSchema = new mongoose.Schema(
       min: 0,
     },
     description: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 4000,
+      en: { type: String, required: true, trim: true, maxlength: 4000 },
+      de: { type: String, trim: true, maxlength: 4000 },
     },
     pictures: {
       type: [String],
@@ -56,9 +50,8 @@ const productSchema = new mongoose.Schema(
       },
     },
     name: {
-      type: String,
-      required: true,
-      trim: true,
+      en: { type: String, required: true, trim: true },
+      de: { type: String, trim: true },
     },
     termsAccepted: {
       type: Boolean,
