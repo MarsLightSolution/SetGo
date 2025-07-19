@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextField,
   Button,
@@ -28,7 +28,28 @@ const [formData, setFormData] = useState({
   termsAccepted: false,
   subscribe: false,
   pictures: [], // 🔥 Important
+  latitude: '',
+  longitude: '',
 });
+
+useEffect(() => {
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }));
+      },
+      (err) => {
+        console.error("Geolocation error:", err);
+      }
+    );
+  } else {
+    console.warn("Geolocation not supported");
+  }
+}, []);
 
 const handleChange = (e) => {
   const { name, value, type, checked, files } = e.target;
@@ -40,6 +61,11 @@ const handleChange = (e) => {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
+
+  if (!formData.latitude || !formData.longitude) {
+    alert('Location not found. Please allow location access.');
+    return;
+  }
 
   const formDataToSend = new FormData();
   formDataToSend.append("title", formData.title);
@@ -53,6 +79,10 @@ const handleSubmit = async (e) => {
   formDataToSend.append("subscribe", formData.subscribe ? "true" : "false");
   formDataToSend.append("postalCode", formData.postalCode);
   formDataToSend.append("streetNo", formData.streetNo || "");
+
+  formDataToSend.append("latitude", formData.latitude);
+  formDataToSend.append("longitude", formData.longitude);
+
 
   if (formData.pictures && formData.pictures.length > 0) {
     for (let i = 0; i < formData.pictures.length; i++) {
