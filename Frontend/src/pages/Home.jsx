@@ -26,7 +26,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
   };
 
   const handleCardClick = () => {
-    navigate(`/products/product/${ad._id}`);
+    navigate(`products/product/${ad._id}`);
   };
 
   return (
@@ -39,9 +39,8 @@ const AdCard = ({ image, title, location, ad, price }) => {
           e.stopPropagation();
           handleLikeToggle();
         }}
-        className={`absolute top-2 right-2 cursor-pointer transition duration-300 text-lg ${
-          liked ? "text-red-500" : "text-gray-400"
-        }`}
+        className={`absolute top-2 right-2 cursor-pointer transition duration-300 text-lg ${liked ? "text-red-500" : "text-gray-400"
+          }`}
       >
         {liked ? <Favorite /> : <FavoriteBorder />}
       </button>
@@ -70,9 +69,8 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
       {ads.map((ad) => (
         <AdCard
           key={ad._id}
-          image={`http://localhost:8080/${
-            ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"
-          }`}
+          image={`http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"
+            }`}
           title={ad.title}
           location={ad.location?.postalCode || "Unknown"}
           ad={ad}
@@ -86,11 +84,10 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
         onClick={() =>
           onPageChange((p) => ({ ...p, currentPage: pagination.prevPage }))
         }
-        className={`px-4 py-1 rounded ${
-          pagination.hasPrevPage
+        className={`px-4 py-1 rounded ${pagination.hasPrevPage
             ? "bg-gray-200 hover:bg-gray-300"
             : "bg-gray-100 cursor-not-allowed"
-        }`}
+          }`}
       >
         Prev
       </button>
@@ -102,11 +99,10 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
         onClick={() =>
           onPageChange((p) => ({ ...p, currentPage: pagination.nextPage }))
         }
-        className={`px-4 py-1 rounded ${
-          pagination.hasNextPage
+        className={`px-4 py-1 rounded ${pagination.hasNextPage
             ? "bg-gray-200 hover:bg-gray-300"
             : "bg-gray-100 cursor-not-allowed"
-        }`}
+          }`}
       >
         Next
       </button>
@@ -152,7 +148,7 @@ const Home = () => {
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `${token}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -321,11 +317,10 @@ const Home = () => {
                           currentPage: 1,
                         }));
                       }}
-                      className={`cursor-pointer hover:underline ${
-                        activeCategory === cat
+                      className={`cursor-pointer hover:underline ${activeCategory === cat
                           ? "font-semibold text-green-700"
                           : ""
-                      }`}
+                        }`}
                     >
                       {cat}
                     </li>
@@ -347,14 +342,12 @@ const Home = () => {
                     <button
                       className="w-8 h-8 border border-gray-300 cursor-pointer rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                       onClick={() => scrollGallery("right")}
-
                     >
                       &#8594;
                     </button>
                   </div>
                 </div>
 
-               </div>
                 <div
                   ref={galleryRef}
                   className="flex gap-4 overflow-x-auto scroll-smooth hide-scrollbar pb-2"
@@ -401,6 +394,7 @@ const Home = () => {
               pagination={recommendedPagination}
               onPageChange={setRecommendedPagination}
             />
+
             {/* Company Websites */}
             <div className="bg-white p-4 mt-3 rounded shadow">
               <div className="flex justify-between items-center mb-4">

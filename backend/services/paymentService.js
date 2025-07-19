@@ -7,12 +7,12 @@ Paymentwall.Configure(
 );
 
 
-const initiatePayment = async (userId, amount) => {
+const initiatePayment = async (userId, amount,productId,source) => {
   const widget = new Paymentwall.Widget(
     userId,
     'p1_1',
     [
-      new Paymentwall.Product('productId', amount, 'USD', 'Wallet Recharge', Paymentwall.Product.TYPE_FIXED)
+      new Paymentwall.Product(productId, amount, 'AZN', source, Paymentwall.Product.TYPE_FIXED)
     ],
     { email: 'user@example.com' }
   );

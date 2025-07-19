@@ -2,9 +2,12 @@ const paymentService = require('../services/paymentService');
 
 exports.createPayment = async (req, res) => {
   try {
-    const { userId, amount } = req.body;
-    const paymentUrl = await paymentService.initiatePayment(userId, amount);
+    const { userId, amount,source,product } = req.body;
+    const paymentUrl = await paymentService.initiatePayment(userId, amount,product,source);
+    console.log(paymentUrl);
+    
     res.json({ success: true, url: paymentUrl });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Payment failed' });
