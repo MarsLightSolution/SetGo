@@ -1,13 +1,14 @@
 // controllers/product.controller.js
-const asyncHandler  = require("../utils/asyncHandler");
-const ApiError      = require("../utils/ApiError");
-const ApiResponse   = require("../utils/ApiResponse");
-const Product       = require("../models/product.model");
-const User          = require("../models/User");
-const mongoose      = require("mongoose");
-const logger        = require("../utils/logger");
-const fs            = require("fs");
-const path          = require("path");
+const asyncHandler = require("../utils/asyncHandler");
+const ApiError = require("../utils/ApiError");
+const ApiResponse = require("../utils/ApiResponse");
+const Product = require("../models/product.model");
+const User = require("../models/User");
+const mongoose = require("mongoose");
+const logger = require("../utils/logger");
+const fs = require("fs");
+const path = require("path");
+const axios = require("axios")
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -24,11 +25,17 @@ const addProduct = asyncHandler(async (req, res) => {
     subscribe,
     isBuy,
     isSell,
-    quantity
+    quantity,
+    latitude,
+    longitude
   } = req.body;
 
-  if (!termsAccepted)
+  logger.info(`[AddProduct] Request body received`, { body: req.body });
+
+  if (!termsAccepted) {
+    logger.warn(`[AddProduct] Terms not accepted`);
     throw new ApiError(400, "You must accept the terms and conditions.");
+  }
 
   if (!req.user?._id)
     throw new ApiError(401, "User authentication required.");
@@ -43,19 +50,50 @@ const addProduct = asyncHandler(async (req, res) => {
   if (picturesRaw.length > 20)
     throw new ApiError(400, "You can upload a maximum of 20 pictures.");
 
-  const pictures = picturesRaw.map(f => f.path.replace(/\\/g, "/"));
+  if (!latitude || !longitude) {
+    logger.warn(`[AddProduct] Missing latitude or longitude`);
+    throw new ApiError(400, "Location coordinates are required.");
+  }
+
+  // const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
+  let pictures = []
+  logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
+
+  const translateText = async (text) => {
+    try {
+      const response = await axios.post("http://localhost:5000/translate", {
+        q: text,
+        source: "en",
+        target: "de"
+      }, {
+        headers: { "Content-Type": "application/json" }
+      });
+
+      return response.data.translatedText;
+    } catch (error) {
+      logger.warn(`[Translation] Failed to translate "${text}". Using fallback (en).`, { error: error.message });
+      return text; // fallback to English text if translation fails
+    }
+  };
+
+  const translatedTitle = await translateText(title);
+  const translatedCategory = await translateText(category);
+  const translatedDescription = await translateText(description);
+  const translatedName = await translateText(name);
 
   const product = await Product.create({
-    title,
-    category,
+    title: { en: title, de: translatedTitle },
+    category: { en: category, de: translatedCategory },
     price: Number(price),
-    description,
+    description: { en: description, de: translatedDescription },
     pictures,
     location: {
+      type: "Point",
+      coordinates: [Number(longitude), Number(latitude)],
       postalCode: postalCode || "",
       street: streetNo || "",
     },
-    name,
+    name: { en: name, de: translatedName },
     termsAccepted: termsAccepted === "true" || termsAccepted === true,
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
@@ -97,9 +135,28 @@ const addProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-  const { category, page = 1, limit = 10, userId, minPrice = 0, maxPrice = 1000000 } = req.query;
+  const {
+    category,
+    page = 1,
+    limit = 10,
+    userId,
+    minPrice = 0,
+    maxPrice = 1000000,
+    lang = "en",
+  } = req.query;
 
-  logger.info(`[GetProducts] Query`, { category, page, limit, userId, minPrice, maxPrice });
+  const validLangs = ["en", "de"];
+  const selectedLang = validLangs.includes(lang) ? lang : "en";
+
+  logger.info(`[GetProducts] Query`, {
+    category,
+    page,
+    limit,
+    userId,
+    minPrice,
+    maxPrice,
+    lang: selectedLang,
+  });
 
   const pipeline = [];
 
@@ -145,6 +202,26 @@ const getProducts = asyncHandler(async (req, res) => {
   };
 
   const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
+
+  // Language-aware response mapping
+  result.products = result.products.map((prod) => ({
+    _id: prod._id,
+    title: prod.title?.[selectedLang] || prod.title?.en || "",
+    category: prod.category?.[selectedLang] || prod.category?.en || "",
+    price: prod.price,
+    description: prod.description?.[selectedLang] || prod.description?.en || "",
+    pictures: prod.pictures,
+    location: prod.location,
+    name: prod.name?.[selectedLang] || prod.name?.en || "",
+    termsAccepted: prod.termsAccepted,
+    owner: prod.owner,
+    isBuy: prod.isBuy,
+    isSell: prod.isSell,
+    createdAt: prod.createdAt,
+    updatedAt: prod.updatedAt,
+  }));
+
+  logger.info(`[GetProducts] Retrieved products`, { total: result.totalProducts });
 
   res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
@@ -295,8 +372,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
-    ? [req.files.pictures]
-    : [];
+      ? [req.files.pictures]
+      : [];
 
   let pictures = product.pictures; // default to existing
 
@@ -369,4 +446,45 @@ const updateProduct = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, product, "Product updated successfully."));
 });
 
-module.exports = { addProduct, getProducts,getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory  };
+
+const getNearbyProducts = asyncHandler(async (req, res) => {
+  const {
+    latitude,
+    longitude,
+    radiusInKm = 10,
+    page = 1,
+    limit = 10,
+  } = req.query;
+
+  if (!latitude || !longitude) {
+    throw new ApiError(400, "Latitude and Longitude are required.");
+  }
+
+  const radiusInMeters = radiusInKm * 1000;
+
+  const aggregate = Product.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [Number(longitude), Number(latitude)],
+        },
+        distanceField: "distance",
+        spherical: true,
+        maxDistance: radiusInMeters,
+      },
+    },
+  ]);
+
+  const options = {
+    page: Number(page),
+    limit: Number(limit),
+  };
+
+  const result = await Product.aggregatePaginate(aggregate, options);
+
+  res.status(200).json(new ApiResponse(200, result, "Nearby products fetched"));
+});
+
+// module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getNearbyProducts };
+module.exports = { addProduct, getProducts, getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory, getNearbyProducts };

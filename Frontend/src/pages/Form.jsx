@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   TextField,
   Button,
@@ -11,8 +11,8 @@ import {
   MenuItem,
   IconButton,
 } from "@mui/material";
-import Footer from "../components/common/Footer";
 import { CloudUpload as CloudUploadIcon, Close as CloseIcon } from "@mui/icons-material";
+import Footer from "../components/common/Footer";
 import {
   showSuccessToast,
   showErrorToast,
@@ -35,69 +35,73 @@ const Form = () => {
     showFullAddress: false,
     name: "",
     termsAccepted: false,
+    subscribe: false,
     pictures: [],
+    latitude: '',
+    longitude: '',
   });
 
   const [errors, setErrors] = useState({});
   const [imagePreviews, setImagePreviews] = useState([]);
 
+  // Get geolocation on load
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData((prev) => ({
+            ...prev,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }));
+        },
+        (err) => {
+          console.error("Geolocation error:", err);
+        }
+      );
+    } else {
+      console.warn("Geolocation not supported");
+    }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-
-    let updatedValue = type === "checkbox" ? checked : type === "file" ? files : value;
+    const updatedValue = type === "checkbox" ? checked : type === "file" ? files : value;
     let newErrors = { ...errors };
 
+    // Validation
     if (name === "title") {
-      if (!updatedValue.trim()) {
-        newErrors.title = "Title is required";
-      } else if (updatedValue.length > 24) {
-        newErrors.title = "Title must be at most 24 characters";
-      } else {
-        delete newErrors.title;
-      }
+      if (!updatedValue.trim()) newErrors.title = "Title is required";
+      else if (updatedValue.length > 24) newErrors.title = "Title must be at most 24 characters";
+      else delete newErrors.title;
     }
 
     if (name === "price") {
-      if (!updatedValue.trim()) {
-        newErrors.price = "Price is required";
-      } else if (!/^\d+$/.test(updatedValue)) {
-        newErrors.price = "Only numbers allowed";
-      } else {
-        delete newErrors.price;
-      }
+      if (!updatedValue.trim()) newErrors.price = "Price is required";
+      else if (!/^\d+$/.test(updatedValue)) newErrors.price = "Only numbers allowed";
+      else delete newErrors.price;
     }
 
     if (name === "postalCode") {
-      if (!updatedValue.trim()) {
-        newErrors.postalCode = "Postal code is required";
-      } else if (!/^\d{6}$/.test(updatedValue)) {
-        newErrors.postalCode = "Postal code must be 6-digit number";
-      } else {
-        delete newErrors.postalCode;
-      }
+      if (!updatedValue.trim()) newErrors.postalCode = "Postal code is required";
+      else if (!/^\d{6}$/.test(updatedValue)) newErrors.postalCode = "Postal code must be 6-digit number";
+      else delete newErrors.postalCode;
     }
 
     if (name === "location") {
-      if (!updatedValue.trim()) {
-        newErrors.location = "Location is required";
-      } else if (updatedValue.length > 50) {
-        newErrors.location = "Max 50 characters allowed";
-      } else {
-        delete newErrors.location;
-      }
+      if (!updatedValue.trim()) newErrors.location = "Location is required";
+      else if (updatedValue.length > 50) newErrors.location = "Max 50 characters allowed";
+      else delete newErrors.location;
     }
 
     if (name === "name") {
-      if (!updatedValue.trim()) {
-        newErrors.name = "Name is required";
-      } else if (!/^[A-Za-z\s]+$/.test(updatedValue)) {
-        newErrors.name = "Only alphabets allowed";
-      } else {
-        delete newErrors.name;
-      }
+      if (!updatedValue.trim()) newErrors.name = "Name is required";
+      else if (!/^[A-Za-z\s]+$/.test(updatedValue)) newErrors.name = "Only alphabets allowed";
+      else delete newErrors.name;
     }
 
-    if (name === "pictures") {
+    // Pictures handling
+    if (name === "pictures" && files) {
       const filesArray = Array.from(files);
       const previews = filesArray.map((file) => URL.createObjectURL(file));
       setFormData((prev) => ({
@@ -123,7 +127,6 @@ const Form = () => {
     setFormData((prev) => ({ ...prev, pictures: updatedPictures }));
     setImagePreviews(updatedPreviews);
 
-    // Reset input value to allow re-selecting the same image
     if (fileInputRef.current) {
       fileInputRef.current.value = null;
     }
@@ -155,8 +158,13 @@ const Form = () => {
       return;
     }
 
+    if (!formData.latitude || !formData.longitude) {
+      showErrorToast("Location not found. Please allow location access.");
+      return;
+    }
+
     if (Object.keys(errors).length > 0) {
-      showErrorToast("All fields are required");
+      showErrorToast("Please fix form errors before submitting.");
       return;
     }
 
@@ -171,7 +179,6 @@ const Form = () => {
 
     try {
       const token = localStorage.getItem("accessToken");
-
       const res = await fetch("http://localhost:8080/api/products/add", {
         method: "POST",
         headers: {
@@ -196,7 +203,10 @@ const Form = () => {
           showFullAddress: false,
           name: "",
           termsAccepted: false,
+          subscribe: false,
           pictures: [],
+          latitude: formData.latitude,
+          longitude: formData.longitude,
         });
         setImagePreviews([]);
         e.target.reset();
@@ -214,25 +224,14 @@ const Form = () => {
     <>
       <ToastifyContainer />
       <div className="min-h-screen bg-gray-50 py-10 px-4 text-black flex justify-center">
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl space-y-6"
-        >
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl space-y-6">
           {/* Ad Details */}
           <div>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              Ad details
-            </h2>
+            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">Ad details</h2>
 
-            {/* Offer Type */}
             <FormControl component="fieldset" className="mb-4">
               <FormLabel>Bid Request</FormLabel>
-              <RadioGroup
-                row
-                name="offerType"
-                value={formData.offerType}
-                onChange={handleChange}
-              >
+              <RadioGroup row name="offerType" value={formData.offerType} onChange={handleChange}>
                 <FormControlLabel value="offer" control={<Radio />} label="I offer" />
                 <FormControlLabel value="looking" control={<Radio />} label="I am looking for" />
               </RadioGroup>
@@ -248,7 +247,6 @@ const Form = () => {
                 helperText={errors.title || "Tip: You sell better with a meaningful title"}
                 sx={{ width: "40rem" }}
               />
-
               <TextField
                 select
                 label="Category"
@@ -267,7 +265,6 @@ const Form = () => {
                 <MenuItem value="Service">Service</MenuItem>
                 <MenuItem value="Other">Other</MenuItem>
               </TextField>
-
               <TextField
                 label="Price"
                 name="price"
@@ -276,11 +273,8 @@ const Form = () => {
                 error={!!errors.price}
                 helperText={errors.price}
                 sx={{ width: "41rem" }}
-                InputProps={{
-                  endAdornment: <span className="text-gray-500">EUR</span>,
-                }}
+                InputProps={{ endAdornment: <span className="text-gray-500">EUR</span> }}
               />
-
               <TextField
                 label="Description"
                 name="description"
@@ -298,7 +292,6 @@ const Form = () => {
               <label className="block font-medium mb-2">
                 Pictures <span className="text-red-600">*</span>
               </label>
-
               <div className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center cursor-pointer hover:border-green-600 transition-all">
                 <input
                   type="file"
@@ -339,17 +332,6 @@ const Form = () => {
                   ))}
                 </div>
               )}
-
-              {/* <TextField
-                label="Description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                multiline
-                rows={4}
-                sx={{ width: "41rem" }}
-                helperText="You have 4000 characters left"
-              /> */}
             </div>
           </div>
 
@@ -376,7 +358,6 @@ const Form = () => {
                 fullWidth
               />
             </div>
-
             <TextField
               className="mt-4"
               label="Street No. (optional)"
@@ -386,42 +367,6 @@ const Form = () => {
               helperText="Tip: By default, we only display the postal code and city. To show full address, check the box below."
               fullWidth
             />
-            {/* <TextField
-              label="Description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              multiline
-              rows={4}
-              sx={{ width: "41rem" }}
-              helperText="You have 4000 characters left"
-            /> */}
-          </div>
-
-          {/* Upload Section */}
-          {/* <div className="mt-4">
-            <label className="block font-medium mb-2">
-              Pictures (recommended)
-            </label>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  pictures: Array.from(e.target.files),
-                })
-              }
-            />
-            <p className="text-sm text-gray-500 mt-2">
-              Tip: Upload up to 20 images (max size 12 MB). Images will be
-              perfect with our{" "}
-              <a href="#" className="text-blue-600 underline">
-                Phototips
-              </a>
-              .
-            </p>
             <FormControlLabel
               control={
                 <Checkbox
@@ -432,13 +377,11 @@ const Form = () => {
               }
               label="Show full address"
             />
-          </div> */}
+          </div>
 
           {/* Your Details */}
           <div>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              Your details
-            </h2>
+            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">Your details</h2>
             <TextField
               label="Name"
               name="name"
@@ -455,6 +398,16 @@ const Form = () => {
                 )
               }
               fullWidth
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="subscribe"
+                  checked={formData.subscribe}
+                  onChange={handleChange}
+                />
+              }
+              label="Subscribe to updates"
             />
           </div>
 
@@ -477,12 +430,7 @@ const Form = () => {
             </p>
           </div>
 
-          <Button
-            type="submit"
-            variant="contained"
-            color="success"
-            className="mt-8"
-          >
+          <Button type="submit" variant="contained" color="success" className="mt-8">
             Publish your ad
           </Button>
         </form>
