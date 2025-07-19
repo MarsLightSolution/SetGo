@@ -24,11 +24,19 @@ const addProduct = asyncHandler(async (req, res) => {
     subscribe,
     isBuy,
     isSell,
-    quantity
+    quantity,
+    latitude,
+    longitude
   } = req.body;
 
-  if (!termsAccepted)
+  console.log("===========latitude======",latitude,"=========longitude=========",longitude)
+
+  logger.info(`[AddProduct] Request body received`, { body: req.body });
+
+  if (!termsAccepted) {
+    logger.warn(`[AddProduct] Terms not accepted`);
     throw new ApiError(400, "You must accept the terms and conditions.");
+  }
 
   if (!req.user?._id)
     throw new ApiError(401, "User authentication required.");
@@ -43,7 +51,14 @@ const addProduct = asyncHandler(async (req, res) => {
   if (picturesRaw.length > 20)
     throw new ApiError(400, "You can upload a maximum of 20 pictures.");
 
-  const pictures = picturesRaw.map(f => f.path.replace(/\\/g, "/"));
+  if (!latitude || !longitude) {
+    logger.warn(`[AddProduct] Missing latitude or longitude`);
+    throw new ApiError(400, "Location coordinates are required.");
+  }
+
+  // const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
+  let pictures = []
+  logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
   const product = await Product.create({
     title,
@@ -52,6 +67,8 @@ const addProduct = asyncHandler(async (req, res) => {
     description,
     pictures,
     location: {
+      type: "Point",
+      coordinates: [Number(longitude), Number(latitude)],
       postalCode: postalCode || "",
       street: streetNo || "",
     },
@@ -369,4 +386,45 @@ const updateProduct = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, product, "Product updated successfully."));
 });
 
-module.exports = { addProduct, getProducts,getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory  };
+
+const getNearbyProducts = asyncHandler(async (req, res) => {
+    const {
+    latitude,
+    longitude,
+    radiusInKm = 10,
+    page = 1,
+    limit = 10,
+  } = req.query;
+
+  if (!latitude || !longitude) {
+    throw new ApiError(400, "Latitude and Longitude are required.");
+  }
+
+  const radiusInMeters = radiusInKm * 1000;
+
+  const aggregate = Product.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [Number(longitude), Number(latitude)],
+        },
+        distanceField: "distance",
+        spherical: true,
+        maxDistance: radiusInMeters,
+      },
+    },
+  ]);
+
+  const options = {
+    page: Number(page),
+    limit: Number(limit),
+  };
+
+  const result = await Product.aggregatePaginate(aggregate, options);
+
+  res.status(200).json(new ApiResponse(200, result, "Nearby products fetched"));
+});
+
+// module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getNearbyProducts };
+module.exports = { addProduct, getProducts,getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory, getNearbyProducts};
