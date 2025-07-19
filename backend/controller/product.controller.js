@@ -23,8 +23,12 @@ const addProduct = asyncHandler(async (req, res) => {
     subscribe,
     isBuy,
     isSell,
-    quantity
+    quantity,
+    latitude,
+    longitude
   } = req.body;
+
+  console.log("===========latitude======",latitude,"=========longitude=========",longitude)
 
   logger.info(`[AddProduct] Request body received`, { body: req.body });
 
@@ -43,7 +47,13 @@ const addProduct = asyncHandler(async (req, res) => {
     throw new ApiError(400, "You can upload a maximum of 20 pictures.");
   }
 
-  const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
+  if (!latitude || !longitude) {
+    logger.warn(`[AddProduct] Missing latitude or longitude`);
+    throw new ApiError(400, "Location coordinates are required.");
+  }
+
+  // const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
+  let pictures = []
   logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
   const translateText = async (text) => {
@@ -69,6 +79,8 @@ const addProduct = asyncHandler(async (req, res) => {
     description: { en: description, de: translatedDescription },
     pictures: "",
     location: {
+      type: "Point",
+      coordinates: [Number(longitude), Number(latitude)],
       postalCode: postalCode || "",
       street: streetNo || "",
     },
@@ -189,7 +201,35 @@ const getProductById = asyncHandler(async (req, res) => {
 
   logger.info(`[GetProductById] Product found`, { id });
 
-  res.status(200).json(new ApiResponse(200, productResponse, "Fetched product by ID"));
+  res.status(200).json(new ApiResponse(200, product, "Fetched product by ID"));
 });
 
-module.exports = { addProduct, getProducts, getProductById };
+const markProductAsSold = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    logger.warn(`[MarkProductAsSold] Invalid product ID`, { productId });
+    throw new ApiError(400, "Invalid product ID");
+  }
+
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    logger.warn(`[MarkProductAsSold] Product not found`, { productId });
+    throw new ApiError(404, "Product not found");
+  }
+
+  if (product.isSell === true) {
+    logger.info(`[MarkProductAsSold] Product already marked as sold`, { productId });
+    return res.status(200).json(new ApiResponse(200, product, "Product already marked as sold."));
+  }
+
+  product.isSell = true;
+  await product.save();
+
+  logger.info(`[MarkProductAsSold] Product updated as sold`, { productId });
+
+  res.status(200).json(new ApiResponse(200, product, "Product marked as sold."));
+});
+
+module.exports = { addProduct, getProducts, getProductById, markProductAsSold };

@@ -28,6 +28,16 @@ const productSchema = new mongoose.Schema(
       },
     },
     location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+        required: true,
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        required: true,
+      },
       postalCode: {
         type: String,
         required: true,
@@ -52,27 +62,27 @@ const productSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    createdAt: { type: Date, default: Date.now },
-
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
     isBuy: {
       type: Boolean,
-      default: false
+      default: false,
     },
     isSell: {
       type: Boolean,
-      default: false
+      default: false,
     },
     createdBy: {
       type: Date,
       default: Date.now,
     },
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
   },
   { timestamps: true }
 );
+
+productSchema.index({ location: "2dsphere" });
 
 productSchema.plugin(mongooseAggregatePaginate);
 

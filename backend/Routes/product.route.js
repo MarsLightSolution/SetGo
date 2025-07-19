@@ -6,6 +6,8 @@ const {
   addProduct,
   getProducts,
   getProductById,
+  markProductAsSold,
+  getNearbyProducts
 } = require("../controller/product.controller.js");
 
 router.post("/add"
@@ -20,7 +22,13 @@ router.post("/add"
 router.get("/getProducts"
   ,verifyJWT,getProducts);
 
-router.get("/product/:id",verifyJWT, getProductById);
+router.get("/product/:id"
+  // ,verifyJWT
+  , getProductById);
+
+router.get("/nearby"
+  // ,verifyJWT
+  , getNearbyProducts);  
 // Test route
 router.route("/try").post((req, res) => {
   res.send("Test passed");
