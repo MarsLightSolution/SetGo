@@ -32,8 +32,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
   return (
     <div
       onClick={handleCardClick}
-     className="relative group cursor-pointer hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between border border-gray-800 shadow-md hover:shadow-lg gap-3 p-3 rounded-xl w-[200px] bg-white"
-
+      className="relative group cursor-pointer hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between border border-gray-800 shadow-md hover:shadow-lg gap-3 p-3 rounded-xl w-[200px] bg-white"
     >
       <button
         onClick={(e) => {
@@ -276,6 +275,7 @@ const Home = () => {
     const scrollAmount = direction === "left" ? -300 : 300;
     galleryRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
+
   return (
     <div className="min-h-screen bg-gray-100 pt-[2rem]">
       <div className="w-full flex justify-center">
@@ -334,8 +334,6 @@ const Home = () => {
               </div>
 
               {/* Gallery */}
-              {/* gallery items here */}
-
               <div className="bg-white p-4 rounded shadow flex-1 w-full md:w-[60%]">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold">Gallery</h2>
@@ -349,14 +347,12 @@ const Home = () => {
                     <button
                       className="w-8 h-8 border border-gray-300 cursor-pointer rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                       onClick={() => scrollGallery("right")}
-
                     >
                       &#8594;
                     </button>
                   </div>
                 </div>
 
-               </div>
                 <div
                   ref={galleryRef}
                   className="flex gap-4 overflow-x-auto scroll-smooth hide-scrollbar pb-2"
@@ -403,6 +399,7 @@ const Home = () => {
               pagination={recommendedPagination}
               onPageChange={setRecommendedPagination}
             />
+
             {/* Company Websites */}
             <div className="bg-white p-4 mt-3 rounded shadow">
               <div className="flex justify-between items-center mb-4">
@@ -443,7 +440,7 @@ const Home = () => {
                         />
                       ) : (
                         <span className="text-sm text-gray-400">
-                          Logo {companyIndex + index + 1}
+                          Logo {index + 1}
                         </span>
                       )}
                     </div>
@@ -461,34 +458,6 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="flex gap-4 overflow-hidden">
-            {companyWebsites
-              .slice(companyIndex, companyIndex + visibleCompanyCount)
-              .map((site, index) => (
-                <div
-                  key={index}
-                  className="w-[22%] bg-white border rounded shadow-sm flex-shrink-0 relative"
-                >
-                  <div className="w-full h-[140px] bg-white flex justify-center items-center">
-                    {site.image ? (
-                      <img
-                        src={site.image}
-                        alt={site.name}
-                        className="h-[50px] object-contain"
-                      />
-                    ) : (
-                      <span className="text-sm text-gray-400">
-                        Logo {companyIndex + index + 1}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-2">
-                    <p className="text-sm font-medium text-gray-800">{site.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">{site.description}</p>
-                  </div>
-                </div>
-              ))}
-          </div>
           {/* Right Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
             <img
