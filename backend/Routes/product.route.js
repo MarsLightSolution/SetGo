@@ -49,6 +49,10 @@ router.put(
   updateProduct
 );
 
+
+router.get("/nearby"
+  ,verifyJWT
+  , getNearbyProducts);  
 // Test route
 
 router.route("/try").post((req, res) => {
