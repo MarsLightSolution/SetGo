@@ -8,6 +8,7 @@ const mongoose      = require("mongoose");
 const logger        = require("../utils/logger");
 const fs            = require("fs");
 const path          = require("path");
+const axios = require("axios")
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -60,10 +61,27 @@ const addProduct = asyncHandler(async (req, res) => {
   let pictures = []
   logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
+  const translateText = async (text) => {
+    const response = await axios.post("http://localhost:5000/translate", {
+      q: text,
+      source: "en",
+      target: "de"
+    }, {
+      headers: { "Content-Type": "application/json" }
+    });
+    return response.data.translatedText;
+  };
+
+  const translatedTitle = await translateText(title);
+  const translatedCategory = await translateText(category);
+  const translatedDescription = await translateText(description);
+  const translatedName = await translateText(name);
+
   const product = await Product.create({
-    title,
-    category,
+    title: { en: title, de: translatedTitle },
+    category: { en: category, de: translatedCategory },
     price: Number(price),
+    description: { en: description, de: translatedDescription },
     description,
     pictures,
     location: {
@@ -72,7 +90,7 @@ const addProduct = asyncHandler(async (req, res) => {
       postalCode: postalCode || "",
       street: streetNo || "",
     },
-    name,
+    name: { en: name, de: translatedName },
     termsAccepted: termsAccepted === "true" || termsAccepted === true,
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
@@ -114,9 +132,28 @@ const addProduct = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-  const { category, page = 1, limit = 10, userId, minPrice = 0, maxPrice = 1000000 } = req.query;
+  const {
+    category,
+    page = 1,
+    limit = 10,
+    userId,
+    minPrice = 0,
+    maxPrice = 1000000,
+    lang = "en",
+  } = req.query;
 
-  logger.info(`[GetProducts] Query`, { category, page, limit, userId, minPrice, maxPrice });
+  const validLangs = ["en", "de"];
+  const selectedLang = validLangs.includes(lang) ? lang : "en";
+
+  logger.info(`[GetProducts] Query`, {
+    category,
+    page,
+    limit,
+    userId,
+    minPrice,
+    maxPrice,
+    lang: selectedLang,
+  });
 
   const pipeline = [];
 
@@ -162,6 +199,26 @@ const getProducts = asyncHandler(async (req, res) => {
   };
 
   const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
+
+  // Language-aware response mapping
+  result.products = result.products.map((prod) => ({
+    _id: prod._id,
+    title: prod.title?.[selectedLang] || prod.title?.en || "",
+    category: prod.category?.[selectedLang] || prod.category?.en || "",
+    price: prod.price,
+    description: prod.description?.[selectedLang] || prod.description?.en || "",
+    pictures: prod.pictures,
+    location: prod.location,
+    name: prod.name?.[selectedLang] || prod.name?.en || "",
+    termsAccepted: prod.termsAccepted,
+    owner: prod.owner,
+    isBuy: prod.isBuy,
+    isSell: prod.isSell,
+    createdAt: prod.createdAt,
+    updatedAt: prod.updatedAt,
+  }));
+
+  logger.info(`[GetProducts] Retrieved products`, { total: result.totalProducts });
 
   res.status(200).json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
