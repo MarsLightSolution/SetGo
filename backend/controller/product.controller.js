@@ -1,13 +1,13 @@
 // controllers/product.controller.js
-const asyncHandler  = require("../utils/asyncHandler");
-const ApiError      = require("../utils/ApiError");
-const ApiResponse   = require("../utils/ApiResponse");
-const Product       = require("../models/product.model");
-const User          = require("../models/User");
-const mongoose      = require("mongoose");
-const logger        = require("../utils/logger");
-const fs            = require("fs");
-const path          = require("path");
+const asyncHandler = require("../utils/asyncHandler");
+const ApiError = require("../utils/ApiError");
+const ApiResponse = require("../utils/ApiResponse");
+const Product = require("../models/product.model");
+const User = require("../models/User");
+const mongoose = require("mongoose");
+const logger = require("../utils/logger");
+const fs = require("fs");
+const path = require("path");
 const axios = require("axios")
 
 const addProduct = asyncHandler(async (req, res) => {
@@ -29,8 +29,6 @@ const addProduct = asyncHandler(async (req, res) => {
     latitude,
     longitude
   } = req.body;
-
-  console.log("===========latitude======",latitude,"=========longitude=========",longitude)
 
   logger.info(`[AddProduct] Request body received`, { body: req.body });
 
@@ -62,14 +60,20 @@ const addProduct = asyncHandler(async (req, res) => {
   logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
   const translateText = async (text) => {
-    const response = await axios.post("http://localhost:5000/translate", {
-      q: text,
-      source: "en",
-      target: "de"
-    }, {
-      headers: { "Content-Type": "application/json" }
-    });
-    return response.data.translatedText;
+    try {
+      const response = await axios.post("http://localhost:5000/translate", {
+        q: text,
+        source: "en",
+        target: "de"
+      }, {
+        headers: { "Content-Type": "application/json" }
+      });
+
+      return response.data.translatedText;
+    } catch (error) {
+      logger.warn(`[Translation] Failed to translate "${text}". Using fallback (en).`, { error: error.message });
+      return text; // fallback to English text if translation fails
+    }
   };
 
   const translatedTitle = await translateText(title);
@@ -82,7 +86,6 @@ const addProduct = asyncHandler(async (req, res) => {
     category: { en: category, de: translatedCategory },
     price: Number(price),
     description: { en: description, de: translatedDescription },
-    description,
     pictures,
     location: {
       type: "Point",
@@ -369,8 +372,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
-    ? [req.files.pictures]
-    : [];
+      ? [req.files.pictures]
+      : [];
 
   let pictures = product.pictures; // default to existing
 
@@ -445,7 +448,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 
 
 const getNearbyProducts = asyncHandler(async (req, res) => {
-    const {
+  const {
     latitude,
     longitude,
     radiusInKm = 10,
@@ -484,4 +487,4 @@ const getNearbyProducts = asyncHandler(async (req, res) => {
 });
 
 // module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getNearbyProducts };
-module.exports = { addProduct, getProducts,getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory, getNearbyProducts};
+module.exports = { addProduct, getProducts, getProductById, getProductsByUser, deleteProduct, updateProduct, markProductAsSold, getProductsByCategory, getNearbyProducts };
