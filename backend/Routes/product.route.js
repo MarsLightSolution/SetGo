@@ -10,7 +10,8 @@ const {
   updateProduct,
   deleteProduct,
   markProductAsSold,
-  getProductsByCategory
+  getProductsByCategory,
+  getNearbyProducts
 } = require("../controller/product.controller.js");
 
 router.post("/add",
@@ -49,6 +50,10 @@ router.put(
   updateProduct
 );
 
+
+router.get("/nearby"
+  ,verifyJWT
+  , getNearbyProducts);  
 // Test route
 
 router.route("/try").post((req, res) => {
