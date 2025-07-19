@@ -30,6 +30,11 @@ router.get("/nearby"
   // ,verifyJWT
   , getNearbyProducts);  
 // Test route
+
+router.get("/nearby"
+  // ,verifyJWT
+  , getNearbyProducts);  
+// Test route
 router.route("/try").post((req, res) => {
   res.send("Test passed");
 });
