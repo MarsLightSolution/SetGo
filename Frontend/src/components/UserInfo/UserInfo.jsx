@@ -234,19 +234,22 @@ export default function UserInfo() {
                         {ad.title}
                       </h3>
                       <p className="text-sm text-gray-500 break-words">
-                        {expandedAdId === ad._id
-                          ? ad.description
-                          : ad.description?.slice(0, 80)}
-                        {ad.description?.length > 80 && (
-                          <span
-                            onClick={() => toggleExpand(ad._id)}
-                            className="text-blue-600 cursor-pointer ml-1 hover:underline"
-                          >
-                            {expandedAdId === ad._id
-                              ? " Show less"
-                              : " ...more"}
-                          </span>
-                        )}
+                        {typeof ad.description === "string"
+                          ? expandedAdId === ad._id
+                            ? ad.description
+                            : `${ad.description.slice(0, 80)}`
+                          : "No description available"}
+                        {typeof ad.description === "string" &&
+                          ad.description.length > 80 && (
+                            <span
+                              onClick={() => toggleExpand(ad._id)}
+                              className="text-blue-600 cursor-pointer ml-1 hover:underline"
+                            >
+                              {expandedAdId === ad._id
+                                ? " Show less"
+                                : " ...more"}
+                            </span>
+                          )}
                       </p>
                       <p className="text-green-700 font-semibold text-base mt-1">
                         {ad.price} €
