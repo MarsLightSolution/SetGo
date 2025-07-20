@@ -9,6 +9,7 @@ const logger = require("../utils/logger");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+require("dotenv").config();
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
@@ -42,8 +43,8 @@ const addProduct = asyncHandler(async (req, res) => {
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
-    ? [req.files.pictures]
-    : [];
+      ? [req.files.pictures]
+      : [];
 
   if (!picturesRaw.length)
     throw new ApiError(400, "At least one picture is required.");
@@ -54,6 +55,29 @@ const addProduct = asyncHandler(async (req, res) => {
   if (!latitude || !longitude) {
     logger.warn(`[AddProduct] Missing latitude or longitude`);
     throw new ApiError(400, "Location coordinates are required.");
+  }
+
+  const validatePostalCodeWithGoogle = async (postalCode) => {
+    try {
+      const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+        params: {
+          address: postalCode,
+          key: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      });
+
+      const results = response.data.results;
+      return results.length > 0;
+    } catch (error) {
+      logger.error("[PostalCodeValidation] Failed to validate postal code", { error: error.message });
+      return false;
+    }
+  };
+
+  const isPostalValid = await validatePostalCodeWithGoogle(postalCode);
+  if (!isPostalValid) {
+    logger.warn(`[AddProduct] Invalid or unknown postal code: ${postalCode}`);
+    throw new ApiError(400, "Invalid or unknown postal code.");
   }
 
   // const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
@@ -399,8 +423,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
-    ? [req.files.pictures]
-    : [];
+      ? [req.files.pictures]
+      : [];
 
   let pictures = product.pictures; // default to existing
 
