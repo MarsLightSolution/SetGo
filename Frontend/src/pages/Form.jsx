@@ -39,6 +39,7 @@ const Form = () => {
     pictures: [],
     latitude: '',
     longitude: '',
+    inputLanguage: 'en', // <--- NEW: Default input language to English
   });
 
   const [errors, setErrors] = useState({});
@@ -148,7 +149,7 @@ const Form = () => {
 
     for (let field of requiredFields) {
       if (!formData[field]) {
-        showErrorToast("All fields are required");
+        showErrorToast(`"${field}" is required`); // More specific error message
         return;
       }
     }
@@ -163,7 +164,7 @@ const Form = () => {
       return;
     }
 
-    if (Object.keys(errors).length > 0) {
+    if (Object.keys(errors).some(key => errors[key])) { // Check if any error exists
       showErrorToast("Please fix form errors before submitting.");
       return;
     }
@@ -173,21 +174,23 @@ const Form = () => {
       if (key === "pictures" && value.length > 0) {
         value.forEach((file) => formDataToSend.append("pictures", file));
       } else {
+        // Append all other fields, including the new inputLanguage
         formDataToSend.append(key, typeof value === "boolean" ? String(value) : value);
       }
     });
 
     try {
       const res = await fetch("http://localhost:8080/api/products/add", {
-      method: "POST",
-      body: formDataToSend,
-      credentials: "include",
+        method: "POST",
+        body: formDataToSend,
+        credentials: "include",
       });
       const data = await res.json();
 
       if (res.ok) {
         showSuccessToast("Form submitted successfully");
-        setFormData({
+        // Reset form data, keeping latitude and longitude
+        setFormData((prev) => ({
           offerType: "offer",
           title: "",
           category: "",
@@ -201,11 +204,12 @@ const Form = () => {
           termsAccepted: false,
           subscribe: false,
           pictures: [],
-          latitude: formData.latitude,
-          longitude: formData.longitude,
-        });
+          latitude: prev.latitude, // Keep existing latitude
+          longitude: prev.longitude, // Keep existing longitude
+          inputLanguage: 'en', // Reset input language to default
+        }));
         setImagePreviews([]);
-        e.target.reset();
+        // No need for e.target.reset() with controlled components
         if (fileInputRef.current) fileInputRef.current.value = null;
       } else {
         showErrorToast(data.message || "Something went wrong");
@@ -232,6 +236,21 @@ const Form = () => {
                 <FormControlLabel value="looking" control={<Radio />} label="I am looking for" />
               </RadioGroup>
             </FormControl>
+
+            {/* NEW: Input Language Selector */}
+            <TextField
+              select
+              label="Language of your input"
+              name="inputLanguage"
+              value={formData.inputLanguage}
+              onChange={handleChange}
+              fullWidth
+              sx={{ mb: 3 }} // Margin bottom for spacing
+            >
+              <MenuItem value="en">English</MenuItem>
+              <MenuItem value="az">Azerbaijani</MenuItem>
+              <MenuItem value="ru">Russian</MenuItem>
+            </TextField>
 
             <div className="flex flex-col gap-4">
               <TextField
