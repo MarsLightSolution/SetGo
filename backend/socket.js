@@ -37,12 +37,19 @@ function initializeSocket(server) {
 
         if (user) {
           socket.userIdentifier = user.email // Use email as consistent identifier
+          socket.userId = user.email
           userSockets.set(user.email, socket.id)
 
           // Update user online status using email
           await User.findOneAndUpdate({ email: user.email }, { isOnline: true, lastSeen: new Date() })
 
           console.log(`User ${user.email} joined with socket ${socket.id}`)
+
+          // Notify other users that this user is online
+          socket.broadcast.emit("user-online", {
+            userId: user.email,
+            userName: user.chatDisplayName || user.profileName || user.username,
+          })
         } else {
           console.log(`User not found for identifier: ${userIdentifier}`)
         }
@@ -54,19 +61,33 @@ function initializeSocket(server) {
     // Join a conversation room
     socket.on("join-conversation", (conversationId) => {
       socket.join(conversationId)
+      socket.currentConversation = conversationId
       console.log(`User ${socket.userIdentifier} joined conversation ${conversationId}`)
     })
 
     // Leave a conversation room
     socket.on("leave-conversation", (conversationId) => {
       socket.leave(conversationId)
+      if (socket.currentConversation === conversationId) {
+        socket.currentConversation = null
+      }
       console.log(`User ${socket.userIdentifier} left conversation ${conversationId}`)
     })
 
     // Handle typing indicator
     socket.on("typing", (data) => {
       const { conversationId, isTyping, userName } = data
-      socket.to(conversationId).emit("user-typing", { isTyping, userName })
+      socket.to(conversationId).emit("user-typing", { isTyping, userName, userId: socket.userIdentifier })
+    })
+
+    // Handle message sending through socket (for real-time updates)
+    socket.on("send-message", (data) => {
+      const { conversationId, message } = data
+      // Broadcast to all users in the conversation except sender
+      socket.to(conversationId).emit("new-message", {
+        conversationId,
+        message,
+      })
     })
 
     // Handle disconnect
@@ -80,6 +101,11 @@ function initializeSocket(server) {
 
           userSockets.delete(socket.userIdentifier)
           console.log(`User ${socket.userIdentifier} went offline`)
+
+          // Notify other users that this user is offline
+          socket.broadcast.emit("user-offline", {
+            userId: socket.userIdentifier,
+          })
         } catch (error) {
           console.error("Error updating user offline status:", error)
         }

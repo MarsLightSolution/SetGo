@@ -37,11 +37,10 @@ const TransactionHistory = ({ forcedUserId }) => {
 
     (async () => {
       try {
-        const token = localStorage.getItem("accessToken");
         const res = await fetch(
           `http://localhost:8080/users/${userId}/transactions`,
           {
-            headers: token ? { Authorization: `${token}` } : {},
+            credentials: "include", // ✅ Important: to send cookies
           }
         );
         const json = await res.json();

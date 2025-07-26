@@ -42,7 +42,7 @@ const EditForm = () => {
     const fetchAd = async () => {
       try {
         const res = await fetch(`http://localhost:8080/api/products/product/${id}`, {
-          headers: { Authorization: `${token}` },
+          credentials: "include", // ✅ Important: to send cookies
         });
         const data = await res.json();
         if (res.ok) {

@@ -1,3 +1,4 @@
+import Cookies from "js-cookie";
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
@@ -29,11 +30,11 @@ const Navbar = () => {
   const [priceRange, setLocalPriceRange] = useState([0, 10000]);
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
-    const accessToken = localStorage.getItem("accessToken");
 
-    if (storedName && accessToken) {
-      setUserName(storedName);
-    }
+if (storedName) {
+  setUserName(storedName);
+}
+
   }, []);
 
   const handleLogout = async () => {

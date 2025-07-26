@@ -13,7 +13,6 @@ import {
   showErrorToast,
   ToastifyContainer,
 } from "../Hooks/Tostify";
-import  setupAutoTokenRefresh  from "../Hooks/accesstoken";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +41,6 @@ const Login = () => {
         localStorage.setItem("userId", data.userId);
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("userName", data.userName);
-        setupAutoTokenRefresh();
         const userRes = await fetch(
           `http://localhost:8080/userdata/${data.userId}`,
           { method: "GET" }

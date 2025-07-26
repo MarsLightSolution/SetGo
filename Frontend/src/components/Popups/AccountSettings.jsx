@@ -35,7 +35,7 @@ function AccountSettings() {
       try {
         const response = await axios.get(
           `http://localhost:8080/api/products/user/${userId}/ads`,
-          { headers: { Authorization: `${token}` } }
+          { withCredentials: true } // ✅ Important: to send cookies
         );
         if (response.data && Array.isArray(response.data.data)) {
           setAds(response.data.data);
