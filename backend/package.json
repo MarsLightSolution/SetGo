@@ -26,6 +26,7 @@
     "firebase": "^11.9.1",
     "install": "^0.13.0",
     "io": "^1.5.3",
+    "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "map": "^1.0.1",
     "mongoose": "^7.5.2",
