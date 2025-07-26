@@ -29,6 +29,7 @@ const addProduct = asyncHandler(async (req, res) => {
     quantity,
     latitude,
     longitude,
+    inputLanguage,
   } = req.body;
 
   logger.info(`[AddProduct] Request body received`, { body: req.body });
@@ -43,8 +44,8 @@ const addProduct = asyncHandler(async (req, res) => {
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
-      ? [req.files.pictures]
-      : [];
+    ? [req.files.pictures]
+    : [];
 
   if (!picturesRaw.length)
     throw new ApiError(400, "At least one picture is required.");
@@ -80,51 +81,63 @@ const addProduct = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid or unknown postal code.");
   }
 
-  // const pictures = req.files.pictures.map(f => f.path.replace(/\\/g, "/"));
   let pictures = [];
   logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
-  const translateText = async (text) => {
+  const targetLanguages = ["en", "az", "ru"];
+  const sourceLanguage = targetLanguages.includes(inputLanguage) ? inputLanguage : "en";
+
+
+  const translateText = async (text, targetLang) => {
+    if (targetLang === sourceLanguage) {
+      return text;
+    }
     try {
       const response = await axios.post(
         "https://translation.googleapis.com/language/translate/v2",
         {
           q: text,
-          target: "de",
+          target: targetLang,
           format: "text",
-          source: "en"
+          source: sourceLanguage,
         },
         {
           params: {
-            key: process.env.GOOGLE_MAPS_API_KEY, // Set this in your .env file
+            key: process.env.GOOGLE_MAPS_API_KEY,
           },
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
-
       const translated = response.data.data.translations[0].translatedText;
       return translated;
     } catch (error) {
       logger.warn(
-        `[Translation] Failed to translate "${text}". Using fallback (en).`,
+        `[Translation] Failed to translate "${text}" from ${sourceLanguage} to ${targetLang}. Using fallback (original text).`,
         { error: error.message }
       );
-      return text; // fallback to English text if translation fails
+      return text;
     }
   };
 
-  const translatedTitle = await translateText(title);
-  const translatedCategory = await translateText(category);
-  const translatedDescription = await translateText(description);
-  const translatedName = await translateText(name);
+  const productTitle = {};
+  const productCategory = {};
+  const productDescription = {};
+  const productName = {};
+
+  for (const lang of targetLanguages) {
+    productTitle[lang] = await translateText(title, lang);
+    productCategory[lang] = await translateText(category, lang);
+    productDescription[lang] = await translateText(description, lang);
+    productName[lang] = await translateText(name, lang);
+  }
 
   const product = await Product.create({
-    title: { en: title, de: translatedTitle },
-    category: { en: category, de: translatedCategory },
+    title: productTitle,
+    category: productCategory,
     price: Number(price),
-    description: { en: description, de: translatedDescription },
+    description: productDescription,
     pictures,
     location: {
       type: "Point",
@@ -132,7 +145,7 @@ const addProduct = asyncHandler(async (req, res) => {
     },
     postalCode: postalCode || "",
     street: streetNo || "",
-    name: { en: name, de: translatedName },
+    name: productName,
     termsAccepted: termsAccepted === "true" || termsAccepted === true,
     offerType,
     showFullAddress: showFullAddress === "true" || showFullAddress === true,
