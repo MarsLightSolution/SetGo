@@ -87,18 +87,25 @@ const addProduct = asyncHandler(async (req, res) => {
   const translateText = async (text) => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/translate",
+        "https://translation.googleapis.com/language/translate/v2",
         {
           q: text,
-          source: "en",
           target: "de",
+          format: "text",
+          source: "en"
         },
         {
-          headers: { "Content-Type": "application/json" },
+          params: {
+            key: process.env.GOOGLE_MAPS_API_KEY, // Set this in your .env file
+          },
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      return response.data.translatedText;
+      const translated = response.data.data.translations[0].translatedText;
+      return translated;
     } catch (error) {
       logger.warn(
         `[Translation] Failed to translate "${text}". Using fallback (en).`,

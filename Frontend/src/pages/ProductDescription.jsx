@@ -28,6 +28,15 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
+
+// Helper for multilingual fields (can be passed via context if you have one)
+const getLocalizedText = (field, lang = "en") => {
+  if (!field) return "";
+  if (typeof field === "string") return field;
+  return field[lang] || field.en || field.de || "";
+};
+
+
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -43,25 +52,28 @@ const ProductDetail = () => {
   const [showShareModal, setShowShareModal] = useState(false);
 
   const dispatch = useDispatch();
-const { wishlist } = useSelector((state) => state.wishlist);
-const isWishlisted = wishlist.some((item) => item._id === product?._id);
+  const { wishlist } = useSelector((state) => state.wishlist);
+  const isWishlisted = wishlist.some((item) => item._id === product?._id);
 
-const handleAddToWatchlist = (e) => {
-  e.stopPropagation();
+  // Default display language, could be dynamic based on user preference
+  const displayLanguage = "en";
 
-  if (!token) {
-    alert("Please login to add to watchlist.");
-    return;
-  }
+  const handleAddToWatchlist = (e) => {
+    e.stopPropagation();
 
-  if (isWishlisted) {
-    dispatch(unlike(product));
-    toast.info("Removed from your watchlist");
-  } else {
-    dispatch(like(product));
-    toast.success("Added to your watchlist");
-  }
-};
+    if (!token) {
+      alert("Please login to add to watchlist.");
+      return;
+    }
+
+    if (isWishlisted) {
+      dispatch(unlike(product));
+      toast.info("Removed from your watchlist");
+    } else {
+      dispatch(like(product));
+      toast.success("Added to your watchlist");
+    }
+  };
 
 
   useEffect(() => {
@@ -77,16 +89,28 @@ const handleAddToWatchlist = (e) => {
 
   useEffect(() => {
     fetchProductById();
-  }, [id]);
+  }, [id, token]); // Add token to dependency array if product fetch depends on it
 
   const fetchProductById = async () => {
+    setLoading(true);
     try {
       const res = await fetch(
         `http://localhost:8080/api/products/product/${id}`,
         {
-        withCredentials: true, 
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // Ensure correct header format if using "Bearer"
+          },
         }
       );
+
+      if (!res.ok) {
+        // Handle non-200 responses
+        console.error("Failed to fetch product:", res.status, res.statusText);
+        setProduct(null);
+        return;
+      }
+
       const result = await res.json();
       setProduct(result.data);
     } catch (error) {
@@ -97,12 +121,17 @@ const handleAddToWatchlist = (e) => {
     }
   };
 
-  const fetchRelatedProducts = async (category) => {
+  // categoryObj will be { en: "...", de: "..." }
+  const fetchRelatedProducts = async (categoryObj) => {
+    const categoryName = getLocalizedText(categoryObj, displayLanguage);
+    if (!categoryName) return; // Don't fetch if category name is not available
+
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/category/${category}`
+        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}` // Encode the category for URL
       );
       const json = await res.json();
+      // Filter out the current product and limit to 3
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
       setRelatedProducts(filtered || []);
     } catch (err) {
@@ -114,18 +143,26 @@ const handleAddToWatchlist = (e) => {
     if (product?.category) {
       fetchRelatedProducts(product.category);
     }
-  }, [product]);
+  }, [product, id, displayLanguage]); // Add id and displayLanguage to dependencies
 
   const handleBuyNow = async () => {
     const userId = user?._id;
-    const ownerId = product?.user?._id || product?.owner;
-    if (!userId || !ownerId) {
-      alert("User or owner not loaded yet.");
+    // owner can be an ObjectId string or a populated user object
+    const ownerId = product?.owner?._id || product?.owner; // Prioritize _id if owner is populated
+
+    if (!userId) {
+      alert("Please login to buy items.");
       return;
     }
+    if (!ownerId) {
+      alert("Product owner information not available.");
+      return;
+    }
+
     try {
       const res = await fetch(
-        `http://localhost:8080/users/get-users/${userId}`
+        `http://localhost:8080/users/get-users/${userId}`,
+        { headers: { Authorization: `Bearer ${token}` } } // Assuming user info fetch also needs token
       );
       const json = await res.json();
       if (json?.data) {
@@ -145,18 +182,20 @@ const handleAddToWatchlist = (e) => {
       alert("Please login to send messages.");
       return;
     }
-    if (!product?.user?.username && !product?.owner) {
-      alert("Product owner information not available.");
+    // Determine the owner's username for chat
+    const ownerUsername = getLocalizedText(product.name || product.owner?.name) || product.owner; // If product.owner is populated, use its name. Otherwise, fallback to product.name or owner ID
+
+    if (!ownerUsername) {
+      alert("Product owner information not available for messaging.");
       return;
     }
 
-    const ownerUsername = product.user?.username || product.owner;
     navigate("/chat");
 
     setTimeout(() => {
       if (window.startChatConversation) {
         const productInfo = {
-          title: product.title,
+          title: getLocalizedText(product.title, displayLanguage),
           price: product.price,
           id: product._id,
         };
@@ -165,18 +204,19 @@ const handleAddToWatchlist = (e) => {
     }, 1000);
   };
 
-  const ownerId = product?.user?._id || product?.owner || null;
+  const ownerId = product?.owner?._id || product?.owner || null; // Ensure this correctly gets the owner's ID
 
   useEffect(() => {
     if (user && ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId]);
+  }, [user, ownerId, token]); // Add token to dependencies
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
-        `http://localhost:8080/check/${followerId}/${followingId}`
+        `http://localhost:8080/check/${followerId}/${followingId}`,
+        { headers: { Authorization: `Bearer ${token}` } } // Add token for auth
       );
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
@@ -186,7 +226,10 @@ const handleAddToWatchlist = (e) => {
   };
 
   const handleFollowToggle = async () => {
-    if (!user || !ownerId) return;
+    if (!user || !ownerId) {
+      alert("Authentication required or owner information missing.");
+      return;
+    }
     setFollowLoading(true);
 
     try {
@@ -196,16 +239,21 @@ const handleAddToWatchlist = (e) => {
 
       const res = await fetch(endpoint, {
         method: "POST",
-        withCredentials: true, // ✅ Important: to send cookies
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ followerId: user._id }),
       });
 
       const result = await res.json();
 
       if (res.ok && result.success !== false) {
-        await checkFollowStatus(user._id, ownerId);
+        await checkFollowStatus(user._id, ownerId); // Re-check status after action
+        toast.success(isFollowing ? "Unfollowed!" : "Followed!");
       } else {
-        alert("Follow/unfollow failed. Try again.");
+        const errorMsg = result.message || "Follow/unfollow failed. Try again.";
+        alert(errorMsg);
       }
     } catch (err) {
       console.error("Follow/Unfollow error:", err);
@@ -221,8 +269,17 @@ const handleAddToWatchlist = (e) => {
       <div className="text-center text-red-500 mt-10">Product not found</div>
     );
 
-  const ownerName = product.user?.name || product.name || "Unknown Seller";
+  // Safely access owner name, prioritizing populated user object, then product.name, then "Unknown Seller"
+  const ownerRawName = product.owner?.name || product.name; // This needs to be consistent with how owner is returned (populated or just ID)
+  const ownerName = getLocalizedText(ownerRawName, displayLanguage) || "Unknown Seller";
   const ownerInitial = ownerName.charAt(0).toUpperCase();
+
+  // Your MongoDB response has 'postalCode' at the top-level of the product document.
+  // 'location' object contains 'type' and 'coordinates'.
+  const displayPostalCode = product.postalCode || product.location?.postalCode || "Unknown";
+  // If you also want to show a city: You would need to add a 'city' field to your Product model
+  // For example: `city: { en: String, de: String, trim: true }` and then get `getLocalizedText(product.city)`
+
 
   return (
     <>
@@ -248,7 +305,7 @@ const handleAddToWatchlist = (e) => {
                           product.pictures?.[0]?.replace(/\\/g, "/") ||
                           "uploads/placeholder.jpg"
                         }`}
-                        alt={product.title}
+                        alt={getLocalizedText(product.title, displayLanguage)}
                         className="max-h-full object-contain"
                       />
                     </div>
@@ -257,7 +314,7 @@ const handleAddToWatchlist = (e) => {
                   {/* DETAILS CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4">
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                      {product.title || "Product Title"}
+                      {getLocalizedText(product.title, displayLanguage) || "Product Title"}
                     </h1>
                     <p className="text-green-700 text-xl font-bold mb-3">
                       {product.price?.toLocaleString("en-IN")}€{" "}
@@ -267,8 +324,8 @@ const handleAddToWatchlist = (e) => {
                     <div className="text-sm text-gray-600 flex flex-wrap gap-4 mb-4">
                       <div className="flex items-center gap-1">
                         <LocationOn fontSize="small" />
-                        {product.location?.postalCode || "Unknown"} –{" "}
-                        {product.location?.city || "Unknown"}
+                        {displayPostalCode} {/* Display postal code as per your data */}
+                        {/* If you add city to your model and data: - {getLocalizedText(product.city)} */}
                       </div>
 
                       <div className="flex items-center gap-1">
@@ -282,12 +339,7 @@ const handleAddToWatchlist = (e) => {
                         {product.views || 0}
                       </div>
                     </div>
-                    {/* 
-                    <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {product.description || "Keine Beschreibung verfügbar."}
-                    </div> */}
 
-                    {/* Make button smaller (not full-width) */}
                     <button
                       className="mt-4 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-semibold text-sm"
                       onClick={handleBuyNow}
@@ -298,34 +350,34 @@ const handleAddToWatchlist = (e) => {
 
                   {/* EXTRA INFO CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4 mt-6">
-                  {/* MAP LOCATION CONTAINER */}
-{product.location?.coordinates && (
-  <div className="bg-white rounded-md shadow p-4 mt-6">
-    <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
-    <MapContainer
-      center={[
-        product.location.coordinates[1], // latitude
-        product.location.coordinates[0], // longitude
-      ]}
-      zoom={13}
-      scrollWheelZoom={false}
-      style={{ height: "300px", width: "100%" }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Marker
-        position={[
-          product.location.coordinates[1], // latitude
-          product.location.coordinates[0], // longitude
-        ]}
-      >
-        <Popup>{product.title || "Product location"}</Popup>
-      </Marker>
-    </MapContainer>
-  </div>
-)}
+                    {/* MAP LOCATION CONTAINER */}
+                    {product.location?.coordinates && product.location.coordinates.length === 2 && (
+                      <div className="bg-white rounded-md shadow p-4 mb-6"> {/* Added mb-6 for spacing */}
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
+                        <MapContainer
+                          center={[
+                            product.location.coordinates[1], // latitude
+                            product.location.coordinates[0], // longitude
+                          ]}
+                          zoom={13}
+                          scrollWheelZoom={false}
+                          style={{ height: "300px", width: "100%" }}
+                        >
+                          <TileLayer
+                            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          />
+                          <Marker
+                            position={[
+                              product.location.coordinates[1], // latitude
+                              product.location.coordinates[0], // longitude
+                            ]}
+                          >
+                            <Popup>{getLocalizedText(product.title, displayLanguage) || "Product location"}</Popup>
+                          </Marker>
+                        </MapContainer>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
                       <div>
@@ -356,7 +408,7 @@ const handleAddToWatchlist = (e) => {
                       Description
                     </h2>
                     <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {product.description || "Keine Beschreibung verfügbar."}
+                      {getLocalizedText(product.description, displayLanguage) || "Keine Beschreibung verfügbar."}
                     </p>
                   </div>
 
@@ -405,7 +457,9 @@ const handleAddToWatchlist = (e) => {
                       .
                     </p>
 
-                    <button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-full font-semibold text-sm cursor-pointer">
+                    <button
+                      onClick={handleSendMessage} // Attach sendMessage to this button
+                      className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-full font-semibold text-sm cursor-pointer">
                       Send Message
                     </button>
                   </div>
@@ -423,12 +477,12 @@ const handleAddToWatchlist = (e) => {
                     </button>
 
                     {/* Outlined Buttons */}
-                  <button
-  onClick={handleAddToWatchlist}
-  className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
->
-  {isWishlisted ? "Remove from watchlist" : "Add to watchlist"}
-</button>
+                    <button
+                      onClick={handleAddToWatchlist}
+                      className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isWishlisted ? "Remove from watchlist" : "Add to watchlist"}
+                    </button>
 
                     <button
                       onClick={() => setShowShareModal(true)}
@@ -476,7 +530,7 @@ const handleAddToWatchlist = (e) => {
                     </div>
 
                     {/* Follow Button */}
-                    {user?._id !== ownerId && (
+                    {user?._id !== ownerId && ( // Only show follow button if not viewing your own product
                       <button
                         onClick={handleFollowToggle}
                         disabled={followLoading}
@@ -515,7 +569,8 @@ const handleAddToWatchlist = (e) => {
                       <div
                         key={item._id}
                         onClick={() =>
-                          (window.location.href = `/products/product/${item._id}`)
+                          // Use navigate for client-side routing
+                          navigate(`/products/product/${item._id}`)
                         }
                         className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
                       >
@@ -524,14 +579,13 @@ const handleAddToWatchlist = (e) => {
                             item.pictures?.[0]?.replace(/\\/g, "/") ||
                             "uploads/placeholder.jpg"
                           }`}
-                          alt={item.title}
+                          alt={getLocalizedText(item.title, displayLanguage)}
                           className="w-32 h-24 object-cover rounded-md"
                         />
                         <div className="flex-1">
                           <div className="text-sm text-gray-500 flex items-center justify-between">
                             <span>
-                              📍 {item.location?.postalCode || "Unknown"}{" "}
-                              {item.location?.city || ""}
+                              📍 {item.postalCode || item.location?.postalCode || "Unknown"}{" "}
                             </span>
                             <span className="text-xs text-gray-400">
                               {new Date(item.createdAt).toLocaleDateString(
@@ -540,19 +594,13 @@ const handleAddToWatchlist = (e) => {
                             </span>
                           </div>
                           <h3 className="font-semibold text-gray-800 mt-1 mb-1 line-clamp-1">
-                            {item.title}
+                            {getLocalizedText(item.title, displayLanguage)}
                           </h3>
                           <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-                            {item.description}
+                            {getLocalizedText(item.description, displayLanguage)}
                           </p>
                           <div className="flex gap-4 text-sm font-semibold text-green-700">
                             <span>{item.price?.toLocaleString("en-IN")}€</span>
-                            {/* <span className="text-gray-500">
-                              {item.area || "—"} m²
-                            </span>
-                            <span className="text-gray-500">
-                              {item.rooms || "—"} rooms
-                            </span> */}
                           </div>
                         </div>
                       </div>
