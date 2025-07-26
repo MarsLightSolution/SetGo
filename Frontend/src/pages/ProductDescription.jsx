@@ -91,6 +91,7 @@ const handleAddToWatchlist = (e) => {
         }
       );
       const result = await res.json();
+      console.log(result.data);
       setProduct(result.data);
     } catch (error) {
       console.error("Error fetching product:", error);
@@ -228,7 +229,7 @@ const handleAddToWatchlist = (e) => {
     );
 
   const ownerName = product.user?.name || product.name || "Unknown Seller";
-  const ownerInitial = ownerName.charAt(0).toUpperCase();
+  const ownerInitial = ownerName;
 
   return (
     <>

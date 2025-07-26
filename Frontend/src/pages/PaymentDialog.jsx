@@ -97,6 +97,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       transactionId: txnId,
       referenceId: `order_${orderId}`,
       source: "purchase",
+      paymentMode:"Wallet",
     };
 
     try {
@@ -145,6 +146,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       referenceId: `order_${orderId}`,
       source: "purchase",
       product: product._id,
+      paymentMode:"Online",
     };
 
     try {
@@ -153,13 +155,13 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const data = await res.json().catch(() => ({}));
       if (data.success === true) {
         window.location.href = data.url; // redirect to payment page
       } else {
         setStatus("FAILURE");
       }
+      
     } catch (err) {
       console.error(err);
       setStatus("FAILURE");

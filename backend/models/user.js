@@ -50,6 +50,7 @@ const userSchema = new mongoose.Schema({
     amount: Number,
     direction: { type: String, enum: ["debit", "credit"] },
     createdAt: { type: Date, default: Date.now },
+    paymentMode : { type: String, enum: ["Wallet", "Online"] },
   },
 ],
   activity: [

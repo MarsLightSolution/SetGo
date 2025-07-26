@@ -9,9 +9,16 @@ const asyncHandler = require("../utils/asyncHandler");
    Fund transfer – now checks sender has enough balance
 ----------------------------------------------------------- */
 const fundTransfer = asyncHandler(async (req, res) => {
-  const { senderId, receiverId, amount,transactionId } = req.body;
+  const { senderId, receiverId, amount, transactionId, paymentMethod } = req.body;
 
-  // 1️⃣ Basic sanity check
+  // ✅ 1. Validate required fields
+  if (!receiverId || !amount || !transactionId || !paymentMethod) {
+    return res.status(400).json({
+      message: "Missing required fields",
+      success: false,
+    });
+  }
+
   if (amount <= 0) {
     return res.status(400).json({
       message: "Amount must be greater than 0",
@@ -19,46 +26,69 @@ const fundTransfer = asyncHandler(async (req, res) => {
     });
   }
 
-  // 2️⃣ Get sender wallet balance
-  const sender = await User.findById(senderId).select("walletBalance");
-  if (!sender) {
-    return res.status(404).json({
-      message: "Sender account not found",
-      success: false,
-    });
-  }
-
-  // 3️⃣ Insufficient funds?
-  if (sender.walletBalance < amount) {
+  if (!["wallet", "online"].includes(paymentMethod)) {
     return res.status(400).json({
-      message: "Insufficient wallet balance",
+      message: "Invalid payment method",
       success: false,
     });
   }
 
-  // 4️⃣ Proceed with transfer
+  // ✅ 2. If wallet, check sender exists and has enough balance
+  if (paymentMethod === "wallet") {
+    if (!senderId) {
+      return res.status(400).json({
+        message: "Sender ID is required for wallet payments",
+        success: false,
+      });
+    }
+
+    const sender = await User.findById(senderId).select("walletBalance");
+    if (!sender) {
+      return res.status(404).json({
+        message: "Sender account not found",
+        success: false,
+      });
+    }
+
+    if (sender.walletBalance < amount) {
+      return res.status(400).json({
+        message: "Insufficient wallet balance",
+        success: false,
+      });
+    }
+  }
+
+  // ✅ 3. Proceed with transaction using session
   const session = await User.startSession();
+
   try {
     session.startTransaction();
 
+    // Create transaction record
     const newTransaction = await Transaction.create([req.body], { session });
 
-    await User.findByIdAndUpdate(
-      senderId,
-      {
-        $inc: { walletBalance: -amount },
+    // ✅ Log sender side (debit or log only)
+    if (paymentMethod === "wallet" || paymentMethod === "online") {
+      const senderUpdate = {
         $push: {
           transactionHistory: {
             transactionId,
             amount,
             direction: "debit",
+            method: paymentMethod,
             createdAt: new Date(),
           },
         },
-      },
-      { session }
-    );
+      };
 
+      if (paymentMethod === "wallet") {
+        senderUpdate.$inc = { walletBalance: -amount };
+      }
+
+      await User.findByIdAndUpdate(senderId, senderUpdate, { session });
+    }
+
+    // ✅ Log receiver side (credit and wallet increase)
     await User.findByIdAndUpdate(
       receiverId,
       {
@@ -68,6 +98,7 @@ const fundTransfer = asyncHandler(async (req, res) => {
             transactionId,
             amount,
             direction: "credit",
+            method: paymentMethod,
             createdAt: new Date(),
           },
         },
@@ -75,6 +106,7 @@ const fundTransfer = asyncHandler(async (req, res) => {
       { session }
     );
 
+    // ✅ Commit the transaction
     await session.commitTransaction();
     session.endSession();
 
@@ -83,13 +115,14 @@ const fundTransfer = asyncHandler(async (req, res) => {
       data: newTransaction[0],
       success: true,
     });
+
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error(error);
+    console.error("Transaction failed:", error);
     return res.status(500).json({
       message: "Transaction failed",
-      data: error.message,
+      error: error.message,
       success: false,
     });
   }

@@ -1,5 +1,4 @@
 const Paymentwall = require('paymentwall');
-
 Paymentwall.Configure(
   Paymentwall.Base.API_GOODS,
   'be2b2a35356b78cbf499cdac649363e2',
