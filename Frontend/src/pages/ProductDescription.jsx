@@ -97,10 +97,7 @@ const ProductDetail = () => {
       const res = await fetch(
         `http://localhost:8080/api/products/product/${id}`,
         {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Ensure correct header format if using "Bearer"
-          },
+            credentials: "include", // ✅ Important: to send cookies
         }
       );
 
@@ -162,7 +159,7 @@ const ProductDetail = () => {
     try {
       const res = await fetch(
         `http://localhost:8080/users/get-users/${userId}`,
-        { headers: { Authorization: `Bearer ${token}` } } // Assuming user info fetch also needs token
+        {  credentials: "include",} // Assuming user info fetch also needs token
       );
       const json = await res.json();
       if (json?.data) {
@@ -183,8 +180,8 @@ const ProductDetail = () => {
       return;
     }
     // Determine the owner's username for chat
-    const ownerUsername = getLocalizedText(product.name || product.owner?.name) || product.owner; // If product.owner is populated, use its name. Otherwise, fallback to product.name or owner ID
-
+    const ownerUsername = getLocalizedText(product.userName || product.owner?.userName) || product.owner; // If product.owner is populated, use its name. Otherwise, fallback to product.name or owner ID
+     console.log("Owner Username:", ownerUsername);
     if (!ownerUsername) {
       alert("Product owner information not available for messaging.");
       return;

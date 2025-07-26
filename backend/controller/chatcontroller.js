@@ -1,18 +1,16 @@
-// controllers/chatController.js
-const User = require("../models/user")
+const User = require("../models/User")
 const Conversation = require("../models/Conversation")
 const Message = require("../models/Message")
 const mongoose = require("mongoose")
 
+// Helper
 const findUserByIdentifier = async (identifier) => {
   let user = null
   if (mongoose.Types.ObjectId.isValid(identifier)) {
     user = await User.findById(identifier)
   }
   if (!user) {
-    user = await User.findOne({
-      $or: [{ email: identifier }, { username: identifier }],
-    })
+    user = await User.findOne({ $or: [{ email: identifier }, { username: identifier }] })
   }
   return user
 }
@@ -63,13 +61,10 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getConversations = async (req, res) => {
   try {
-    const { userIdentifier } = req.params
-    const user = await findUserByIdentifier(userIdentifier)
+    const user = await findUserByIdentifier(req.params.userIdentifier)
     if (!user) return res.json({ success: false, message: "User not found" })
 
-    const conversations = await Conversation.find({
-      "participants.userId": user.email,
-    }).sort({ lastMessageTime: -1 })
+    const conversations = await Conversation.find({ "participants.userId": user.email }).sort({ lastMessageTime: -1 })
 
     const enrichedConversations = await Promise.all(
       conversations.map(async (conversation) => {
@@ -78,8 +73,8 @@ exports.getConversations = async (req, res) => {
             const participantUser = await User.findOne({ email: participant.userId })
             return {
               ...participant.toObject(),
-              isOnline: participantUser?.isOnline || false,
-              lastSeen: participantUser?.lastSeen || null,
+              isOnline: participantUser?.isOnline,
+              lastSeen: participantUser?.lastSeen,
             }
           })
         )
@@ -94,16 +89,13 @@ exports.getConversations = async (req, res) => {
   }
 }
 
-exports.createConversation = async (req, res) => {
+exports.createOrGetConversation = async (req, res) => {
   try {
     const { participants } = req.body
-    if (!participants || participants.length !== 2) {
-      return res.json({ success: false, message: "Two participants required" })
-    }
+    if (!participants || participants.length !== 2) return res.json({ success: false, message: "Two participants required" })
 
     const user1 = await findUserByIdentifier(participants[0])
     const user2 = await findUserByIdentifier(participants[1])
-
     if (!user1 || !user2) {
       return res.json({
         success: false,
@@ -115,10 +107,7 @@ exports.createConversation = async (req, res) => {
     const user2Email = user2.email
 
     let conversation = await Conversation.findOne({
-      $and: [
-        { "participants.userId": user1Email },
-        { "participants.userId": user2Email },
-      ],
+      $and: [{ "participants.userId": user1Email }, { "participants.userId": user2Email }],
     })
 
     if (!conversation) {
@@ -136,18 +125,13 @@ exports.createConversation = async (req, res) => {
         const user = await User.findOne({ email: participant.userId })
         return {
           ...participant.toObject(),
-          isOnline: user?.isOnline || false,
-          lastSeen: user?.lastSeen || null,
+          isOnline: user?.isOnline,
+          lastSeen: user?.lastSeen,
         }
       })
     )
 
-    const enrichedConversation = {
-      ...conversation.toObject(),
-      participants: enrichedParticipants,
-    }
-
-    res.json({ success: true, conversation: enrichedConversation })
+    res.json({ success: true, conversation: { ...conversation.toObject(), participants: enrichedParticipants } })
   } catch (error) {
     console.error("Create conversation error:", error)
     res.json({ success: false, message: "Failed to create conversation" })
@@ -156,8 +140,7 @@ exports.createConversation = async (req, res) => {
 
 exports.getMessages = async (req, res) => {
   try {
-    const { conversationId } = req.params
-    const messages = await Message.find({ conversationId }).sort({ timestamp: 1 }).limit(100)
+    const messages = await Message.find({ conversationId: req.params.conversationId }).sort({ timestamp: 1 }).limit(100)
     res.json({ success: true, messages })
   } catch (error) {
     console.error("Get messages error:", error)
@@ -178,6 +161,7 @@ exports.sendMessage = async (req, res) => {
       senderId,
       senderName: sender.chatDisplayName || sender.profileName || sender.username || sender.email,
       text,
+      messageType: "text",
     })
     await message.save()
 
@@ -198,20 +182,66 @@ exports.sendMessage = async (req, res) => {
   }
 }
 
+exports.uploadFile = async (req, res) => {
+  const upload = req.app.get("upload")
+  upload.single("file")(req, res, async (err) => {
+    if (err) return res.json({ success: false, message: err.message })
+
+    try {
+      const { conversationId, senderId } = req.body
+      const file = req.file
+      if (!conversationId || !senderId || !file) return res.json({ success: false, message: "Missing required fields" })
+
+      const sender = await User.findOne({ email: senderId })
+      if (!sender) return res.json({ success: false, message: "Sender not found" })
+
+      const messageType = file.mimetype.startsWith("image/") ? "image" : "document"
+      const fileUrl = `/uploads/chat/${messageType === "image" ? "images" : "documents"}/${file.filename}`
+
+      const message = new Message({
+        conversationId,
+        senderId,
+        senderName: sender.chatDisplayName || sender.profileName || sender.username || sender.email,
+        text: messageType === "image" ? "📷 Image" : `📄 ${file.originalname}`,
+        messageType,
+        fileUrl,
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+      })
+      await message.save()
+
+      await Conversation.findByIdAndUpdate(conversationId, {
+        lastMessage: message.text,
+        lastMessageTime: new Date(),
+      })
+
+      const io = req.app.get("io")
+      if (io) io.to(conversationId).emit("new-message", { conversationId, message })
+
+      res.json({ success: true, message })
+    } catch (error) {
+      console.error("File message error:", error)
+      res.json({ success: false, message: "Failed to send file" })
+    }
+  })
+}
+
 exports.getUserByUsername = async (req, res) => {
   try {
-    const { username } = req.params
-    const user = await findUserByIdentifier(username)
+    const user = await findUserByIdentifier(req.params.username)
     if (!user) return res.json({ success: false, message: "User not found" })
 
-    const chatUser = {
-      userId: user.email,
-      userName: user.chatDisplayName || user.profileName || user.username,
-      email: user.email,
-      isOnline: user.isOnline,
-      lastSeen: user.lastSeen,
-    }
-    res.json({ success: true, user: chatUser })
+    res.json({
+      success: true,
+      user: {
+        userId: user.email,
+        userName: user.chatDisplayName || user.profileName || user.username,
+        email: user.email,
+        isOnline: user.isOnline,
+        lastSeen: user.lastSeen,
+      },
+    })
   } catch (error) {
     console.error("Get user error:", error)
     res.json({ success: false, message: "Failed to fetch user" })

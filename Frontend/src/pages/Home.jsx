@@ -16,7 +16,11 @@ const getLocalizedText = (field, lang = "en") => {
 };
 
 
-const AdCard = ({ image, ad, price }) => {
+
+const AdCard = ({ image, title, location, ad, price }) => {
+  const hasAccessTokenCookie = () => {
+  return document.cookie.split(";").some((c) => c.trim().startsWith("refreshToken="));
+};
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
@@ -32,9 +36,7 @@ const AdCard = ({ image, ad, price }) => {
 
 
   const handleLikeToggle = () => {
-    const token = localStorage.getItem("accessToken");
-
-    if (!token) {
+    if (!hasAccessTokenCookie()) {
       alert("You need to login first to like items.");
       return;
     }
@@ -126,11 +128,10 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
 );
 
 const Home = () => {
-
   const [latestAds, setLatestAds] = useState([]);
   const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
-  const token = localStorage.getItem("accessToken");
+  const userId = localStorage.getItem("userId"); // You can also switch this to a cookie if needed
   const PAGE_SIZE = 12;
   const filter = useSelector((state) => state.filter);
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
@@ -171,15 +172,12 @@ const Home = () => {
       }
 
       const res = await fetch(`${endpoint}?${params.toString()}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Ensure token is passed correctly
-        },
+        method: "GET",
+        credentials: "include", // ✅ Send cookies
       });
 
       if (!res.ok) {
-        console.error("Failed to fetch products:", res.status, res.statusText);
-        // Consider throwing an error or handling specific status codes
+        console.error("Failed to fetch products");
         return;
       }
 

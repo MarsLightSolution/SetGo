@@ -33,14 +33,19 @@ const ConfirmDialog = ({ onConfirm, onCancel }) => (
     </div>
   </div>
 );
+
 export default function UserInfo() {
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [expandedAdId, setExpandedAdId] = useState(null);
   const [confirmAdId, setConfirmAdId] = useState(null); // for modal
   const userId = localStorage.getItem("userId");
-  const token = localStorage.getItem("accessToken");
   const sliderRef = useRef(null);
+
+  const hasAccessTokenCookie = () => {
+    return document.cookie.split(";").some((cookie) => cookie.trim().startsWith("accessToken="));
+  };
+
   const scrollSlider = (direction) => {
     if (!sliderRef.current) return;
     const amount = direction === "left" ? -300 : 300;
@@ -52,7 +57,7 @@ export default function UserInfo() {
       try {
         const response = await axios.get(
           `http://localhost:8080/api/products/user/${userId}/ads`,
-          { headers: { Authorization: `${token}` } }
+          { withCredentials: true } // ✅ Required for cookie-based auth
         );
 
         if (response.data && Array.isArray(response.data.data)) {
@@ -66,13 +71,16 @@ export default function UserInfo() {
       }
     };
 
-    if (userId && token) fetchUserAds();
-  }, [userId, token]);
+    if (userId && hasAccessTokenCookie()) {
+      fetchUserAds();
+    }
+  }, [userId]);
+
 
   const deleteAd = async (id) => {
     try {
       await axios.delete(`http://localhost:8080/api/products/product/${id}`, {
-        headers: { Authorization: `${token}` },
+        withCredentials: true, // ✅ Important: to send cookies
       });
       setAds((prev) => prev.filter((ad) => ad._id !== id));
       toast.success("Ad deleted successfully!");

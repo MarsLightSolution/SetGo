@@ -29,15 +29,7 @@ import UserPage from './pages/Userpage'
 import MySearch from './pages/MySearch'
 import EditForm from './components/UserInfo/EditForm'
 import TransactionHistory from './pages/TransactionHistory'
-import setupAutoTokenRefresh from './Hooks/accesstoken.js'
-
 function App() {
-  useEffect(() => {
-    const accessToken = localStorage.getItem("accessToken");
-    if (accessToken) {
-      setupAutoTokenRefresh();
-    }
-  }, []);
   return (
     <div >
       <Navbar/>
