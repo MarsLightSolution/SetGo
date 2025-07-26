@@ -10,6 +10,7 @@ import SmsVerification from "../Settings/SmsVerification";
 import NewPasswordModal from "../Settings/NewPasswordModal";
 import useUserProfile from "../../Hooks/useUserProfile";
 import axios from "axios";
+import Cookies from "js-cookie";
 import { toast, ToastContainer } from "react-toastify";
 
 function AccountSettings() {
@@ -27,10 +28,9 @@ function AccountSettings() {
 
   const { profile, updateField } = useUserProfile();
 
+  const userId = localStorage.getItem("userId");
+  const token = Cookies.get("refreshToken");
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
-    const token = localStorage.getItem("accessToken");
-
     const fetchUserAds = async () => {
       try {
         const response = await axios.get(
@@ -65,7 +65,10 @@ function AccountSettings() {
         `http://localhost:8080/billingaddress/${profile._id}/billingAddress`,
         {
           billingAddress: newAddress,
-        }
+        },
+        {
+        withCredentials: true, // ✅ Important: to send cookies
+      }
       );
       if (res.status === 200) {
         updateField("billingAddress", newAddress);
