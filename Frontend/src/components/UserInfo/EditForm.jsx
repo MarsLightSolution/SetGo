@@ -24,6 +24,7 @@ const EditForm = () => {
     offerType: "offer",
     title: "",
     category: "",
+    condition: "",
     price: "",
     description: "",
     postalCode: "",
@@ -244,6 +245,21 @@ const EditForm = () => {
               <MenuItem value="Leisure, Hobby & Neighborhood">Leisure, Hobby & Neighborhood</MenuItem>
               <MenuItem value="Service">Service</MenuItem>
               <MenuItem value="Other">Other</MenuItem>
+            </TextField>
+            
+            <TextField
+              select
+              label="Condition"
+              name="condition"
+              value={formData.condition}
+              onChange={handleChange}
+              sx={{ width: "41rem" }}
+            >
+              <MenuItem value="">Select</MenuItem>
+              <MenuItem value="New">New</MenuItem>
+              <MenuItem value="Like New">Like New</MenuItem>
+              <MenuItem value="Used">Used</MenuItem>
+              <MenuItem value="Defective/Need Repair">Defective/Need Repair</MenuItem>
             </TextField>
           </div>
 
