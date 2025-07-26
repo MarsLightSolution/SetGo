@@ -8,28 +8,11 @@ import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 
-// Helper for multilingual fields (can be passed via context if you have one)
-const getLocalizedText = (field, lang = "en") => {
-  if (!field) return "";
-  if (typeof field === "string") return field;
-  return field[lang] || field.en || field.de || "";
-};
-
-
-const AdCard = ({ image, ad, price }) => {
+const AdCard = ({ image, title, location, ad, price }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
   const liked = ad && likedAds.some((item) => item._id === ad._id);
-
-  // Assuming 'en' as the default display language for simplicity
-  const displayLanguage = "en";
-
-  const displayTitle = getLocalizedText(ad.title, displayLanguage);
-  // Your MongoDB response shows postalCode as a direct field or under location.
-  // Using postalCode first as it's directly on the product document.
-  const displayLocation = ad.postalCode || ad.location?.postalCode || "Unknown";
-
 
   const handleLikeToggle = () => {
     const token = localStorage.getItem("accessToken");
@@ -65,14 +48,14 @@ const AdCard = ({ image, ad, price }) => {
       <div className="w-full h-[140px] flex justify-center items-center">
         <img
           src={image}
-          alt={displayTitle} // Use the display title for alt text
+          alt="ad"
           className="h-full w-full object-contain rounded-md"
         />
       </div>
 
       <div className="w-full text-left">
-        <p className="truncate text-gray-700 font-semibold text-sm">{displayTitle}</p>
-        <p className="text-gray-400 font-normal text-xs mt-1">{displayLocation}</p>
+        <p className="truncate text-gray-700 font-semibold text-sm">{title}</p>
+        <p className="text-gray-400 font-normal text-xs mt-1">{location}</p>
         <p className="text-green-700 font-bold text-sm mt-2">{price}€</p>
       </div>
     </div>
@@ -86,9 +69,11 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
       {ads.map((ad) => (
         <AdCard
           key={ad._id}
-          ad={ad} // Pass the entire ad object
           image={`http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"
             }`}
+          title={ad.title}
+          location={ad.location?.postalCode || "Unknown"}
+          ad={ad}
           price={ad.price}
         />
       ))}
@@ -126,7 +111,7 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
 );
 
 const Home = () => {
-
+  
   const [latestAds, setLatestAds] = useState([]);
   const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All Products");
@@ -137,81 +122,91 @@ const Home = () => {
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
-  const { priceRange, condition, radius, city, latitude, longitude } = useSelector((state) => state.filter);
+const { priceRange, condition, radius, city, latitude, longitude } = useSelector((state) => state.filter);
 
-  const fetchProducts = async (type, page) => {
-    try {
-      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+const fetchProducts = async (type, page) => {
+  try {
+    const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
-      if (type === "nearby" && latitude && longitude) {
-        params.append("latitude", latitude);
-        params.append("longitude", longitude);
-        params.append("radiusInKm", radius || 10); // default 10km
-      }
-      // Category-based filter
-      if (type === "category" && activeCategory !== "All Products") {
-        params.append("category", activeCategory);
-      }
-
-      // Other filters
-      if (filter.minPrice) params.append("minPrice", filter.minPrice);
-      if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
-      if (filter.condition) params.append("condition", filter.condition);
-      if (filter.radius) params.append("radius", filter.radius);
-      if (filter.city) params.append("city", filter.city);
-
-      // Auth details - only append if relevant to the API
-      // const token = localStorage.getItem("accessToken");
-      // const userId = localStorage.getItem("userId");
-
-      let endpoint = "http://localhost:8080/api/products/getProducts";
-
-      if (type === "recommended" && latitude && longitude) {
-        endpoint = "http://localhost:8080/api/products/nearby";
-      }
-
-      const res = await fetch(`${endpoint}?${params.toString()}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Ensure token is passed correctly
-        },
-      });
-
-      if (!res.ok) {
-        console.error("Failed to fetch products:", res.status, res.statusText);
-        // Consider throwing an error or handling specific status codes
-        return;
-      }
-
-      const json = await res.json();
-      // Ensure json.data exists and has products and pagination
-      const { products = [], ...pagination } = json.data ?? {};
-
-      if (type === "category") {
-        setLatestAds(products);
-        setLatestPagination(pagination);
-      } else { // This will apply to "recommended" and "nearby" if they hit the same state
-        setRecommendedAds(products);
-        setRecommendedPagination(pagination);
-      }
-    } catch (err) {
-      console.error("Fetch failed:", err);
+  if (type === "nearby" && latitude && longitude) {
+    params.append("latitude", latitude);
+    params.append("longitude", longitude);
+    params.append("radiusInKm", radius || 10); // default 10km
+  }
+    // Category-based filter
+    if (type === "category" && activeCategory !== "All Products") {
+      params.append("category", activeCategory);
     }
-  };
 
-  useEffect(() => {
+    // Location filters (used for both latest & recommended)
     if (latitude && longitude) {
-      fetchProducts("nearby", 1); // Fetch nearby on location change
+      params.append("latitude", latitude);
+      params.append("longitude", longitude);
+      params.append("radiusInKm", radius || 10); // default radius
     }
-  }, [latitude, longitude, radius]); // Add radius to dependencies
+
+    // Other filters
+    if (filter.minPrice) params.append("minPrice", filter.minPrice);
+    if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
+    if (filter.condition) params.append("condition", filter.condition);
+    if (filter.radius) params.append("radius", filter.radius);
+    if (filter.city) params.append("city", filter.city);
+
+    // Auth details
+    const token = localStorage.getItem("accessToken");
+    const userId = localStorage.getItem("userId");
+
+    if (token && userId) {
+      params.append("userId", userId);
+    }
+
+    // API endpoint based on type
+    let endpoint = "http://localhost:8080/api/products/getProducts";
+
+    if (type === "recommended" && latitude && longitude) {
+      // Use separate API for nearby products
+      endpoint = "http://localhost:8080/api/products/nearby";
+    }
+
+    const res = await fetch(`${endpoint}?${params.toString()}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch products");
+      return;
+    }
+
+    const json = await res.json();
+    const { products = [], ...pagination } = json.data ?? {};
+
+    if (type === "category") {
+      setLatestAds(products);
+      setLatestPagination(pagination);
+    } else {
+      setRecommendedAds(products);
+      setRecommendedPagination(pagination);
+    }
+  } catch (err) {
+    console.error("Fetch failed:", err);
+  }
+};
+useEffect(() => {
+  if (latitude && longitude) {
+    fetchProducts("nearby", 1); // Replace with your actual fetching logic
+  }
+}, [latitude, longitude]);
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
-  }, [activeCategory, latestPagination.currentPage, filter]); // Add filter as a dependency for latest ads
+  }, [activeCategory, latestPagination.currentPage]);
 
   useEffect(() => {
     fetchProducts("recommended", recommendedPagination.currentPage);
-  }, [recommendedPagination.currentPage, filter]); // Add filter as a dependency for recommended ads
+  }, [recommendedPagination.currentPage]);
 
   const categories = [
     "All Products",
@@ -427,11 +422,11 @@ const Home = () => {
               onPageChange={setRecommendedPagination}
             />
             <SectionWithAds
-              title="Nearby Products Around You"
-              ads={recommendedAds} // This section uses recommendedAds state
-              pagination={recommendedPagination} // This section uses recommendedPagination state
-              onPageChange={setRecommendedPagination}
-            />
+  title="Nearby Products Around You"
+  ads={recommendedAds}
+  pagination={recommendedPagination}
+  onPageChange={setRecommendedPagination}
+/>
 
             {/* Company Websites */}
             <div className="bg-white p-4 mt-3 rounded shadow">
@@ -501,7 +496,6 @@ const Home = () => {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

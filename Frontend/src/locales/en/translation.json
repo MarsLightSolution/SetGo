@@ -1,0 +1,186 @@
+{
+  "navbar": {
+    "brand_name": "kleinanzeigen",
+    "register": "Register",
+    "or": "or",
+    "login": "Log in",
+    "hello": "Hello, {{name}}",
+    "logout": "Logout",
+    "search_placeholder": "What are you looking for?",
+    "open_filters_title": "Open Filters",
+    "all_products": "All Products",
+    "category_cars_motorcycles": "Cars & Motorcycles",
+    "category_real_estate": "Real Estate",
+    "category_jobs": "Jobs",
+    "category_household_furniture": "Household & Furniture",
+    "category_electronics": "Electronics",
+    "category_leisure_hobby": "Leisure, Hobby & Neighborhood",
+    "category_service": "Service",
+    "postal_placeholder": "Postal",
+    "whole_place_placeholder": "Whole place",
+    "find_button": "Find",
+    "advertise_button": "Advertise",
+    "mine_dropdown_label": "Mine",
+    "news_link": "News",
+    "show_link": "Show",
+    "settings_link": "Settings",
+    "watchlist_link": "Watchlist",
+    "users_link": "Users",
+    "search_request_link": "Search Request",
+    "transactions_link": "Transactions",
+    "filter_listings_heading": "Filter Listings",
+    "price_range_label": "Price Range: ₹{{min}} – ₹{{max}}",
+    "condition_label": "Condition",
+    "select_option": "Select",
+    "condition_new": "New",
+    "condition_like_new": "Like New",
+    "condition_used": "Used",
+    "condition_defective": "Defective/Need Repair",
+    "radius_label": "Radius: {{radius}} km",
+    "city_label": "City",
+    "select_city": "Select City",
+    "city_baku": "Baku",
+    "city_ganja": "Ganja",
+    "city_sumqayit": "Sumqayit",
+    "city_mingachevir": "Mingachevir",
+    "city_shaki": "Shaki",
+    "cancel_button": "Cancel",
+    "apply_filters_button": "Apply Filters",
+    "nearby_products_button": "Nearby Products",
+    "geolocation_not_supported": "Geolocation is not supported by your browser.",
+    "allow_location_access": "Please allow location access to fetch nearby products.",
+    "unable_to_fetch_location": "Unable to fetch your location. Try again."
+  },
+  "home_page": {
+    "banner_alt_text": "Promotional Banner",
+    "join_now_button": "Join Now",
+    "categories_heading": "Categories",
+    "gallery_heading": "Gallery",
+    "latest_ads_title": "Latest Ads",
+    "recommended_ads_title": "Recommended For You",
+    "nearby_products_title": "Nearby Products Around You",
+    "company_websites_title": "Company Websites",
+    "logo_placeholder": "Logo {{index}}"
+  },
+  "product_detail_page": {
+    "login_to_add_watchlist": "Please login to add to watchlist.",
+    "removed_from_watchlist": "Removed from your watchlist",
+    "added_to_watchlist": "Added to your watchlist",
+    "login_to_buy": "Please login to buy items.",
+    "user_owner_not_loaded": "User or owner not loaded yet.",
+    "failed_to_load_user_data": "Failed to load user data.",
+    "an_error_occurred": "An error occurred.",
+    "login_to_send_messages": "Please login to send messages.",
+    "owner_info_not_available": "Product owner information not available.",
+    "authentication_required": "Authentication required or owner information missing.",
+    "unfollowed": "Unfollowed!",
+    "followed": "Followed!",
+    "follow_unfollow_failed": "Follow/unfollow failed. Try again.",
+    "product_not_found": "Product not found",
+    "product_title_placeholder": "Product Title",
+    "price_suffix": "VB",
+    "location_heading": "Location",
+    "views_label": "Views",
+    "buy_now_button": "Buy Now",
+    "type_label": "Type",
+    "brand_label": "Brand",
+    "size_label": "Size",
+    "color_label": "Color",
+    "condition_label": "Condition",
+    "description_heading": "Description",
+    "no_description_available": "No description available.",
+    "write_message_heading": "Write a message",
+    "news_label": "News",
+    "message_placeholder": "Write a friendly message to the seller and get more attention!",
+    "profile_name_label": "Profile name",
+    "data_transmission_info": "Your data will be transmitted to the provider and automatically pre-filled for future requests.",
+    "more_information": "More information",
+    "terms_of_use_info": "We review messages for violations of our",
+    "terms_of_use_link_text": "Terms of Use",
+    "privacy_policy_info_part1": ". For more information, see our",
+    "privacy_policy_link_text": "Privacy Policy",
+    "privacy_policy_info_part2": ".",
+    "send_message_button": "Send Message",
+    "write_message_button": "Write a message",
+    "remove_from_watchlist_button": "Remove from watchlist",
+    "add_to_watchlist_button": "Add to watchlist",
+    "share_ad_button": "Share ad",
+    "private_user_label": "Private user",
+    "active_since_label": "Active since",
+    "unfollow_button": "🚫 Unfollow",
+    "follow_button": "➕ Follow",
+    "ad_id_label": "Ad ID",
+    "might_also_interest_you": "This might also interest you",
+    "product_location_fallback": "Product location",
+    "payment_dialog.payment_success_log": "Payment success"
+  },
+  "categories": {
+    "all_products": "All Products",
+    "cars_motorcycles": "Cars & Motorcycles",
+    "real_estate": "Real Estate",
+    "jobs": "Jobs",
+    "household_furniture": "Household & Furniture",
+    "electronics": "Electronics",
+    "leisure_hobby": "Leisure, Hobby & Neighborhood",
+    "service": "Service"
+  },
+  "common": {
+    "unknown": "Unknown",
+    "prev": "Prev",
+    "next": "Next",
+    "page_of": "Page {{currentPage}} of {{totalPages}}",
+    "login_first_to_like": "You need to login first to like items.",
+    "loading_text": "Loading…",
+    "unknown_seller": "Unknown Seller",
+    "arrow_left": "←",
+    "arrow_right": "→"
+  },
+  "gallery_items": {
+    "0": {
+      "title": "XVS 950 Midnightstar",
+      "location": "Oelde"
+    },
+    "1": {
+      "title": "Washing machine",
+      "location": "Mönchengladbach"
+    },
+    "2": {
+      "title": "Transport trolleys",
+      "location": "Bad Buchau"
+    },
+    "3": {
+      "title": "Camping gear set",
+      "location": "Dresden"
+    },
+    "4": {
+      "title": "Horses help children",
+      "location": "Schlutup"
+    }
+  },
+  "company_websites": {
+    "0": {
+      "name": "Flipkart",
+      "description": "Shop electronics, fashion, more"
+    },
+    "1": {
+      "name": "Amazon",
+      "description": "Online shopping destination"
+    },
+    "2": {
+      "name": "Myntra",
+      "description": "Fashion & lifestyle store"
+    },
+    "3": {
+      "name": "Snapdeal",
+      "description": "Deals and discounts online"
+    },
+    "4": {
+      "name": "Ajio",
+      "description": "Trendy clothes and accessories"
+    },
+    "5": {
+      "name": "Reliance Digital",
+      "description": "Electronics & gadgets"
+    }
+  }
+}

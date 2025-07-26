@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CalendarToday, LocationOn } from "@mui/icons-material";
 import PaymentDialog from "./PaymentDialog";
@@ -27,17 +25,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
+import { useTranslation } from 'react-i18next';
 
-
-// Helper for multilingual fields (can be passed via context if you have one)
+// Helper for multilingual fields (dynamic data from MongoDB)
 const getLocalizedText = (field, lang = "en") => {
   if (!field) return "";
   if (typeof field === "string") return field;
-  return field[lang] || field.en || field.de || "";
+  return field[lang] || field.en || field.de || ""; // Fallback to en, then de if current lang not found
 };
 
 
 const ProductDetail = () => {
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const token = localStorage.getItem("accessToken");
@@ -55,23 +54,23 @@ const ProductDetail = () => {
   const { wishlist } = useSelector((state) => state.wishlist);
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
 
-  // Default display language, could be dynamic based on user preference
-  const displayLanguage = "en";
+  // Use i18n.language for dynamic content language
+  const displayLanguage = i18n.language;
 
   const handleAddToWatchlist = (e) => {
     e.stopPropagation();
 
     if (!token) {
-      alert("Please login to add to watchlist.");
+      alert(t("product_detail_page.login_to_add_watchlist"));
       return;
     }
 
     if (isWishlisted) {
       dispatch(unlike(product));
-      toast.info("Removed from your watchlist");
+      toast.info(t("product_detail_page.removed_from_watchlist"));
     } else {
       dispatch(like(product));
-      toast.success("Added to your watchlist");
+      toast.success(t("product_detail_page.added_to_watchlist"));
     }
   };
 
@@ -89,7 +88,7 @@ const ProductDetail = () => {
 
   useEffect(() => {
     fetchProductById();
-  }, [id, token]); // Add token to dependency array if product fetch depends on it
+  }, [id, token, i18n.language]); // Added i18n.language here to re-fetch if language changes
 
   const fetchProductById = async () => {
     setLoading(true);
@@ -99,13 +98,12 @@ const ProductDetail = () => {
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Ensure correct header format if using "Bearer"
+            Authorization: `Bearer ${token}`,
           },
         }
       );
 
       if (!res.ok) {
-        // Handle non-200 responses
         console.error("Failed to fetch product:", res.status, res.statusText);
         setProduct(null);
         return;
@@ -121,17 +119,15 @@ const ProductDetail = () => {
     }
   };
 
-  // categoryObj will be { en: "...", de: "..." }
   const fetchRelatedProducts = async (categoryObj) => {
     const categoryName = getLocalizedText(categoryObj, displayLanguage);
-    if (!categoryName) return; // Don't fetch if category name is not available
+    if (!categoryName) return;
 
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}` // Encode the category for URL
+        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}`
       );
       const json = await res.json();
-      // Filter out the current product and limit to 3
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
       setRelatedProducts(filtered || []);
     } catch (err) {
@@ -143,80 +139,80 @@ const ProductDetail = () => {
     if (product?.category) {
       fetchRelatedProducts(product.category);
     }
-  }, [product, id, displayLanguage]); // Add id and displayLanguage to dependencies
+  }, [product, id, i18n.language]);
 
   const handleBuyNow = async () => {
     const userId = user?._id;
-    // owner can be an ObjectId string or a populated user object
-    const ownerId = product?.owner?._id || product?.owner; // Prioritize _id if owner is populated
+    const ownerId = product?.owner?._id || product?.owner;
 
     if (!userId) {
-      alert("Please login to buy items.");
+      alert(t("product_detail_page.login_to_buy"));
       return;
     }
     if (!ownerId) {
-      alert("Product owner information not available.");
+      alert(t("product_detail_page.user_owner_not_loaded"));
       return;
     }
-
     try {
       const res = await fetch(
         `http://localhost:8080/users/get-users/${userId}`,
-        { headers: { Authorization: `Bearer ${token}` } } // Assuming user info fetch also needs token
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const json = await res.json();
       if (json?.data) {
         setDialogUser(json.data);
         setShowPaymentDialog(true);
       } else {
-        alert("Failed to load user data.");
+        alert(t("product_detail_page.failed_to_load_user_data"));
       }
     } catch (err) {
       console.error("Error fetching user:", err);
-      alert("Error loading user data.");
+      alert(t("product_detail_page.an_error_occurred"));
     }
   };
 
   const handleSendMessage = async () => {
     if (!user) {
-      alert("Please login to send messages.");
+      alert(t("product_detail_page.login_to_send_messages"));
       return;
     }
-    // Determine the owner's username for chat
-    const ownerUsername = getLocalizedText(product.name || product.owner?.name) || product.owner; // If product.owner is populated, use its name. Otherwise, fallback to product.name or owner ID
+    const ownerUsername = getLocalizedText(product.name || product.owner?.name, displayLanguage) || product.owner;
 
     if (!ownerUsername) {
-      alert("Product owner information not available for messaging.");
+      alert(t("product_detail_page.owner_info_not_available"));
       return;
     }
 
-    navigate("/chat");
+    // Call the global function to prepare chat state/data
+    if (window.startChatConversation) {
+      const productInfo = {
+        title: getLocalizedText(product.title, displayLanguage),
+        price: product.price,
+        id: product._id,
+      };
+      // window.startChatConversation should NOT navigate directly.
+      // It should only update global state that ChatApp might read.
+      window.startChatConversation(ownerUsername, productInfo);
+    }
 
-    setTimeout(() => {
-      if (window.startChatConversation) {
-        const productInfo = {
-          title: getLocalizedText(product.title, displayLanguage),
-          price: product.price,
-          id: product._id,
-        };
-        window.startChatConversation(ownerUsername, productInfo);
-      }
-    }, 1000);
+    // Navigate using React Router after the chat state is prepared.
+    // This is the controlled navigation.
+    navigate(`/chat`); // Navigate to chat route (without language prefix)
   };
 
-  const ownerId = product?.owner?._id || product?.owner || null; // Ensure this correctly gets the owner's ID
+  const ownerId = product?.owner?._id || product?.owner || null;
 
   useEffect(() => {
     if (user && ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId, token]); // Add token to dependencies
+  }, [user, ownerId, token]);
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
         `http://localhost:8080/check/${followerId}/${followingId}`,
-        { headers: { Authorization: `Bearer ${token}` } } // Add token for auth
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
@@ -227,7 +223,7 @@ const ProductDetail = () => {
 
   const handleFollowToggle = async () => {
     if (!user || !ownerId) {
-      alert("Authentication required or owner information missing.");
+      alert(t("product_detail_page.authentication_required"));
       return;
     }
     setFollowLoading(true);
@@ -249,36 +245,31 @@ const ProductDetail = () => {
       const result = await res.json();
 
       if (res.ok && result.success !== false) {
-        await checkFollowStatus(user._id, ownerId); // Re-check status after action
-        toast.success(isFollowing ? "Unfollowed!" : "Followed!");
+        await checkFollowStatus(user._id, ownerId);
+        toast.success(isFollowing ? t("product_detail_page.unfollowed") : t("product_detail_page.followed"));
       } else {
-        const errorMsg = result.message || "Follow/unfollow failed. Try again.";
+        const errorMsg = result.message || t("product_detail_page.follow_unfollow_failed");
         alert(errorMsg);
       }
     } catch (err) {
       console.error("Follow/Unfollow error:", err);
-      alert("An error occurred.");
+      alert(t("product_detail_page.an_error_occurred"));
     } finally {
       setFollowLoading(false);
     }
   };
 
-  if (loading) return <div className="text-center mt-10">Loading…</div>;
+  if (loading) return <div className="text-center mt-10">{t("common.loading_text")}</div>;
   if (!product)
     return (
-      <div className="text-center text-red-500 mt-10">Product not found</div>
+      <div className="text-center text-red-500 mt-10">{t("product_detail_page.product_not_found")}</div>
     );
 
-  // Safely access owner name, prioritizing populated user object, then product.name, then "Unknown Seller"
-  const ownerRawName = product.owner?.name || product.name; // This needs to be consistent with how owner is returned (populated or just ID)
-  const ownerName = getLocalizedText(ownerRawName, displayLanguage) || "Unknown Seller";
+  const ownerRawName = product.owner?.name || product.name;
+  const ownerName = getLocalizedText(ownerRawName, displayLanguage) || t("common.unknown_seller");
   const ownerInitial = ownerName.charAt(0).toUpperCase();
 
-  // Your MongoDB response has 'postalCode' at the top-level of the product document.
-  // 'location' object contains 'type' and 'coordinates'.
-  const displayPostalCode = product.postalCode || product.location?.postalCode || "Unknown";
-  // If you also want to show a city: You would need to add a 'city' field to your Product model
-  // For example: `city: { en: String, de: String, trim: true }` and then get `getLocalizedText(product.city)`
+  const displayPostalCode = product.postalCode || product.location?.postalCode || t("common.unknown");
 
 
   return (
@@ -286,10 +277,11 @@ const ProductDetail = () => {
       <div className="min-h-screen bg-white-100 pt-3">
         <div className="w-full flex justify-center">
           <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
+            {/* Left Ad */}
             <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
               <img
                 src={leftadImage}
-                alt="Left Ad"
+                alt={t("home_page.left_ad_alt_text")}
                 className="w-full h-[550px] object-cover rounded"
               />
             </div>
@@ -314,29 +306,28 @@ const ProductDetail = () => {
                   {/* DETAILS CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4">
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                      {getLocalizedText(product.title, displayLanguage) || "Product Title"}
+                      {getLocalizedText(product.title, displayLanguage) || t("product_detail_page.product_title_placeholder")}
                     </h1>
                     <p className="text-green-700 text-xl font-bold mb-3">
                       {product.price?.toLocaleString("en-IN")}€{" "}
-                      <span className="text-sm">VB</span>
+                      <span className="text-sm">{t("product_detail_page.price_suffix")}</span>
                     </p>
 
                     <div className="text-sm text-gray-600 flex flex-wrap gap-4 mb-4">
                       <div className="flex items-center gap-1">
                         <LocationOn fontSize="small" />
-                        {displayPostalCode} {/* Display postal code as per your data */}
-                        {/* If you add city to your model and data: - {getLocalizedText(product.city)} */}
+                        {displayPostalCode}
                       </div>
 
                       <div className="flex items-center gap-1">
                         <CalendarToday fontSize="small" />
                         {new Date(product.createdAt).toLocaleDateString(
-                          "en-GB"
+                          i18n.language
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <img src={EyeIcon} alt="Views" className="w-5 h-5" />
-                        {product.views || 0}
+                        <img src={EyeIcon} alt={t("product_detail_page.views_label")} className="w-5 h-5" />
+                        {product.views || 0} {t("product_detail_page.views_label")}
                       </div>
                     </div>
 
@@ -344,20 +335,19 @@ const ProductDetail = () => {
                       className="mt-4 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-semibold text-sm"
                       onClick={handleBuyNow}
                     >
-                      Buy Now
+                      {t("product_detail_page.buy_now_button")}
                     </button>
                   </div>
 
                   {/* EXTRA INFO CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4 mt-6">
-                    {/* MAP LOCATION CONTAINER */}
                     {product.location?.coordinates && product.location.coordinates.length === 2 && (
-                      <div className="bg-white rounded-md shadow p-4 mb-6"> {/* Added mb-6 for spacing */}
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
+                      <div className="bg-white rounded-md shadow p-4 mb-6">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">{t("product_detail_page.location_heading")}</h2>
                         <MapContainer
                           center={[
-                            product.location.coordinates[1], // latitude
-                            product.location.coordinates[0], // longitude
+                            product.location.coordinates[1],
+                            product.location.coordinates[0],
                           ]}
                           zoom={13}
                           scrollWheelZoom={false}
@@ -369,11 +359,11 @@ const ProductDetail = () => {
                           />
                           <Marker
                             position={[
-                              product.location.coordinates[1], // latitude
-                              product.location.coordinates[0], // longitude
+                              product.location.coordinates[1],
+                              product.location.coordinates[0],
                             ]}
                           >
-                            <Popup>{getLocalizedText(product.title, displayLanguage) || "Product location"}</Popup>
+                            <Popup>{getLocalizedText(product.title, displayLanguage) || t("product_detail_page.product_location_fallback")}</Popup>
                           </Marker>
                         </MapContainer>
                       </div>
@@ -381,57 +371,57 @@ const ProductDetail = () => {
 
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
                       <div>
-                        <div className="font-semibold text-gray-800">Type</div>
+                        <div className="font-semibold text-gray-800">{t("product_detail_page.type_label")}</div>
                         <div>{product.type || "NA"}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">Brand</div>
+                        <div className="font-semibold text-gray-800">{t("product_detail_page.brand_label")}</div>
                         <div>{product.brand || "NA"}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">Size</div>
+                        <div className="font-semibold text-gray-800">{t("product_detail_page.size_label")}</div>
                         <div>{product.size || "NA"}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">Color</div>
+                        <div className="font-semibold text-gray-800">{t("product_detail_page.color_label")}</div>
                         <div>{product.color || "NA"}</div>
                       </div>
                       <div>
                         <div className="font-semibold text-gray-800">
-                          Condition
+                          {t("product_detail_page.condition_label")}
                         </div>
                         <div>{product.condition || "NA"}</div>
                       </div>
                     </div>
 
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">
-                      Description
+                      {t("product_detail_page.description_heading")}
                     </h2>
                     <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {getLocalizedText(product.description, displayLanguage) || "Keine Beschreibung verfügbar."}
+                      {getLocalizedText(product.description, displayLanguage) || t("product_detail_page.no_description_available")}
                     </p>
                   </div>
 
                   {/* WRITE A MESSAGE CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4 mt-6">
                     <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                      Write a message
+                      {t("product_detail_page.write_message_heading")}
                     </h2>
 
                     <div className="mb-4">
                       <label className="block font-medium text-gray-700 mb-1">
-                        News
+                        {t("product_detail_page.news_label")}
                       </label>
                       <textarea
                         className="w-full border rounded-md p-2 text-sm text-gray-800"
-                        placeholder="Write a friendly message to the seller and get more attention!"
+                        placeholder={t("product_detail_page.message_placeholder")}
                         rows={4}
                       ></textarea>
                     </div>
 
                     <div className="mb-4">
-                      <label className="block font-medium text-gray-700 mb-1">
-                        Profile name
+                      <label className="block text-sm font-medium mb-1">
+                        {t("product_detail_page.profile_name_label")}
                       </label>
                       <div className="w-full border rounded-md p-2 bg-gray-100 text-sm text-gray-800">
                         {user?.name || "NA"}
@@ -439,28 +429,25 @@ const ProductDetail = () => {
                     </div>
 
                     <p className="text-xs text-gray-600 mb-2">
-                      Your data will be transmitted to the provider and
-                      automatically pre-filled for future requests.{" "}
+                      {t("product_detail_page.data_transmission_info")}{" "}
                       <a href="#" className="text-green-700 underline">
-                        More information
+                        {t("product_detail_page.more_information")}
                       </a>
                     </p>
                     <p className="text-xs text-gray-600 mb-4">
-                      We review messages for violations of our{" "}
+                      {t("product_detail_page.terms_of_use_info")}{" "}
                       <a href="#" className="text-green-700 underline">
-                        Terms of Use
+                        {t("product_detail_page.terms_of_use_link_text")}
                       </a>
-                      . For more information, see our{" "}
+                      {t("product_detail_page.privacy_policy_info_part1")}{" "}
                       <a href="#" className="text-green-700 underline">
-                        Privacy Policy
+                        {t("product_detail_page.privacy_policy_link_text")}
                       </a>
-                      .
+                      {t("product_detail_page.privacy_policy_info_part2")}
                     </p>
 
-                    <button
-                      onClick={handleSendMessage} // Attach sendMessage to this button
-                      className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-full font-semibold text-sm cursor-pointer">
-                      Send Message
+                    <button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-full font-semibold text-sm cursor-pointer" onClick={handleSendMessage}>
+                      {t("product_detail_page.send_message_button")}
                     </button>
                   </div>
                 </div>
@@ -468,27 +455,25 @@ const ProductDetail = () => {
                 <div>
                   {/* Main Sidebar Section */}
                   <div className="bg-white rounded-xl shadow-md p-5 h-fit border border-gray-200 space-y-4">
-                    {/* Green Rounded "Make an offer" */}
                     <button
                       onClick={handleSendMessage}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
                     >
-                      Write a message
+                      {t("product_detail_page.write_message_button")}
                     </button>
 
-                    {/* Outlined Buttons */}
                     <button
                       onClick={handleAddToWatchlist}
                       className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {isWishlisted ? "Remove from watchlist" : "Add to watchlist"}
+                      {isWishlisted ? t("product_detail_page.remove_from_watchlist_button") : t("product_detail_page.add_to_watchlist_button")}
                     </button>
 
                     <button
                       onClick={() => setShowShareModal(true)}
                       className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Share ad
+                      {t("product_detail_page.share_ad_button")}
                     </button>
 
                     {/* User Info */}
@@ -503,34 +488,32 @@ const ProductDetail = () => {
 
                     {/* User Status */}
                     <div className="text-sm text-gray-600 space-y-1 pl-1">
-                      {/* Private user row */}
                       <div className="flex items-center gap-2">
                         <img
                           src={UserIcon}
-                          alt="User Icon"
+                          alt={t("product_detail_page.private_user_label")}
                           className="w-5 h-5"
                         />
-                        <p>Private user</p>
+                        <p>{t("product_detail_page.private_user_label")}</p>
                       </div>
 
-                      {/* Active since row */}
                       <div className="flex items-center gap-2">
                         <img
                           src={SaveIcon}
-                          alt="Active since icon"
+                          alt={t("product_detail_page.active_since_label")}
                           className="w-5 h-5"
                         />
                         <p>
-                          Active since{" "}
+                          {t("product_detail_page.active_since_label")}{" "}
                           {new Date(product.createdAt).toLocaleDateString(
-                            "en-GB"
+                            i18n.language
                           )}
                         </p>
                       </div>
                     </div>
 
                     {/* Follow Button */}
-                    {user?._id !== ownerId && ( // Only show follow button if not viewing your own product
+                    {user?._id !== ownerId && (
                       <button
                         onClick={handleFollowToggle}
                         disabled={followLoading}
@@ -541,10 +524,10 @@ const ProductDetail = () => {
                         }`}
                       >
                         {followLoading
-                          ? "Loading..."
+                          ? t("common.loading_text")
                           : isFollowing
-                          ? "🚫 Unfollow"
-                          : "➕ Follow"}
+                          ? t("product_detail_page.unfollow_button")
+                          : t("product_detail_page.follow_button")}
                       </button>
                     )}
                   </div>
@@ -552,7 +535,7 @@ const ProductDetail = () => {
                   {/* Ad ID Section Below */}
                   <div className="bg-white rounded-xl shadow-md p-4 mt-4 border border-gray-200 text-sm text-gray-700">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Ad ID:</span>
+                      <span className="font-medium">{t("product_detail_page.ad_id_label")}:</span>
                       <span className="text-gray-900">{product._id}</span>
                     </div>
                   </div>
@@ -562,15 +545,14 @@ const ProductDetail = () => {
               {relatedProducts.length > 0 && (
                 <div className="max-w-6xl mx-auto mt-8 px-4">
                   <h2 className="text-xl font-semibold mb-6">
-                    This might also interest you
+                    {t("product_detail_page.might_also_interest_you")}
                   </h2>
                   <div className="grid grid-cols-1 gap-6">
                     {relatedProducts.map((item) => (
                       <div
                         key={item._id}
                         onClick={() =>
-                          // Use navigate for client-side routing
-                          navigate(`/products/product/${item._id}`)
+                          navigate(`/products/product/${item._id}`) // Navigate without language prefix
                         }
                         className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
                       >
@@ -585,11 +567,11 @@ const ProductDetail = () => {
                         <div className="flex-1">
                           <div className="text-sm text-gray-500 flex items-center justify-between">
                             <span>
-                              📍 {item.postalCode || item.location?.postalCode || "Unknown"}{" "}
+                              📍 {item.postalCode || item.location?.postalCode || t("common.unknown")}{" "}
                             </span>
                             <span className="text-xs text-gray-400">
                               {new Date(item.createdAt).toLocaleDateString(
-                                "en-GB"
+                                i18n.language
                               )}
                             </span>
                           </div>
@@ -610,10 +592,11 @@ const ProductDetail = () => {
               )}
             </div>
 
+            {/* Right Ad */}
             <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
               <img
                 src={rightadImage}
-                alt="Right Ad"
+                alt={t("home_page.right_ad_alt_text")}
                 className="w-full h-[550px] object-cover rounded"
               />
             </div>
@@ -628,7 +611,7 @@ const ProductDetail = () => {
           user={dialogUser}
           owner={ownerId}
           onPaymentSuccess={() => {
-            console.log("Payment success");
+            console.log(t("payment_dialog.payment_success_log"));
           }}
         />
       )}
