@@ -178,15 +178,11 @@ const Form = () => {
     });
 
     try {
-      const token = localStorage.getItem("accessToken");
       const res = await fetch("http://localhost:8080/api/products/add", {
-        method: "POST",
-        headers: {
-          Authorization: `${token}`,
-        },
-        body: formDataToSend,
+      method: "POST",
+      body: formDataToSend,
+      credentials: "include",
       });
-
       const data = await res.json();
 
       if (res.ok) {

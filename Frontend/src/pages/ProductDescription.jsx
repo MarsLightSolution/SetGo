@@ -84,10 +84,7 @@ const handleAddToWatchlist = (e) => {
       const res = await fetch(
         `http://localhost:8080/api/products/product/${id}`,
         {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `${token}`,
-          },
+        withCredentials: true, 
         }
       );
       const result = await res.json();
@@ -199,10 +196,7 @@ const handleAddToWatchlist = (e) => {
 
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${token}`,
-        },
+        withCredentials: true, // ✅ Important: to send cookies
         body: JSON.stringify({ followerId: user._id }),
       });
 
