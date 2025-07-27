@@ -61,7 +61,7 @@ function SmsVerify({ phoneNumber, email, onClose }) {
         {/* Close Icon */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -95,7 +95,7 @@ function SmsVerify({ phoneNumber, email, onClose }) {
           <button
             onClick={handleResend}
             disabled={resending}
-            className="text-green-600 font-medium hover:underline"
+            className="text-green-600 font-medium hover:underline cursor-pointer"
           >
             {resending ? "Resending..." : "Resend"}
           </button>
@@ -105,14 +105,14 @@ function SmsVerify({ phoneNumber, email, onClose }) {
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-sm font-medium text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition"
+            className="px-5 py-2 text-sm font-medium text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleVerify}
             disabled={loading || !code}
-            className="px-5 py-2 text-sm font-medium text-white bg-lime-500 rounded-full hover:bg-lime-600 transition disabled:opacity-50"
+            className="px-5 py-2 text-sm font-medium text-white bg-lime-500 rounded-full hover:bg-lime-600 transition disabled:opacity-50 cursor-pointer"
           >
             {loading ? "Verifying..." : "Verify"}
           </button>

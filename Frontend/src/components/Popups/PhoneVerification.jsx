@@ -78,7 +78,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
         <div className="relative w-1/2">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-md"
+            className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-md cursor-pointer"
           >
             <span className="truncate">{selectedCountry}</span>
             <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -90,7 +90,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
                 <button
                   key={country}
                   onClick={() => handleCountrySelect(country)}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 cursor-pointer"
                 >
                   {country}
                 </button>
@@ -105,7 +105,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
           value={localPhoneNumber}
           onChange={(e) => setLocalPhoneNumber(e.target.value)}
           placeholder="Phone number"
-          className="w-1/2 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-lime-500"
+          className="w-1/2 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-lime-500 cursor-pointer"
         />
       </div>
 
@@ -121,7 +121,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
       <div className="flex justify-end gap-4 pt-3">
         <button
           onClick={handleHelp}
-          className="px-6 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition"
+          className="px-6 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition cursor-pointer"
         >
           Login
         </button>

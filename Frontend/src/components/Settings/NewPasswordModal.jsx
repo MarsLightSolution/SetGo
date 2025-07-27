@@ -59,7 +59,7 @@ function NewPasswordModal({ onClose }) {
       {/* Close Icon */}
       <button
         onClick={onClose}
-        className="absolute top-7 right-5 text-gray-400 hover:text-gray-600"
+        className="absolute top-7 right-5 text-gray-400 hover:text-gray-600 cursor-pointer"
       >
         <X size={16} />
       </button>
@@ -81,7 +81,7 @@ function NewPasswordModal({ onClose }) {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
             >
               {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
@@ -102,7 +102,7 @@ function NewPasswordModal({ onClose }) {
             <button
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
             >
               {showConfirm ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
@@ -120,13 +120,13 @@ function NewPasswordModal({ onClose }) {
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-base border border-gray-300 rounded-md hover:bg-gray-100"
+            className="px-6 py-2 text-base border border-gray-300 rounded-md hover:bg-gray-100 cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handlePasswordSave}
-            className="px-6 py-2 text-base text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+            className="px-6 py-2 text-base text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 cursor-pointer"
             disabled={loading}
           >
             {loading ? "Saving..." : "Save Password"}

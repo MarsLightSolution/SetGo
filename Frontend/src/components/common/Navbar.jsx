@@ -118,14 +118,14 @@ navigate("/");
               {!userName ? (
                 <>
                   <button
-                    className="border border-black text-black px-4 py-1 rounded-full text-sm"
+                    className="border border-black text-black px-4 py-1 rounded-full text-sm cursor-pointer"
                     onClick={() => navigate("/register")}
                   >
                     Register
                   </button>
                   <span className="text-sm text-gray-500">or</span>
                   <button
-                    className="flex items-center gap-2 bg-lime-400 px-4 py-1 rounded-full text-sm font-medium"
+                    className="flex items-center gap-2 bg-lime-400 px-4 py-1 rounded-full text-sm font-medium cursor-pointer"
                     onClick={() => navigate("/login")}
                   >
                     <FaUser />
@@ -139,7 +139,7 @@ navigate("/");
                   </span>
                   <button
                     onClick={handleLogout}
-                    className="border border-black text-black px-4 py-1 rounded-full text-sm"
+                    className="border border-black text-black px-4 py-1 rounded-full text-sm cursor-pointer"
                   >
                     Logout
                   </button>
@@ -164,14 +164,14 @@ navigate("/");
                 />
               </div>
               <button
-                className="ml-2 p-2 bg-white rounded-full shadow hover:bg-gray-100"
+                className="ml-2 p-2 bg-white rounded-full shadow hover:bg-gray-100 cursor-pointer"
                 onClick={() => setShowFilter(true)}
                 title="Open Filters"
               >
                 <FaFilter className="text-lime-800" />
               </button>
               {/* Category Select */}
-              <select className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4">
+              <select className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4 cursor-pointer">
                 <option>All Products</option>
                 <option>Cars & Motorcycles</option>
                 <option>Real Estate</option>
@@ -201,7 +201,7 @@ navigate("/");
               />
 
               {/* Find Button */}
-              <button className="ml-1 mx-0 bg-lime-500 hover:bg-lime-600 text-white font-semibold px-6 py-1.5 rounded-full">
+              <button className="ml-1 mx-0 bg-lime-500 hover:bg-lime-600 text-white font-semibold px-6 py-1.5 rounded-full cursor-pointer">
                 Find
               </button>
             </div>
@@ -293,7 +293,7 @@ navigate("/");
               <select
                 value={condition}
                 onChange={(e) => setLocalCondition(e.target.value)}
-                className="w-full border rounded px-2 py-1"
+                className="w-full border rounded px-2 py-1 cursor-pointer"
               >
                 <option value="">Select</option>
                 <option value="new">New</option>
@@ -315,7 +315,7 @@ navigate("/");
                 step="10"
                 value={radius}
                 onChange={(e) => setLocalRadius(e.target.value)}
-                className="w-full accent-lime-500"
+                className="w-full accent-lime-500 cursor-pointer"
               />
             </div>
 
@@ -325,7 +325,7 @@ navigate("/");
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full border rounded px-2 py-1"
+                className="w-full border rounded px-2 py-1 cursor-pointer"
               >
                 <option value="">Select City</option>
                 <option value="baku">Baku</option>
@@ -341,7 +341,7 @@ navigate("/");
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowFilter(false)}
-                className="px-4 py-2 text-sm bg-gray-200 rounded"
+                className="px-4 py-2 text-sm bg-gray-200 rounded cursor-pointer"
               >
                 Cancel
               </button>
@@ -355,12 +355,12 @@ navigate("/");
                   dispatch(setCity(selectedCity));
                   setShowFilter(false);
                 }}
-                className="px-4 py-2 text-sm bg-lime-500 text-white rounded"
+                className="px-4 py-2 text-sm bg-lime-500 text-white rounded cursor-pointer"
               >
                 Apply Filters
               </button>
               <button
-                className="bg-lime-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-lime-700"
+                className="bg-lime-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-lime-700 cursor-pointer"
                 onClick={handleNearbyClick}
               >
                 Nearby Products

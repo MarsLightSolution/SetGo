@@ -325,7 +325,7 @@ const Home = () => {
                 className="w-full h-[233px] object-cover rounded-xl shadow"
               />
               <div className="absolute bottom-4 left-6 z-10">
-                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg">
+                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg cursor-pointer">
                   Join Now
                 </button>
               </div>

@@ -30,7 +30,7 @@ function AboutClassifieds() {
               <button
                 key={item.label}
                 onClick={() => navigate(item.path)}
-                className={`flex w-full items-center px-3 py-2 rounded-md text-left transition duration-200 ${
+                className={`flex w-full items-center px-3 py-2 rounded-md text-left transition duration-200 cursor-pointer ${
                   item.active
                     ? "text-green-700 bg-green-50"
                     : "text-gray-700 hover:bg-gray-100"
@@ -55,7 +55,7 @@ function AboutClassifieds() {
                   Imprint
                 </label>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
+              <button className="text-green-600 hover:text-green-700 text-sm cursor-pointer">Open</button>
             </div>
 
             {/* Career Page */}
@@ -65,7 +65,7 @@ function AboutClassifieds() {
                   Career Page
                 </label>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
+              <button className="text-green-600 hover:text-green-700 text-sm cursor-pointer">Open</button>
             </div>
           </div>
         </div>

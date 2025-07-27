@@ -19,22 +19,22 @@ function DataProtection() {
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
           <nav className="space-y-1 text-sm font-medium">
-            <button onClick={() => navigate('/profile')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <button onClick={() => navigate('/profile')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
               <span className="mr-3">👤</span> Profile information
             </button>
-            <button onClick={() => navigate('/accountsettings')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <button onClick={() => navigate('/accountsettings')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
               <span className="mr-3">⚙️</span> Account settings
             </button>
-            <button onClick={() => navigate('/paymentsettings')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <button onClick={() => navigate('/paymentsettings')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
               <span className="mr-3">💳</span> Payments
             </button>
-            <button onClick={() => navigate('/dataprotection')} className="flex items-center w-full text-left px-3 py-2 text-green-700 bg-green-50 rounded-md">
+            <button onClick={() => navigate('/dataprotection')} className="flex items-center w-full text-left px-3 py-2 text-green-700 bg-green-50 rounded-md cursor-pointer">
               <span className="mr-3">🛡️</span> Data protection
             </button>
-            <button onClick={() => navigate('/emailsettings')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <button onClick={() => navigate('/emailsettings')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
               <span className="mr-3">✉️</span> Emails
             </button>
-            <button onClick={() => navigate('/aboutclassifieds')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <button onClick={() => navigate('/aboutclassifieds')} className="flex items-center w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
               <span className="mr-3">❤️</span> About Classified Ads
             </button>
           </nav>
@@ -58,7 +58,7 @@ function DataProtection() {
                   Privacy Settings, Measurement & Analysis
                 </label>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
+              <button className="text-green-600 hover:text-green-700 text-sm cursor-pointer">Open</button>
             </div>
 
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
@@ -67,7 +67,7 @@ function DataProtection() {
                   Privacy Policy
                 </label>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
+              <button className="text-green-600 hover:text-green-700 text-sm cursor-pointer">Open</button>
             </div>
 
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
@@ -76,7 +76,7 @@ function DataProtection() {
                   Privacy
                 </label>
               </div>
-              <button className="text-green-600 hover:text-green-700 text-sm">Open</button>
+              <button className="text-green-600 hover:text-green-700 text-sm cursor-pointer">Open</button>
             </div>
           </div>
         </div>

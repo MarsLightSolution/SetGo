@@ -27,7 +27,7 @@ const MySearch = () => {
             </p>
             <button
               onClick={() => navigate("/browse")}
-              className="bg-lime-500 hover:bg-lime-600 text-white px-6 py-2 rounded-full mt-1 font-semibold"
+              className="bg-lime-500 hover:bg-lime-600 text-white px-6 py-2 rounded-full mt-1 font-semibold cursor-pointer"
             >
               Browse ads
             </button>
