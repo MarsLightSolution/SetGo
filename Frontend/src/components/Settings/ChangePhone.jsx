@@ -15,7 +15,7 @@ function ChangePhone({ onClose, onNext }) {
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -33,7 +33,7 @@ function ChangePhone({ onClose, onNext }) {
             <img
               src={phoneImage}
               alt="Verification"
-              className="w-full h-auto object-contain rounded-md shadow"
+              className="w-full h-auto object-contain rounded-md shadow cursor-pointer"
             />
           </div>
 
@@ -55,13 +55,13 @@ function ChangePhone({ onClose, onNext }) {
         <div className="flex justify-end gap-4 mt-8">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-sm font-medium text-gray-700 border border-gray-400 rounded-full hover:bg-gray-100 transition"
+            className="px-5 py-2 text-sm font-medium text-gray-700 border border-gray-400 rounded-full hover:bg-gray-100 transition cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={onNext}
-            className="px-5 py-2 text-sm font-semibold text-white bg-lime-500 hover:bg-lime-600 rounded-full transition"
+            className="px-5 py-2 text-sm font-semibold text-white bg-lime-500 hover:bg-lime-600 rounded-full transition cursor-pointer"
           >
             Continue
           </button>

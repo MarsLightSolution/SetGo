@@ -183,37 +183,37 @@ function AccountSettings() {
           <nav className="space-y-1 text-sm font-medium">
             <button
               onClick={() => navigate("/profile")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left"
+              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
               <span className="mr-3">👤</span> Profile information
             </button>
             <button
               onClick={() => navigate("/accountsettings")}
-              className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left"
+              className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left cursor-pointer"
             >
               <span className="mr-3">⚙️</span> Account settings
             </button>
             <button
               onClick={() => navigate("/paymentsettings")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left"
+              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
               <span className="mr-3">💳</span> Payments
             </button>
             <button
               onClick={() => navigate("/dataprotection")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left"
+              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
               <span className="mr-3">🛡️</span> Data protection
             </button>
             <button
               onClick={() => navigate("/emailsettings")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left"
+              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
               <span className="mr-3">✉️</span> Emails
             </button>
             <button
               onClick={() => navigate("/aboutclassifieds")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left"
+              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
               <span className="mr-3">❤️</span> About Classified Ads
             </button>
@@ -244,7 +244,7 @@ function AccountSettings() {
               </div>
               <button
                 onClick={() => setPopupStep("popup")}
-                className="text-green-600 hover:text-green-700 text-sm"
+                className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               >
                 Change
               </button>
@@ -264,7 +264,7 @@ function AccountSettings() {
                   </div>
                   <button
                     onClick={() => setShowEmailForm(true)}
-                    className="text-green-600 hover:text-green-700 text-sm"
+                    className="text-green-600 hover:text-green-700 text-sm  cursor-pointer"
                   >
                     Change
                   </button>
@@ -337,7 +337,7 @@ function AccountSettings() {
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
-                        className="absolute right-3 top-2.5 text-gray-400"
+                        className="absolute right-3 top-2.5 text-gray-400 cursor-pointer"
                       >
                         {showPassword ? (
                           <Eye size={18} />
@@ -352,13 +352,13 @@ function AccountSettings() {
                   <div className="flex justify-end gap-3 pt-2">
                     <button
                       onClick={() => setShowEmailForm(false)}
-                      className="px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100"
+                      className="px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100 cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleEmailSave}
-                      className="px-5 py-2 text-sm text-white bg-lime-500 hover:bg-lime-600 rounded-md"
+                      className="px-5 py-2 text-sm text-white bg-lime-500 hover:bg-lime-600 rounded-md cursor-pointer"
                     >
                       Save Email
                     </button>
@@ -377,7 +377,7 @@ function AccountSettings() {
               </div>
               <button
                 onClick={() => setShowPasswordModal(true)}
-                className="text-green-600 hover:text-green-700 text-sm"
+                className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               >
                 Change
               </button>
@@ -409,7 +409,7 @@ function AccountSettings() {
               </div>
             </div>
             <button
-              className="text-green-600 hover:text-green-700 text-sm"
+              className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               onClick={() => setShowBillingModal(true)}
             >
               Edit
@@ -420,7 +420,7 @@ function AccountSettings() {
           <div className="flex justify-end">
             <button
               onClick={handleDeleteAccount}
-              className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium"
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               Delete user account

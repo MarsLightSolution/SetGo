@@ -49,7 +49,7 @@ const UserPage = () => {
               className={`px-4 py-2 ${
                 activeTab === "following"
                   ? "border-b-2 border-green-800 text-green-800 font-semibold"
-                  : "text-green-800"
+                  : "text-green-800 cursor-pointer"
               }`}
             >
               {following.length} Following
@@ -59,7 +59,7 @@ const UserPage = () => {
               className={`px-4 py-2 ml-4 ${
                 activeTab === "followers"
                   ? "border-b-2 border-green-800 text-green-800 font-semibold"
-                  : "text-green-800"
+                  : "text-green-800 cursor-pointer"
               }`}
             >
               {followers.length} Followers
@@ -155,7 +155,7 @@ const UserPage = () => {
                   ? `Tap “Follow” on any user’s profile or ad to start following.`
                   : `Once users follow you, they will appear here.`}
               </p>
-              <button className="bg-lime-500 hover:bg-lime-600 text-white px-6 py-2 rounded-full mt-2 font-semibold">
+              <button className="bg-lime-500 hover:bg-lime-600 text-white px-6 py-2 rounded-full mt-2 font-semibold cursor-pointer">
                 Browse ads
               </button>
             </div>

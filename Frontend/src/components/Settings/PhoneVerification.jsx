@@ -56,7 +56,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber, email, onClose }) {
       {/* Close Icon */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 cursor-pointer"
       >
         <X className="w-5 h-5" />
       </button>
@@ -75,7 +75,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber, email, onClose }) {
         <div className="relative w-full sm:w-1/2">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-800 bg-white border border-gray-300 rounded-md shadow-sm"
+            className="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-800 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer"
           >
             <span className="truncate">{selectedCountry}</span>
             <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -87,7 +87,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber, email, onClose }) {
                 <button
                   key={country}
                   onClick={() => handleCountrySelect(country)}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-gray-700"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-gray-700 cursor-pointer"
                 >
                   {country}
                 </button>
@@ -120,14 +120,14 @@ function PhoneVerification({ onSendOTP, setPhoneNumber, email, onClose }) {
       <div className="flex justify-end gap-3">
         <button
           onClick={onClose}
-          className="px-5 py-2 text-sm font-medium text-gray-700 border border-gray-400 rounded-full hover:bg-gray-100 transition"
+          className="px-5 py-2 text-sm font-medium text-gray-700 border border-gray-400 rounded-full hover:bg-gray-100 transition cursor-pointer"
         >
           Cancel
         </button>
         <button
           onClick={handleSendOTP}
           disabled={loading || !localPhoneNumber}
-          className="px-5 py-2 text-sm font-semibold text-white bg-lime-500 rounded-full hover:bg-lime-600 transition disabled:opacity-50"
+          className="px-5 py-2 text-sm font-semibold text-white bg-lime-500 rounded-full hover:bg-lime-600 transition disabled:opacity-50 cursor-pointer"
         >
           {loading ? "Sending..." : "Send Code"}
         </button>

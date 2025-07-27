@@ -147,7 +147,7 @@ const Register = () => {
 
           <button
             onClick={handleRegister}
-            className="hover:bg-[#B5E941] bg-lime-500 text-white font-semibold py-2 px-4 rounded-full w-full mt-4 transition-all flex items-center justify-center gap-2"
+            className="hover:bg-[#B5E941] bg-lime-500 text-white font-semibold py-2 px-4 rounded-full w-full mt-4 transition-all flex items-center justify-center gap-2 cursor-pointer"
             disabled={loading}
           >
             {loading ? (
@@ -180,9 +180,9 @@ const Register = () => {
           </button>
 
           <p className="text-xs text-gray-600 mt-4">
-            Our <span className="text-green-700">terms of use</span> apply.
+            Our <span className="text-green-700 cursor-pointer">terms of use</span> apply.
             Information on how we process your data can be found in our{" "}
-            <span className="text-green-700">privacy policy</span>.
+            <span className="text-green-700 cursor-pointer">privacy policy</span>.
           </p>
         </div>
       </div>

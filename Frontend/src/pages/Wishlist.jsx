@@ -99,7 +99,7 @@ const Wishlist = () => {
 
           {/* Browse Listings Button */}
           <Link to="/">
-            <button className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md px-6 py-2 transition duration-300 border border-green-600 hover:bg-white hover:text-green-700">
+            <button className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md px-6 py-2 transition duration-300 border border-green-600 hover:bg-white hover:text-green-700 cursor-pointer">
               Browse Listings
             </button>
           </Link>

@@ -24,7 +24,7 @@ function PaymentSettings() {
         >
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
             <button
-              className="absolute top-4 right-4 text-gray-600 hover:text-black"
+              className="absolute top-4 right-4 text-gray-600 hover:text-black cursor-pointer"
               onClick={() => setShowPayoutModal(false)}
               aria-label="Close"
             >
@@ -37,7 +37,7 @@ function PaymentSettings() {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowPayoutModal(false)}
-                className="bg-lime-400 hover:bg-lime-500 text-white font-medium text-sm px-6 py-2 rounded-full"
+                className="bg-lime-400 hover:bg-lime-500 text-white font-medium text-sm px-6 py-2 rounded-full cursor-pointer"
               >
                 Understood
               </button>
@@ -52,22 +52,22 @@ function PaymentSettings() {
         <div className="w-64 bg-white border-r border-gray-200 p-6">
           <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
           <nav className="space-y-1 text-sm font-medium">
-            <button onClick={() => navigate('/profile')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+            <button onClick={() => navigate('/profile')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
               <span className="mr-3">👤</span> Profile information
             </button>
-            <button onClick={() => navigate('/accountsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+            <button onClick={() => navigate('/accountsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
               <span className="mr-3">⚙️</span> Account settings
             </button>
-            <button onClick={() => navigate('/paymentsettings')} className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left">
+            <button onClick={() => navigate('/paymentsettings')} className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left cursor-pointer">
               <span className="mr-3">💳</span> Payments
             </button>
-            <button onClick={() => navigate('/dataprotection')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+            <button onClick={() => navigate('/dataprotection')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
               <span className="mr-3">🛡️</span> Data protection
             </button>
-            <button onClick={() => navigate('/emailsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+            <button onClick={() => navigate('/emailsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
               <span className="mr-3">✉️</span> Emails
             </button>
-            <button onClick={() => navigate('/aboutclassifieds')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+            <button onClick={() => navigate('/aboutclassifieds')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
               <span className="mr-3">❤️</span> About Classified Ads
             </button>
           </nav>
@@ -91,7 +91,7 @@ function PaymentSettings() {
               </div>
               <button
                 onClick={() => setShowPayoutModal(true)}
-                className="text-green-600 hover:text-green-700 text-sm"
+                className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               >
                 Change
               </button>

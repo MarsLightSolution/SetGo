@@ -69,37 +69,37 @@ function ProfileMgmt() {
           <nav className="space-y-1">
             <button
               onClick={() => navigate('/profile')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md"
+              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md cursor-pointer"
             >
               <span className="mr-3">👤</span> Profile information
             </button>
             <button
               onClick={() => navigate('/accountsettings')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
             >
               <span className="mr-3">⚙️</span> Account settings
             </button>
             <button
               onClick={() => navigate('/paymentsettings')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
             >
               <span className="mr-3">💳</span> Payments
             </button>
             <button
               onClick={() => navigate('/dataprotection')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
             >
               <span className="mr-3">🛡️</span> Data protection
             </button>
             <button
               onClick={() => navigate('/emailsettings')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
             >
               <span className="mr-3">✉️</span> Emails
             </button>
             <button
               onClick={() => navigate('/aboutclassieds')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
             >
               <span className="mr-3">❤️</span> About Classified Ads
             </button>
@@ -124,14 +124,14 @@ function ProfileMgmt() {
                     />
                     <button
                       onClick={() => setIsEditingName(false)}
-                      className="text-gray-700 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100 text-sm ml-2"
+                      className="text-gray-700 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100 text-sm ml-2 cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveName}
                       disabled={savingName}
-                      className="bg-lime-400 text-white px-4 py-1 rounded-full text-sm ml-2 hover:bg-lime-500 flex items-center gap-2"
+                      className="bg-lime-400 text-white px-4 py-1 rounded-full text-sm ml-2 hover:bg-lime-500 flex items-center gap-2 cursor-pointer"
                     >
                       {savingName && (
                         <svg
@@ -163,7 +163,7 @@ function ProfileMgmt() {
               </div>
               {!isEditingName && (
                 <button
-                  className="text-green-600 hover:text-green-700 text-sm"
+                  className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
                   onClick={() => {
                     setTempProfileName(profile.username || '');
                     setIsEditingName(true);
@@ -181,7 +181,7 @@ function ProfileMgmt() {
                 <div className="text-gray-900 text-sm">{profile.deliveryAddress || 'N/A'}</div>
               </div>
               <button
-                className="text-green-600 hover:text-green-700 text-sm"
+                className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
                 onClick={() => setShowAddressModal(true)}
               >
                 Edit

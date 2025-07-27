@@ -66,7 +66,7 @@ function EmailSettings() {
               <button
                 key={item.label}
                 onClick={() => navigate(item.path)}
-                className={`flex w-full items-center px-3 py-2 rounded-md text-left transition duration-200 ${
+                className={`flex w-full items-center px-3 py-2 rounded-md text-left transition duration-200 cursor-pointer ${
                   item.active
                     ? "text-green-700 bg-green-50"
                     : "text-gray-700 hover:bg-gray-100"
@@ -95,11 +95,11 @@ function EmailSettings() {
               <label className="inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  className="sr-only"
+                  className="sr-only cursor-pointer"
                   checked={newsletter}
                   onChange={handleToggleNewsletter}
                 />
-                <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${newsletter ? 'bg-green-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 cursor-pointer ${newsletter ? 'bg-green-600' : 'bg-gray-300'}`}>
                   <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${newsletter ? 'translate-x-5' : ''}`}></div>
                 </div>
               </label>
@@ -116,11 +116,11 @@ function EmailSettings() {
               <label className="inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  className="sr-only"
+                  className="sr-only cursor-pointer"
                   checked={messagesFromUsers}
                   onChange={handleToggleMessages}
                 />
-                <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${messagesFromUsers ? 'bg-green-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 cursor-pointer ${messagesFromUsers ? 'bg-green-600' : 'bg-gray-300'}`}>
                   <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${messagesFromUsers ? 'translate-x-5' : ''}`}></div>
                 </div>
               </label>
