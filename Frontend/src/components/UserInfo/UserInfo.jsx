@@ -42,10 +42,6 @@ export default function UserInfo() {
   const userId = localStorage.getItem("userId");
   const sliderRef = useRef(null);
 
-  const hasAccessTokenCookie = () => {
-    return document.cookie.split(";").some((cookie) => cookie.trim().startsWith("accessToken="));
-  };
-
   const scrollSlider = (direction) => {
     if (!sliderRef.current) return;
     const amount = direction === "left" ? -300 : 300;
@@ -59,7 +55,6 @@ export default function UserInfo() {
           `http://localhost:8080/api/products/user/${userId}/ads`,
           { withCredentials: true } // ✅ Required for cookie-based auth
         );
-
         if (response.data && Array.isArray(response.data.data)) {
           setAds(response.data.data);
         } else {
@@ -71,7 +66,7 @@ export default function UserInfo() {
       }
     };
 
-    if (userId && hasAccessTokenCookie()) {
+    if (userId) {
       fetchUserAds();
     }
   }, [userId]);
