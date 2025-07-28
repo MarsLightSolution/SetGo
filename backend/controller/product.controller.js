@@ -197,7 +197,7 @@ const getProducts = asyncHandler(async (req, res) => {
     lang = "en",
   } = req.query;
 
-  const validLangs = ["en", "de"];
+  const validLangs = ["en", "az", "ru"];
   const selectedLang = validLangs.includes(lang) ? lang : "en";
 
   logger.info(`[GetProducts] Query`, {
