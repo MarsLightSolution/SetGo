@@ -19,7 +19,13 @@ import {
   ToastifyContainer,
 } from "../Hooks/Tostify";
 
+// i18n imports
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n'; // Adjust path if necessary
+
 const Form = () => {
+  const { t } = useTranslation(); // Initialize useTranslation hook
+
   const maxDescriptionLength = 1000;
   const fileInputRef = useRef(null);
 
@@ -39,7 +45,7 @@ const Form = () => {
     pictures: [],
     latitude: '',
     longitude: '',
-    inputLanguage: 'en', // <--- NEW: Default input language to English
+    inputLanguage: i18n.language || 'en', // Initialize with current i18n language or default to 'en'
   });
 
   const [errors, setErrors] = useState({});
@@ -58,58 +64,65 @@ const Form = () => {
         },
         (err) => {
           console.error("Geolocation error:", err);
+          showErrorToast(t("locationError")); // Translated
         }
       );
     } else {
       console.warn("Geolocation not supported");
+      showErrorToast(t("geolocationNotSupported")); // Translated
     }
-  }, []);
+  }, [t]);
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     const updatedValue = type === "checkbox" ? checked : type === "file" ? files : value;
     let newErrors = { ...errors };
 
-    // Validation
+    // Validation (update error messages to use t())
     if (name === "title") {
-      if (!updatedValue.trim()) newErrors.title = "Title is required";
-      else if (updatedValue.length > 24) newErrors.title = "Title must be at most 24 characters";
+      if (!updatedValue.trim()) newErrors.title = t("form.titleRequired");
+      else if (updatedValue.length > 24) newErrors.title = t("form.titleLengthError");
       else delete newErrors.title;
     }
 
     if (name === "price") {
-      if (!updatedValue.trim()) newErrors.price = "Price is required";
-      else if (!/^\d+$/.test(updatedValue)) newErrors.price = "Only numbers allowed";
+      if (!updatedValue.trim()) newErrors.price = t("form.priceRequired");
+      else if (!/^\d+$/.test(updatedValue)) newErrors.price = t("form.priceNumbersOnly");
       else delete newErrors.price;
     }
 
     if (name === "postalCode") {
-      if (!updatedValue.trim()) newErrors.postalCode = "Postal code is required";
-      else if (!/^\d{6}$/.test(updatedValue)) newErrors.postalCode = "Postal code must be 6-digit number";
+      if (!updatedValue.trim()) newErrors.postalCode = t("form.postalCodeRequired");
+      else if (!/^\d{6}$/.test(updatedValue)) newErrors.postalCode = t("form.postalCodeFormatError");
       else delete newErrors.postalCode;
     }
 
     if (name === "location") {
-      if (!updatedValue.trim()) newErrors.location = "Location is required";
-      else if (updatedValue.length > 50) newErrors.location = "Max 50 characters allowed";
+      if (!updatedValue.trim()) newErrors.location = t("form.locationRequired");
+      else if (updatedValue.length > 50) newErrors.location = t("form.locationLengthError");
       else delete newErrors.location;
     }
 
     if (name === "name") {
-      if (!updatedValue.trim()) newErrors.name = "Name is required";
-      else if (!/^[A-Za-z\s]+$/.test(updatedValue)) newErrors.name = "Only alphabets allowed";
+      if (!updatedValue.trim()) newErrors.name = t("form.nameRequired");
+      else if (!/^[A-Za-z\s]+$/.test(updatedValue)) newErrors.name = t("form.nameAlphabetOnly");
       else delete newErrors.name;
     }
 
     // Pictures handling
     if (name === "pictures" && files) {
       const filesArray = Array.from(files);
+      if (filesArray.length + formData.pictures.length > 8) {
+        showErrorToast(t("form.maxPicturesError")); // Translated
+        return;
+      }
+
       const previews = filesArray.map((file) => URL.createObjectURL(file));
       setFormData((prev) => ({
         ...prev,
-        pictures: filesArray,
+        pictures: [...prev.pictures, ...filesArray],
       }));
-      setImagePreviews(previews);
+      setImagePreviews((prev) => [...prev, ...previews]);
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -120,61 +133,63 @@ const Form = () => {
     setErrors(newErrors);
   };
 
-  const removeImage = (index) => {
-    const updatedPictures = [...formData.pictures];
-    const updatedPreviews = [...imagePreviews];
-    updatedPictures.splice(index, 1);
-    updatedPreviews.splice(index, 1);
+  const removeImage = (indexToRemove) => {
+    const updatedPictures = formData.pictures.filter((_, idx) => idx !== indexToRemove);
+    const updatedPreviews = imagePreviews.filter((_, idx) => idx !== indexToRemove);
+
     setFormData((prev) => ({ ...prev, pictures: updatedPictures }));
     setImagePreviews(updatedPreviews);
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = null;
+    if (updatedPictures.length === 0 && fileInputRef.current) {
+        fileInputRef.current.value = null;
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Required fields
-    const requiredFields = [
-      "title",
-      "category",
-      "price",
-      "description",
-      "postalCode",
-      "location",
-      "name",
-    ];
+    // Re-check validation before submission
+    const currentErrors = {};
+    if (!formData.title.trim()) currentErrors.title = t("form.titleRequired");
+    if (formData.title.length > 24) currentErrors.title = t("form.titleLengthError");
+    if (!formData.category.trim()) currentErrors.category = t("form.categoryRequired");
+    if (!formData.price.trim()) currentErrors.price = t("form.priceRequired");
+    else if (!/^\d+$/.test(formData.price)) currentErrors.price = t("form.priceNumbersOnly");
+    if (!formData.description.trim()) currentErrors.description = t("form.descriptionRequired");
+    if (!formData.postalCode.trim()) currentErrors.postalCode = t("form.postalCodeRequired");
+    else if (!/^\d{6}$/.test(formData.postalCode)) currentErrors.postalCode = t("form.postalCodeFormatError");
+    if (!formData.location.trim()) currentErrors.location = t("form.locationRequired");
+    if (formData.location.length > 50) currentErrors.location = t("form.locationLengthError");
+    if (!formData.name.trim()) currentErrors.name = t("form.nameRequired");
+    else if (!/^[A-Za-z\s]+$/.test(formData.name)) currentErrors.name = t("form.nameAlphabetOnly");
 
-    for (let field of requiredFields) {
-      if (!formData[field]) {
-        showErrorToast(`"${field}" is required`); // More specific error message
-        return;
-      }
+    setErrors(currentErrors); // Update errors state
+
+    if (Object.keys(currentErrors).length > 0) {
+      showErrorToast(t("form.fixFormErrors")); // Translated
+      return;
     }
 
     if (!formData.termsAccepted) {
-      showErrorToast("You must accept the terms and conditions");
+      showErrorToast(t("form.termsRequired")); // Translated
       return;
     }
 
     if (!formData.latitude || !formData.longitude) {
-      showErrorToast("Location not found. Please allow location access.");
+      showErrorToast(t("form.locationNotFound")); // Translated
       return;
     }
 
-    if (Object.keys(errors).some(key => errors[key])) { // Check if any error exists
-      showErrorToast("Please fix form errors before submitting.");
-      return;
+    if (formData.pictures.length === 0) {
+        showErrorToast(t("form.picturesRequired")); // Translated
+        return;
     }
 
     const formDataToSend = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
-      if (key === "pictures" && value.length > 0) {
+      if (key === "pictures") {
         value.forEach((file) => formDataToSend.append("pictures", file));
       } else {
-        // Append all other fields, including the new inputLanguage
         formDataToSend.append(key, typeof value === "boolean" ? String(value) : value);
       }
     });
@@ -188,8 +203,7 @@ const Form = () => {
       const data = await res.json();
 
       if (res.ok) {
-        showSuccessToast("Form submitted successfully");
-        // Reset form data, keeping latitude and longitude
+        showSuccessToast(t("form.formSubmittedSuccess")); // Translated
         setFormData((prev) => ({
           offerType: "offer",
           title: "",
@@ -204,19 +218,18 @@ const Form = () => {
           termsAccepted: false,
           subscribe: false,
           pictures: [],
-          latitude: prev.latitude, // Keep existing latitude
-          longitude: prev.longitude, // Keep existing longitude
-          inputLanguage: 'en', // Reset input language to default
+          latitude: prev.latitude,
+          longitude: prev.longitude,
+          inputLanguage: i18n.language || 'en', // Reset input language to current display language
         }));
         setImagePreviews([]);
-        // No need for e.target.reset() with controlled components
         if (fileInputRef.current) fileInputRef.current.value = null;
       } else {
-        showErrorToast(data.message || "Something went wrong");
+        showErrorToast(data.message || t("form.somethingWentWrong")); // Translated fallback
       }
     } catch (error) {
       console.error("Error submitting ad:", error);
-      showErrorToast("Failed to submit form");
+      showErrorToast(t("form.failedToSubmitForm")); // Translated
     }
   };
 
@@ -227,20 +240,20 @@ const Form = () => {
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl space-y-6">
           {/* Ad Details */}
           <div>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">Ad details</h2>
+            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">{t("form.adDetails")}</h2>
 
             <FormControl component="fieldset" className="mb-4">
-              <FormLabel>Bid Request</FormLabel>
+              <FormLabel>{t("form.bidRequest")}</FormLabel>
               <RadioGroup row name="offerType" value={formData.offerType} onChange={handleChange}>
-                <FormControlLabel value="offer" control={<Radio />} label="I offer" />
-                <FormControlLabel value="looking" control={<Radio />} label="I am looking for" />
+                <FormControlLabel value="offer" control={<Radio />} label={t("form.iOffer")} />
+                <FormControlLabel value="looking" control={<Radio />} label={t("form.iAmLookingFor")} />
               </RadioGroup>
             </FormControl>
 
-            {/* NEW: Input Language Selector */}
+            {/* Input Language Selector */}
             <TextField
               select
-              label="Language of your input"
+              label={t("form.languageOfInput")}
               name="inputLanguage"
               value={formData.inputLanguage}
               onChange={handleChange}
@@ -248,64 +261,67 @@ const Form = () => {
               sx={{ mb: 3 }} // Margin bottom for spacing
             >
               <MenuItem value="en">English</MenuItem>
-              <MenuItem value="az">Azerbaijani</MenuItem>
-              <MenuItem value="ru">Russian</MenuItem>
+              <MenuItem value="az">Azərbaycan</MenuItem>
+              <MenuItem value="ru">Русский</MenuItem>
             </TextField>
 
             <div className="flex flex-col gap-4">
               <TextField
-                label="Title"
+                label={t("form.title")}
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
                 error={!!errors.title}
-                helperText={errors.title || "Tip: You sell better with a meaningful title"}
+                helperText={errors.title || t("form.titleHelper")}
                 sx={{ width: "40rem" }}
               />
               <TextField
                 select
-                label="Category"
+                label={t("form.category")}
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
+                error={!!errors.category}
+                helperText={errors.category}
                 sx={{ width: "41rem" }}
               >
-                <MenuItem value="">Choose your category</MenuItem>
-                <MenuItem value="Cars & Motorcycles">Cars & Motorcycles</MenuItem>
-                <MenuItem value="Real Estate">Real Estate</MenuItem>
-                <MenuItem value="Jobs">Jobs</MenuItem>
-                <MenuItem value="Household & Furniture">Household & Furniture</MenuItem>
-                <MenuItem value="Electronics">Electronics</MenuItem>
-                <MenuItem value="Leisure, Hobby & Neighborhood">Leisure, Hobby & Neighborhood</MenuItem>
-                <MenuItem value="Service">Service</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
+                <MenuItem value="">{t("form.chooseCategory")}</MenuItem>
+                <MenuItem value="Cars & Motorcycles">{t("home.category.carsMotorcycles")}</MenuItem>
+                <MenuItem value="Real Estate">{t("home.category.realEstate")}</MenuItem>
+                <MenuItem value="Jobs">{t("home.category.jobs")}</MenuItem>
+                <MenuItem value="Household & Furniture">{t("home.category.householdFurniture")}</MenuItem>
+                <MenuItem value="Electronics">{t("home.category.electronics")}</MenuItem>
+                <MenuItem value="Leisure, Hobby & Neighborhood">{t("home.category.leisureHobbyNeighborhood")}</MenuItem>
+                <MenuItem value="Service">{t("home.category.service")}</MenuItem>
+                <MenuItem value="Other">{t("home.category.other")}</MenuItem>
               </TextField>
               <TextField
-                label="Price"
+                label={t("form.price")}
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
                 error={!!errors.price}
                 helperText={errors.price}
                 sx={{ width: "41rem" }}
-                InputProps={{ endAdornment: <span className="text-gray-500">EUR</span> }}
+                InputProps={{ endAdornment: <span className="text-gray-500">{t("form.currency")}</span> }}
               />
               <TextField
-                label="Description"
+                label={t("form.description")}
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
                 multiline
                 rows={4}
                 sx={{ width: "41rem" }}
-                helperText={`${maxDescriptionLength - formData.description.length} characters left`}
+                error={!!errors.description}
+                helperText={errors.description || t("form.charactersLeft", { count: maxDescriptionLength - formData.description.length })}
               />
             </div>
 
             {/* Upload Section */}
             <div className="mt-4">
               <label className="block font-medium mb-2">
-                Pictures <span className="text-red-600">*</span>
+                {t("form.pictures")} <span className="text-red-600">*</span>
               </label>
               <div className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center cursor-pointer hover:border-green-600 transition-all">
                 <input
@@ -320,8 +336,8 @@ const Form = () => {
                 />
                 <label htmlFor="fileUpload" className="cursor-pointer flex flex-col items-center">
                   <CloudUploadIcon style={{ fontSize: 40, color: "gray" }} />
-                  <span className="text-gray-600 text-sm mt-2">Click to upload or drag files here</span>
-                  <span className="text-xs text-gray-500">Max 8 images (12MB each)</span>
+                  <span className="text-gray-600 text-sm mt-2">{t("form.uploadTip")}</span>
+                  <span className="text-xs text-gray-500">{t("form.maxImagesTip")}</span>
                 </label>
               </div>
 
@@ -332,7 +348,7 @@ const Form = () => {
                       <img src={src} alt={`preview-${idx}`} className="w-full h-full object-cover" />
                       <IconButton
                         size="small"
-                        onClick={() => removeImage(idx)}
+                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
                         style={{
                           position: "absolute",
                           top: 0,
@@ -352,10 +368,10 @@ const Form = () => {
 
           {/* Location */}
           <div>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">Location</h2>
+            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">{t("form.location")}</h2>
             <div className="flex gap-4 mb-4">
               <TextField
-                label="Postal Code"
+                label={t("form.postalCode")}
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
@@ -364,7 +380,7 @@ const Form = () => {
                 sx={{ width: "10rem" }}
               />
               <TextField
-                label="Location"
+                label={t("form.locationCity")}
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
@@ -375,11 +391,11 @@ const Form = () => {
             </div>
             <TextField
               className="mt-4"
-              label="Street No. (optional)"
+              label={t("form.streetNo")}
               name="streetNo"
               value={formData.streetNo}
               onChange={handleChange}
-              helperText="Tip: By default, we only display the postal code and city. To show full address, check the box below."
+              helperText={t("form.streetNoHelper")}
               fullWidth
             />
             <FormControlLabel
@@ -390,15 +406,15 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label="Show full address"
+              label={t("form.showFullAddress")}
             />
           </div>
 
           {/* Your Details */}
           <div>
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">Your details</h2>
+            <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">{t("form.yourDetails")}</h2>
             <TextField
-              label="Name"
+              label={t("form.name")}
               name="name"
               value={formData.name}
               onChange={handleChange}
@@ -406,9 +422,8 @@ const Form = () => {
               helperText={
                 errors.name || (
                   <span>
-                    Tip: You can change your profile name at any time in settings. <br />
-                    <strong>Note:</strong> We've removed phone numbers for privacy. See our{" "}
-                    <a href="#" className="text-blue-600 underline">help center</a>.
+                    {t("form.nameHelper1")} <br />
+                    <strong>{t("form.note")}:</strong> {t("form.nameHelper2", { link: <a href="#" className="text-blue-600 underline">{t("form.helpCenter")}</a> })}
                   </span>
                 )
               }
@@ -422,7 +437,7 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label="Subscribe to updates"
+              label={t("form.subscribeToUpdates")}
             />
           </div>
 
@@ -436,17 +451,15 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label="I accept the terms and conditions"
+              label={t("form.termsAndConditions")}
             />
             <p className="text-xs text-gray-500 mt-2">
-              Our{" "}
-              <a href="#" className="text-blue-600 underline">terms of use</a>{" "}
-              apply. For privacy info, see our policy.
+              {t("form.termsText1", { termsLink: <a href="#" className="text-blue-600 underline">{t("form.termsOfUse")}</a> })}
             </p>
           </div>
 
           <Button type="submit" variant="contained" color="success" className="mt-8">
-            Publish your ad
+            {t("form.publishAd")}
           </Button>
         </form>
       </div>
@@ -455,4 +468,4 @@ const Form = () => {
   );
 };
 
-export default Form;
+export default Form;1

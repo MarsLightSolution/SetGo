@@ -10,37 +10,30 @@ import rightadImage from "../assets/images/ad02.png";
 import NotificationDemo from "../components/NotificationDemo";
 import { useNotifications } from "../hooks/useNotifications";
 
-// Helper for multilingual fields (can be passed via context if you have one)
-const getLocalizedText = (field, lang = "en") => {
-  if (!field) return "";
-  if (typeof field === "string") return field;
-  return field[lang] || field.en || field.de || "";
-};
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n'; // Ensure this import is present if you remove the global selector from Navbar
 
 
-
-const AdCard = ({ image, title, location, ad, price }) => {
+const AdCard = ({ ad, image, price }) => {
+  const { t, i18n } = useTranslation();
   const hasAccessTokenCookie = () => {
-  return document.cookie.split(";").some((c) => c.trim().startsWith("refreshToken="));
-};
+    return document.cookie.split(";").some((c) => c.trim().startsWith("refreshToken="));
+  };
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { sendLikeNotification } = useNotifications();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
   const liked = ad && likedAds.some((item) => item._id === ad._id);
 
-  // Assuming 'en' as the default display language for simplicity
-  const displayLanguage = "en";
+  const currentDisplayLanguage = i18n.language;
 
-  const displayTitle = getLocalizedText(ad.title, displayLanguage);
-  // Your MongoDB response shows postalCode as a direct field or under location.
-  // Using postalCode first as it's directly on the product document.
-  const displayLocation = ad.postalCode || ad.location?.postalCode || "Unknown";
+  const displayTitle = typeof ad.title === 'object' ? (ad.title?.[currentDisplayLanguage] || ad.title?.en || "") : ad.title || "";
+  const displayLocation = typeof ad.location === 'object' ? (ad.location?.postalCode?.[currentDisplayLanguage] || ad.location?.postalCode?.en || "") : ad.postalCode || ad.location || t("home.unknownLocation");
 
 
   const handleLikeToggle = () => {
     if (!hasAccessTokenCookie()) {
-      alert("You need to login first to like items.");
+      alert(t("home.loginToLike"));
       return;
     }
 
@@ -89,7 +82,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
       <div className="w-full h-[140px] flex justify-center items-center">
         <img
           src={image}
-          alt={displayTitle} // Use the display title for alt text
+          alt={displayTitle}
           className="h-full w-full object-contain rounded-md"
         />
       </div>
@@ -103,57 +96,66 @@ const AdCard = ({ image, title, location, ad, price }) => {
   );
 };
 
-const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
-  <div className="bg-white p-4 rounded shadow mt-3">
-    <h2 className="text-xl font-semibold text-gray-800 mb-4">{title}</h2>
-    <div className="flex flex-wrap gap-4">
-      {ads.map((ad) => (
-        <AdCard
-          key={ad._id}
-          ad={ad} // Pass the entire ad object
-          image={`http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"
-            }`}
-          price={ad.price}
-        />
-      ))}
+const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="bg-white p-4 rounded shadow mt-3">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">{t(titleKey)}</h2>
+      <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+        {ads.map((ad, index) => (
+          <AdCard
+            key={ad._id || `ad-${index}`}
+            ad={ad}
+            image={ad.image || `http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
+            price={ad.price}
+          />
+        ))}
+        {ads.length === 0 && (
+            <p className="text-gray-500 text-center w-full">{t("home.noAdsFound")}</p>
+        )}
+      </div>
+      {ads.length > 0 && pagination && (
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <button
+            disabled={!pagination.hasPrevPage}
+            onClick={() =>
+              onPageChange((p) => ({ ...p, currentPage: pagination.prevPage }))
+            }
+            className={`px-4 py-1 rounded ${pagination.hasPrevPage
+                ? "bg-gray-200 hover:bg-gray-300"
+                : "bg-gray-100 cursor-not-allowed"
+              }`}
+          >
+            {t("home.pagination.prev")}
+          </button>
+          <span className="text-sm text-gray-700">
+            {t("home.pagination.pageOf", { currentPage: pagination.currentPage, totalPages: pagination.totalPages })}
+          </span>
+          <button
+            disabled={!pagination.hasNextPage}
+            onClick={() =>
+              onPageChange((p) => ({ ...p, currentPage: pagination.nextPage }))
+            }
+            className={`px-4 py-1 rounded ${pagination.hasNextPage
+                ? "bg-gray-200 hover:bg-gray-300"
+                : "bg-gray-100 cursor-not-allowed"
+              }`}
+          >
+            {t("home.pagination.next")}
+          </button>
+        </div>
+      )}
     </div>
-    <div className="flex justify-center items-center gap-4 mt-6">
-      <button
-        disabled={!pagination.hasPrevPage}
-        onClick={() =>
-          onPageChange((p) => ({ ...p, currentPage: pagination.prevPage }))
-        }
-        className={`px-4 py-1 rounded ${pagination.hasPrevPage
-            ? "bg-gray-200 hover:bg-gray-300"
-            : "bg-gray-100 cursor-not-allowed"
-          }`}
-      >
-        Prev
-      </button>
-      <span className="text-sm text-gray-700">
-        Page {pagination.currentPage} of {pagination.totalPages}
-      </span>
-      <button
-        disabled={!pagination.hasNextPage}
-        onClick={() =>
-          onPageChange((p) => ({ ...p, currentPage: pagination.nextPage }))
-        }
-        className={`px-4 py-1 rounded ${pagination.hasNextPage
-            ? "bg-gray-200 hover:bg-gray-300"
-            : "bg-gray-100 cursor-not-allowed"
-          }`}
-      >
-        Next
-      </button>
-    </div>
-  </div>
-);
+  );
+};
 
 const Home = () => {
+  const { t, i18n } = useTranslation();
   const [latestAds, setLatestAds] = useState([]);
   const [recommendedAds, setRecommendedAds] = useState([]);
-  const [activeCategory, setActiveCategory] = useState("All Products");
-  const userId = localStorage.getItem("userId"); // You can also switch this to a cookie if needed
+  const [activeCategory, setActiveCategory] = useState(t("home.allProducts"));
+  const userId = localStorage.getItem("userId");
   const PAGE_SIZE = 12;
   const filter = useSelector((state) => state.filter);
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
@@ -162,30 +164,48 @@ const Home = () => {
   });
   const { priceRange, condition, radius, city, latitude, longitude } = useSelector((state) => state.filter);
 
+  const categoryKeys = [
+    "home.allProducts",
+    "navbar.category.carsMotorcycles",
+    "navbar.category.realEstate",
+    "navbar.category.jobs",
+    "navbar.category.householdFurniture",
+    "navbar.category.electronics",
+    "navbar.category.leisureHobbyNeighborhood",
+    "navbar.category.service",
+    "navbar.category.other"
+  ];
+
+  const getCategoryValue = (translatedCategory) => {
+    const foundKey = categoryKeys.find(key => t(key) === translatedCategory);
+    if (foundKey) {
+        return t(foundKey, { lng: 'en' });
+    }
+    return 'All Products';
+  };
+
   const fetchProducts = async (type, page) => {
     try {
       const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
+      // --- NEW: Add current display language to params ---
+      params.append("lang", i18n.language);
+      // --- END NEW ---
+
       if (type === "nearby" && latitude && longitude) {
         params.append("latitude", latitude);
         params.append("longitude", longitude);
-        params.append("radiusInKm", radius || 10); // default 10km
+        params.append("radiusInKm", radius || 10);
       }
-      // Category-based filter
-      if (type === "category" && activeCategory !== "All Products") {
-        params.append("category", activeCategory);
+      if (type === "category" && activeCategory !== t("home.allProducts")) {
+        params.append("category", getCategoryValue(activeCategory));
       }
 
-      // Other filters
       if (filter.minPrice) params.append("minPrice", filter.minPrice);
       if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
       if (filter.condition) params.append("condition", filter.condition);
       if (filter.radius) params.append("radius", filter.radius);
       if (filter.city) params.append("city", filter.city);
-
-      // Auth details - only append if relevant to the API
-      // const token = localStorage.getItem("accessToken");
-      // const userId = localStorage.getItem("userId");
 
       let endpoint = "http://localhost:8080/api/products/getProducts";
 
@@ -195,83 +215,72 @@ const Home = () => {
 
       const res = await fetch(`${endpoint}?${params.toString()}`, {
         method: "GET",
-        credentials: "include", // ✅ Send cookies
+        credentials: "include",
       });
 
       if (!res.ok) {
-        console.error("Failed to fetch products");
+        console.error(t("home.fetchProductsError"));
         return;
       }
 
       const json = await res.json();
-      // Ensure json.data exists and has products and pagination
       const { products = [], ...pagination } = json.data ?? {};
 
       if (type === "category") {
         setLatestAds(products);
         setLatestPagination(pagination);
-      } else { // This will apply to "recommended" and "nearby" if they hit the same state
+      } else {
         setRecommendedAds(products);
         setRecommendedPagination(pagination);
       }
     } catch (err) {
-      console.error("Fetch failed:", err);
+      console.error(t("home.fetchFailed"), err);
     }
   };
 
   useEffect(() => {
+    setActiveCategory(t("home.allProducts"));
     if (latitude && longitude) {
-      fetchProducts("nearby", 1); // Fetch nearby on location change
+      fetchProducts("nearby", 1);
     }
-  }, [latitude, longitude, radius]); // Add radius to dependencies
+  }, [latitude, longitude, radius, t, i18n.language]); // --- NEW: Add i18n.language to dependencies ---
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
-  }, [activeCategory, latestPagination.currentPage, filter]); // Add filter as a dependency for latest ads
+  }, [activeCategory, latestPagination.currentPage, filter, t, i18n.language]); // --- NEW: Add i18n.language to dependencies ---
 
   useEffect(() => {
     fetchProducts("recommended", recommendedPagination.currentPage);
-  }, [recommendedPagination.currentPage, filter]); // Add filter as a dependency for recommended ads
-
-  const categories = [
-    "All Products",
-    "Cars & Motorcycles",
-    "Real Estate",
-    "Jobs",
-    "Household & Furniture",
-    "Electronics",
-    "Leisure, Hobby & Neighborhood",
-    "Service",
-  ];
+  }, [recommendedPagination.currentPage, filter, t, i18n.language]); // --- NEW: Add i18n.language to dependencies ---
 
   const galleryData = [
     {
-      title: "XVS 950 Midnightstar",
-      location: "Oelde",
+      title: { en: "XVS 950 Midnightstar", az: "XVS 950 Midnightstar", ru: "XVS 950 Midnightstar" },
+      location: { en: "Oelde", az: "Oelde", ru: "Ольде" },
       price: "5,195 €",
       image: "/images/bike.jpg",
     },
     {
-      title: "Washing machine",
-      location: "Mönchengladbach",
+      title: { en: "Washing machine", az: "Paltaryuyan maşın", ru: "Стиральная машина" },
+      location: { en: "Mönchengladbach", az: "Mönchengladbach", ru: "Мёнхенгладбах" },
       price: "333 €",
       image: "/images/washingMachine.png",
     },
     {
-      title: "Transport trolleys",
-      location: "Bad Buchau",
+      title: { en: "Transport trolleys", az: "Nəqliyyat arabaları", ru: "Транспортные тележки" },
+      location: { en: "Bad Buchau", az: "Bad Buchau", ru: "Бад Бухау" },
       price: "115 €",
       image: "/images/transportTrolley.png",
     },
     {
-      title: "Camping gear set",
-      location: "Dresden",
+      title: { en: "Camping gear set", az: "Kamp ləvazimatları dəsti", ru: "Набор для кемпинга" },
+      location: { en: "Dresden", az: "Dresden", ru: "Дрезден" },
       price: "150 €",
       image: "/images/camping.png",
     },
     {
-      title: "Horses help children",
-      location: "Schlutup",
+      title: { en: "Horses help children", az: "Atlar uşaqlara kömək edir", ru: "Лошади помогают детям" },
+      location: { en: "Schlutup", az: "Schlutup", ru: "Шлутуп" },
       price: "VB",
       image: "/images/horse.jpg",
     },
@@ -279,33 +288,33 @@ const Home = () => {
 
   const companyWebsites = [
     {
-      name: "Flipkart",
-      description: "Shop electronics, fashion, more",
+      name: { en: "Flipkart", az: "Flipkart", ru: "Flipkart" },
+      description: { en: "Shop electronics, fashion, more", az: "Elektronika, moda və daha çox alış-veriş edin", ru: "Покупайте электронику, моду и многое другое" },
       image: "/images/flipkart.svg",
     },
     {
-      name: "Amazon",
-      description: "Online shopping destination",
+      name: { en: "Amazon", az: "Amazon", ru: "Amazon" },
+      description: { en: "Online shopping destination", az: "Onlayn alış-veriş ünvanı", ru: "Место для онлайн-покупок" },
       image: "/images/amazon.png",
     },
     {
-      name: "Myntra",
-      description: "Fashion & lifestyle store",
+      name: { en: "Myntra", az: "Myntra", ru: "Myntra" },
+      description: { en: "Fashion & lifestyle store", az: "Moda və həyat tərzi mağazası", ru: "Магазин моды и стиля жизни" },
       image: "/images/myntra.jpg",
     },
     {
-      name: "Snapdeal",
-      description: "Deals and discounts online",
+      name: { en: "Snapdeal", az: "Snapdeal", ru: "Snapdeal" },
+      description: { en: "Deals and discounts online", az: "Onlayn sövdələşmələr və endirimlər", ru: "Сделки и скидки онлайн" },
       image: "/images/snapdeal.png",
     },
     {
-      name: "Ajio",
-      description: "Trendy clothes and accessories",
+      name: { en: "Ajio", az: "Ajio", ru: "Ajio" },
+      description: { en: "Trendy clothes and accessories", az: "Dəbli geyimlər və aksesuarlar", ru: "Модная одежда и аксессуары" },
       image: "/images/ajio.jpg",
     },
     {
-      name: "Reliance Digital",
-      description: "Electronics & gadgets",
+      name: { en: "Reliance Digital", az: "Reliance Digital", ru: "Reliance Digital" },
+      description: { en: "Electronics & gadgets", az: "Elektronika və cihazlar", ru: "Электроника и гаджеты" },
       image: "/images/reliance.png",
     },
   ];
@@ -332,7 +341,7 @@ const Home = () => {
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
             <img
               src={leftadImage}
-              alt="Left Ad"
+              alt={t("home.leftAdAlt")}
               className="w-full h-[550px] object-cover rounded"
             />
           </div>
@@ -343,12 +352,12 @@ const Home = () => {
             <div className="relative">
               <img
                 src={bannerImage}
-                alt="Banner"
+                alt={t("home.bannerAlt")}
                 className="w-full h-[233px] object-cover rounded-xl shadow"
               />
               <div className="absolute bottom-4 left-6 z-10">
-                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg cursor-pointer">
-                  Join Now
+                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg">
+                  {t("home.joinNow")}
                 </button>
               </div>
             </div>
@@ -357,43 +366,48 @@ const Home = () => {
             <div className="flex flex-wrap gap-4">
               {/* Categories */}
               <div className="bg-white p-4 rounded shadow w-full md:w-[38%] h-[350px] overflow-y-auto">
-                <h2 className="text-lg font-semibold mb-3">Categories</h2>
+                <h2 className="text-lg font-semibold mb-3">{t("home.categories")}</h2>
                 <ul className="text-sm space-y-4 pl-2 text-gray-700">
-                  {categories.map((cat) => (
-                    <li
-                      key={cat}
-                      onClick={() => {
-                        setActiveCategory(cat);
-                        setLatestPagination((p) => ({
-                          ...p,
-                          currentPage: 1,
-                        }));
-                      }}
-                      className={`cursor-pointer hover:underline ${activeCategory === cat
-                          ? "font-semibold text-green-700"
-                          : ""
-                        }`}
-                    >
-                      {cat}
-                    </li>
-                  ))}
+                  {categoryKeys.map((key) => {
+                    const translatedCat = t(key);
+                    return (
+                      <li
+                        key={key}
+                        onClick={() => {
+                          setActiveCategory(translatedCat);
+                          setLatestPagination((p) => ({
+                            ...p,
+                            currentPage: 1,
+                          }));
+                        }}
+                        className={`cursor-pointer hover:underline ${activeCategory === translatedCat
+                            ? "font-semibold text-green-700"
+                            : ""
+                          }`}
+                      >
+                        {translatedCat}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
 
               {/* Gallery */}
               <div className="bg-white p-4 rounded shadow flex-1 w-full md:w-[60%]">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Gallery</h2>
+                  <h2 className="text-lg font-semibold">{t("home.gallery")}</h2>
                   <div className="flex gap-2">
                     <button
                       className="w-8 h-8 border cursor-pointer border-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                       onClick={() => scrollGallery("left")}
+                      title={t("home.scrollLeft")}
                     >
                       &#8592;
                     </button>
                     <button
                       className="w-8 h-8 border border-gray-300 cursor-pointer rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                       onClick={() => scrollGallery("right")}
+                      title={t("home.scrollRight")}
                     >
                       &#8594;
                     </button>
@@ -412,16 +426,16 @@ const Home = () => {
                       <div className="w-full h-[200px] bg-white flex justify-center items-center">
                         <img
                           src={item.image}
-                          alt={item.title}
+                          alt={item.title[i18n.language] || item.title.en}
                           className="h-full object-contain"
                         />
                       </div>
                       <div className="p-2">
                         <p className="text-sm font-medium text-gray-800">
-                          {item.title}
+                          {item.title[i18n.language] || item.title.en}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {item.location}
+                          {item.location[i18n.language] || item.location.en}
                         </p>
                       </div>
                       <div className="absolute top-2 right-2 bg-lime-400 text-xs font-bold px-2 py-[2px] rounded-sm">
@@ -434,22 +448,22 @@ const Home = () => {
             </div>
 
             <SectionWithAds
-              title="Latest Ads"
+              titleKey="home.latestAds"
               ads={latestAds}
               pagination={latestPagination}
               onPageChange={setLatestPagination}
             />
 
             <SectionWithAds
-              title="Recommended For You"
+              titleKey="home.recommendedForYou"
               ads={recommendedAds}
               pagination={recommendedPagination}
               onPageChange={setRecommendedPagination}
             />
             <SectionWithAds
-              title="Nearby Products Around You"
-              ads={recommendedAds} // This section uses recommendedAds state
-              pagination={recommendedPagination} // This section uses recommendedPagination state
+              titleKey="home.nearbyProductsAroundYou"
+              ads={recommendedAds}
+              pagination={recommendedPagination}
               onPageChange={setRecommendedPagination}
             />
 
@@ -457,18 +471,20 @@ const Home = () => {
             <div className="bg-white p-4 mt-3 rounded shadow">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">
-                  Company Websites
+                  {t("home.companyWebsites")}
                 </h2>
                 <div className="flex gap-2">
                   <button
                     className="w-8 h-8 border border-gray-300 cursor-pointer rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                     onClick={() => scrollCompanySlider("left")}
+                    title={t("home.scrollLeft")}
                   >
                     &#8592;
                   </button>
                   <button
                     className="w-8 h-8 border border-gray-300 cursor-pointer rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
                     onClick={() => scrollCompanySlider("right")}
+                    title={t("home.scrollRight")}
                   >
                     &#8594;
                   </button>
@@ -488,21 +504,21 @@ const Home = () => {
                       {site.image ? (
                         <img
                           src={site.image}
-                          alt={site.name}
+                          alt={site.name[i18n.language] || site.name.en}
                           className="h-[90px] object-contain"
                         />
                       ) : (
                         <span className="text-sm text-gray-400">
-                          Logo {index + 1}
+                          {t("home.logoNumber", { number: index + 1 })}
                         </span>
                       )}
                     </div>
                     <div className="p-2">
                       <p className="text-sm font-medium text-gray-800">
-                        {site.name}
+                        {site.name[i18n.language] || site.name.en}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {site.description}
+                        {site.description[i18n.language] || site.description.en}
                       </p>
                     </div>
                   </div>
@@ -515,7 +531,7 @@ const Home = () => {
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
             <img
               src={rightadImage}
-              alt="Right Ad"
+              alt={t("home.rightAdAlt")}
               className="w-full h-[550px] object-cover rounded"
             />
           </div>

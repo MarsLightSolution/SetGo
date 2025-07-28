@@ -1,31 +1,37 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import axios from "axios";
-import {  useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
-  const [selectedCountry, setSelectedCountry] = useState("Germany +49");
-  const [localPhoneNumber, setLocalPhoneNumber] = useState(""); // renamed local state
+// i18n import
+import { useTranslation } from 'react-i18next';
+
+function PhoneVerification({ onSendOTP, setPhoneNumber, email }) {
+  const { t } = useTranslation(); // Initialize useTranslation hook
+  const [selectedCountry, setSelectedCountry] = useState(t("phoneVerification.countryGermany")); // Initialize with translated default
+  const [localPhoneNumber, setLocalPhoneNumber] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const countries = [
-    "Germany +49",
-    "India +91",
-    "United States +1",
-    "United Kingdom +44",
-    "France +33",
-    "Spain +34",
-    "Italy +39",
-    "Netherlands +31",
-    "Belgium +32",
-    "Austria +43",
-    "Switzerland +41",
+
+  // Use translation keys for countries
+  const countryKeys = [
+    "phoneVerification.countryGermany",
+    "phoneVerification.countryIndia",
+    "phoneVerification.countryUnitedStates",
+    "phoneVerification.countryUnitedKingdom",
+    "phoneVerification.countryFrance",
+    "phoneVerification.countrySpain",
+    "phoneVerification.countryItaly",
+    "phoneVerification.countryNetherlands",
+    "phoneVerification.countryBelgium",
+    "phoneVerification.countryAustria",
+    "phoneVerification.countrySwitzerland",
   ];
 
-  const handleCountrySelect = (country) => {
-    setSelectedCountry(country);
+  const handleCountrySelect = (countryKey) => { // Now accepts a key
+    setSelectedCountry(t(countryKey)); // Set state with translated value
     setIsDropdownOpen(false);
   };
 
@@ -33,7 +39,9 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
     setLoading(true);
     setError("");
 
-    const countryCode = selectedCountry.split(" ")[1]; // e.g. "+49"
+    // Extract country code from the selected translated string
+    // Example: "Germany +49" -> "+49"
+    const countryCode = selectedCountry.split(" ").pop(); // Gets the last part, which should be "+XX"
     const fullNumber = `${countryCode}${localPhoneNumber}`;
 
     try {
@@ -43,18 +51,18 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
       });
 
       console.log(res.data);
-      setPhoneNumber(fullNumber); // update parent state with full number
-      onSendOTP(); // proceed to SMS step
+      setPhoneNumber(fullNumber);
+      onSendOTP();
     } catch (err) {
       console.error(err);
-      setError("Failed to send OTP. Please try again.");
+      setError(t("phoneVerification.sendOTPFailed")); // Translated error message
     } finally {
       setLoading(false);
     }
   };
 
   const handleHelp = () => {
-    navigate("/login");
+    navigate("/login"); // This button navigates to login, so translate its label as "Login"
   };
 
   return (
@@ -62,14 +70,14 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
       {/* Heading */}
       <div>
         <h1 className="text-lg font-semibold text-gray-900 mb-2">
-          Please enter your phone number
+          {t("phoneVerification.title")} {/* Translated */}
         </h1>
         <div className="w-full h-px bg-gray-300 mb-3"></div>
       </div>
 
       {/* Instructions */}
       <p className="text-sm text-gray-700">
-        You will then receive an SMS with a verification code.
+        {t("phoneVerification.instructions")} {/* Translated */}
       </p>
 
       {/* Input fields */}
@@ -86,13 +94,13 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
 
           {isDropdownOpen && (
             <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-md max-h-40 overflow-y-auto text-sm">
-              {countries.map((country) => (
+              {countryKeys.map((key) => ( // Iterate over keys
                 <button
                   key={country}
                   onClick={() => handleCountrySelect(country)}
                   className="w-full px-4 py-2 text-left hover:bg-gray-100 cursor-pointer"
                 >
-                  {country}
+                  {t(key)} {/* Display translated country */}
                 </button>
               ))}
             </div>
@@ -114,7 +122,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
 
       {/* Disclaimer */}
       <p className="text-sm text-gray-600">
-        Your phone number will not be published unless you explicitly specify this.
+        {t("phoneVerification.disclaimer")} {/* Translated */}
       </p>
 
       {/* Buttons */}
@@ -123,14 +131,14 @@ function PhoneVerification({ onSendOTP, setPhoneNumber,email }) {
           onClick={handleHelp}
           className="px-6 py-2 text-sm font-semibold text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition cursor-pointer"
         >
-          Login
+          {t("login.loginButton")} {/* Reusing login button translation */}
         </button>
         <button
           onClick={handleSendOTP}
           disabled={loading || !localPhoneNumber}
           className="px-6 py-2 text-sm font-semibold text-white bg-lime-500 rounded-full hover:bg-lime-600 transition"
         >
-          {loading ? "Sending..." : "Confirm"}
+          {loading ? t("phoneVerification.sending") : t("phoneVerification.confirm")} {/* Translated */}
         </button>
       </div>
     </div>
