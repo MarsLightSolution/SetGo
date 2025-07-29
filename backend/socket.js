@@ -2,6 +2,7 @@ const socketIo = require("socket.io")
 const User = require("./models/User")
 const Conversation = require("./models/Conversation")
 const Message = require("./models/Message")
+const Notification = require("./models/Notification")
 const mongoose = require("mongoose")
 
 function initializeSocket(server) {
@@ -275,6 +276,171 @@ function initializeSocket(server) {
         }
       }
     })
+
+    // Handle sending notifications
+    socket.on("send-notification", async (data) => {
+      try {
+        const { recipientId, type, title, message, metadata } = data
+        
+        if (!recipientId || !type || !title) {
+          socket.emit("notification-error", { error: "Missing required notification data" })
+          return
+        }
+
+        // Create notification in database
+        const notification = await Notification.createNotification({
+          recipientId: recipientId,
+          senderId: socket.userIdentifier,
+          type: type,
+          title: title,
+          message: message,
+          metadata: metadata
+        })
+
+        // Send notification to recipient if they're online
+        const recipientSocket = userSockets.get(recipientId)
+        if (recipientSocket) {
+          recipientSocket.emit("notification", {
+            id: notification._id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            timestamp: notification.createdAt,
+            isRead: notification.isRead,
+            senderId: notification.senderId,
+            metadata: notification.metadata
+          })
+        }
+
+        // Send confirmation to sender
+        socket.emit("notification-sent", { 
+          success: true, 
+          notificationId: notification._id 
+        })
+
+        console.log(`Notification sent from ${socket.userIdentifier} to ${recipientId}`)
+      } catch (error) {
+        console.error("Error sending notification:", error)
+        socket.emit("notification-error", { error: "Failed to send notification" })
+      }
+    })
+
+    // Handle marking notifications as read
+    socket.on("mark-notification-read", async (data) => {
+      try {
+        const { notificationId } = data
+        
+        if (!socket.userIdentifier || !notificationId) {
+          socket.emit("notification-error", { error: "Invalid request" })
+          return
+        }
+
+        const notification = await Notification.findOne({
+          _id: notificationId,
+          recipientId: socket.userIdentifier
+        })
+
+        if (notification) {
+          await notification.markAsRead()
+          socket.emit("notification-marked-read", { notificationId: notificationId })
+        }
+      } catch (error) {
+        console.error("Error marking notification as read:", error)
+        socket.emit("notification-error", { error: "Failed to mark notification as read" })
+      }
+    })
+
+    // Handle marking all notifications as read
+    socket.on("mark-all-notifications-read", async () => {
+      try {
+        if (!socket.userIdentifier) {
+          socket.emit("notification-error", { error: "User not authenticated" })
+          return
+        }
+
+        await Notification.markAllAsRead(socket.userIdentifier)
+        socket.emit("all-notifications-marked-read", { success: true })
+      } catch (error) {
+        console.error("Error marking all notifications as read:", error)
+        socket.emit("notification-error", { error: "Failed to mark all notifications as read" })
+      }
+    })
+
+    // Send existing notifications when user connects
+    socket.on("get-notifications", async (data) => {
+      try {
+        if (!socket.userIdentifier) {
+          socket.emit("notification-error", { error: "User not authenticated" })
+          return
+        }
+
+        const { limit = 20, skip = 0 } = data || {}
+        
+        const notifications = await Notification.find({ 
+          recipientId: socket.userIdentifier 
+        })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(skip)
+
+        const unreadCount = await Notification.getUnreadCount(socket.userIdentifier)
+
+        socket.emit("notifications-loaded", {
+          notifications: notifications.map(n => ({
+            id: n._id,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            timestamp: n.createdAt,
+            isRead: n.isRead,
+            senderId: n.senderId,
+            metadata: n.metadata
+          })),
+          unreadCount: unreadCount
+        })
+      } catch (error) {
+        console.error("Error loading notifications:", error)
+        socket.emit("notification-error", { error: "Failed to load notifications" })
+      }
+    })
+
+    // Helper function to send notification to user
+    const sendNotificationToUser = async (recipientId, notificationData) => {
+      try {
+        // Create notification in database
+        const notification = await Notification.createNotification({
+          recipientId: recipientId,
+          senderId: notificationData.senderId || 'system',
+          type: notificationData.type,
+          title: notificationData.title,
+          message: notificationData.message,
+          metadata: notificationData.metadata || {}
+        })
+
+        // Send to user if online
+        const recipientSocket = userSockets.get(recipientId)
+        if (recipientSocket) {
+          recipientSocket.emit("notification", {
+            id: notification._id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            timestamp: notification.createdAt,
+            isRead: notification.isRead,
+            senderId: notification.senderId,
+            metadata: notification.metadata
+          })
+        }
+
+        return notification
+      } catch (error) {
+        console.error("Error sending notification to user:", error)
+        return null
+      }
+    }
+
+    // Attach helper function to socket for use in other events
+    socket.sendNotificationToUser = sendNotificationToUser
 
     // Handle connection errors
     socket.on("error", (error) => {
