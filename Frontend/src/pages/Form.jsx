@@ -11,7 +11,10 @@ import {
   MenuItem,
   IconButton,
 } from "@mui/material";
-import { CloudUpload as CloudUploadIcon, Close as CloseIcon } from "@mui/icons-material";
+import {
+  CloudUpload as CloudUploadIcon,
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import Footer from "../components/common/Footer";
 import {
   showSuccessToast,
@@ -53,7 +56,7 @@ const Form = () => {
 
   // Get geolocation on load
   useEffect(() => {
-    if ('geolocation' in navigator) {
+    if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setFormData((prev) => ({
@@ -75,7 +78,8 @@ const Form = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    const updatedValue = type === "checkbox" ? checked : type === "file" ? files : value;
+    const updatedValue =
+      type === "checkbox" ? checked : type === "file" ? files : value;
     let newErrors = { ...errors };
 
     // Validation (update error messages to use t())
@@ -108,7 +112,10 @@ const Form = () => {
       else if (!/^[A-Za-z\s]+$/.test(updatedValue)) newErrors.name = t("form.nameAlphabetOnly");
       else delete newErrors.name;
     }
-
+if (name === "condition") {
+    if (!updatedValue.trim()) newErrors.condition = "Condition is required";
+    else delete newErrors.condition;
+  }
     // Pictures handling
     if (name === "pictures" && files) {
       const filesArray = Array.from(files);
@@ -162,6 +169,17 @@ const Form = () => {
     if (formData.location.length > 50) currentErrors.location = t("form.locationLengthError");
     if (!formData.name.trim()) currentErrors.name = t("form.nameRequired");
     else if (!/^[A-Za-z\s]+$/.test(formData.name)) currentErrors.name = t("form.nameAlphabetOnly");
+    // Required fields
+    const requiredFields = [
+      "title",
+      "category",
+      "price",
+      "condition",
+      "description",
+      "postalCode",
+      "location",
+      "name",
+    ];
 
     setErrors(currentErrors); // Update errors state
 
@@ -190,7 +208,10 @@ const Form = () => {
       if (key === "pictures") {
         value.forEach((file) => formDataToSend.append("pictures", file));
       } else {
-        formDataToSend.append(key, typeof value === "boolean" ? String(value) : value);
+        formDataToSend.append(
+          key,
+          typeof value === "boolean" ? String(value) : value
+        );
       }
     });
 
@@ -209,6 +230,7 @@ const Form = () => {
           title: "",
           category: "",
           price: "",
+          condition: "",
           description: "",
           postalCode: "",
           location: "",
@@ -237,7 +259,10 @@ const Form = () => {
     <>
       <ToastifyContainer />
       <div className="min-h-screen bg-gray-50 py-10 px-4 text-black flex justify-center">
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl space-y-6"
+        >
           {/* Ad Details */}
           <div>
             <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">{t("form.adDetails")}</h2>
@@ -307,6 +332,29 @@ const Form = () => {
               />
               <TextField
                 label={t("form.description")}
+                InputProps={{
+                  endAdornment: <span className="text-gray-500">EUR</span>,
+                }}
+              />
+              <TextField
+                select
+                label="Condition"
+                name="condition"
+                value={formData.condition}
+                onChange={handleChange}
+                sx={{ width: "41rem" }}
+              >
+                <MenuItem value="">Select condition</MenuItem>
+                <MenuItem value="New">New</MenuItem>
+                <MenuItem value="Like New">Like New</MenuItem>
+                <MenuItem value="Used">Used</MenuItem>
+                <MenuItem value="Defective / Needs Repair">
+                  Defective / Needs Repair
+                </MenuItem>
+              </TextField>
+
+              <TextField
+                label="Description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
@@ -334,7 +382,10 @@ const Form = () => {
                   name="pictures"
                   ref={fileInputRef}
                 />
-                <label htmlFor="fileUpload" className="cursor-pointer flex flex-col items-center">
+                <label
+                  htmlFor="fileUpload"
+                  className="cursor-pointer flex flex-col items-center"
+                >
                   <CloudUploadIcon style={{ fontSize: 40, color: "gray" }} />
                   <span className="text-gray-600 text-sm mt-2">{t("form.uploadTip")}</span>
                   <span className="text-xs text-gray-500">{t("form.maxImagesTip")}</span>
@@ -344,8 +395,15 @@ const Form = () => {
               {imagePreviews.length > 0 && (
                 <div className="flex flex-wrap mt-4 gap-3">
                   {imagePreviews.map((src, idx) => (
-                    <div key={idx} className="relative w-24 h-24 border rounded overflow-hidden">
-                      <img src={src} alt={`preview-${idx}`} className="w-full h-full object-cover" />
+                    <div
+                      key={idx}
+                      className="relative w-24 h-24 border rounded overflow-hidden"
+                    >
+                      <img
+                        src={src}
+                        alt={`preview-${idx}`}
+                        className="w-full h-full object-cover"
+                      />
                       <IconButton
                         size="small"
                         onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
@@ -468,4 +526,4 @@ const Form = () => {
   );
 };
 
-export default Form;1
+export default Form;

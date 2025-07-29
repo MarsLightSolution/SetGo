@@ -32,10 +32,11 @@ const productSchema = new mongoose.Schema(
     },
     condition:
     {
-      stype:String,
+      type:String,
       required:true,
-      trim:true,
+      // trim:true,
       index:true,
+      enum: ["New", "Like New", "Used", "Defective / Needs Repair"],
     },
     location: {
       type: {
