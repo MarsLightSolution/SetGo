@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaBell } from 'react-icons/fa';
-import { useNotifications } from '../../hooks/useNotifications';
+import { useNotifications } from '../../Hooks/useNotifications';
 
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
