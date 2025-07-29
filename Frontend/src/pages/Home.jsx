@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
+import NotificationDemo from "../components/NotificationDemo";
+import { useNotifications } from "../hooks/useNotifications";
 
 // Helper for multilingual fields (can be passed via context if you have one)
 const getLocalizedText = (field, lang = "en") => {
@@ -23,6 +25,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
 };
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { sendLikeNotification } = useNotifications();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
   const liked = ad && likedAds.some((item) => item._id === ad._id);
 
@@ -41,7 +44,26 @@ const AdCard = ({ image, title, location, ad, price }) => {
       return;
     }
 
-    liked ? dispatch(unlike(ad)) : dispatch(like(ad));
+    if (!liked) {
+      // Add to wishlist
+      dispatch(like(ad));
+      
+      // Send notification to the product owner
+      if (ad.userId && ad.userId !== localStorage.getItem('userEmail')) {
+        const userName = localStorage.getItem('userName') || 'Someone';
+        const productTitle = getLocalizedText(ad.title) || 'your item';
+        
+        sendLikeNotification(
+          ad.userId, // recipient (product owner)
+          userName,
+          productTitle,
+          ad._id
+        );
+      }
+    } else {
+      // Remove from wishlist
+      dispatch(unlike(ad));
+    }
   };
 
   const handleCardClick = () => {
@@ -499,6 +521,12 @@ const Home = () => {
           </div>
         </div>
       </div>
+      
+      {/* Notification Demo - Remove this in production */}
+      <div className="max-w-4xl mx-auto px-4 mb-8">
+        <NotificationDemo />
+      </div>
+      
       <Footer />
     </div>
   );
