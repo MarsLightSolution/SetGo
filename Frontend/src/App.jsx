@@ -30,6 +30,7 @@ import UserPage from './pages/Userpage'
 import MySearch from './pages/MySearch'
 import EditForm from './components/UserInfo/EditForm'
 import TransactionHistory from './pages/TransactionHistory'
+import Notifications from './pages/Notifications'
 function App() {
   return (
     <NotificationProvider>
@@ -62,6 +63,7 @@ function App() {
           <Route path='/mysearch' element={<MySearch/>}/>
           <Route path='/editform/:id' element={<EditForm/>}/>
           <Route path="/my/transactions" element={<TransactionHistory />} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
         </Routes>
       </div>

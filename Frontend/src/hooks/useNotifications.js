@@ -27,7 +27,9 @@ export const useNotifications = () => {
       type: 'message',
       title: `New message from ${senderName}`,
       message: message,
-      conversationId: conversationId,
+      metadata: {
+        conversationId: conversationId
+      },
       timestamp: Date.now()
     });
   };
@@ -37,7 +39,10 @@ export const useNotifications = () => {
       type: 'like',
       title: `${userName} liked your item`,
       message: productTitle,
-      productId: productId,
+      metadata: {
+        productId: productId,
+        userId: recipientId
+      },
       timestamp: Date.now()
     });
   };
@@ -47,7 +52,9 @@ export const useNotifications = () => {
       type: 'product',
       title: title,
       message: message,
-      productId: productId,
+      metadata: {
+        productId: productId
+      },
       timestamp: Date.now()
     });
   };

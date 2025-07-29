@@ -16,6 +16,7 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -44,7 +45,11 @@ export const NotificationProvider = ({ children }) => {
       // Listen for notifications
       socketInstance.on('notification', (notificationData) => {
         console.log('Received notification:', notificationData);
-        addNotification(notificationData);
+        const notificationWithId = {
+          ...notificationData,
+          id: notificationData.id || `socket_${Date.now()}_${Math.random()}`
+        };
+        addNotification(notificationWithId);
         
         // Show browser notification
         if (chatNotifications.isEnabled()) {
@@ -153,17 +158,24 @@ export const NotificationProvider = ({ children }) => {
     if (savedNotifications) {
       try {
         const parsed = JSON.parse(savedNotifications);
-        setNotifications(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setNotifications(parsed);
+          console.log('Loaded', parsed.length, 'notifications from localStorage');
+        }
       } catch (error) {
         console.error('Error parsing saved notifications:', error);
       }
     }
+    setIsInitialized(true);
   }, []);
 
-  // Save notifications to localStorage whenever they change
+  // Save notifications to localStorage whenever they change (but avoid overwriting on mount)
   useEffect(() => {
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    if (isInitialized && notifications.length >= 0) {
+      localStorage.setItem('notifications', JSON.stringify(notifications));
+      console.log('Saved', notifications.length, 'notifications to localStorage');
+    }
+  }, [notifications, isInitialized]);
 
   const addNotification = useCallback((notification) => {
     setNotifications(prev => {
@@ -206,13 +218,18 @@ export const NotificationProvider = ({ children }) => {
   }, []);
 
   const handleNotificationClick = useCallback((notification) => {
-    // Handle different notification types
-    if (notification.type === 'message' && notification.conversationId) {
-      window.location.href = `/chat?conversation=${notification.conversationId}`;
-    } else if (notification.type === 'product' && notification.productId) {
-      window.location.href = `/product/${notification.productId}`;
+    // Handle different notification types - this is used in the notifications page
+    // The actual navigation should be handled by the component using this context
+    console.log('Notification clicked:', notification);
+    
+    // Mark as read if not already read
+    if (!notification.isRead) {
+      const updatedNotifications = notifications.map(n => 
+        n.id === notification.id ? { ...n, isRead: true } : n
+      );
+      setNotifications(updatedNotifications);
     }
-  }, []);
+  }, [notifications]);
 
   // Send notification through socket
   const sendNotification = useCallback((recipientId, notificationData) => {
