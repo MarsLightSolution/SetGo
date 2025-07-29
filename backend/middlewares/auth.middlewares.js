@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
-const User = require("../models/user");
+const User = require("../models/User");
 
 const verifyToken = asyncHandler(async (req, _res, next) => {
   const token = req.cookies.refreshToken; // ✅ Get token from cookies

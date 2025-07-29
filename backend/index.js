@@ -96,6 +96,9 @@ app.set("upload", upload)
 // Chat routes
 app.use("/api/chat", require("./Routes/chat"))
 
+// Notification routes
+app.use("/api/notifications", require("./Routes/notificationRoutes"))
+
 // Your existing routes
 app.use("/", require("./Routes"))
 
