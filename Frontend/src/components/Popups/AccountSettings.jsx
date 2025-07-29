@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AddressModal from "./AddressModal";
 import ChangePhone from "../Settings/ChangePhone";
-import PhoneVerification from "../Settings/PhoneVerification";
-import SmsVerification from "../Settings/SmsVerification";
+import PhoneVerification from "../common/PhoneVerification";
+import SmsVerification from "../common/SmsVerification";
 import NewPasswordModal from "../Settings/NewPasswordModal";
 import useUserProfile from "../../Hooks/useUserProfile";
 import axios from "axios";
@@ -458,6 +458,7 @@ function AccountSettings() {
                   setPhoneNumber={handlePhoneUpdate}
                   email={profile.email}
                   onClose={() => setPopupStep(null)}
+                  showCloseButton={true}
                 />
               )}
               {popupStep === "sms" && (
@@ -465,7 +466,8 @@ function AccountSettings() {
                   phoneNumber={profile.phoneNumber}
                   email={profile.email}
                   onClose={() => setPopupStep(null)}
-                  onNext={() => setPopupStep(null)}
+                  onSuccess={() => setPopupStep(null)}
+                  showCloseButton={true}
                 />
               )}
             </motion.div>
