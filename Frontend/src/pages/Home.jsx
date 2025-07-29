@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
-import { Favorite, FavoriteBorder } from "@mui/icons-material";
+import React, { useEffect, useState, useRef, memo, useCallback, useMemo } from "react";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import Footer from "../components/common/Footer";
@@ -9,6 +10,7 @@ import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 import NotificationDemo from "../components/NotificationDemo";
 import { useNotifications } from "../hooks/useNotifications";
+import LazyImage from "../components/common/LazyImage";
 
 // Helper for multilingual fields (can be passed via context if you have one)
 const getLocalizedText = (field, lang = "en") => {
@@ -19,15 +21,19 @@ const getLocalizedText = (field, lang = "en") => {
 
 
 
-const AdCard = ({ image, title, location, ad, price }) => {
-  const hasAccessTokenCookie = () => {
-  return document.cookie.split(";").some((c) => c.trim().startsWith("refreshToken="));
-};
+const AdCard = memo(({ image, title, location, ad, price }) => {
+  const hasAccessTokenCookie = useCallback(() => {
+    return document.cookie.split(";").some((c) => c.trim().startsWith("refreshToken="));
+  }, []);
+  
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { sendLikeNotification } = useNotifications();
   const { wishlist: likedAds } = useSelector((state) => state.wishlist);
-  const liked = ad && likedAds.some((item) => item._id === ad._id);
+  
+  const liked = useMemo(() => {
+    return ad && likedAds.some((item) => item._id === ad._id);
+  }, [ad, likedAds]);
 
   // Assuming 'en' as the default display language for simplicity
   const displayLanguage = "en";
@@ -38,7 +44,7 @@ const AdCard = ({ image, title, location, ad, price }) => {
   const displayLocation = ad.postalCode || ad.location?.postalCode || "Unknown";
 
 
-  const handleLikeToggle = () => {
+  const handleLikeToggle = useCallback(() => {
     if (!hasAccessTokenCookie()) {
       alert("You need to login first to like items.");
       return;
@@ -64,11 +70,11 @@ const AdCard = ({ image, title, location, ad, price }) => {
       // Remove from wishlist
       dispatch(unlike(ad));
     }
-  };
+  }, [hasAccessTokenCookie, liked, dispatch, ad, sendLikeNotification]);
 
-  const handleCardClick = () => {
+  const handleCardClick = useCallback(() => {
     navigate(`products/product/${ad._id}`);
-  };
+  }, [navigate, ad._id]);
 
   return (
     <div
@@ -83,11 +89,11 @@ const AdCard = ({ image, title, location, ad, price }) => {
         className={`absolute top-2 right-2 cursor-pointer transition duration-300 text-lg ${liked ? "text-red-500" : "text-gray-400"
           }`}
       >
-        {liked ? <Favorite /> : <FavoriteBorder />}
+        {liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
       </button>
 
       <div className="w-full h-[140px] flex justify-center items-center">
-        <img
+        <LazyImage
           src={image}
           alt={displayTitle} // Use the display title for alt text
           className="h-full w-full object-contain rounded-md"
@@ -101,9 +107,9 @@ const AdCard = ({ image, title, location, ad, price }) => {
       </div>
     </div>
   );
-};
+});
 
-const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
+const SectionWithAds = memo(({ title, ads, pagination, onPageChange }) => (
   <div className="bg-white p-4 rounded shadow mt-3">
     <h2 className="text-xl font-semibold text-gray-800 mb-4">{title}</h2>
     <div className="flex flex-wrap gap-4">
@@ -147,7 +153,7 @@ const SectionWithAds = ({ title, ads, pagination, onPageChange }) => (
       </button>
     </div>
   </div>
-);
+));
 
 const Home = () => {
   const [latestAds, setLatestAds] = useState([]);
@@ -162,7 +168,7 @@ const Home = () => {
   });
   const { priceRange, condition, radius, city, latitude, longitude } = useSelector((state) => state.filter);
 
-  const fetchProducts = async (type, page) => {
+  const fetchProducts = useCallback(async (type, page) => {
     try {
       const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
@@ -217,32 +223,32 @@ const Home = () => {
     } catch (err) {
       console.error("Fetch failed:", err);
     }
-  };
+  }, [activeCategory, latitude, longitude, radius, filter]);
 
   useEffect(() => {
     if (latitude && longitude) {
       fetchProducts("nearby", 1); // Fetch nearby on location change
     }
-  }, [latitude, longitude, radius]); // Add radius to dependencies
+  }, [fetchProducts, latitude, longitude]); // Add fetchProducts as dependency
 
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
-  }, [activeCategory, latestPagination.currentPage, filter]); // Add filter as a dependency for latest ads
+  }, [fetchProducts, latestPagination.currentPage]); // Add fetchProducts as dependency
 
   useEffect(() => {
     fetchProducts("recommended", recommendedPagination.currentPage);
-  }, [recommendedPagination.currentPage, filter]); // Add filter as a dependency for recommended ads
+  }, [fetchProducts, recommendedPagination.currentPage]); // Add fetchProducts as dependency
 
-  const categories = [
+  const categories = useMemo(() => [
     "All Products",
-    "Cars & Motorcycles",
+    "Cars & Motorcycles", 
     "Real Estate",
     "Jobs",
     "Household & Furniture",
     "Electronics",
     "Leisure, Hobby & Neighborhood",
     "Service",
-  ];
+  ], []);
 
   const galleryData = [
     {

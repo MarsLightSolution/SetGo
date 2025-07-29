@@ -1,12 +1,10 @@
 
 import React, { useEffect, useRef, useState } from "react";
-import {
-  TextField,
-  Button,
-  MenuItem,
-} from "@mui/material";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import MenuItem from "@mui/material/MenuItem";
 import { useParams, useNavigate } from "react-router-dom";
-import { CloudUpload as CloudUploadIcon } from "@mui/icons-material";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import {
   showSuccessToast,
   showErrorToast,
