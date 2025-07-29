@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarToday, LocationOn } from "@mui/icons-material";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PaymentDialog from "./PaymentDialog";
 import Footer from "../components/common/Footer";
 import leftadImage from "../assets/images/ad01.png";
@@ -320,13 +321,13 @@ const ProductDetail = () => {
 
                     <div className="text-sm text-gray-600 flex flex-wrap gap-4 mb-4">
                       <div className="flex items-center gap-1">
-                        <LocationOn fontSize="small" />
+                        <LocationOnIcon fontSize="small" />
                         {displayPostalCode} {/* Display postal code as per your data */}
                         {/* If you add city to your model and data: - {getLocalizedText(product.city)} */}
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <CalendarToday fontSize="small" />
+                        <CalendarTodayIcon fontSize="small" />
                         {new Date(product.createdAt).toLocaleDateString(
                           "en-GB"
                         )}
