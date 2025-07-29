@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AddressModal from './AddressModal';
-import useUserProfile from '../../Hooks/useUserProfile';
+import AddressModal from './AddressModal'; // Assuming AddressModal is a local component
+import useUserProfile from '../../Hooks/useUserProfile'; // Assuming this hook exists
 import axios from 'axios';
 import {
   showSuccessToast,
   showErrorToast,
   ToastifyContainer,
-} from '../../Hooks/Tostify';
+} from '../../Hooks/Tostify'; // Assuming this utility exists
+
+// i18n import
+import { useTranslation } from 'react-i18next';
 
 function ProfileMgmt() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const navigate = useNavigate();
   const { profile, updateField, loading: profileLoading } = useUserProfile();
 
@@ -32,10 +36,10 @@ function ProfileMgmt() {
       localStorage.setItem('userData', JSON.stringify(updatedUser));
       updateField('username', tempProfileName);
       setIsEditingName(false);
-      showSuccessToast('Profile name updated successfully!');
+      showSuccessToast(t('profileMgmt.nameUpdateSuccess')); // Translated
     } catch (err) {
       console.error(err);
-      showErrorToast(err.response?.data?.message || 'Failed to update name');
+      showErrorToast(err.response?.data?.message || t('profileMgmt.nameUpdateFailed')); // Translated fallback
     } finally {
       setSavingName(false);
     }
@@ -53,67 +57,68 @@ function ProfileMgmt() {
       const updatedUser = res.data.data;
       localStorage.setItem('userData', JSON.stringify(updatedUser));
       updateField('deliveryAddress', newAddress);
-      showSuccessToast('Address updated successfully!');
+      showSuccessToast(t('profileMgmt.addressUpdateSuccess')); // Translated
     } catch (err) {
       console.error(err);
-      showErrorToast(err.response?.data?.message || 'Failed to update address');
+      showErrorToast(err.response?.data?.message || t('profileMgmt.addressUpdateFailed')); // Translated fallback
     }
   };
+
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <ToastifyContainer />
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
+          <h1 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.settingsTitle")}</h1> {/* Translated */}
           <nav className="space-y-1">
             <button
               onClick={() => navigate('/profile')}
               className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md"
             >
-              <span className="mr-3">👤</span> Profile information
+              <span className="mr-3">👤</span> {t("profileMgmt.profileInfo")} {/* Translated */}
             </button>
             <button
               onClick={() => navigate('/accountsettings')}
               className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
             >
-              <span className="mr-3">⚙️</span> Account settings
+              <span className="mr-3">⚙️</span> {t("profileMgmt.accountSettings")} {/* Translated */}
             </button>
             <button
               onClick={() => navigate('/paymentsettings')}
               className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
             >
-              <span className="mr-3">💳</span> Payments
+              <span className="mr-3">💳</span> {t("profileMgmt.payments")} {/* Translated */}
             </button>
             <button
               onClick={() => navigate('/dataprotection')}
               className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
             >
-              <span className="mr-3">🛡️</span> Data protection
+              <span className="mr-3">🛡️</span> {t("profileMgmt.dataProtection")} {/* Translated */}
             </button>
             <button
               onClick={() => navigate('/emailsettings')}
               className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
             >
-              <span className="mr-3">✉️</span> Emails
+              <span className="mr-3">✉️</span> {t("profileMgmt.emails")} {/* Translated */}
             </button>
             <button
-              onClick={() => navigate('/aboutclassieds')}
+              onClick={() => navigate('/aboutclassifieds')}
               className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
             >
-              <span className="mr-3">❤️</span> About Classified Ads
+              <span className="mr-3">❤️</span> {t("profileMgmt.aboutClassifiedAds")} {/* Translated */}
             </button>
           </nav>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile information</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.profileInfoTitle")}</h2> {/* Translated */}
           <div className="space-y-6">
             {/* Profile Name */}
             <div className="flex items-center justify-between py-4 border-b border-gray-100">
               <div className="flex items-center gap-6">
-                <label className="text-sm font-medium text-gray-700 w-32">Profile name</label>
+                <label className="text-sm font-medium text-gray-700 w-32">{t("profileMgmt.profileNameLabel")}</label> {/* Translated */}
                 {isEditingName ? (
                   <>
                     <input
@@ -126,7 +131,7 @@ function ProfileMgmt() {
                       onClick={() => setIsEditingName(false)}
                       className="text-gray-700 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100 text-sm ml-2"
                     >
-                      Cancel
+                      {t("profileMgmt.cancelButton")} {/* Translated */}
                     </button>
                     <button
                       onClick={handleSaveName}
@@ -154,11 +159,11 @@ function ProfileMgmt() {
                           />
                         </svg>
                       )}
-                      {savingName ? 'Saving...' : 'Save'}
+                      {savingName ? t('profileMgmt.saving') : t('profileMgmt.save')} {/* Translated */}
                     </button>
                   </>
                 ) : (
-                  <div className="text-gray-900 text-sm">{profile.username || 'N/A'}</div>
+                  <div className="text-gray-900 text-sm">{profile.username || t('profileMgmt.notAvailable')}</div>
                 )}
               </div>
               {!isEditingName && (
@@ -169,7 +174,7 @@ function ProfileMgmt() {
                     setIsEditingName(true);
                   }}
                 >
-                  Edit
+                  {t("profileMgmt.editButton")} {/* Translated */}
                 </button>
               )}
             </div>
@@ -177,14 +182,14 @@ function ProfileMgmt() {
             {/* Delivery Address */}
             <div className="flex items-center justify-between py-4 border-b border-gray-100">
               <div className="flex items-center gap-6">
-                <label className="text-sm font-medium text-gray-700 w-32">Delivery address</label>
-                <div className="text-gray-900 text-sm">{profile.deliveryAddress || 'N/A'}</div>
+                <label className="text-sm font-medium text-gray-700 w-32">{t("profileMgmt.deliveryAddressLabel")}</label> {/* Translated */}
+                <div className="text-gray-900 text-sm">{profile.deliveryAddress || t('profileMgmt.notAvailable')}</div> {/* Translated N/A */}
               </div>
               <button
                 className="text-green-600 hover:text-green-700 text-sm"
                 onClick={() => setShowAddressModal(true)}
               >
-                Edit
+                {t("profileMgmt.editButton")} {/* Translated */}
               </button>
             </div>
           </div>

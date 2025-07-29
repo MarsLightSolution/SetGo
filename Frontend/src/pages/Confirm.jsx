@@ -3,7 +3,10 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle, Loader2 } from "lucide-react";
 import Footer from "../components/common/Footer";
 
+import { useTranslation } from 'react-i18next';
+
 function Confirm() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const [params] = useSearchParams();
   const [isVerified, setIsVerified] = useState(false);
   const navigate = useNavigate();
@@ -19,7 +22,7 @@ function Confirm() {
         navigate("/pverify", { state: { email } });
       }, 2000);
     }
-  }, [params, navigate]);
+  }, [params, navigate]); // No 't' needed here if it's not used in the effect's logic
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-green-50 to-white">
@@ -33,18 +36,17 @@ function Confirm() {
               <div className="flex justify-center mb-4">
                 <Loader2 className="h-8 w-8 text-green-500 animate-spin" />
               </div>
-              <h2 className="text-2xl font-bold text-green-600 mb-2">Redirecting...</h2>
-              <p className="text-gray-600">Hold tight, we’re verifying your email.</p>
+              <h2 className="text-2xl font-bold text-green-600 mb-2">{t("confirm.redirectingTitle")}</h2> {/* Translated */}
+              <p className="text-gray-600">{t("confirm.redirectingMessage")}</p> {/* Translated */}
             </>
           ) : (
             <>
               <div className="flex justify-center mb-4">
                 <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Confirm Your Email</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">{t("confirm.title")}</h2> {/* Translated */}
               <p className="text-gray-600">
-                We’ve sent you a verification link. Please check your inbox to continue
-                with the registration process.
+                {t("confirm.instructions")} {/* Translated */}
               </p>
             </>
           )}
