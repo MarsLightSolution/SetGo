@@ -7,6 +7,7 @@ import { MdOutlineAddCircle } from "react-icons/md";
 import { useSelector } from "react-redux";
 import Slider from "rc-slider";
 import { useDispatch } from "react-redux";
+import NotificationBell from "./NotificationBell";
 import {
   setPriceRange,
   setCondition,
@@ -134,6 +135,7 @@ navigate("/");
                 </>
               ) : (
                 <>
+                  <NotificationBell />
                   <span className="text-sm font-medium text-green-900">
                     Hello, {userName}
                   </span>

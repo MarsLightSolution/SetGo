@@ -1,6 +1,7 @@
 import { Routes,Route, } from 'react-router-dom'
 import './App.css'
 import { useEffect } from 'react'
+import NotificationProvider from './contexts/NotificationContext'
 import Register from './pages/Register'
 import Navbar from './components/common/Navbar'
 import Home from './pages/Home'
@@ -31,38 +32,40 @@ import EditForm from './components/UserInfo/EditForm'
 import TransactionHistory from './pages/TransactionHistory'
 function App() {
   return (
-    <div >
-      <Navbar/>
-      <Routes>
-        <Route path='/' element={<Home/>}/>
-        <Route path='/register' element={<PublicRoute><Register/></PublicRoute>}/>
-        <Route path='/login' element={<PublicRoute><Login/></PublicRoute>}/>
-        <Route path='/phoneverify' element={<PhoneVerification/>}/>
-        <Route path='/SMS' element={<SmsVerify/>}/>
-        <Route path='/form' element={<ProtectedRoute><Form/></ProtectedRoute>}/>
-        <Route path='/renewpassword' element={<RenewPassword/>}/>
-        <Route path='/confirm' element={<Confirm/>}/>
-        <Route path='/pverify' element={<PVerify/>}/>
-        <Route path='/profile' element={<ProtectedRoute><ProfileMgmt/></ProtectedRoute>}/>
-        <Route path='/accountsettings' element={<ProtectedRoute><AccountSettings/></ProtectedRoute>}/>
-        <Route path='/paymentsettings' element={<ProtectedRoute><PaymentSettings/></ProtectedRoute>}/>
-        <Route path='/dataprotection' element={<ProtectedRoute><DataProtection/></ProtectedRoute>}/>
-        <Route path='/emailsettings' element={<ProtectedRoute><EmailSettings/></ProtectedRoute>}/>
-        <Route path='/aboutclassifieds' element={<ProtectedRoute><AboutClassifieds/></ProtectedRoute>}/>
-        <Route path='/newpassword' element={<NewPassword/>}/>
-        <Route path='/emailnotify' element={<ProtectedRoute><EmailNotification/></ProtectedRoute>}/>
-        <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
-        <Route path='/product/:id' element={<ProductDetail/>}/>
-        <Route path='products/product/:id' element={<ProductDetail/>}/>
-        <Route path="/chat" element={<ChatApp/>}/>
-        <Route path='/userinfo' element={<UserInfo/>}/>
-        <Route path='/userpage' element={<UserPage/>}/>
-        <Route path='/mysearch' element={<MySearch/>}/>
-        <Route path='/editform/:id' element={<EditForm/>}/>
-        <Route path="/my/transactions" element={<TransactionHistory />} />
+    <NotificationProvider>
+      <div >
+        <Navbar/>
+        <Routes>
+          <Route path='/' element={<Home/>}/>
+          <Route path='/register' element={<PublicRoute><Register/></PublicRoute>}/>
+          <Route path='/login' element={<PublicRoute><Login/></PublicRoute>}/>
+          <Route path='/phoneverify' element={<PhoneVerification/>}/>
+          <Route path='/SMS' element={<SmsVerify/>}/>
+          <Route path='/form' element={<ProtectedRoute><Form/></ProtectedRoute>}/>
+          <Route path='/renewpassword' element={<RenewPassword/>}/>
+          <Route path='/confirm' element={<Confirm/>}/>
+          <Route path='/pverify' element={<PVerify/>}/>
+          <Route path='/profile' element={<ProtectedRoute><ProfileMgmt/></ProtectedRoute>}/>
+          <Route path='/accountsettings' element={<ProtectedRoute><AccountSettings/></ProtectedRoute>}/>
+          <Route path='/paymentsettings' element={<ProtectedRoute><PaymentSettings/></ProtectedRoute>}/>
+          <Route path='/dataprotection' element={<ProtectedRoute><DataProtection/></ProtectedRoute>}/>
+          <Route path='/emailsettings' element={<ProtectedRoute><EmailSettings/></ProtectedRoute>}/>
+          <Route path='/aboutclassifieds' element={<ProtectedRoute><AboutClassifieds/></ProtectedRoute>}/>
+          <Route path='/newpassword' element={<NewPassword/>}/>
+          <Route path='/emailnotify' element={<ProtectedRoute><EmailNotification/></ProtectedRoute>}/>
+          <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
+          <Route path='/product/:id' element={<ProductDetail/>}/>
+          <Route path='products/product/:id' element={<ProductDetail/>}/>
+          <Route path="/chat" element={<ChatApp/>}/>
+          <Route path='/userinfo' element={<UserInfo/>}/>
+          <Route path='/userpage' element={<UserPage/>}/>
+          <Route path='/mysearch' element={<MySearch/>}/>
+          <Route path='/editform/:id' element={<EditForm/>}/>
+          <Route path="/my/transactions" element={<TransactionHistory />} />
 
-      </Routes>
-    </div>
+        </Routes>
+      </div>
+    </NotificationProvider>
   )
 }
 
