@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaBell } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../Hooks/useNotifications';
 
 const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification } = useNotifications();
 
   // Close dropdown when clicking outside
@@ -27,12 +29,15 @@ const NotificationBell = () => {
     }
     
     // Handle different notification types
-    if (notification.type === 'message' && notification.conversationId) {
+    if (notification.type === 'message' && notification.metadata?.conversationId) {
       // Navigate to chat
-      window.location.href = `/chat?conversation=${notification.conversationId}`;
-    } else if (notification.type === 'product' && notification.productId) {
+      navigate(`/chat?conversation=${notification.metadata.conversationId}`);
+    } else if (notification.type === 'product' && notification.metadata?.productId) {
       // Navigate to product
-      window.location.href = `/product/${notification.productId}`;
+      navigate(`/product/${notification.metadata.productId}`);
+    } else if (notification.type === 'like' && notification.metadata?.productId) {
+      // Navigate to product that was liked
+      navigate(`/product/${notification.metadata.productId}`);
     }
     
     setIsOpen(false);
@@ -146,8 +151,7 @@ const NotificationBell = () => {
             <div className="p-3 border-t border-gray-200 text-center">
               <button
                 onClick={() => {
-                  // Navigate to notifications page or show more
-                  console.log('View all notifications');
+                  navigate('/notifications');
                   setIsOpen(false);
                 }}
                 className="text-sm text-lime-600 hover:text-lime-700 font-medium"

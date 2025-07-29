@@ -24,7 +24,7 @@ const NotificationDemo = () => {
       'message',
       'New Message from John',
       'Hey! How are you doing?',
-      { conversationId: 'test123', senderId: 'john@example.com' }
+      { metadata: { conversationId: 'test123' }, senderId: 'john@example.com' }
     );
   };
 
@@ -33,7 +33,7 @@ const NotificationDemo = () => {
       'like',
       'Someone liked your item',
       'MacBook Pro 2023',
-      { productId: 'product123', userId: 'user456' }
+      { metadata: { productId: 'product123', userId: 'user456' } }
     );
   };
 
@@ -42,7 +42,7 @@ const NotificationDemo = () => {
       'product',
       'New Product Available',
       'iPhone 15 Pro Max just posted in your area',
-      { productId: 'iphone123' }
+      { metadata: { productId: 'iphone123' } }
     );
   };
 
