@@ -30,6 +30,14 @@ const productSchema = new mongoose.Schema(
         message: "You can upload a maximum of 8 pictures.",
       },
     },
+    condition:
+    {
+      type:String,
+      required:true,
+      // trim:true,
+      index:true,
+      enum: ["New", "Like New", "Used", "Defective / Needs Repair"],
+    },
     location: {
       type: {
         type: String,

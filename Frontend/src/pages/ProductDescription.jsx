@@ -345,11 +345,12 @@ const ProductDetail = () => {
                   </div>
 
                   {/* EXTRA INFO CONTAINER */}
-                  <div className="bg-white rounded-md shadow p-4 mt-6">
+                  <div className="bg-white rounded-md shadow p-4 mt-6 relative ">
                     {/* MAP LOCATION CONTAINER */}
                     {product.location?.coordinates && product.location.coordinates.length === 2 && (
-                      <div className="bg-white rounded-md shadow p-4 mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">{t("productDetail.locationSectionTitle")}</h2>
+                      <div className="bg-white rounded-md shadow p-4 mb-6"> {/* Added mb-6 for spacing */}
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
+                         <div className="w-full overflow-hidden rounded-md" style={{ height: "300px" }}>
                         <MapContainer
                           center={[
                             product.location.coordinates[1],
@@ -357,7 +358,7 @@ const ProductDetail = () => {
                           ]}
                           zoom={13}
                           scrollWheelZoom={false}
-                          style={{ height: "300px", width: "100%" }}
+                          style={{ height: "300px", width: "100%", zIndex: 0, position: "relative" }}
                         >
                           <TileLayer
                             attribution={t("productDetail.mapAttribution")}
@@ -372,6 +373,7 @@ const ProductDetail = () => {
                             <Popup>{getLocalizedText(product.title) || t("productDetail.productLocation")}</Popup>
                           </Marker>
                         </MapContainer>
+                        </div>
                       </div>
                     )}
 

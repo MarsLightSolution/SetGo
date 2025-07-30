@@ -30,7 +30,7 @@ const AdCard = ({ ad, image, price }) => {
   const displayTitle = typeof ad.title === 'object' ? (ad.title?.[currentDisplayLanguage] || ad.title?.en || "") : ad.title || "";
   const displayLocation = typeof ad.location === 'object' ? (ad.location?.postalCode?.[currentDisplayLanguage] || ad.location?.postalCode?.en || "") : ad.postalCode || ad.location || t("home.unknownLocation");
 
-
+const token=localStorage.getItem("accessToken");
   const handleLikeToggle = () => {
     if (!hasAccessTokenCookie()) {
       alert(t("home.loginToLike"));
@@ -67,7 +67,7 @@ const AdCard = ({ ad, image, price }) => {
     <div
       onClick={handleCardClick}
       className="relative group cursor-pointer hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between border border-gray-800 shadow-md hover:shadow-lg gap-3 p-3 rounded-xl w-[200px] bg-white"
-    >
+    >{token &&
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -78,6 +78,7 @@ const AdCard = ({ ad, image, price }) => {
       >
         {liked ? <Favorite /> : <FavoriteBorder />}
       </button>
+    }
 
       <div className="w-full h-[140px] flex justify-center items-center">
         <img
