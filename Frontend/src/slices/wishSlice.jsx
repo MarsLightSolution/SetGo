@@ -50,7 +50,7 @@ const wishSlice = createSlice({
         if (state.total < 0) state.total = 0;
 
         localStorage.setItem("wishlist", JSON.stringify(state.wishlist));
-        localStorage.setItem("total", JSON.stringify(state.total)); // ✅ Was missing before
+        localStorage.setItem("total", JSON.stringify(state.total)); 
         localStorage.setItem("totalItems", JSON.stringify(state.totalItems));
 
         toast.success("Ad removed from wishlist");

@@ -16,6 +16,7 @@ const addProduct = asyncHandler(async (req, res) => {
     title,
     category,
     price,
+    condition,
     description,
     postalCode,
     streetNo,
@@ -138,6 +139,8 @@ const addProduct = asyncHandler(async (req, res) => {
     category: productCategory,
     price: Number(price),
     description: productDescription,
+    condition:condition|| "",
+    // description: { en: description, de: translatedDescription },
     pictures,
     location: {
       type: "Point",
@@ -414,6 +417,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     title,
     category,
     price,
+    condition,
     description,
     postalCode,
     streetNo,
@@ -469,6 +473,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.title = title || product.title;
   product.category = category || product.category;
   product.price = Number(price) || product.price;
+  product.condition = condition || product.condition;
   product.description = description || product.description;
   product.pictures = pictures;
   product.name = name || product.name;

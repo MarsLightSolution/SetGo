@@ -13,7 +13,6 @@ const initializeSocket = require("./socket")
 
 const app = express()
 const server = http.createServer(app)
-
 // Initialize Socket.IO
 const io = initializeSocket(server)
 
