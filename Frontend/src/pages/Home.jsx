@@ -8,7 +8,7 @@ import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 import NotificationDemo from "../components/NotificationDemo";
-import { useNotifications } from "../hooks/useNotifications";
+import { useNotifications } from "../Hooks/useNotifications";
 
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n'; // Ensure this import is present if you remove the global selector from Navbar
@@ -30,7 +30,7 @@ const AdCard = ({ ad, image, price }) => {
   const displayTitle = typeof ad.title === 'object' ? (ad.title?.[currentDisplayLanguage] || ad.title?.en || "") : ad.title || "";
   const displayLocation = typeof ad.location === 'object' ? (ad.location?.postalCode?.[currentDisplayLanguage] || ad.location?.postalCode?.en || "") : ad.postalCode || ad.location || t("home.unknownLocation");
 
-
+const token=localStorage.getItem("accessToken");
   const handleLikeToggle = () => {
     if (!hasAccessTokenCookie()) {
       alert(t("home.loginToLike"));
