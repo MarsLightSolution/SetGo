@@ -1,19 +1,22 @@
-// ✅ Imports
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import AddressModal from "./AddressModal";
-import ChangePhone from "../Settings/ChangePhone";
-import PhoneVerification from "../common/PhoneVerification";
-import SmsVerification from "../common/SmsVerification";
-import NewPasswordModal from "../Settings/NewPasswordModal";
-import useUserProfile from "../../Hooks/useUserProfile";
+import AddressModal from "./AddressModal"; // Assuming this is the AddressModal component
+import ChangePhone from "../Settings/ChangePhone"; // Assuming this is ChangePhone
+import PhoneVerification from "../Settings/PhoneVerification"; // Assuming this is PhoneVerification
+import SmsVerification from "../Settings/SmsVerification"; // Assuming this is SmsVerification
+import NewPasswordModal from "../Settings/NewPasswordModal"; // Assuming this is NewPasswordModal
+import useUserProfile from "../../Hooks/useUserProfile"; // Assuming this hook exists
 import axios from "axios";
 import Cookies from "js-cookie";
-import { toast, ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify"; // Using react-toastify directly here
+
+// i18n import
+import { useTranslation } from 'react-i18next';
 
 function AccountSettings() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -30,12 +33,13 @@ function AccountSettings() {
 
   const userId = localStorage.getItem("userId");
   const token = Cookies.get("refreshToken");
+
   useEffect(() => {
     const fetchUserAds = async () => {
       try {
         const response = await axios.get(
           `http://localhost:8080/api/products/user/${userId}/ads`,
-          { withCredentials: true } // ✅ Important: to send cookies
+          { withCredentials: true }
         );
         if (response.data && Array.isArray(response.data.data)) {
           setAds(response.data.data);
@@ -51,11 +55,11 @@ function AccountSettings() {
     if (userId && token) {
       fetchUserAds();
     }
-  }, []);
+  }, [userId, token]);
 
   const handleBillingUpdate = async (newAddress) => {
     if (!profile || !profile._id) {
-      toast.error("User  profile is not available.");
+      toast.error(t("accountSettings.userProfileNotAvailable")); // Translated
       return;
     }
 
@@ -67,19 +71,19 @@ function AccountSettings() {
           billingAddress: newAddress,
         },
         {
-        withCredentials: true, // ✅ Important: to send cookies
-      }
+          withCredentials: true,
+        }
       );
       if (res.status === 200) {
         updateField("billingAddress", newAddress);
-        toast.success("Billing address updated successfully");
+        toast.success(t("accountSettings.billingAddressUpdateSuccess")); // Translated
       } else {
-        toast.error("Failed to update billing address.");
+        toast.error(t("accountSettings.billingAddressUpdateFailed")); // Translated
       }
     } catch (error) {
       console.error("Error updating billing address:", error);
       toast.error(
-        "Error updating billing address: " +
+        t("accountSettings.billingAddressUpdateError") +
           (error.response?.data?.message || error.message)
       );
     } finally {
@@ -93,13 +97,13 @@ function AccountSettings() {
 
   const handleDeleteAccount = async () => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete your account? This action cannot be undone."
+      t("accountSettings.confirmDeleteAccount") // Translated
     );
     if (!confirmDelete) return;
 
     try {
       if (!profile || !profile._id) {
-        toast.error("User  profile is not available.");
+        toast.error(t("accountSettings.userProfileNotAvailable")); // Translated
         return;
       }
 
@@ -121,13 +125,13 @@ function AccountSettings() {
       }
     } catch (error) {
       console.error("Delete account error:", error);
-      alert("An error occurred while deleting your account.");
+      alert(t("accountSettings.deleteAccountError")); // Translated
     }
   };
 
   const handleEmailSave = async () => {
     if (newEmail !== repeatEmail || !emailPassword) {
-      toast.warning("Emails must match and password is required.");
+      toast.warning(t("accountSettings.emailMatchWarning")); // Translated
       return;
     }
 
@@ -145,12 +149,12 @@ function AccountSettings() {
         setNewEmail("");
         setRepeatEmail("");
         setEmailPassword("");
-        toast.success("Email updated successfully");
+        toast.success(t("accountSettings.emailUpdateSuccess")); // Translated
       } else {
-        toast.error("Failed to update email.");
+        toast.error(t("accountSettings.emailUpdateFailed")); // Translated
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Error updating email.");
+      toast.error(err.response?.data?.message || t("accountSettings.emailUpdateError")); // Translated fallback
     } finally {
       setLoading(false);
     }
@@ -170,7 +174,7 @@ function AccountSettings() {
       {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white px-4 py-2 rounded shadow text-sm text-gray-700">
-            Loading...
+            {t("accountSettings.loading")} {/* Translated */}
           </div>
         </div>
       )}
@@ -179,43 +183,43 @@ function AccountSettings() {
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
+          <h1 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.settingsTitle")}</h1> {/* Reusing key from ProfileMgmt */}
           <nav className="space-y-1 text-sm font-medium">
             <button
               onClick={() => navigate("/profile")}
               className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
-              <span className="mr-3">👤</span> Profile information
+              <span className="mr-3">👤</span> {t("profileMgmt.profileInfo")} {/* Reusing key */}
             </button>
             <button
               onClick={() => navigate("/accountsettings")}
               className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left cursor-pointer"
             >
-              <span className="mr-3">⚙️</span> Account settings
+              <span className="mr-3">⚙️</span> {t("profileMgmt.accountSettings")} {/* Reusing key */}
             </button>
             <button
               onClick={() => navigate("/paymentsettings")}
               className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
-              <span className="mr-3">💳</span> Payments
+              <span className="mr-3">💳</span> {t("profileMgmt.payments")} {/* Reusing key */}
             </button>
             <button
               onClick={() => navigate("/dataprotection")}
               className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
-              <span className="mr-3">🛡️</span> Data protection
+              <span className="mr-3">🛡️</span> {t("profileMgmt.dataProtection")} {/* Reusing key */}
             </button>
             <button
               onClick={() => navigate("/emailsettings")}
               className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
-              <span className="mr-3">✉️</span> Emails
+              <span className="mr-3">✉️</span> {t("profileMgmt.emails")} {/* Reusing key */}
             </button>
             <button
               onClick={() => navigate("/aboutclassifieds")}
               className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
             >
-              <span className="mr-3">❤️</span> About Classified Ads
+              <span className="mr-3">❤️</span> {t("profileMgmt.aboutClassifiedAds")} {/* Reusing key */}
             </button>
           </nav>
         </div>
@@ -223,12 +227,12 @@ function AccountSettings() {
         {/* Main */}
         <div className="flex-1 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Account settings
+            {t("accountSettings.title")} {/* Translated */}
           </h2>
 
           <div className="flex items-center gap-2 text-gray-600 text-sm mb-6">
             <Eye className="w-4 h-4" />
-            <span>All information is visible only to you</span>
+            <span>{t("accountSettings.infoVisibility")}</span> {/* Translated */}
           </div>
 
           <div className="space-y-4">
@@ -236,7 +240,7 @@ function AccountSettings() {
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
               <div className="flex items-center gap-10">
                 <label className="text-sm font-medium text-gray-700 w-40">
-                  Verified phone number
+                  {t("accountSettings.verifiedPhoneNumber")} {/* Translated */}
                 </label>
                 <span className="text-gray-900 text-sm">
                   {profile.phoneNumber || "+49*****863"}
@@ -246,7 +250,7 @@ function AccountSettings() {
                 onClick={() => setPopupStep("popup")}
                 className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               >
-                Change
+                {t("accountSettings.changeButton")} {/* Translated */}
               </button>
             </div>
 
@@ -256,7 +260,7 @@ function AccountSettings() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-10">
                     <label className="text-sm font-medium text-gray-700 w-40">
-                      E-mail Address
+                      {t("accountSettings.emailAddressLabel")} {/* Translated */}
                     </label>
                     <span className="text-gray-900 text-sm">
                       {profile.email}
@@ -266,7 +270,7 @@ function AccountSettings() {
                     onClick={() => setShowEmailForm(true)}
                     className="text-green-600 hover:text-green-700 text-sm  cursor-pointer"
                   >
-                    Change
+                    {t("accountSettings.changeButton")} {/* Translated */}
                   </button>
                 </div>
               ) : (
@@ -274,16 +278,16 @@ function AccountSettings() {
                   {/* Info Box */}
                   <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-sm text-gray-700">
                     <p>
-                      To change your email address, you will receive two emails:
-                      <br />• One to your current email address
-                      <br />• One to your new email address to confirm ownership
+                      {t("accountSettings.emailChangeInfo1")}
+                      <br />• {t("accountSettings.emailChangeInfo2")}
+                      <br />• {t("accountSettings.emailChangeInfo3")}
                     </p>
                   </div>
 
                   {/* Current Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Current Email
+                      {t("accountSettings.currentEmailLabel")} {/* Translated */}
                     </label>
                     <input
                       disabled
@@ -296,13 +300,13 @@ function AccountSettings() {
                   {/* New Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      New Email Address
+                      {t("accountSettings.newEmailLabel")} {/* Translated */}
                     </label>
                     <input
                       type="email"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="Enter new email"
+                      placeholder={t("accountSettings.newEmailPlaceholder")}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm"
                     />
                   </div>
@@ -310,13 +314,13 @@ function AccountSettings() {
                   {/* Repeat Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Repeat New Email
+                      {t("accountSettings.repeatNewEmailLabel")} {/* Translated */}
                     </label>
                     <input
                       type="email"
                       value={repeatEmail}
                       onChange={(e) => setRepeatEmail(e.target.value)}
-                      placeholder="Repeat new email"
+                      placeholder={t("accountSettings.repeatNewEmailPlaceholder")}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm"
                     />
                   </div>
@@ -324,14 +328,14 @@ function AccountSettings() {
                   {/* Password Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Your Password
+                      {t("accountSettings.yourPasswordLabel")} {/* Translated */}
                     </label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
                         value={emailPassword}
                         onChange={(e) => setEmailPassword(e.target.value)}
-                        placeholder="Enter your password"
+                        placeholder={t("accountSettings.passwordPlaceholder")} 
                         className="w-full px-4 py-2 border border-gray-300 rounded-md pr-10 text-sm"
                       />
                       <button
@@ -354,13 +358,13 @@ function AccountSettings() {
                       onClick={() => setShowEmailForm(false)}
                       className="px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100 cursor-pointer"
                     >
-                      Cancel
+                      {t("accountSettings.cancelButton")} {/* Translated */}
                     </button>
                     <button
                       onClick={handleEmailSave}
                       className="px-5 py-2 text-sm text-white bg-lime-500 hover:bg-lime-600 rounded-md cursor-pointer"
                     >
-                      Save Email
+                      {t("accountSettings.saveEmailButton")} {/* Translated */}
                     </button>
                   </div>
                 </div>
@@ -371,7 +375,7 @@ function AccountSettings() {
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
               <div className="flex items-center gap-10">
                 <label className="text-sm font-medium text-gray-700 w-40">
-                  Password
+                  {t("accountSettings.passwordLabel")} {/* Translated */}
                 </label>
                 <span className="text-gray-900 text-sm">****</span>
               </div>
@@ -379,7 +383,7 @@ function AccountSettings() {
                 onClick={() => setShowPasswordModal(true)}
                 className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               >
-                Change
+                {t("accountSettings.changeButton")} {/* Translated */}
               </button>
             </div>
           </div>
@@ -387,14 +391,14 @@ function AccountSettings() {
           {/* Activity */}
           <div className="mt-8 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              Your activity
+              {t("accountSettings.yourActivity")} {/* Translated */}
             </h3>
             {ads.length > 0 ? (
               <p className="text-sm text-gray-500">
-                You have {ads.length} ads available
+                {t("accountSettings.adsAvailable", { count: ads.length })} {/* Translated with interpolation */}
               </p>
             ) : (
-              <p className="text-sm text-gray-500">No ads available</p>
+              <p className="text-sm text-gray-500">{t("accountSettings.noAdsAvailable")}</p>
             )}
           </div>
 
@@ -402,17 +406,17 @@ function AccountSettings() {
           <div className="flex items-center justify-between py-4 border-b border-gray-100 mb-8">
             <div className="flex items-center gap-6">
               <label className="text-sm font-medium text-gray-700 w-40">
-                Billing address
+                {t("accountSettings.billingAddressLabel")} {/* Translated */}
               </label>
               <div className="text-gray-900 text-sm">
-                {profile.billingAddress || "N/A"}
+                {profile.billingAddress || t("accountSettings.notAvailable")} {/* Translated N/A */}
               </div>
             </div>
             <button
               className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               onClick={() => setShowBillingModal(true)}
             >
-              Edit
+              {t("accountSettings.editButton")} {/* Translated */}
             </button>
           </div>
 
@@ -423,7 +427,7 @@ function AccountSettings() {
               className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
-              Delete user account
+              {t("accountSettings.deleteAccountButton")} {/* Translated */}
             </button>
           </div>
         </div>

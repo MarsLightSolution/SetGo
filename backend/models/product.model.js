@@ -5,11 +5,13 @@ const productSchema = new mongoose.Schema(
   {
     title: {
       en: { type: String, required: true, trim: true, maxlength: 200 },
-      de: { type: String, trim: true, maxlength: 200 },
+      az: { type: String, trim: true, maxlength: 200 },
+      ru: { type: String, trim: true, maxlength: 200 },
     },
     category: {
       en: { type: String, required: true, trim: true, index: true },
-      de: { type: String, trim: true, index: true },
+      az: { type: String, trim: true, index: true },
+      ru: { type: String, trim: true, index: true },
     },
     price: {
       type: Number,
@@ -18,7 +20,8 @@ const productSchema = new mongoose.Schema(
     },
     description: {
       en: { type: String, required: true, trim: true, maxlength: 4000 },
-      de: { type: String, trim: true, maxlength: 4000 },
+      az: { type: String, trim: true, maxlength: 4000 },
+      ru: { type: String, trim: true, maxlength: 4000 },
     },
     pictures: {
       type: [String],
@@ -51,7 +54,8 @@ const productSchema = new mongoose.Schema(
     },
     name: {
       en: { type: String, required: true, trim: true },
-      de: { type: String, trim: true },
+      az: { type: String, trim: true },
+      ru: { type: String, trim: true },
     },
     termsAccepted: {
       type: Boolean,

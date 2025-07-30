@@ -4,7 +4,12 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import io from "socket.io-client"
 import { chatNotifications } from "../../Notification/notification"
 
+// i18n import
+import { useTranslation } from 'react-i18next';
+
 export default function ChatApp() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
+
   const [currentUser, setCurrentUser] = useState(null)
   const [isConnecting, setIsConnecting] = useState(true)
   const [connectionError, setConnectionError] = useState(null)
@@ -97,7 +102,7 @@ export default function ChatApp() {
     const userIdentifier = storedUserId || userFromStorage
 
     if (!userIdentifier) {
-      setConnectionError("No user ID found in localStorage. Please login first.")
+      setConnectionError(t("chatApp.noUserIdFound")) // Translated
       setIsConnecting(false)
       return
     }
@@ -121,7 +126,7 @@ export default function ChatApp() {
       }
     } catch (error) {
       console.error("Connection error:", error)
-      setConnectionError("Failed to connect to chat server")
+      setConnectionError(t("chatApp.failedToConnect")) // Translated
     } finally {
       setIsConnecting(false)
     }
@@ -322,7 +327,7 @@ export default function ChatApp() {
   }
 
   const startConversation = async (targetUsername) => {
-    if (!currentUser) return alert("Please wait, connecting to chat...")
+    if (!currentUser) return alert(t("chatApp.connectingToChatWait")) // Translated
 
     try {
       const response = await fetch("http://localhost:8080/api/chat/conversations", {
@@ -493,7 +498,7 @@ export default function ChatApp() {
       }
     } catch (error) {
       console.error("Error uploading file:", error)
-      alert("Failed to upload file")
+      alert(t("chatApp.failedToUploadFile")) // Translated
     } finally {
       setIsUploading(false)
     }
@@ -552,7 +557,7 @@ export default function ChatApp() {
 
         if (productInfo) {
           setTimeout(() => {
-            const productMessage = `Hi! I'm interested in your product: ${productInfo.title} - €${productInfo.price}`
+            const productMessage = t("chatApp.productOfInterest", { title: productInfo.title, price: productInfo.price }) // Translated product message
             setNewMessage(productMessage)
           }, 500)
         }
@@ -598,7 +603,7 @@ export default function ChatApp() {
           <div>
             <img
               src={`http://localhost:8080${message.fileUrl}`}
-              alt="Shared image"
+              alt={t("chatApp.sharedImageAlt")} // Translated
               className="max-w-[200px] max-h-[200px] rounded-lg cursor-pointer mb-1"
               onClick={() => window.open(`http://localhost:8080${message.fileUrl}`, "_blank")}
             />
@@ -612,7 +617,7 @@ export default function ChatApp() {
             <span>📄</span>
             <div>
               <p className="text-sm font-medium m-0">{message.fileName}</p>
-              <p className="text-xs opacity-70 m-0">{(message.fileSize / 1024).toFixed(1)} KB</p>
+              <p className="text-xs opacity-70 m-0">{t("chatApp.fileSize", { size: (message.fileSize / 1024).toFixed(1) })}</p> {/* Translated */}
             </div>
           </div>
         ) : (
@@ -685,7 +690,8 @@ export default function ChatApp() {
             {currentUser && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mb-4">
                 <p className="text-sm text-gray-600">
-                  Logged in as <span className="font-semibold text-gray-800">{currentUser.userName}</span>
+                  {t("chatApp.loggedInAs")}{" "}
+                  <span className="font-semibold text-gray-800">{currentUser.userName}</span>
                 </p>
                 <p className="text-xs text-gray-400 truncate">{currentUser.userId}</p>
               </div>
@@ -694,7 +700,7 @@ export default function ChatApp() {
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Search by email"
+                placeholder={t("chatApp.searchByEmailPlaceholder")}
                 value={searchUsername}
                 onChange={(e) => setSearchUsername(e.target.value)}
                 disabled={!currentUser}
@@ -710,7 +716,7 @@ export default function ChatApp() {
                 }}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium transition disabled:opacity-50"
               >
-                Chat
+                {t("chatApp.chatButton")} {/* Translated */}
               </button>
             </div>
           </div>
@@ -739,8 +745,8 @@ export default function ChatApp() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{otherUser?.userName || "Unknown"}</p>
-                    <p className="text-xs text-gray-500 truncate">{conversation.lastMessage || "No messages yet"}</p>
+                    <p className="text-sm font-semibold text-gray-800 truncate">{otherUser?.userName || t("chatApp.unknownUser")}</p> {/* Translated Unknown */}
+                    <p className="text-xs text-gray-500 truncate">{conversation.lastMessage || t("chatApp.noMessagesYet")}</p> {/* Translated No messages yet */}
                   </div>
                   {unreadCount > 0 && (
                     <div className="bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
@@ -752,7 +758,7 @@ export default function ChatApp() {
             })}
             {!isConnecting && conversations.length === 0 && (
               <div className="p-6 text-center text-sm text-gray-400">
-                {currentUser ? "No conversations yet. Start one!" : "Connecting..."}
+                {currentUser ? t("chatApp.noConversationsYet") : t("chatApp.connecting")} {/* Translated */}
               </div>
             )}
           </div>
@@ -775,7 +781,7 @@ export default function ChatApp() {
                 <div>
                   <h3 className="text-gray-900 font-semibold text-base">
                     {selectedConversation.participants.find((p) => p.userId !== currentUser?.userId)?.userName ||
-                      "Unknown"}
+                      t("chatApp.unknownUser")}
                   </h3>
                   <p className="text-sm text-gray-500 flex items-center gap-2">
                     {onlineUsers.has(
@@ -827,7 +833,7 @@ export default function ChatApp() {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={!currentUser || isUploading}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2.5 rounded-full text-sm font-medium transition disabled:opacity-50"
-                    title="Upload file"
+                    title={t("chatApp.uploadFileTitle")} // Translated
                   >
                     {isUploading ? "📤" : "📎"}
                   </button>
@@ -849,7 +855,7 @@ export default function ChatApp() {
                     disabled={!currentUser || !newMessage.trim()}
                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-full text-sm font-medium transition disabled:opacity-50"
                   >
-                    Send
+                    {t("chatApp.sendButton")} {/* Translated */}
                   </button>
                 </div>
               </div>
@@ -857,12 +863,12 @@ export default function ChatApp() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-6 text-gray-600">
               <h2 className="text-lg font-semibold mb-2">
-                {currentUser ? "No Conversation Selected" : "Connecting to chat..."}
+                {currentUser ? t("chatApp.noConversationSelectedTitle") : t("chatApp.connectingToChatTitle")} {/* Translated */}
               </h2>
               <p className="text-sm text-gray-500 max-w-sm">
                 {currentUser
-                  ? "Please select a conversation from the sidebar or start a new one using the search above."
-                  : "Hang tight! We're connecting you to the chat server."}
+                  ? t("chatApp.noConversationSelectedInstructions") // Translated
+                  : t("chatApp.connectingInstructions")} {/* Translated */}
               </p>
             </div>
           )}

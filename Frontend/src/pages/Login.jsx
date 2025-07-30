@@ -1,4 +1,4 @@
-import React, { useState} from "react";
+import React, { useState } from "react";
 import {
   Heart,
   MessageSquareText,
@@ -13,7 +13,12 @@ import {
   showErrorToast,
   ToastifyContainer,
 } from "../Hooks/Tostify";
+
+// i18n import
+import { useTranslation } from 'react-i18next';
+
 const Login = () => {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -51,21 +56,21 @@ const Login = () => {
           localStorage.setItem("userData", JSON.stringify(userData.data));
         } else {
           console.warn(
-            "Failed to fetch user details:",
+            t("login.fetchUserDetailsFailed"), // Translated warning
             userData.message || userData.error
           );
         }
 
-        showSuccessToast("Login successful!");
+        showSuccessToast(t("login.successMessage")); // Translated
         setTimeout(() => {
           window.location.href = "/";
         }, 1000);
       } else {
-        showErrorToast(data?.error || data?.message || "Login failed");
+        showErrorToast(data?.error || data?.message || t("login.failedMessage")); // Translated fallback
       }
     } catch (err) {
       console.error("Login error:", err);
-      showErrorToast("An error occurred. Please try again.");
+      showErrorToast(t("login.serverError")); // Translated
     } finally {
       setLoading(false);
     }
@@ -79,12 +84,12 @@ const Login = () => {
         <div className="bg-white rounded-md shadow-md p-8 max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Left Side: Login Form */}
           <div>
-            <h2 className="text-lg font-semibold mb-2">Log In</h2>
+            <h2 className="text-lg font-semibold mb-2">{t("login.title")}</h2> {/* Translated */}
             <hr className="mb-6 border-t border-gray-300" />
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block mb-1 font-medium">E-mail</label>
+                <label className="block mb-1 font-medium">{t("login.emailLabel")}</label> {/* Translated */}
                 <input
                   type="email"
                   value={email}
@@ -95,7 +100,7 @@ const Login = () => {
               </div>
 
               <div className="relative">
-                <label className="block mb-1 font-medium">Password</label>
+                <label className="block mb-1 font-medium">{t("login.passwordLabel")}</label> {/* Translated */}
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -117,7 +122,7 @@ const Login = () => {
                   onClick={() => navigate("/renewpassword")}
                   className="text-green-700 underline cursor-pointer"
                 >
-                  Forgot your password?
+                  {t("login.forgotPassword")} {/* Translated */}
                 </button>
               </div>
 
@@ -150,36 +155,36 @@ const Login = () => {
                     ></path>
                   </svg>
                 )}
-                {loading ? "Logging in..." : "Login"}
+                {loading ? t("login.loggingIn") : t("login.loginButton")} {/* Translated */}
               </button>
             </form>
           </div>
 
           {/* Right Side: Register Info */}
           <div>
-            <h2 className="text-lg font-semibold mb-2">Not registered yet?</h2>
+            <h2 className="text-lg font-semibold mb-2">{t("login.notRegisteredYet")}</h2> {/* Translated */}
             <hr className="mb-6 border-t border-gray-300" />
 
             <ul className="space-y-3 mb-6 text-sm">
               <li className="flex items-center">
                 <Heart className="w-4 h-4 mr-2 text-black" />
-                Watchlist available everywhere
+                {t("login.feature1")} {/* Translated */}
               </li>
               <li className="flex items-center">
                 <MessageSquareText className="w-4 h-4 mr-2 text-black" />
-                Read and reply to messages anywhere
+                {t("login.feature2")} {/* Translated */}
               </li>
               <li className="flex items-center">
                 <Pencil className="w-4 h-4 mr-2 text-black" />
-                Easily manage and edit ads
+                {t("login.feature3")} {/* Translated */}
               </li>
             </ul>
 
             <button
-              className="bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full w-fit cursor-pointer"
-              onClick={() => (window.location.href = "/register")}
+              className="bg-[#B5E941] text-black font-semibold py-2 px-6 rounded-full w-fit cursor-pointer hover:bg-lime-500 transition-colors"
+              onClick={() => navigate("/register")} // Changed window.location.href to navigate for consistency
             >
-              Register in 30 seconds
+              {t("login.registerIn30Seconds")} {/* Translated */}
             </button>
           </div>
         </div>

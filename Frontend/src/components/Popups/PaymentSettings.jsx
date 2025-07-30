@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion'; // Keep AnimatePresence if it's used elsewhere for modals
 import { Eye, X } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+
+// i18n import
+import { useTranslation } from 'react-i18next';
 
 function PaymentSettings() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const navigate = useNavigate();
 
@@ -26,20 +30,22 @@ function PaymentSettings() {
             <button
               className="absolute top-4 right-4 text-gray-600 hover:text-black cursor-pointer"
               onClick={() => setShowPayoutModal(false)}
-              aria-label="Close"
+              aria-label={t("paymentSettings.closeButtonAriaLabel")} // Translated
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Set up a payout account</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("paymentSettings.setupPayoutAccountTitle")}</h2> {/* Translated */}
             <p className="text-gray-700 text-sm mb-6">
-              You can deposit your payout account during your first <strong>"Secure Pay"</strong> transaction.
+              {t("paymentSettings.payoutAccountInstructions1")}{" "}
+              <strong>{t("paymentSettings.securePay")}</strong>{" "}
+              {t("paymentSettings.payoutAccountInstructions2")}
             </p>
             <div className="flex justify-end">
               <button
                 onClick={() => setShowPayoutModal(false)}
                 className="bg-lime-400 hover:bg-lime-500 text-white font-medium text-sm px-6 py-2 rounded-full cursor-pointer"
               >
-                Understood
+                {t("paymentSettings.understoodButton")} {/* Translated */}
               </button>
             </div>
           </div>
@@ -50,50 +56,50 @@ function PaymentSettings() {
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 p-6">
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">Settings</h1>
+          <h1 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.settingsTitle")}</h1> {/* Reusing key */}
           <nav className="space-y-1 text-sm font-medium">
-            <button onClick={() => navigate('/profile')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
-              <span className="mr-3">👤</span> Profile information
+            <button onClick={() => navigate('/profile')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+              <span className="mr-3">👤</span> {t("profileMgmt.profileInfo")} {/* Reusing key */}
             </button>
-            <button onClick={() => navigate('/accountsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
-              <span className="mr-3">⚙️</span> Account settings
+            <button onClick={() => navigate('/accountsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+              <span className="mr-3">⚙️</span> {t("profileMgmt.accountSettings")} {/* Reusing key */}
             </button>
-            <button onClick={() => navigate('/paymentsettings')} className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left cursor-pointer">
-              <span className="mr-3">💳</span> Payments
+            <button onClick={() => navigate('/paymentsettings')} className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left">
+              <span className="mr-3">💳</span> {t("profileMgmt.payments")} {/* Reusing key */}
             </button>
-            <button onClick={() => navigate('/dataprotection')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
-              <span className="mr-3">🛡️</span> Data protection
+            <button onClick={() => navigate('/dataprotection')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+              <span className="mr-3">🛡️</span> {t("profileMgmt.dataProtection")} {/* Reusing key */}
             </button>
-            <button onClick={() => navigate('/emailsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
-              <span className="mr-3">✉️</span> Emails
+            <button onClick={() => navigate('/emailsettings')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+              <span className="mr-3">✉️</span> {t("profileMgmt.emails")} {/* Reusing key */}
             </button>
-            <button onClick={() => navigate('/aboutclassifieds')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer">
-              <span className="mr-3">❤️</span> About Classified Ads
+            <button onClick={() => navigate('/aboutclassifieds')} className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left">
+              <span className="mr-3">❤️</span> {t("profileMgmt.aboutClassifiedAds")} {/* Reusing key */}
             </button>
           </nav>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Payments</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t("paymentSettings.mainTitle")}</h2> {/* Translated */}
 
           <div className="flex items-center gap-2 text-gray-600 text-sm mb-6">
             <Eye className="w-4 h-4" />
-            <span>All information is visible only to you</span>
+            <span>{t("paymentSettings.infoVisibility")}</span> {/* Translated */}
           </div>
 
           {/* Payout Account Section */}
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
               <div className="flex items-center gap-10">
-                <label className="text-sm font-medium text-gray-700 w-40">Payout Account</label>
+                <label className="text-sm font-medium text-gray-700 w-40">{t("paymentSettings.payoutAccountLabel")}</label> {/* Translated */}
                 <span className="text-gray-900 text-sm">XXXX XXXX XXXX XXXX XXXX XX</span>
               </div>
               <button
                 onClick={() => setShowPayoutModal(true)}
                 className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
               >
-                Change
+                {t("paymentSettings.changeButton")} {/* Translated */}
               </button>
             </div>
           </div>
