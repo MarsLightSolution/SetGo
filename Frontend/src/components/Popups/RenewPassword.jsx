@@ -1,22 +1,26 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Footer from "../common/Footer";
+import Footer from "../common/Footer"; // Assuming this path is correct
 import {
   ToastifyContainer,
   showSuccessToast,
   showErrorToast,
-} from "../../Hooks/Tostify";
+} from "../../Hooks/Tostify"; // Assuming this path is correct
 import { Mail } from "lucide-react";
 
+// i18n import
+import { useTranslation } from 'react-i18next';
+
 function RenewPassword() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSend = async () => {
     if (!email) {
-      showErrorToast("Please enter a valid email address.");
+      showErrorToast(t("renewPassword.emailRequired")); // Translated
       return;
     }
 
@@ -28,18 +32,18 @@ function RenewPassword() {
       });
 
       if (res.status === 200 || res.status === 201) {
-        showSuccessToast("Reset link sent successfully!");
+        showSuccessToast(t("renewPassword.resetLinkSentSuccess")); // Translated
         setTimeout(() => {
           navigate("/emailnotify", { state: { email } });
         }, 1000);
       } else {
-        showErrorToast("Failed to send reset email.");
+        showErrorToast(t("renewPassword.failedToSendResetEmail")); // Translated
       }
     } catch (error) {
       const message =
         error.response?.data?.error ||
         error.response?.data?.message ||
-        "An error occurred. Please try again.";
+        t("renewPassword.serverError"); // Translated fallback
       showErrorToast(message);
     } finally {
       setLoading(false);
@@ -57,11 +61,10 @@ function RenewPassword() {
             <div className="mb-6 text-center">
               <Mail className="mx-auto h-10 w-10 text-green-500 mb-2" />
               <h1 className="text-2xl font-bold text-gray-800">
-                Reset Your Password
+                {t("renewPassword.title")} {/* Translated */}
               </h1>
               <p className="text-sm text-gray-500 mt-2">
-                Enter your email and we’ll send you a link to reset your
-                password.
+                {t("renewPassword.instructions")} {/* Translated */}
               </p>
             </div>
 
@@ -71,12 +74,12 @@ function RenewPassword() {
                   htmlFor="email"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Email Address
+                  {t("renewPassword.emailLabel")} {/* Translated */}
                 </label>
                 <input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("renewPassword.emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
@@ -112,7 +115,7 @@ function RenewPassword() {
                     ></path>
                   </svg>
                 )}
-                {loading ? "Sending..." : "Send Reset Link"}
+                {loading ? t("renewPassword.sending") : t("renewPassword.sendResetLink")} {/* Translated */}
               </button>
             </div>
           </div>
