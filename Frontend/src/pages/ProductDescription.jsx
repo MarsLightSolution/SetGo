@@ -325,7 +325,7 @@ const ProductDetail = () => {
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <CalendarTodayIcon fontSize="small" />
+                        <CalendarToday fontSize="small" />
                         {new Date(product.createdAt).toLocaleDateString(
                           i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-GB')
                         )}
