@@ -27,6 +27,7 @@ import {
   ThumbsUp,
   MessageCircle
 } from 'lucide-react'
+import EmojiPicker from './EmojiPicker'
 
 export default function ModernChatApp() {
   const { t } = useTranslation()
@@ -967,13 +968,23 @@ export default function ModernChatApp() {
                     <Paperclip className="w-5 h-5 text-gray-600" />
                   </button>
                   
-                  <button
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="p-2 hover:bg-gray-100 rounded-full transition"
-                    title="Emoji"
-                  >
-                    <Smile className="w-5 h-5 text-gray-600" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="p-2 hover:bg-gray-100 rounded-full transition"
+                      title="Emoji"
+                    >
+                      <Smile className="w-5 h-5 text-gray-600" />
+                    </button>
+                    <EmojiPicker
+                      isVisible={showEmojiPicker}
+                      onClose={() => setShowEmojiPicker(false)}
+                      onEmojiSelect={(emoji) => {
+                        setNewMessage(prev => prev + emoji)
+                        messageInputRef.current?.focus()
+                      }}
+                    />
+                  </div>
                   
                   <div className="flex-1 relative">
                     <textarea
