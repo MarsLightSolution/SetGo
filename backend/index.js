@@ -1,6 +1,5 @@
 const express = require("express")
 const dotenv = require("dotenv").config()
-const mongoose = require("./config/mongoose")
 const cookieParser = require("cookie-parser")
 const path = require("path")
 const cors = require("cors")
@@ -9,11 +8,20 @@ const fs = require("fs")
 const morgan = require("morgan")
 const http = require("http")
 const multer = require("multer")
-const initializeSocket = require("./socket")
 
 const app = express()
 const server = http.createServer(app)
+
+// Try to connect to MongoDB, but don't fail if it's not available
+let mongoose
+try {
+  mongoose = require("./config/mongoose")
+} catch (error) {
+  console.log("MongoDB not available, running in test mode")
+}
+
 // Initialize Socket.IO
+const initializeSocket = require("./socket")
 const io = initializeSocket(server)
 
 // Make io available to routes

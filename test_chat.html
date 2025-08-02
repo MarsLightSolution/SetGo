@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .message.sent {
+            background-color: #007bff;
+            color: white;
+            margin-left: 20%;
+        }
+        .message.received {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-time Chat Test</h1>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <div class="chat-container" id="chatContainer">
+        <div class="message received">
+            <strong>System:</strong> Welcome to the chat test! Connect to start chatting.
+        </div>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="username" placeholder="Enter username" value="testuser1">
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+        <button onclick="sendMessage()" id="sendButton" disabled>Send</button>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="conversationId" placeholder="Conversation ID" value="conv_1">
+        <button onclick="joinConversation()">Join Conversation</button>
+    </div>
+
+    <script>
+        let socket = null;
+        let currentUser = null;
+        let currentConversation = null;
+
+        function connect() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+
+            // Connect to Socket.IO
+            socket = io('http://localhost:8080', {
+                withCredentials: true,
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                console.log('Connected to Socket.IO');
+                updateStatus('Connected to Socket.IO', 'connected');
+                
+                // Join as user
+                socket.emit('join-user', username);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from Socket.IO');
+                updateStatus('Disconnected from Socket.IO', 'disconnected');
+            });
+
+            socket.on('user-joined', (data) => {
+                if (data.success) {
+                    currentUser = data.user;
+                    updateStatus(`Connected as ${data.userName}`, 'connected');
+                    document.getElementById('messageInput').disabled = false;
+                    document.getElementById('sendButton').disabled = false;
+                    addMessage('System', `Connected as ${data.userName}`, 'received');
+                } else {
+                    updateStatus(`Failed to join: ${data.message}`, 'disconnected');
+                }
+            });
+
+            socket.on('new-message', (data) => {
+                const { conversationId, message } = data;
+                const isFromMe = message.senderId === currentUser?.userId;
+                addMessage(
+                    message.senderName || message.senderId,
+                    message.text,
+                    isFromMe ? 'sent' : 'received'
+                );
+            });
+
+            socket.on('user-typing', (data) => {
+                addMessage('System', `${data.userName} is typing...`, 'received');
+            });
+
+            socket.on('message-delivered', (data) => {
+                console.log('Message delivered:', data);
+            });
+
+            socket.on('message-error', (data) => {
+                addMessage('System', `Error: ${data.error}`, 'received');
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                currentUser = null;
+                currentConversation = null;
+                updateStatus('Disconnected', 'disconnected');
+                document.getElementById('messageInput').disabled = true;
+                document.getElementById('sendButton').disabled = true;
+            }
+        }
+
+        function joinConversation() {
+            const conversationId = document.getElementById('conversationId').value;
+            if (!socket || !conversationId) {
+                alert('Please connect first and enter a conversation ID');
+                return;
+            }
+
+            socket.emit('join-conversation', conversationId);
+            currentConversation = conversationId;
+            addMessage('System', `Joined conversation: ${conversationId}`, 'received');
+        }
+
+        function sendMessage() {
+            const messageText = document.getElementById('messageInput').value;
+            if (!socket || !currentConversation || !messageText.trim()) {
+                alert('Please connect, join a conversation, and enter a message');
+                return;
+            }
+
+            // Send message through socket
+            socket.emit('send-message', {
+                conversationId: currentConversation,
+                message: {
+                    text: messageText,
+                    messageType: 'text'
+                }
+            });
+
+            // Add message to UI immediately
+            addMessage(currentUser?.userName || 'You', messageText, 'sent');
+            
+            // Clear input
+            document.getElementById('messageInput').value = '';
+        }
+
+        function addMessage(sender, text, type) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function updateStatus(text, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = text;
+            statusDiv.className = `status ${className}`;
+        }
+
+        // Handle Enter key in message input
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Handle Enter key in username input
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                connect();
+            }
+        });
+    </script>
+</body>
+</html>
