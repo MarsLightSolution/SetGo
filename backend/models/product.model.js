@@ -34,7 +34,7 @@ const productSchema = new mongoose.Schema(
     {
       type:String,
       required:true,
-      // trim:true,
+      trim:true,
       index:true,
       enum: ["New", "Like New", "Used", "Defective / Needs Repair"],
     },

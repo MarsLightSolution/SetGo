@@ -1,125 +1,132 @@
-// controllers/transaction.controller.js
-const express = require("express");
-const router = express.Router();
-const Transaction = require("../models/transaction.model.js");
-const User = require("../models/user.js");
+const Transaction = require('../models/transaction.model.js');
+const User = require('../models/user.js');
 const asyncHandler = require("../utils/asyncHandler");
+const mongoose = require('mongoose');
 
-/* -----------------------------------------------------------
-   Fund transfer – now checks sender has enough balance
------------------------------------------------------------ */
-const fundTransfer = asyncHandler(async (req, res) => {
-  const { senderId, receiverId, amount,transactionId } = req.body;
+const walletTransfer = asyncHandler(async (req, res) => {
 
-  // 1️⃣ Basic sanity check
-  if (amount <= 0) {
-    return res.status(400).json({
-      message: "Amount must be greater than 0",
-      success: false,
-    });
-  }
+  const { senderId, receiverId, amount, transactionId, description, session = null } = req.body;
+  if (amount <= 0) throw new Error("Amount must be greater than zero");
+  console.log(senderId);
+  
 
-  // 2️⃣ Get sender wallet balance
-  const sender = await User.findById(senderId).select("walletBalance");
-  if (!sender) {
-    return res.status(404).json({
-      message: "Sender account not found",
-      success: false,
-    });
-  }
+  const useSession = !!session;
+  const dbSession = session || await User.startSession();
 
-  // 3️⃣ Insufficient funds?
-  if (sender.walletBalance < amount) {
-    return res.status(400).json({
-      message: "Insufficient wallet balance",
-      success: false,
-    });
-  }
+  if (!useSession) dbSession.startTransaction();
 
-  // 4️⃣ Proceed with transfer
-  const session = await User.startSession();
   try {
-    session.startTransaction();
+    const sender = await User.findById(senderId).select('walletBalance').session(dbSession);
+    if (!sender) throw new Error("Sender not found");
+    if (sender.walletBalance < amount) throw new Error("Insufficient wallet balance");
 
-    const newTransaction = await Transaction.create([req.body], { session });
+    const receiver = await User.findById(receiverId).session(dbSession);
+    if (!receiver) throw new Error("Receiver not found");
 
-    await User.findByIdAndUpdate(
-      senderId,
+    const newTransaction = await Transaction.create([
       {
-        $inc: { walletBalance: -amount },
-        $push: {
-          transactionHistory: {
-            transactionId,
-            amount,
-            direction: "debit",
-            createdAt: new Date(),
-          },
-        },
-      },
-      { session }
-    );
+        senderId,
+        receiverId,
+        amount,
+        transactionId,
+        description,
+        status: "success",
+        paymentMode: "Wallet",
+        type: "transfer",
+      }
+    ], { session: dbSession });
 
-    await User.findByIdAndUpdate(
-      receiverId,
-      {
-        $inc: { walletBalance: amount },
-        $push: {
-          transactionHistory: {
-            transactionId,
-            amount,
-            direction: "credit",
-            createdAt: new Date(),
-          },
-        },
-      },
-      { session }
-    );
+    await User.findByIdAndUpdate(senderId, {
+      $inc: { walletBalance: -amount },
+      $push: { transactionHistory: { transactionId, amount, direction: "debit", createdAt: new Date() } }
+    }, { session: dbSession });
 
-    await session.commitTransaction();
-    session.endSession();
+    await User.findByIdAndUpdate(receiverId, {
+      $inc: { walletBalance: amount },
+      $push: { transactionHistory: { transactionId, amount, direction: "credit", createdAt: new Date() } }
+    }, { session: dbSession });
 
-    return res.json({
-      message: "Transaction successful",
-      data: newTransaction[0],
-      success: true,
-    });
+    if (!useSession) await dbSession.commitTransaction();
+    if (!useSession) dbSession.endSession();
+    console.log("paymentdone")
+    res.json({ success: true, message: "Wallet transfer successful" });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error(error);
-    return res.status(500).json({
-      message: "Transaction failed",
-      data: error.message,
-      success: false,
-    });
-  }
-});
-
-/* -----------------------------------------------------------
-   Verify receiver exists (unchanged)
------------------------------------------------------------ */
-const verifyUser = asyncHandler(async (req, res) => {
-  try {
-    const user = await User.findById(req.body.receiver);
-    if (user) {
-      return res.json({
-        message: "Account Verified",
-        data: user,
-        success: true,
-      });
+    if (!useSession) {
+      await dbSession.abortTransaction();
+      dbSession.endSession();
     }
-    res.status(404).json({
-      message: "Account not found",
-      data: null,
-      success: false,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Account lookup error",
-      data: error.message,
-      success: false,
-    });
+    throw error;
   }
-});
+})
 
-module.exports = { fundTransfer, verifyUser };
+/**
+ * Online wallet transfer service (no req/res here).
+ * Credits receiver's wallet; does NOT debit sender's wallet.
+ * Optionally logs a "debit" entry in sender's transactionHistory.
+ *
+ * @param {{ senderId?: string, receiverId: string, amount: number, transactionId: string, description?: string }} payload
+ * @param {mongoose.ClientSession|null} session Optional Mongoose session
+ * @returns {Promise<{ success: boolean, transaction: any }>}
+ */
+async function onlineWalletTransfer(payload, session = null) {
+  const { senderId, receiverId, amount, transactionId, description = '' } = payload;
+
+  if (!receiverId || !amount || !transactionId) {
+    throw new Error('Missing required fields: receiverId, amount, transactionId');
+  }
+  if (amount <= 0) throw new Error('Amount must be greater than zero');
+
+  const useExternalSession = !!session;
+  const dbSession = session || await mongoose.startSession();
+  if (!useExternalSession) dbSession.startTransaction();
+
+  try {
+    // Validate receiver
+    const receiver = await User.findById(receiverId).session(dbSession);
+    console.log("re  "+receiverId);
+    
+    if (!receiver) throw new Error('Receiver not found');
+
+    // If you want to log on sender, ensure sender exists (but do NOT check balance for online)
+    let sender = null;
+    if (senderId) {
+      sender = await User.findById(senderId).select('_id').session(dbSession);
+      if (!sender) throw new Error('Sender not found');
+    }
+
+    // Create Transaction record
+    const [newTransaction] = await Transaction.create([{
+      senderId: senderId || null,
+      receiverId:receiverId || null,
+      amount,
+      transactionId,
+      description,
+      status: 'success',
+      paymentMode: 'online',    // keep lowercase for consistency
+      type: 'transfer',
+    }], { session: dbSession });
+
+   await User.findByIdAndUpdate(receiverId, {
+      $inc: { walletBalance: amount },
+      $push: { transactionHistory: { transactionId, amount, direction: "credit", createdAt: new Date() } }
+    }, { session: dbSession });
+
+    if (!useExternalSession) {
+      await dbSession.commitTransaction();
+      dbSession.endSession();
+    }
+
+    return { success: true, transaction: newTransaction };
+  } catch (err) {
+    if (!useExternalSession) {
+      await dbSession.abortTransaction();
+      dbSession.endSession();
+    }
+    throw err;
+  }
+}
+
+module.exports = {
+  walletTransfer,
+  onlineWalletTransfer
+};

@@ -1,7 +1,7 @@
-// PaymentDialog.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { io } from "socket.io-client";
 
 const LOTTIES = {
   LOADING: "https://lottie.host/b929aa99-cfcf-4ce7-bdf5-61cad2c3f6f8/wL9y4hrffB.lottie",
@@ -18,12 +18,7 @@ const LottieWrap = ({ type }) => (
     transition={{ duration: 0.35 }}
     className="flex justify-center w-full"
   >
-    <DotLottieReact
-      src={LOTTIES[type]}
-      loop
-      autoplay
-      style={{ width: "100%", height: 280 }}
-    />
+    <DotLottieReact src={LOTTIES[type]} loop autoplay style={{ width: "100%", height: 280 }} />
   </motion.div>
 );
 
@@ -34,14 +29,39 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
   const [useWallet, setUseWallet] = useState(false);
   const [onlineMethod, setOnlineMethod] = useState("");
   const [status, setStatus] = useState("READY");
+  const [orderId, setOrderId] = useState(null); // For socket subscription
+
+  const price = product.price ?? 0;
+  const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
+  const remainder = price - walletDeduction;
 
   useEffect(() => {
     setWalletBalance(user.walletBalance ?? 0);
   }, [user]);
 
-  const price = product.price ?? 0;
-  const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
-  const remainder = price - walletDeduction;
+  useEffect(() => {
+    if (!orderId) return;
+
+    const socket = io("http://localhost:8080", { withCredentials: true });
+
+    socket.emit("subscribePayment", orderId);
+
+    socket.on("paymentUpdate", (data) => {
+      if (data.status === "PAID" && data.orderId === orderId) {
+        setStatus("SUCCESS");
+        onPaymentSuccess?.(price);
+        setTimeout(() => {
+          socket.disconnect();
+          onClose();
+        }, 1800);
+      }
+    });
+
+    return () => {
+      socket.off("paymentUpdate");
+      socket.disconnect();
+    };
+  }, [orderId, onClose, onPaymentSuccess, price]);
 
   const Radio = ({ value, label }) => (
     <label className="flex items-center gap-2 cursor-pointer">
@@ -66,8 +86,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
     return `Pay ₹${remainder} via ${onlineMethod}`;
   }, [status, price, remainder, onlineMethod]);
 
-  const isPayDisabled =
-    status === "LOADING" || (status === "READY" && remainder > 0 && !onlineMethod);
+  const isPayDisabled = status === "LOADING" || (status === "READY" && remainder > 0 && !onlineMethod);
 
   const handlePay = async () => {
     if (status === "FAILURE") {
@@ -85,18 +104,18 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
 
   const walletTransfer = async () => {
     setStatus("LOADING");
-    const orderId = Date.now().toString();
-    const txnId = `txn_${orderId}_${Math.floor(Math.random() * 1e6)}`;
+    const orderTimestamp = Date.now().toString();
+    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
 
     const payload = {
       senderId: user._id,
       receiverId: owner,
       type: "transfer",
       amount: price,
-      description: `Payment for order ${orderId}`,
+      description: `Payment for order ${orderTimestamp}`,
       transactionId: txnId,
-      referenceId: `order_${orderId}`,
-      source: "purchase",
+      referenceId: `order_${orderTimestamp}`,
+      source: "wallet",
     };
 
     try {
@@ -106,15 +125,15 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-
+      console.log(data);
+      
       if (res.ok) {
         setStatus("SUCCESS");
+
         try {
           await fetch(`http://localhost:8080/api/products/mark-sold/${product._id}`, {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
           });
         } catch (err) {
           console.warn("Failed to update product as sold", err);
@@ -133,17 +152,18 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
 
   const onlineTransfer = async () => {
     setStatus("LOADING");
-    const orderId = Date.now().toString();
-    const txnId = `txn_${orderId}_${Math.floor(Math.random() * 1e6)}`;
+    const orderTimestamp = Date.now().toString();
+    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
+
     const payload = {
       userId: user._id,
       receiverId: owner,
       type: "transfer",
       amount: price,
-      description: `Payment for order ${orderId}`,
+      description: `Payment for order ${orderTimestamp}`,
       transactionId: txnId,
-      referenceId: `order_${orderId}`,
-      source: "purchase",
+      referenceId: `order_${orderTimestamp}`,
+      source: "online",
       product: product._id,
     };
 
@@ -156,7 +176,8 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
 
       const data = await res.json().catch(() => ({}));
       if (data.success === true) {
-        window.location.href = data.url; // redirect to payment page
+        setOrderId(data.orderId);
+        window.location.href = data.url;
       } else {
         setStatus("FAILURE");
       }
@@ -176,9 +197,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         >
           &times;
         </button>
-
         <h2 className="text-xl font-bold mb-4 text-center">Complete Payment</h2>
-
         <section className="border rounded p-4 mb-4">
           <p className="font-semibold">Order Summary</p>
           <div className="flex justify-between mt-2">
@@ -192,7 +211,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
             </span>
           </div>
         </section>
-
         <label className="flex items-center gap-2 mb-4 cursor-pointer">
           <input
             type="checkbox"
@@ -202,7 +220,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
           />
           <span>Use Wallet {walletBalance > 0 && `(up to ₹${walletBalance})`}</span>
         </label>
-
         {useWallet && (
           <div className="bg-green-50 text-green-700 text-sm p-3 rounded mb-4">
             {remainder === 0
@@ -210,7 +227,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
               : `₹${walletDeduction} will be deducted from wallet. Remaining ₹${remainder} to pay online.`}
           </div>
         )}
-
         {remainder > 0 && (
           <>
             <p className="font-semibold mb-2">Choose Online Method</p>
@@ -219,7 +235,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
             </div>
           </>
         )}
-
         <AnimatePresence mode="wait">
           {status !== "READY" && (
             <div className="flex items-center justify-center mb-4">
@@ -227,22 +242,21 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
             </div>
           )}
         </AnimatePresence>
-
         {status !== "SUCCESS" && (
           <button
             disabled={isPayDisabled}
             onClick={handlePay}
-            className={`w-full ${isPayDisabled
-              ? "bg-gray-300 cursor-not-allowed"
-              : status === "FAILURE"
+            className={`w-full ${
+              isPayDisabled
+                ? "bg-gray-300 cursor-not-allowed"
+                : status === "FAILURE"
                 ? "bg-indigo-600 hover:bg-indigo-700"
                 : "bg-lime-500 hover:bg-lime-600"
-              } text-white font-semibold py-2 rounded`}
+            } text-white font-semibold py-2 rounded`}
           >
             {payLabel}
           </button>
         )}
-
         <div className="text-xs text-center text-gray-500 mt-4">
           100% Secured Payments | Verified Merchant | PCI DSS Certified
         </div>
