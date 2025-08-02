@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const paymentController = require('../controller/paymentcontroller');
+const paymentController = require('../controller/payment.controller');
 
 router.post('/create', paymentController.createPayment);
-router.get('/pingback', paymentController.handlePingback); // for Paymentwall
+router.get('/pingback', paymentController.handlePingback);
 
 module.exports = router;
