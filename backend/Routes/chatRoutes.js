@@ -85,27 +85,11 @@ router.get('/conversations/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Mock conversations - in real app, fetch from database
-    const conversations = [
-      {
-        _id: 'conv1',
-        participants: [
-          { userId: userId, userName: userId },
-          { userId: 'user2', userName: 'John Doe' }
-        ],
-        lastMessage: 'Hello there!',
-        lastMessageTime: new Date().toISOString()
-      },
-      {
-        _id: 'conv2',
-        participants: [
-          { userId: userId, userName: userId },
-          { userId: 'user3', userName: 'Jane Smith' }
-        ],
-        lastMessage: 'How are you?',
-        lastMessageTime: new Date().toISOString()
-      }
-    ];
+    // Fetch real conversations from database
+    const Conversation = require('../models/Conversation');
+    const conversations = await Conversation.find({
+      'participants.userId': userId
+    }).sort({ lastMessageTime: -1 });
 
     res.json({ success: true, conversations });
   } catch (error) {
@@ -123,14 +107,24 @@ router.post('/conversations', async (req, res) => {
       return res.status(400).json({ success: false, message: 'At least 2 participants required' });
     }
 
-    // Mock conversation creation
-    const conversation = {
-      _id: 'conv_' + Date.now(),
-      participants: participants.map(p => ({ userId: p, userName: p })),
-      createdAt: new Date().toISOString()
-    };
+    // Check if conversation already exists
+    const Conversation = require('../models/Conversation');
+    const existingConversation = await Conversation.findOne({
+      'participants.userId': { $all: participants.map(p => p.userId) },
+      'participants': { $size: participants.length }
+    });
 
-    res.json({ success: true, conversation });
+    if (existingConversation) {
+      return res.json({ success: true, conversation: existingConversation });
+    }
+
+    // Create new conversation
+    const conversation = new Conversation({
+      participants: participants.map(p => ({ userId: p.userId, userName: p.userName }))
+    });
+
+    const savedConversation = await conversation.save();
+    res.json({ success: true, conversation: savedConversation });
   } catch (error) {
     console.error('Error creating conversation:', error);
     res.status(500).json({ success: false, message: 'Failed to create conversation' });
@@ -142,29 +136,11 @@ router.get('/messages/:conversationId', async (req, res) => {
   try {
     const { conversationId } = req.params;
     
-    // Mock messages - in real app, fetch from database
-    const messages = [
-      {
-        _id: 'msg1',
-        conversationId,
-        senderId: 'user2',
-        senderName: 'John Doe',
-        text: 'Hello there!',
-        messageType: 'text',
-        timestamp: new Date(Date.now() - 60000).toISOString(),
-        isRead: false
-      },
-      {
-        _id: 'msg2',
-        conversationId,
-        senderId: 'user1',
-        senderName: 'Current User',
-        text: 'Hi! How are you?',
-        messageType: 'text',
-        timestamp: new Date(Date.now() - 30000).toISOString(),
-        isRead: true
-      }
-    ];
+    // Fetch real messages from database
+    const Message = require('../models/message');
+    const messages = await Message.find({ conversationId })
+      .sort({ timestamp: 1 })
+      .limit(100); // Limit to last 100 messages for performance
 
     res.json({ success: true, messages });
   } catch (error) {
@@ -176,26 +152,35 @@ router.get('/messages/:conversationId', async (req, res) => {
 // Send message
 router.post('/messages', async (req, res) => {
   try {
-    const { conversationId, senderId, text, replyTo } = req.body;
+    const { conversationId, senderId, text, replyTo, messageType = 'text' } = req.body;
     
     if (!conversationId || !senderId || !text) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    // Mock message creation
-    const message = {
-      _id: 'msg_' + Date.now(),
+    // Save message to database
+    const Message = require('../models/message');
+    const Conversation = require('../models/Conversation');
+    
+    const message = new Message({
       conversationId,
       senderId,
       senderName: senderId,
       text,
-      messageType: 'text',
-      timestamp: new Date().toISOString(),
-      isRead: false,
-      replyTo: replyTo ? { _id: replyTo, text: 'Replied message', senderName: 'Other User' } : null
-    };
+      messageType,
+      timestamp: new Date(),
+      isRead: false
+    });
 
-    res.json({ success: true, message });
+    const savedMessage = await message.save();
+
+    // Update conversation's last message
+    await Conversation.findByIdAndUpdate(conversationId, {
+      lastMessage: text,
+      lastMessageTime: new Date()
+    });
+
+    res.json({ success: true, message: savedMessage });
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ success: false, message: 'Failed to send message' });
