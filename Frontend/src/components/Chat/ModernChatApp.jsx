@@ -4,36 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import io from "socket.io-client"
 import { chatNotifications } from "../../Notification/notification"
 import { useTranslation } from 'react-i18next'
-import { 
-  Send, 
-  Paperclip, 
-  Smile, 
-  MoreVertical, 
-  Search, 
-  Phone, 
-  Video, 
-  Image as ImageIcon,
-  FileText,
-  Mic,
-  X,
-  Check,
-  CheckCheck,
-  Clock,
-  User,
-  Settings,
-  LogOut,
-  Camera,
-  Download,
-  Share2,
-  Reply,
-  Forward,
-  Trash2,
-  Archive,
-  Pin,
-  Volume2,
-  VolumeX,
-  MessageCircle
-} from 'lucide-react'
+import { getCurrentUser, chatApi } from "../../utils/auth"
 
 export default function ModernChatApp() {
   const { t } = useTranslation()
@@ -56,29 +27,16 @@ export default function ModernChatApp() {
   const [onlineUsers, setOnlineUsers] = useState(new Set())
   const [messageDeliveryStatus, setMessageDeliveryStatus] = useState({})
   
-  // New modern features
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
-  const [showConversationMenu, setShowConversationMenu] = useState(false)
+  // Modern features
   const [replyToMessage, setReplyToMessage] = useState(null)
-  const [forwardMessage, setForwardMessage] = useState(null)
-  const [searchMessages, setSearchMessages] = useState("")
-  const [isRecording, setIsRecording] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
-  const [showUserProfile, setShowUserProfile] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  const [messageSearchResults, setMessageSearchResults] = useState([])
-  const [isSearching, setIsSearching] = useState(false)
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   // Refs
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
-  const imageInputRef = useRef(null)
-  const audioInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
-  const messageInputRef = useRef(null)
-  const searchInputRef = useRef(null)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -88,38 +46,9 @@ export default function ModernChatApp() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Track window focus for notifications
-  useEffect(() => {
-    const handleFocus = () => {
-      setIsWindowFocused(true)
-      if (selectedConversation && messages.length > 0) {
-        markMessagesAsRead()
-      }
-    }
-    const handleBlur = () => setIsWindowFocused(false)
-
-    window.addEventListener("focus", handleFocus)
-    window.addEventListener("blur", handleBlur)
-
-    return () => {
-      window.removeEventListener("focus", handleFocus)
-      window.removeEventListener("blur", handleBlur)
-    }
-  }, [selectedConversation, messages])
-
-  // Initialize notifications
-  useEffect(() => {
-    const initNotifications = async () => {
-      await chatNotifications.init()
-      setNotificationsEnabled(chatNotifications.isEnabled())
-    }
-    initNotifications()
-  }, [])
-
   // Auto-connect on mount
   useEffect(() => {
     handleAutoConnect()
-
     return () => {
       if (socket) {
         socket.disconnect()
@@ -131,228 +60,195 @@ export default function ModernChatApp() {
   }, [])
 
   const handleAutoConnect = async () => {
-    const storedUserId =
-      localStorage.getItem("userId") || localStorage.getItem("userName") || localStorage.getItem("userEmail")
-
-    let userFromStorage = null
-    try {
-      const userData = localStorage.getItem("userData")
-      if (userData) {
-        const parsedUser = JSON.parse(userData)
-        userFromStorage = parsedUser.email || parsedUser.username || parsedUser._id
-      }
-    } catch (e) {
-      console.error("Error parsing userData:", e)
-    }
-
-    const userIdentifier = storedUserId || userFromStorage
-
-    if (!userIdentifier) {
-      setConnectionError(t("chatApp.noUserIdFound"))
-      setIsConnecting(false)
-      return
-    }
-
     try {
       setIsConnecting(true)
-      const response = await fetch("http://localhost:8080/api/chat/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: userIdentifier.trim() }),
-      })
+      
+      // Get current user from cookies/storage
+      const user = getCurrentUser()
+      if (!user) {
+        setConnectionError("Please login to use chat")
+        setIsConnecting(false)
+        return
+      }
 
-      const data = await response.json()
-      if (data.success) {
-        setCurrentUser(data.user)
+      // Connect to chat
+      const response = await chatApi.connect(user.userName || user.email)
+      if (response.success) {
+        setCurrentUser(response.user)
         setConnectionError(null)
-        initializeSocket(data.user)
-        await fetchConversations(data.user.userId)
+        initializeSocket(response.user)
+        await fetchConversations(response.user.userId)
       } else {
-        setConnectionError(data.message)
+        setConnectionError(response.message)
       }
     } catch (error) {
       console.error("Connection error:", error)
-      setConnectionError(t("chatApp.failedToConnect"))
+      setConnectionError("Failed to connect to chat")
     } finally {
       setIsConnecting(false)
     }
   }
 
-  const initializeSocket = useCallback(
-    (user) => {
-      if (socket) {
-        socket.disconnect()
+  const initializeSocket = useCallback((user) => {
+    if (socket) {
+      socket.disconnect()
+    }
+
+    // Get access token from cookies
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    };
+
+    const accessToken = getCookie('accessToken');
+    if (!accessToken) {
+      setConnectionError("Authentication required")
+      return
+    }
+
+    const newSocket = io("http://localhost:8080", {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+      timeout: 20000,
+      forceNew: true,
+      auth: {
+        token: accessToken
+      }
+    })
+
+    newSocket.on("connect", () => {
+      console.log("Connected to Socket.IO")
+      newSocket.emit("join-user", user.userId)
+    })
+
+    newSocket.on("disconnect", (reason) => {
+      console.log("Disconnected from Socket.IO:", reason)
+      if (reason === "io server disconnect") {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          newSocket.connect()
+        }, 1000)
+      }
+    })
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error)
+      setConnectionError("Connection lost. Trying to reconnect...")
+    })
+
+    newSocket.on("user-joined", (data) => {
+      if (data.success) {
+        console.log("Successfully joined as user:", data.userId)
+        setConnectionError(null)
+      } else {
+        setConnectionError(data.message)
+      }
+    })
+
+    newSocket.on("user-status-changed", (data) => {
+      setOnlineUsers((prev) => {
+        const newSet = new Set(prev)
+        if (data.isOnline) {
+          newSet.add(data.userId)
+        } else {
+          newSet.delete(data.userId)
+        }
+        return newSet
+      })
+
+      if (user) {
+        fetchConversations(user.userId)
+      }
+    })
+
+    newSocket.on("new-message", (data) => {
+      const { conversationId, message } = data
+      const isFromOtherUser = message.senderId !== user.userId
+
+      if (selectedConversation && conversationId === selectedConversation._id) {
+        setMessages((prev) => {
+          const messageExists = prev.some((msg) => msg._id === message._id)
+          if (messageExists) return prev
+
+          const newMessages = [...prev, message]
+
+          if (isWindowFocused && isFromOtherUser) {
+            setTimeout(() => markMessagesAsRead([message._id]), 100)
+          }
+
+          return newMessages
+        })
+
+        if (!isWindowFocused && isFromOtherUser) {
+          const senderName = message.senderName || "Someone"
+          chatNotifications.showMessageNotification(senderName, message.text, message.messageType, conversationId)
+        }
+      } else if (isFromOtherUser) {
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [conversationId]: (prev[conversationId] || 0) + 1,
+        }))
+
+        const senderName = message.senderName || "Someone"
+        chatNotifications.showMessageNotification(senderName, message.text, message.messageType, conversationId)
       }
 
-      const newSocket = io("http://localhost:8080", {
-        withCredentials: true,
-        transports: ["websocket", "polling"],
-        timeout: 20000,
-        forceNew: true,
-      })
+      if (user) {
+        fetchConversations(user.userId)
+      }
+    })
 
-      // Connection events
-      newSocket.on("connect", () => {
-        console.log("Connected to Socket.IO")
-        newSocket.emit("join-user", user.userId)
-      })
+    newSocket.on("message-delivered", (data) => {
+      setMessageDeliveryStatus((prev) => ({
+        ...prev,
+        [data.messageId]: "delivered",
+      }))
+    })
 
-      newSocket.on("disconnect", (reason) => {
-        console.log("Disconnected from Socket.IO:", reason)
-        if (reason === "io server disconnect") {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            newSocket.connect()
-          }, 1000)
-        }
+    newSocket.on("messages-read", (data) => {
+      const { messageIds } = data
+      setMessageDeliveryStatus((prev) => {
+        const updated = { ...prev }
+        messageIds.forEach((id) => {
+          updated[id] = "read"
+        })
+        return updated
       })
+    })
 
-      newSocket.on("connect_error", (error) => {
-        console.error("Socket connection error:", error)
-        setConnectionError("Connection lost. Trying to reconnect...")
-      })
-
-      // User events
-      newSocket.on("user-joined", (data) => {
-        if (data.success) {
-          console.log("Successfully joined as user:", data.userId)
-          setConnectionError(null)
-        } else {
-          setConnectionError(data.message)
-        }
-      })
-
-      newSocket.on("user-status-changed", (data) => {
-        setOnlineUsers((prev) => {
+    newSocket.on("user-typing", (data) => {
+      if (data.userId !== user.userId && data.conversationId === selectedConversation?._id) {
+        setTypingUsers((prev) => {
           const newSet = new Set(prev)
-          if (data.isOnline) {
-            newSet.add(data.userId)
+          if (data.isTyping) {
+            newSet.add(data.userName)
           } else {
-            newSet.delete(data.userId)
+            newSet.delete(data.userName)
           }
           return newSet
         })
 
-        if (user) {
-          fetchConversations(user.userId)
-        }
-      })
-
-      // Message events
-      newSocket.on("new-message", (data) => {
-        console.log("Received new message:", data)
-        const { conversationId, message } = data
-        const isFromOtherUser = message.senderId !== user.userId
-
-        if (selectedConversation && conversationId === selectedConversation._id) {
-          setMessages((prev) => {
-            const messageExists = prev.some((msg) => msg._id === message._id)
-            if (messageExists) return prev
-
-            const newMessages = [...prev, message]
-
-            if (isWindowFocused && isFromOtherUser) {
-              setTimeout(() => markMessagesAsRead([message._id]), 100)
-            }
-
-            return newMessages
-          })
-
-          if (!isWindowFocused && isFromOtherUser) {
-            const senderName = message.senderName || "Someone"
-            chatNotifications.showMessageNotification(senderName, message.text, message.messageType, conversationId)
-          }
-        } else if (isFromOtherUser) {
-          setUnreadCounts((prev) => ({
-            ...prev,
-            [conversationId]: (prev[conversationId] || 0) + 1,
-          }))
-
-          const senderName = message.senderName || "Someone"
-          chatNotifications.showMessageNotification(senderName, message.text, message.messageType, conversationId)
-        }
-
-        if (user) {
-          fetchConversations(user.userId)
-        }
-      })
-
-      newSocket.on("message-delivered", (data) => {
-        setMessageDeliveryStatus((prev) => ({
-          ...prev,
-          [data.messageId]: "delivered",
-        }))
-      })
-
-      newSocket.on("messages-read", (data) => {
-        const { messageIds } = data
-        setMessageDeliveryStatus((prev) => {
-          const updated = { ...prev }
-          messageIds.forEach((id) => {
-            updated[id] = "read"
-          })
-          return updated
-        })
-      })
-
-      newSocket.on("message-error", (data) => {
-        console.error("Message error:", data.error)
-        alert("Failed to send message: " + data.error)
-      })
-
-      // Typing events
-      newSocket.on("user-typing", (data) => {
-        if (data.userId !== user.userId && data.conversationId === selectedConversation?._id) {
-          setTypingUsers((prev) => {
-            const newSet = new Set(prev)
-            if (data.isTyping) {
-              newSet.add(data.userName)
-            } else {
+        if (data.isTyping) {
+          setTimeout(() => {
+            setTypingUsers((prev) => {
+              const newSet = new Set(prev)
               newSet.delete(data.userName)
-            }
-            return newSet
-          })
-
-          if (data.isTyping) {
-            setTimeout(() => {
-              setTypingUsers((prev) => {
-                const newSet = new Set(prev)
-                newSet.delete(data.userName)
-                return newSet
-              })
-            }, 3000)
-          }
+              return newSet
+            })
+          }, 3000)
         }
-      })
+      }
+    })
 
-      // Conversation events
-      newSocket.on("conversation-joined", (data) => {
-        if (data.success) {
-          console.log("Successfully joined conversation:", data.conversationId)
-        } else {
-          console.error("Failed to join conversation:", data.error)
-        }
-      })
-
-      newSocket.on("user-joined-conversation", (data) => {
-        console.log("User joined conversation:", data)
-      })
-
-      newSocket.on("user-left-conversation", (data) => {
-        console.log("User left conversation:", data)
-      })
-
-      setSocket(newSocket)
-    },
-    [selectedConversation, isWindowFocused],
-  )
+    setSocket(newSocket)
+  }, [selectedConversation, isWindowFocused])
 
   const fetchConversations = async (userIdentifier) => {
     if (!userIdentifier) return
     try {
-      const response = await fetch(`http://localhost:8080/api/chat/conversations/${userIdentifier}`)
-      const data = await response.json()
-      if (data.success) {
-        setConversations(data.conversations)
+      const response = await chatApi.getConversations(userIdentifier)
+      if (response.success) {
+        setConversations(response.conversations)
       }
     } catch (error) {
       console.error("Error fetching conversations:", error)
@@ -360,23 +256,15 @@ export default function ModernChatApp() {
   }
 
   const startConversation = async (targetUsername) => {
-    if (!currentUser) return alert(t("chatApp.connectingToChatWait"))
+    if (!currentUser) return alert("Please wait, connecting to chat...")
 
     try {
-      const response = await fetch("http://localhost:8080/api/chat/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          participants: [currentUser.userId, targetUsername],
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        await selectConversation(data.conversation)
+      const response = await chatApi.createConversation([currentUser.userId, targetUsername])
+      if (response.success) {
+        await selectConversation(response.conversation)
         await fetchConversations(currentUser.userId)
       } else {
-        alert(data.message)
+        alert(response.message)
       }
     } catch (error) {
       console.error("Error starting conversation:", error)
@@ -394,9 +282,6 @@ export default function ModernChatApp() {
     setMessages([])
     setTypingUsers(new Set())
     setReplyToMessage(null)
-    setForwardMessage(null)
-    setSearchMessages("")
-    setMessageSearchResults([])
 
     socket.emit("join-conversation", conversation._id)
 
@@ -406,13 +291,12 @@ export default function ModernChatApp() {
     }))
 
     try {
-      const response = await fetch(`http://localhost:8080/api/chat/messages/${conversation._id}`)
-      const data = await response.json()
-      if (data.success) {
-        setMessages(data.messages)
+      const response = await chatApi.getMessages(conversation._id)
+      if (response.success) {
+        setMessages(response.messages)
 
         setTimeout(() => {
-          const unreadMessages = data.messages
+          const unreadMessages = response.messages
             .filter((msg) => msg.senderId !== currentUser.userId && !msg.isRead)
             .map((msg) => msg._id)
 
@@ -447,20 +331,14 @@ export default function ModernChatApp() {
     setNewMessage("")
 
     try {
-      const response = await fetch("http://localhost:8080/api/chat/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: selectedConversation._id,
-          senderId: currentUser.userId,
-          text: messageText,
-          replyTo: replyToMessage?._id,
-        }),
+      const response = await chatApi.sendMessage({
+        conversationId: selectedConversation._id,
+        text: messageText,
+        replyTo: replyToMessage?._id,
       })
 
-      const data = await response.json()
-      if (data.success) {
-        const message = data.message
+      if (response.success) {
+        const message = response.message
 
         setMessages((prev) => [...prev, message])
 
@@ -477,7 +355,7 @@ export default function ModernChatApp() {
         fetchConversations(currentUser.userId)
         setReplyToMessage(null)
       } else {
-        alert("Failed to send message: " + data.message)
+        alert("Failed to send message: " + response.message)
         setNewMessage(messageText)
       }
     } catch (error) {
@@ -499,16 +377,10 @@ export default function ModernChatApp() {
       const formData = new FormData()
       formData.append("file", file)
       formData.append("conversationId", selectedConversation._id)
-      formData.append("senderId", currentUser.userId)
 
-      const response = await fetch("http://localhost:8080/api/chat/upload", {
-        method: "POST",
-        body: formData,
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        const message = data.message
+      const response = await chatApi.uploadFile(formData)
+      if (response.success) {
+        const message = response.message
 
         setMessages((prev) => [...prev, message])
 
@@ -519,11 +391,11 @@ export default function ModernChatApp() {
 
         fetchConversations(currentUser.userId)
       } else {
-        alert(data.message)
+        alert(response.message)
       }
     } catch (error) {
       console.error("Error uploading file:", error)
-      alert(t("chatApp.failedToUploadFile"))
+      alert("Failed to upload file")
     } finally {
       setIsUploading(false)
     }
@@ -556,66 +428,6 @@ export default function ModernChatApp() {
     }
   }
 
-  const startConversationFromExternal = async (targetUsername, productInfo = null) => {
-    if (!currentUser) {
-      if (isConnecting) {
-        return setTimeout(() => startConversationFromExternal(targetUsername, productInfo), 1000)
-      }
-      return alert("Please wait, connecting to chat...")
-    }
-
-    try {
-      const response = await fetch("http://localhost:8080/api/chat/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          participants: [currentUser.userId, targetUsername],
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        await selectConversation(data.conversation)
-        await fetchConversations(currentUser.userId)
-
-        if (productInfo) {
-          setTimeout(() => {
-            const productMessage = t("chatApp.productOfInterest", { title: productInfo.title, price: productInfo.price })
-            setNewMessage(productMessage)
-          }, 500)
-        }
-      } else {
-        alert(data.message)
-      }
-    } catch (error) {
-      console.error("Error starting conversation:", error)
-    }
-  }
-
-  useEffect(() => {
-    window.startChatConversation = startConversationFromExternal
-    window.focusConversation = (conversationId) => {
-      const conversation = conversations.find((c) => c._id === conversationId)
-      if (conversation) {
-        selectConversation(conversation)
-      }
-    }
-
-    return () => {
-      delete window.startChatConversation
-      delete window.focusConversation
-    }
-  }, [currentUser, socket, conversations])
-
-  const toggleNotifications = async () => {
-    if (!notificationsEnabled) {
-      await chatNotifications.requestPermission()
-      setNotificationsEnabled(chatNotifications.isEnabled())
-    } else {
-      alert("To disable notifications, please use your browser settings.")
-    }
-  }
-
   const renderMessageContent = (message) => {
     const deliveryStatus = messageDeliveryStatus[message._id]
     const isOwn = message.senderId === currentUser?.userId
@@ -635,8 +447,8 @@ export default function ModernChatApp() {
           <div>
             <img
               src={`http://localhost:8080${message.fileUrl}`}
-              alt={t("chatApp.sharedImageAlt")}
-              className="max-w-[200px] max-h-[200px] rounded-lg cursor-pointer mb-1 hover:opacity-80 transition"
+              alt="Shared image"
+              className="max-w-[200px] max-h-[200px] rounded-lg cursor-pointer hover:opacity-80 transition"
               onClick={() => window.open(`http://localhost:8080${message.fileUrl}`, "_blank")}
             />
             {message.text && <p className="mt-2">{message.text}</p>}
@@ -646,12 +458,12 @@ export default function ModernChatApp() {
             className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition"
             onClick={() => window.open(`http://localhost:8080${message.fileUrl}`, "_blank")}
           >
-            <FileText className="w-8 h-8 text-blue-500" />
+            <span className="text-2xl">📄</span>
             <div className="flex-1">
               <p className="text-sm font-medium">{message.fileName}</p>
-              <p className="text-xs text-gray-500">{t("chatApp.fileSize", { size: (message.fileSize / 1024).toFixed(1) })}</p>
+              <p className="text-xs text-gray-500">{(message.fileSize / 1024).toFixed(1)} KB</p>
             </div>
-            <Download className="w-4 h-4 text-gray-400" />
+            <span className="text-gray-400">⬇️</span>
           </div>
         ) : (
           <p className="whitespace-pre-wrap">{message.text}</p>
@@ -666,10 +478,10 @@ export default function ModernChatApp() {
           </p>
           {isOwn && (
             <span className="text-[10px] opacity-70">
-              {deliveryStatus === "sending" && <Clock className="w-3 h-3" />}
-              {deliveryStatus === "delivered" && <Check className="w-3 h-3" />}
-              {deliveryStatus === "read" && <CheckCheck className="w-3 h-3 text-blue-500" />}
-              {!deliveryStatus && <Check className="w-3 h-3" />}
+              {deliveryStatus === "sending" && "⏳"}
+              {deliveryStatus === "delivered" && "✓"}
+              {deliveryStatus === "read" && "✓✓"}
+              {!deliveryStatus && "✓"}
             </span>
           )}
         </div>
@@ -678,77 +490,22 @@ export default function ModernChatApp() {
   }
 
   const getConnectionStatus = () => {
-    if (isConnecting) return <div className="text-sm text-gray-500 mb-2">Connecting...</div>
-    if (connectionError) return <div className="text-sm text-red-500 mb-2">{connectionError}</div>
-    if (currentUser && socket?.connected) return <div className="text-sm text-green-600 mb-2">● Connected</div>
-    return <div className="text-sm text-yellow-600 mb-2">● Reconnecting...</div>
+    if (isConnecting) return <div className="text-sm text-green-200">Connecting...</div>
+    if (connectionError) return <div className="text-sm text-red-200">{connectionError}</div>
+    if (currentUser && socket?.connected) return <div className="text-sm text-green-200">● Connected</div>
+    return <div className="text-sm text-yellow-200">● Reconnecting...</div>
   }
 
   const typingText = Array.from(typingUsers).join(", ")
 
-  const handleAttachmentClick = (type) => {
-    setShowAttachmentMenu(false)
-    switch (type) {
-      case 'image':
-        imageInputRef.current?.click()
-        break
-      case 'file':
-        fileInputRef.current?.click()
-        break
-      case 'camera':
-        // Handle camera
-        break
-      case 'audio':
-        audioInputRef.current?.click()
-        break
-    }
-  }
-
-  const handleMessageAction = (action, message) => {
-    switch (action) {
-      case 'reply':
-        setReplyToMessage(message)
-        messageInputRef.current?.focus()
-        break
-      case 'forward':
-        setForwardMessage(message)
-        break
-      case 'delete':
-        // Handle delete
-        break
-    }
-  }
-
   return (
-    <div className="h-screen bg-gray-50 flex">
-      {/* Hidden file inputs */}
+    <div className="h-screen bg-gradient-to-br from-green-400 to-blue-500 flex">
+      {/* Hidden file input */}
       <input
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
-        onChange={(e) => {
-          if (e.target.files[0]) {
-            handleFileUpload(e.target.files[0])
-          }
-        }}
-      />
-      <input
-        type="file"
-        ref={imageInputRef}
-        className="hidden"
-        accept="image/*"
-        onChange={(e) => {
-          if (e.target.files[0]) {
-            handleFileUpload(e.target.files[0])
-          }
-        }}
-      />
-      <input
-        type="file"
-        ref={audioInputRef}
-        className="hidden"
-        accept="audio/*"
+        accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
         onChange={(e) => {
           if (e.target.files[0]) {
             handleFileUpload(e.target.files[0])
@@ -757,22 +514,17 @@ export default function ModernChatApp() {
       />
 
       {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-gray-800">Chats</h1>
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold tracking-tight">💬 Modern Chat</h1>
             <div className="flex items-center gap-2">
+              {getConnectionStatus()}
               <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="p-2 rounded-full hover:bg-gray-100 transition"
-              >
-                <Settings className="w-5 h-5 text-gray-600" />
-              </button>
-              <button
-                onClick={toggleNotifications}
+                onClick={() => setNotificationsEnabled(!notificationsEnabled)}
                 className={`p-2 rounded-full transition ${
-                  notificationsEnabled ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-50"
+                  notificationsEnabled ? "text-green-200 hover:bg-green-400" : "text-gray-200 hover:bg-green-400"
                 }`}
               >
                 {notificationsEnabled ? "🔔" : "🔕"}
@@ -781,14 +533,14 @@ export default function ModernChatApp() {
           </div>
 
           {currentUser && (
-            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+            <div className="bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-xl p-4 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="w-12 h-12 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-white font-bold text-lg">
                   {currentUser.userName?.[0] || "U"}
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800">{currentUser.userName}</p>
-                  <p className="text-xs text-gray-500 truncate">{currentUser.userId}</p>
+                <div>
+                  <p className="font-semibold text-white">{currentUser.userName}</p>
+                  <p className="text-xs text-green-100 truncate">{currentUser.userId}</p>
                 </div>
               </div>
             </div>
@@ -796,15 +548,15 @@ export default function ModernChatApp() {
 
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search or start new chat"
+                placeholder="Search or start new chat..."
                 value={searchUsername}
                 onChange={(e) => setSearchUsername(e.target.value)}
                 disabled={!currentUser}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50"
+                className="w-full pl-10 pr-4 py-3 border border-white border-opacity-30 rounded-xl text-sm bg-white bg-opacity-20 backdrop-blur-sm text-white placeholder-green-100 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
               />
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-100">🔍</span>
             </div>
             <button
               disabled={!currentUser}
@@ -814,17 +566,15 @@ export default function ModernChatApp() {
                   setSearchUsername("")
                 }
               }}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50"
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-3 rounded-xl text-sm font-medium transition disabled:opacity-50 border border-white border-opacity-30"
             >
               Chat
             </button>
           </div>
-
-          {getConnectionStatus()}
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto bg-gray-50">
           {conversations.map((conversation) => {
             const otherUser = conversation.participants.find((p) => p.userId !== currentUser?.userId)
             const isSelected = selectedConversation?._id === conversation._id
@@ -836,7 +586,7 @@ export default function ModernChatApp() {
                 key={conversation._id}
                 onClick={() => currentUser && selectConversation(conversation)}
                 className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all relative ${
-                  isSelected ? "bg-green-50 border-l-4 border-green-500" : "hover:bg-gray-50"
+                  isSelected ? "bg-green-50 border-l-4 border-green-500" : "hover:bg-gray-100"
                 }`}
               >
                 <div className="relative">
@@ -886,7 +636,7 @@ export default function ModernChatApp() {
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-semibold">
@@ -914,38 +664,9 @@ export default function ModernChatApp() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 rounded-full hover:bg-gray-100 transition">
-                  <Phone className="w-5 h-5 text-gray-600" />
-                </button>
-                <button className="p-2 rounded-full hover:bg-gray-100 transition">
-                  <Video className="w-5 h-5 text-gray-600" />
-                </button>
-                <button 
-                  onClick={() => setShowConversationMenu(!showConversationMenu)}
-                  className="p-2 rounded-full hover:bg-gray-100 transition relative"
-                >
-                  <MoreVertical className="w-5 h-5 text-gray-600" />
-                  {showConversationMenu && (
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                      <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                        <Search className="w-4 h-4" />
-                        Search messages
-                      </button>
-                      <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                        <Volume2 className="w-4 h-4" />
-                        Mute notifications
-                      </button>
-                      <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                        <Pin className="w-4 h-4" />
-                        Pin conversation
-                      </button>
-                      <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                        <Archive className="w-4 h-4" />
-                        Archive chat
-                      </button>
-                    </div>
-                  )}
-                </button>
+                <button className="p-2 rounded-full hover:bg-gray-100 transition">📞</button>
+                <button className="p-2 rounded-full hover:bg-gray-100 transition">📹</button>
+                <button className="p-2 rounded-full hover:bg-gray-100 transition">⋮</button>
               </div>
             </div>
 
@@ -974,23 +695,23 @@ export default function ModernChatApp() {
                       {/* Message Actions */}
                       <div className={`absolute top-0 ${isOwn ? '-left-16' : '-right-16'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1`}>
                         <button
-                          onClick={() => handleMessageAction('reply', message)}
+                          onClick={() => setReplyToMessage(message)}
                           className="p-1 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition"
                         >
-                          <Reply className="w-3 h-3" />
+                          ↩️
                         </button>
                         <button
-                          onClick={() => handleMessageAction('forward', message)}
+                          onClick={() => {/* Handle forward */}}
                           className="p-1 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition"
                         >
-                          <Forward className="w-3 h-3" />
+                          ↪️
                         </button>
                         {isOwn && (
                           <button
-                            onClick={() => handleMessageAction('delete', message)}
+                            onClick={() => {/* Handle delete */}}
                             className="p-1 rounded-full bg-red-600 text-white hover:bg-red-700 transition"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            🗑️
                           </button>
                         )}
                       </div>
@@ -1019,7 +740,7 @@ export default function ModernChatApp() {
                     onClick={() => setReplyToMessage(null)}
                     className="p-1 rounded-full hover:bg-gray-200 transition"
                   >
-                    <X className="w-4 h-4 text-gray-500" />
+                    ✕
                   </button>
                 </div>
               </div>
@@ -1033,38 +754,34 @@ export default function ModernChatApp() {
                     onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
                     className="p-2 rounded-full hover:bg-gray-100 transition"
                   >
-                    <Paperclip className="w-5 h-5 text-gray-600" />
+                    📎
                   </button>
                   
                   {showAttachmentMenu && (
                     <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                       <button
-                        onClick={() => handleAttachmentClick('image')}
+                        onClick={() => {
+                          fileInputRef.current?.click()
+                          setShowAttachmentMenu(false)
+                        }}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <ImageIcon className="w-4 h-4" />
-                        Photo
+                        📷 Photo
                       </button>
                       <button
-                        onClick={() => handleAttachmentClick('camera')}
+                        onClick={() => {
+                          fileInputRef.current?.click()
+                          setShowAttachmentMenu(false)
+                        }}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <Camera className="w-4 h-4" />
-                        Camera
+                        📄 Document
                       </button>
                       <button
-                        onClick={() => handleAttachmentClick('file')}
+                        onClick={() => setShowAttachmentMenu(false)}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                       >
-                        <FileText className="w-4 h-4" />
-                        Document
-                      </button>
-                      <button
-                        onClick={() => handleAttachmentClick('audio')}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        <Mic className="w-4 h-4" />
-                        Audio
+                        🎤 Audio
                       </button>
                     </div>
                   )}
@@ -1072,7 +789,6 @@ export default function ModernChatApp() {
                 
                 <div className="flex-1 relative">
                   <textarea
-                    ref={messageInputRef}
                     value={newMessage}
                     onChange={(e) => {
                       setNewMessage(e.target.value)
@@ -1089,7 +805,7 @@ export default function ModernChatApp() {
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 transition"
                   >
-                    <Smile className="w-4 h-4 text-gray-500" />
+                    😊
                   </button>
                 </div>
                 
@@ -1098,7 +814,7 @@ export default function ModernChatApp() {
                   disabled={!currentUser || !newMessage.trim()}
                   className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full transition disabled:opacity-50"
                 >
-                  <Send className="w-5 h-5" />
+                  ➤
                 </button>
               </div>
             </div>
@@ -1106,7 +822,7 @@ export default function ModernChatApp() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 text-gray-600">
             <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-6">
-              <MessageCircle className="w-12 h-12 text-gray-400" />
+              💬
             </div>
             <h2 className="text-xl font-semibold mb-2">
               {currentUser ? "Select a conversation" : "Connecting to chat..."}

@@ -8,6 +8,7 @@ import {
   ToastifyContainer,
 } from "../Hooks/Tostify";
 import { Eye, EyeOff } from "lucide-react";
+import { register } from "../utils/auth";
 
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -67,25 +68,17 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8080/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const data = await register(formData);
 
-      const data = await res.json();
-
-      if (res.status === 200 || res.status === 201) {
+      if (data.message) {
         showSuccessToast(t("register.successMessage")); // Translated
         setTimeout(() => navigate("/confirm"), 1500);
       } else {
-        showErrorToast(data?.error || data?.message || t("register.failedMessage")); // Translated fallback
+        showErrorToast(data?.error || t("register.failedMessage")); // Translated fallback
       }
     } catch (error) {
-      console.error("Error:", error);
-      showErrorToast(t("register.serverError")); // Translated
+      console.error("Registration error:", error);
+      showErrorToast(error.message || t("register.serverError")); // Translated
     } finally {
       setLoading(false);
     }

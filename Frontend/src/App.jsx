@@ -27,7 +27,7 @@ const EmailNotification = lazy(() => import('./Components/Popups/EmailNotificati
 const UserInfo = lazy(() => import('./components/UserInfo/UserInfo'))
 const Wishlist = lazy(() => import('./pages/Wishlist'))
 const ProductDetail = lazy(() => import('./pages/ProductDescription'))
-const ChatApp = lazy(() => import('./components/Chat/chatapp'))
+const ModernChatApp = lazy(() => import('./components/Chat/ModernChatApp'))
 const UserPage = lazy(() => import('./pages/Userpage'))
 const MySearch = lazy(() => import('./pages/MySearch'))
 const EditForm = lazy(() => import('./components/UserInfo/EditForm'))
@@ -40,6 +40,7 @@ const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-500"></div>
   </div>
 )
+
 function App() {
   return (
     <NotificationProvider>
@@ -67,7 +68,7 @@ function App() {
             <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
             <Route path='/product/:id' element={<ProductDetail/>}/>
             <Route path='products/product/:id' element={<ProductDetail/>}/>
-            <Route path="/chat" element={<ChatApp/>}/>
+            <Route path="/chat" element={<ProtectedRoute><ModernChatApp/></ProtectedRoute>}/>
             <Route path='/userinfo' element={<UserInfo/>}/>
             <Route path='/userpage' element={<UserPage/>}/>
             <Route path='/mysearch' element={<MySearch/>}/>

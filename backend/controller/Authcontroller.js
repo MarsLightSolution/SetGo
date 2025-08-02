@@ -27,8 +27,8 @@ module.exports.signup = async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({ error: "Password must be at least 6 characters long" });
     }
-    if (!/^[a-zA-Z0-9]+$/.test(username)) {
-      return res.status(400).json({ error: "Username can only contain alphanumeric characters" });
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({ error: "Username can only contain alphanumeric characters and underscores" });
     }
     if (username.length < 3 || username.length > 16) {
       return res.status(400).json({ error: "Username must be between 3 and 16 characters long" });
@@ -97,26 +97,36 @@ module.exports.verifyEmail = async (req, res) => {
     const tempUser = await TempUser.findOne({ token });
     if (!tempUser) return res.status(400).send("Invalid or expired verification token.");
 
-    // Ensure permanent user doesn’t already exist
-    if (await User.exists({ $or: [{ email: tempUser.email }, { username: tempUser.username }] })) {
-      await TempUser.deleteOne({ _id: tempUser._id });
-      logger.warn(`[VerifyEmail] Duplicate user attempted for token ${token}`);
-      return res.status(409).send("User already exists in permanent database.");
+    // Ensure permanent user doesn't already exist
+    if (await User.exists({ email: tempUser.email })) {
+      await TempUser.deleteOne({ token });
+      return res.status(400).send("User already verified. Please login.");
     }
 
-    await User.create({
+    // Create permanent user
+    const user = await User.create({
       email: tempUser.email,
       username: tempUser.username,
       password: tempUser.password,
-      emailVerified: true,
+      role: "user",
     });
-    await TempUser.deleteOne({ _id: tempUser._id });
 
-    logger.info(`[VerifyEmail] Email verified for: ${tempUser.email}`);
-    return res.redirect(`http://localhost:5173/confirm?verified=true&email=${encodeURIComponent(tempUser.email)}`);
+    // Clean up temp user
+    await TempUser.deleteOne({ token });
+
+    logger.info(`[VerifyEmail] User verified: ${user.email}`);
+    return res.status(200).send(`
+      <html>
+        <head><title>Email Verified</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1 style="color: #4CAF50;">✅ Email Verified Successfully!</h1>
+          <p>Your account has been created. You can now <a href="http://localhost:5173/login" style="color: #4CAF50;">login</a> to your account.</p>
+        </body>
+      </html>
+    `);
   } catch (err) {
     logger.error(`[VerifyEmail] Error: ${err.stack}`);
-    return res.status(500).send("An error occurred during email verification.");
+    return res.status(500).send("Server error during verification.");
   }
 };
 
@@ -130,61 +140,56 @@ const generateRefreshToken = (user) =>
   jwt.sign({ id: user._id, fullName: user.username }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
 /********************************************************************
- * LOGIN WITH REDIS‑ASSISTED LOOKUP
+ * LOGIN WITH COOKIE-BASED AUTHENTICATION
  *******************************************************************/
 module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // const redisKey = `login:${email}`;
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "The email address you entered is incorrect." });
+    }
 
-    // 1️⃣ Try fetching user from Redis first
-    // const cachedUserData = await redisClient.get(redisKey);
-
-    let user;
-
-    // if (cachedUserData) {
-    //   console.log("✅ User found in Redis cache");
-    //   user = JSON.parse(cachedUserData);
-    // } else {
-    //   // 2️⃣ Fallback to MongoDB if not in Redis
-      user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({ message: "The email address you entered is incorrect." });
-      }
-
-      // // Only cache what's needed (avoid full sensitive object)
-      // const safeToCache = {
-      //   _id: user._id,
-      //   username: user.username,
-      //   email: user.email,
-      //   password: user.password, // hashed
-      //   role: user.role
-      // };
-
-      // Save to Redis for 24 hours
-      // await redisClient.set(redisKey, JSON.stringify(safeToCache), {
-      //   EX: 60 * 60 * 24 // 24 hours
-      // });
-      // console.log("💾 User data cached in Redis");
-    // 3️⃣ Compare password
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       logger.warn(`[Login] Incorrect password for ${email}`);
       return res.status(400).json({ message: "The password you entered is incorrect." });
     }
 
-    // 6️⃣ Generate tokens
+    // Generate tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // 7️⃣ Save refresh token
+    // Save refresh token to user
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    // 8️⃣ Set HttpOnly cookie
+    // Set HttpOnly cookies
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Set user data in cookies for frontend access
+    res.cookie("userData", JSON.stringify({
+      userId: user._id,
+      userName: user.username,
+      email: user.email,
+      role: user.role
+    }), {
+      httpOnly: false, // Allow frontend access
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -194,10 +199,13 @@ module.exports.login = async (req, res) => {
 
     return res.json({
       success: true,
-      accessToken: "Bearer " + accessToken,
-      userId: user._id,
-      userName: user.username,
-      role: user.role,
+      message: "Login successful",
+      user: {
+        userId: user._id,
+        userName: user.username,
+        email: user.email,
+        role: user.role,
+      }
     });
 
   } catch (err) {
@@ -206,27 +214,35 @@ module.exports.login = async (req, res) => {
   }
 };
 
-
 /********************************************************************
  * REFRESH‑ACCESS‑TOKEN ENDPOINT
  *******************************************************************/
 module.exports.refreshAccessToken = async (req, res) => {
-  const token = req.cookies.refreshToken;
-  if (!token) return res.status(401).json({ message: "Refresh token not found" });
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) return res.status(401).json({ message: "Refresh token not found" });
 
   try {
-    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
     const user = await User.findById(decoded.id);
-    if (!user || user.refreshToken !== token) {
+    if (!user || user.refreshToken !== refreshToken) {
       logger.warn(`[RefreshToken] Invalid refresh token for user id ${decoded.id}`);
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
     const newAccessToken = generateAccessToken(user);
+    
+    // Update access token cookie
+    res.cookie("accessToken", newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
     logger.info(`[RefreshToken] Access token refreshed for user id ${decoded.id}`);
 
-    return res.json({ success: true, accessToken: "Bearer " + newAccessToken });
+    return res.json({ success: true, message: "Token refreshed successfully" });
   } catch (err) {
     logger.error(`[RefreshToken] Error: ${err.stack}`);
     return res.status(403).json({ message: "Refresh token expired or invalid" });
@@ -234,62 +250,55 @@ module.exports.refreshAccessToken = async (req, res) => {
 };
 
 /********************************************************************
- * JWT PROTECTION MIDDLEWARE (expects Bearer header)
+ * JWT PROTECTION MIDDLEWARE (uses cookies)
  *******************************************************************/
 module.exports.verifyJWT = (req, res, next) => {
-  const authHeader = req.cookies.refreshToken;
-  if (!authHeader) {
-    return res.status(401).json({ message: "Access token missing or invalid" });
+  const accessToken = req.cookies.accessToken;
+  if (!accessToken) {
+    return res.status(401).json({ message: "Access token missing" });
   }
 
   try {
-    const decoded = jwt.verify(authHeader, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
     req.user = decoded;
     logger.info(`[verifyJWT] Valid token for user id: ${decoded.id}`);
     next();
   } catch (err) {
-    logger.error(`[verifyJWT] Invalid or expired token: ${err.stack}`);
-    return res.status(403).json({ message: "Access token expired or invalid" });
+    logger.error(`[verifyJWT] Token verification failed: ${err.message}`);
+    return res.status(401).json({ message: "Invalid access token" });
   }
 };
 
 /********************************************************************
- * LOGOUT (invalidate refresh token + clear cache)
+ * LOGOUT ENDPOINT
  *******************************************************************/
 module.exports.logout = async (req, res) => {
   try {
-    const token = req.cookies.refreshToken;
-    if (!token) return res.status(200).json({ message: "Logged out successfully" });
-
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-    } catch {
-      // even if invalid, clear cookie for good measure
-      res.clearCookie("refreshToken");
-      return res.status(200).json({ message: "Logged out successfully" });
+    const refreshToken = req.cookies.refreshToken;
+    
+    if (refreshToken) {
+      // Remove refresh token from user
+      await User.findOneAndUpdate(
+        { refreshToken },
+        { $unset: { refreshToken: 1 } }
+      );
     }
 
-    const user = await User.findById(decoded.id);
-    if (user) {
-      user.refreshToken = null;
-      await user.save({ validateBeforeSave: false });
-
-
-      // const redisKey = `login:${user.email}`; // Delete user entry from redis
-      // await redisClient.del(redisKey);
-    }
-
+    // Clear all auth cookies
+    res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
-    return res.status(200).json({ message: "Logged out successfully" });
+    res.clearCookie("userData");
+
+    logger.info(`[Logout] User logged out successfully`);
+    return res.json({ success: true, message: "Logged out successfully" });
   } catch (err) {
     logger.error(`[Logout] Error: ${err.stack}`);
-    return res.status(500).json({ message: "Failed to logout" });
+    return res.status(500).json({ message: "Error during logout" });
   }
 };
 
 /********************************************************************
- * FORGOT‑PASSWORD (send reset link)
+ * FORGOT PASSWORD
  *******************************************************************/
 module.exports.forgetpassword = async (req, res) => {
   try {
@@ -297,21 +306,24 @@ module.exports.forgetpassword = async (req, res) => {
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found or email not verified" });
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    user.resetToken           = crypto.randomBytes(32).toString("hex");
-    user.resetTokenExpiration = Date.now() + 3600000; // 1 h
-    await user.save({ validateBeforeSave: false });
-    logger.info(`[ForgetPassword] Reset token created for: ${email}`);
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = resetTokenExpiry;
+    await user.save();
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
-      port: 587,
-      secure: false,
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
-    const resetLink = `http://localhost:8080/verifytoken?token=${user.resetToken}`;
+    const resetLink = `http://localhost:8080/verifytoken?token=${resetToken}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -319,26 +331,22 @@ module.exports.forgetpassword = async (req, res) => {
       subject: "Password Reset Request",
       html: `
         <h2>Password Reset Request</h2>
-        <p>Hi ${user.username},</p>
-        <p>Click the button below to reset your password (valid for 1 hour):</p>
-        <p style="text-align:center;margin:30px 0;">
-          <a href="${resetLink}" style="background:#4CAF50;color:#fff;padding:12px 20px;text-decoration:none;border-radius:5px;">Reset Password</a>
-        </p>
-        <p>If that doesn't work, copy and paste this URL into your browser:</p>
-        <p><a href="${resetLink}">${resetLink}</a></p>
+        <p>You requested a password reset. Click the link below to reset your password:</p>
+        <a href="${resetLink}">Reset Password</a>
+        <p>This link expires in 15 minutes.</p>
       `,
     });
 
-    logger.info(`[ForgetPassword] Reset email sent to: ${email}`);
-    return res.status(200).json({ message: "Password reset link sent to your email." });
+    logger.info(`[ForgotPassword] Reset email sent to ${email}`);
+    return res.json({ message: "Password reset email sent" });
   } catch (err) {
-    logger.error(`[ForgetPassword] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Something went wrong. Please try again later." });
+    logger.error(`[ForgotPassword] Error: ${err.stack}`);
+    return res.status(500).json({ error: "Server error" });
   }
 };
 
 /********************************************************************
- * VERIFY RESET TOKEN (redirect to front‑end form)
+ * VERIFY RESET TOKEN
  *******************************************************************/
 module.exports.verifyResetToken = async (req, res) => {
   try {
@@ -346,16 +354,16 @@ module.exports.verifyResetToken = async (req, res) => {
     if (!token) return res.status(400).json({ error: "Token is required" });
 
     const user = await User.findOne({
-      resetToken: token,
-      resetTokenExpiration: { $gt: Date.now() },
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
     });
+
     if (!user) return res.status(400).json({ error: "Invalid or expired token" });
 
-    logger.info(`[VerifyResetToken] Valid reset token for: ${user.email}`);
-    return res.redirect(`http://localhost:5173/newpassword?token=${token}`);
+    return res.json({ success: true, message: "Token is valid" });
   } catch (err) {
     logger.error(`[VerifyResetToken] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Server error during token verification" });
+    return res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -364,27 +372,26 @@ module.exports.verifyResetToken = async (req, res) => {
  *******************************************************************/
 module.exports.resetPassword = async (req, res) => {
   try {
-    const { token } = req.query;
-    const { newPassword } = req.body;
-
+    const { token, newPassword } = req.body;
     if (!token || !newPassword) return res.status(400).json({ error: "Token and new password are required" });
-    if (newPassword.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters long" });
 
     const user = await User.findOne({
-      resetToken: token,
-      resetTokenExpiration: { $gt: Date.now() },
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
     });
+
     if (!user) return res.status(400).json({ error: "Invalid or expired token" });
 
-    user.password             = await bcrypt.hash(newPassword, 12);
-    user.resetToken           = undefined;
-    user.resetTokenExpiration = undefined;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
     await user.save();
 
-    logger.info(`[ResetPassword] Password reset for: ${user.email}`);
-    return res.status(200).json({ message: "Password has been reset successfully" });
+    logger.info(`[ResetPassword] Password reset for user ${user.email}`);
+    return res.json({ success: true, message: "Password reset successful" });
   } catch (err) {
     logger.error(`[ResetPassword] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Something went wrong. Please try again later." });
+    return res.status(500).json({ error: "Server error" });
   }
 };

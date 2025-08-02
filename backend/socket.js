@@ -4,6 +4,7 @@ const Conversation = require("./models/Conversation")
 const Message = require("./models/Message")
 const Notification = require("./models/Notification")
 const mongoose = require("mongoose")
+const jwt = require("jsonwebtoken")
 
 function initializeSocket(server) {
   const io = socketIo(server, {
@@ -20,370 +21,258 @@ function initializeSocket(server) {
   const userSockets = new Map() // userId -> socket
   const conversationUsers = new Map() // conversationId -> Set of userIds
 
+  // Middleware to verify authentication
+  io.use(async (socket, next) => {
+    try {
+      // Get token from handshake auth or query
+      const token = socket.handshake.auth.token || socket.handshake.query.token;
+      
+      if (!token) {
+        return next(new Error('Authentication error'));
+      }
+
+      // Verify token
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      socket.userId = decoded.id;
+      socket.userEmail = decoded.email;
+      
+      next();
+    } catch (error) {
+      console.error('Socket authentication error:', error);
+      next(new Error('Authentication error'));
+    }
+  });
+
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id)
+    console.log("User connected:", socket.id, "User:", socket.userEmail)
 
     // Handle user joining
     socket.on("join-user", async (userIdentifier) => {
       try {
-        let user = null
-
-        if (mongoose.Types.ObjectId.isValid(userIdentifier)) {
-          user = await User.findById(userIdentifier)
-        }
-
+        const user = await User.findById(socket.userId);
         if (!user) {
-          user = await User.findOne({
-            $or: [{ email: userIdentifier }, { username: userIdentifier }],
-          })
+          socket.emit("user-joined", { success: false, message: "User not found" });
+          return;
         }
 
-        if (user) {
-          socket.userIdentifier = user.email
-          socket.userId = user.email
-          socket.userName = user.chatDisplayName || user.profileName || user.username
+        socket.userIdentifier = user.email;
+        socket.userName = user.chatDisplayName || user.profileName || user.username;
 
-          // Remove old socket if exists
-          const oldSocket = userSockets.get(user.email)
-          if (oldSocket && oldSocket !== socket) {
-            oldSocket.disconnect()
-          }
-
-          userSockets.set(user.email, socket)
-
-          await User.findOneAndUpdate({ email: user.email }, { isOnline: true, lastSeen: new Date() })
-
-          console.log(`User ${user.email} joined with socket ${socket.id}`)
-
-          socket.broadcast.emit("user-status-changed", {
-            userId: user.email,
-            userName: socket.userName,
-            isOnline: true,
-          })
-
-          socket.emit("user-joined", {
-            success: true,
-            userId: user.email,
-            userName: socket.userName,
-          })
-        } else {
-          socket.emit("user-joined", { success: false, message: "User not found" })
+        // Remove old socket if exists
+        const oldSocket = userSockets.get(user.email);
+        if (oldSocket && oldSocket !== socket) {
+          oldSocket.disconnect();
         }
+
+        userSockets.set(user.email, socket);
+
+        // Update user online status
+        await User.findByIdAndUpdate(user._id, { 
+          isOnline: true, 
+          lastSeen: new Date() 
+        });
+
+        console.log(`User ${user.email} joined with socket ${socket.id}`);
+
+        // Broadcast user status change
+        socket.broadcast.emit("user-status-changed", {
+          userId: user.email,
+          userName: socket.userName,
+          isOnline: true,
+        });
+
+        socket.emit("user-joined", {
+          success: true,
+          userId: user.email,
+          userName: socket.userName,
+        });
       } catch (error) {
-        console.error("Error joining user:", error)
-        socket.emit("user-joined", { success: false, message: "Connection error" })
+        console.error("Error joining user:", error);
+        socket.emit("user-joined", { success: false, message: "Connection error" });
       }
-    })
+    });
 
     // Join conversation room
     socket.on("join-conversation", async (conversationId) => {
       try {
-        if (!socket.userIdentifier) return
+        if (!socket.userIdentifier) {
+          socket.emit("conversation-joined", { success: false, message: "User not authenticated" });
+          return;
+        }
+
+        // Verify user is part of this conversation
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+          socket.emit("conversation-joined", { success: false, message: "Conversation not found" });
+          return;
+        }
+
+        const isParticipant = conversation.participants.some(p => p.userId === socket.userIdentifier);
+        if (!isParticipant) {
+          socket.emit("conversation-joined", { success: false, message: "Unauthorized" });
+          return;
+        }
 
         // Leave previous conversation
         if (socket.currentConversation) {
-          socket.leave(socket.currentConversation)
-          const prevUsers = conversationUsers.get(socket.currentConversation)
+          socket.leave(socket.currentConversation);
+          const prevUsers = conversationUsers.get(socket.currentConversation);
           if (prevUsers) {
-            prevUsers.delete(socket.userIdentifier)
+            prevUsers.delete(socket.userIdentifier);
           }
         }
 
         // Join new conversation
-        socket.join(conversationId)
-        socket.currentConversation = conversationId
+        socket.join(conversationId);
+        socket.currentConversation = conversationId;
 
         if (!conversationUsers.has(conversationId)) {
-          conversationUsers.set(conversationId, new Set())
+          conversationUsers.set(conversationId, new Set());
         }
-        conversationUsers.get(conversationId).add(socket.userIdentifier)
+        conversationUsers.get(conversationId).add(socket.userIdentifier);
 
-        console.log(`User ${socket.userIdentifier} joined conversation ${conversationId}`)
-        socket.emit("conversation-joined", { conversationId, success: true })
+        socket.emit("conversation-joined", { success: true, conversationId });
+        
+        // Notify other users in conversation
+        socket.to(conversationId).emit("user-joined-conversation", {
+          userId: socket.userIdentifier,
+          userName: socket.userName,
+        });
       } catch (error) {
-        console.error("Error joining conversation:", error)
+        console.error("Error joining conversation:", error);
+        socket.emit("conversation-joined", { success: false, message: "Failed to join conversation" });
       }
-    })
+    });
 
     // Leave conversation
     socket.on("leave-conversation", (conversationId) => {
-      if (socket.currentConversation === conversationId) {
-        socket.leave(conversationId)
-        socket.currentConversation = null
+      try {
+        socket.leave(conversationId);
+        socket.currentConversation = null;
 
-        const users = conversationUsers.get(conversationId)
+        const users = conversationUsers.get(conversationId);
         if (users) {
-          users.delete(socket.userIdentifier)
+          users.delete(socket.userIdentifier);
         }
+
+        socket.to(conversationId).emit("user-left-conversation", {
+          userId: socket.userIdentifier,
+          userName: socket.userName,
+        });
+      } catch (error) {
+        console.error("Error leaving conversation:", error);
       }
-    })
+    });
 
     // Handle typing
-    socket.on("typing", (data) => {
-      const { conversationId, isTyping } = data
-      if (socket.userIdentifier && conversationId) {
+    socket.on("typing", async (data) => {
+      try {
+        const { conversationId, isTyping } = data;
+        
+        if (!socket.currentConversation || socket.currentConversation !== conversationId) {
+          return;
+        }
+
         socket.to(conversationId).emit("user-typing", {
           userId: socket.userIdentifier,
           userName: socket.userName,
-          isTyping,
           conversationId,
-        })
+          isTyping,
+        });
+      } catch (error) {
+        console.error("Error handling typing:", error);
       }
-    })
+    });
 
-    // Handle message sending - ONLY broadcast, don't save here
+    // Send message
     socket.on("send-message", async (data) => {
       try {
-        const { conversationId, message } = data
+        const { conversationId, message } = data;
+        
+        if (!socket.currentConversation || socket.currentConversation !== conversationId) {
+          socket.emit("message-error", { error: "Not in conversation" });
+          return;
+        }
 
-        if (!socket.userIdentifier || !conversationId || !message) return
-
-        // Verify conversation exists and user is participant
-        const conversation = await Conversation.findById(conversationId)
-        if (!conversation) return
-
-        const isParticipant = conversation.participants.some((p) => p.userId === socket.userIdentifier)
-        if (!isParticipant) return
-
-        // ONLY broadcast to other users in the conversation
-        socket.to(conversationId).emit("new-message", {
+        // Broadcast message to all users in conversation
+        io.to(conversationId).emit("new-message", {
           conversationId,
-          message: {
-            ...message,
-            timestamp: new Date().toISOString(),
-          },
-        })
+          message,
+        });
 
-        console.log(`Message broadcasted in conversation ${conversationId} by ${socket.userIdentifier}`)
+        // Update conversation last message
+        await Conversation.findByIdAndUpdate(conversationId, {
+          lastMessage: message.text,
+          lastMessageTime: new Date(),
+        });
       } catch (error) {
-        console.error("Error broadcasting message:", error)
+        console.error("Error sending message:", error);
+        socket.emit("message-error", { error: "Failed to send message" });
       }
-    })
+    });
 
-    // Handle message read status
+    // Mark messages as read
     socket.on("mark-messages-read", async (data) => {
       try {
-        const { conversationId, messageIds } = data
-        if (!socket.userIdentifier || !conversationId) return
+        const { conversationId, messageIds } = data;
+        
+        if (!socket.currentConversation || socket.currentConversation !== conversationId) {
+          return;
+        }
 
+        // Update messages as read
         await Message.updateMany(
-          {
-            _id: { $in: messageIds },
-            conversationId,
-            senderId: { $ne: socket.userIdentifier },
-          },
-          { isRead: true },
-        )
+          { _id: { $in: messageIds } },
+          { isRead: true }
+        );
 
+        // Notify other users in conversation
         socket.to(conversationId).emit("messages-read", {
-          conversationId,
           messageIds,
           readBy: socket.userIdentifier,
-        })
+        });
       } catch (error) {
-        console.error("Error marking messages as read:", error)
+        console.error("Error marking messages as read:", error);
       }
-    })
+    });
 
-    // Handle disconnect
+    // Handle disconnection
     socket.on("disconnect", async () => {
-      console.log("User disconnected:", socket.id)
+      try {
+        console.log("User disconnected:", socket.id);
 
-      if (socket.userIdentifier) {
-        try {
-          await User.findOneAndUpdate({ email: socket.userIdentifier }, { isOnline: false, lastSeen: new Date() })
+        if (socket.userIdentifier) {
+          // Remove from user sockets
+          userSockets.delete(socket.userIdentifier);
 
-          userSockets.delete(socket.userIdentifier)
+          // Update user offline status
+          await User.findOneAndUpdate(
+            { email: socket.userIdentifier },
+            { isOnline: false, lastSeen: new Date() }
+          );
 
-          if (socket.currentConversation) {
-            const users = conversationUsers.get(socket.currentConversation)
-            if (users) {
-              users.delete(socket.userIdentifier)
-            }
-          }
-
+          // Broadcast user status change
           socket.broadcast.emit("user-status-changed", {
             userId: socket.userIdentifier,
+            userName: socket.userName,
             isOnline: false,
-          })
-        } catch (error) {
-          console.error("Error updating user offline status:", error)
-        }
-      }
-    })
+          });
 
-    // Handle sending notifications
-    socket.on("send-notification", async (data) => {
-      try {
-        const { recipientId, type, title, message, metadata } = data
-        
-        if (!recipientId || !type || !title) {
-          socket.emit("notification-error", { error: "Missing required notification data" })
-          return
-        }
-
-        // Create notification in database
-        const notification = await Notification.createNotification({
-          recipientId: recipientId,
-          senderId: socket.userIdentifier,
-          type: type,
-          title: title,
-          message: message,
-          metadata: metadata
-        })
-
-        // Send notification to recipient if they're online
-        const recipientSocket = userSockets.get(recipientId)
-        if (recipientSocket) {
-          recipientSocket.emit("notification", {
-            id: notification._id,
-            type: notification.type,
-            title: notification.title,
-            message: notification.message,
-            timestamp: notification.createdAt,
-            isRead: notification.isRead,
-            senderId: notification.senderId,
-            metadata: notification.metadata
-          })
-        }
-
-        // Send confirmation to sender
-        socket.emit("notification-sent", { 
-          success: true, 
-          notificationId: notification._id 
-        })
-
-        console.log(`Notification sent from ${socket.userIdentifier} to ${recipientId}`)
-      } catch (error) {
-        console.error("Error sending notification:", error)
-        socket.emit("notification-error", { error: "Failed to send notification" })
-      }
-    })
-
-    // Handle marking notifications as read
-    socket.on("mark-notification-read", async (data) => {
-      try {
-        const { notificationId } = data
-        
-        if (!socket.userIdentifier || !notificationId) {
-          socket.emit("notification-error", { error: "Invalid request" })
-          return
-        }
-
-        const notification = await Notification.findOne({
-          _id: notificationId,
-          recipientId: socket.userIdentifier
-        })
-
-        if (notification) {
-          await notification.markAsRead()
-          socket.emit("notification-marked-read", { notificationId: notificationId })
+          // Leave conversation
+          if (socket.currentConversation) {
+            const users = conversationUsers.get(socket.currentConversation);
+            if (users) {
+              users.delete(socket.userIdentifier);
+            }
+          }
         }
       } catch (error) {
-        console.error("Error marking notification as read:", error)
-        socket.emit("notification-error", { error: "Failed to mark notification as read" })
+        console.error("Error handling disconnect:", error);
       }
-    })
+    });
+  });
 
-    // Handle marking all notifications as read
-    socket.on("mark-all-notifications-read", async () => {
-      try {
-        if (!socket.userIdentifier) {
-          socket.emit("notification-error", { error: "User not authenticated" })
-          return
-        }
-
-        await Notification.markAllAsRead(socket.userIdentifier)
-        socket.emit("all-notifications-marked-read", { success: true })
-      } catch (error) {
-        console.error("Error marking all notifications as read:", error)
-        socket.emit("notification-error", { error: "Failed to mark all notifications as read" })
-      }
-    })
-
-    // Send existing notifications when user connects
-    socket.on("get-notifications", async (data) => {
-      try {
-        if (!socket.userIdentifier) {
-          socket.emit("notification-error", { error: "User not authenticated" })
-          return
-        }
-
-        const { limit = 20, skip = 0 } = data || {}
-        
-        const notifications = await Notification.find({ 
-          recipientId: socket.userIdentifier 
-        })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .skip(skip)
-
-        const unreadCount = await Notification.getUnreadCount(socket.userIdentifier)
-
-        socket.emit("notifications-loaded", {
-          notifications: notifications.map(n => ({
-            id: n._id,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            timestamp: n.createdAt,
-            isRead: n.isRead,
-            senderId: n.senderId,
-            metadata: n.metadata
-          })),
-          unreadCount: unreadCount
-        })
-      } catch (error) {
-        console.error("Error loading notifications:", error)
-        socket.emit("notification-error", { error: "Failed to load notifications" })
-      }
-    })
-
-    // Helper function to send notification to user
-    const sendNotificationToUser = async (recipientId, notificationData) => {
-      try {
-        // Create notification in database
-        const notification = await Notification.createNotification({
-          recipientId: recipientId,
-          senderId: notificationData.senderId || 'system',
-          type: notificationData.type,
-          title: notificationData.title,
-          message: notificationData.message,
-          metadata: notificationData.metadata || {}
-        })
-
-        // Send to user if online
-        const recipientSocket = userSockets.get(recipientId)
-        if (recipientSocket) {
-          recipientSocket.emit("notification", {
-            id: notification._id,
-            type: notification.type,
-            title: notification.title,
-            message: notification.message,
-            timestamp: notification.createdAt,
-            isRead: notification.isRead,
-            senderId: notification.senderId,
-            metadata: notification.metadata
-          })
-        }
-
-        return notification
-      } catch (error) {
-        console.error("Error sending notification to user:", error)
-        return null
-      }
-    }
-
-    // Attach helper function to socket for use in other events
-    socket.sendNotificationToUser = sendNotificationToUser
-
-    // Handle connection errors
-    socket.on("error", (error) => {
-      console.error("Socket error:", error)
-    })
-  })
-
-  return io
+  return io;
 }
 
-module.exports = initializeSocket
+module.exports = initializeSocket;

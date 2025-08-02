@@ -32,7 +32,7 @@ const Login = () => {
     try {
       const res = await fetch("http://localhost:8080/login", {
         method: "POST",
-        credentials: "include",
+        credentials: "include", // Important for cookies
         headers: {
           "Content-Type": "application/json",
         },
@@ -43,22 +43,11 @@ const Login = () => {
       console.log("Login response:", data);
 
       if (res.status === 200 || res.status === 201) {
-        localStorage.setItem("userId", data.userId);
-        localStorage.setItem("accessToken", data.accessToken);
-        localStorage.setItem("userName", data.userName);
-        const userRes = await fetch(
-          `http://localhost:8080/userdata/${data.userId}`,
-          { method: "GET" }
-        );
-
-        const userData = await userRes.json();
-        if (userRes.ok) {
-          localStorage.setItem("userData", JSON.stringify(userData.data));
-        } else {
-          console.warn(
-            t("login.fetchUserDetailsFailed"), // Translated warning
-            userData.message || userData.error
-          );
+        // Store minimal user info in localStorage for frontend access
+        if (data.user) {
+          localStorage.setItem("userId", data.user.userId);
+          localStorage.setItem("userName", data.user.userName);
+          localStorage.setItem("userEmail", data.user.email);
         }
 
         showSuccessToast(t("login.successMessage")); // Translated
