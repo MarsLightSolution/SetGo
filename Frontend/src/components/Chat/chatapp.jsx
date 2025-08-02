@@ -165,6 +165,13 @@ export default function ChatApp() {
       newSocket.on("connect_error", (error) => {
         console.error("Socket connection error:", error)
         setConnectionError("Connection lost. Trying to reconnect...")
+        
+        // Try to reconnect after a delay
+        setTimeout(() => {
+          if (newSocket.disconnected) {
+            newSocket.connect()
+          }
+        }, 3000)
       })
 
       // User events
@@ -209,7 +216,12 @@ export default function ChatApp() {
             const messageExists = prev.some((msg) => msg._id === message._id)
             if (messageExists) return prev
 
-            const newMessages = [...prev, message]
+            // Remove any temporary messages with same content
+            const filteredMessages = prev.filter(msg => 
+              !(msg.isTemp && msg.text === message.text && msg.senderId === message.senderId)
+            )
+
+            const newMessages = [...filteredMessages, message]
 
             // Mark as read if window is focused and from other user
             if (isWindowFocused && isFromOtherUser) {
@@ -243,10 +255,16 @@ export default function ChatApp() {
       })
 
       newSocket.on("message-delivered", (data) => {
+        console.log("Message delivered:", data)
         setMessageDeliveryStatus((prev) => ({
           ...prev,
           [data.messageId]: "delivered",
         }))
+      })
+
+      newSocket.on("message-error", (data) => {
+        console.error("Message error:", data.error)
+        alert("Failed to send message: " + data.error)
       })
 
       newSocket.on("messages-read", (data) => {
@@ -415,8 +433,39 @@ export default function ChatApp() {
     const messageText = newMessage.trim()
     setNewMessage("")
 
+    // Create temporary message for immediate UI feedback
+    const tempMessage = {
+      _id: `temp_${Date.now()}`,
+      conversationId: selectedConversation._id,
+      senderId: currentUser.userId,
+      senderName: currentUser.userName,
+      text: messageText,
+      messageType: 'text',
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      isTemp: true
+    }
+
+    // Add temporary message to local state immediately
+    setMessages((prev) => [...prev, tempMessage])
+
+    // Set delivery status
+    setMessageDeliveryStatus((prev) => ({
+      ...prev,
+      [tempMessage._id]: "sending",
+    }))
+
     try {
-      // Send to server first
+      // Send through socket for real-time delivery
+      socket.emit("send-message", {
+        conversationId: selectedConversation._id,
+        message: {
+          text: messageText,
+          messageType: 'text'
+        }
+      })
+
+      // Also save to database via API
       const response = await fetch("http://localhost:8080/api/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -429,31 +478,31 @@ export default function ChatApp() {
 
       const data = await response.json()
       if (data.success) {
-        const message = data.message
+        // Replace temp message with real message
+        setMessages((prev) => 
+          prev.map(msg => 
+            msg._id === tempMessage._id ? data.message : msg
+          )
+        )
 
-        // Add message to local state immediately
-        setMessages((prev) => [...prev, message])
-
-        // Set delivery status
+        // Update delivery status
         setMessageDeliveryStatus((prev) => ({
           ...prev,
-          [message._id]: "sending",
+          [data.message._id]: "sent",
         }))
-
-        // Emit through socket for real-time updates to other users
-        socket.emit("send-message", {
-          conversationId: selectedConversation._id,
-          message: message,
-        })
 
         // Update conversations
         fetchConversations(currentUser.userId)
       } else {
+        // Remove temp message on failure
+        setMessages((prev) => prev.filter(msg => msg._id !== tempMessage._id))
         alert("Failed to send message: " + data.message)
         setNewMessage(messageText) // Restore message on failure
       }
     } catch (error) {
       console.error("Error sending message:", error)
+      // Remove temp message on failure
+      setMessages((prev) => prev.filter(msg => msg._id !== tempMessage._id))
       alert("Failed to send message")
       setNewMessage(messageText) // Restore message on failure
     }

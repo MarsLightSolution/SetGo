@@ -1,6 +1,6 @@
-const User = require("../models/User")
+const User = require("../models/user")
 const Conversation = require("../models/Conversation")
-const Message = require("../models/Message")
+const Message = require("../models/message")
 const mongoose = require("mongoose")
 
 // Helper

@@ -1,9 +1,16 @@
 const socketIo = require("socket.io")
-const User = require("./models/User")
-const Conversation = require("./models/Conversation")
-const Message = require("./models/Message")
-const Notification = require("./models/Notification")
-const mongoose = require("mongoose")
+
+// Try to import models, but don't fail if MongoDB is not available
+let User, Conversation, Message, Notification, mongoose;
+try {
+  User = require("./models/user")
+  Conversation = require("./models/Conversation")
+  Message = require("./models/message")
+  Notification = require("./models/Notification")
+  mongoose = require("mongoose")
+} catch (error) {
+  console.log('Models not available, using in-memory storage for socket events')
+}
 
 function initializeSocket(server) {
   const io = socketIo(server, {
@@ -28,11 +35,11 @@ function initializeSocket(server) {
       try {
         let user = null
 
-        if (mongoose.Types.ObjectId.isValid(userIdentifier)) {
+        if (User && mongoose && mongoose.Types.ObjectId.isValid(userIdentifier)) {
           user = await User.findById(userIdentifier)
         }
 
-        if (!user) {
+        if (!user && User) {
           user = await User.findOne({
             $or: [{ email: userIdentifier }, { username: userIdentifier }],
           })
@@ -51,7 +58,9 @@ function initializeSocket(server) {
 
           userSockets.set(user.email, socket)
 
-          await User.findOneAndUpdate({ email: user.email }, { isOnline: true, lastSeen: new Date() })
+          if (User) {
+            await User.findOneAndUpdate({ email: user.email }, { isOnline: true, lastSeen: new Date() })
+          }
 
           console.log(`User ${user.email} joined with socket ${socket.id}`)
 
@@ -67,7 +76,32 @@ function initializeSocket(server) {
             userName: socket.userName,
           })
         } else {
-          socket.emit("user-joined", { success: false, message: "User not found" })
+          // Fallback for in-memory users
+          socket.userIdentifier = userIdentifier
+          socket.userId = userIdentifier
+          socket.userName = userIdentifier
+
+          // Remove old socket if exists
+          const oldSocket = userSockets.get(userIdentifier)
+          if (oldSocket && oldSocket !== socket) {
+            oldSocket.disconnect()
+          }
+
+          userSockets.set(userIdentifier, socket)
+
+          console.log(`User ${userIdentifier} joined with socket ${socket.id}`)
+
+          socket.broadcast.emit("user-status-changed", {
+            userId: userIdentifier,
+            userName: socket.userName,
+            isOnline: true,
+          })
+
+          socket.emit("user-joined", {
+            success: true,
+            userId: userIdentifier,
+            userName: socket.userName,
+          })
         }
       } catch (error) {
         console.error("Error joining user:", error)
@@ -131,32 +165,97 @@ function initializeSocket(server) {
       }
     })
 
-    // Handle message sending - ONLY broadcast, don't save here
+    // Handle message sending - Save to database and broadcast
     socket.on("send-message", async (data) => {
       try {
         const { conversationId, message } = data
 
         if (!socket.userIdentifier || !conversationId || !message) return
 
-        // Verify conversation exists and user is participant
-        const conversation = await Conversation.findById(conversationId)
-        if (!conversation) return
+        let conversation = null;
+        
+        if (Conversation) {
+          // Try to use MongoDB
+          try {
+            // Verify conversation exists and user is participant
+            conversation = await Conversation.findById(conversationId)
+            if (!conversation) {
+              socket.emit("message-error", { error: "Conversation not found" })
+              return
+            }
 
-        const isParticipant = conversation.participants.some((p) => p.userId === socket.userIdentifier)
-        if (!isParticipant) return
+            const isParticipant = conversation.participants.some((p) => p.userId === socket.userIdentifier)
+            if (!isParticipant) {
+              socket.emit("message-error", { error: "Not a participant in this conversation" })
+              return
+            }
 
-        // ONLY broadcast to other users in the conversation
-        socket.to(conversationId).emit("new-message", {
-          conversationId,
-          message: {
-            ...message,
-            timestamp: new Date().toISOString(),
-          },
-        })
+            // Create and save message to database
+            const newMessage = new Message({
+              conversationId,
+              senderId: socket.userIdentifier,
+              senderName: socket.userName,
+              text: message.text,
+              messageType: message.messageType || 'text',
+              replyTo: message.replyTo || null
+            })
 
-        console.log(`Message broadcasted in conversation ${conversationId} by ${socket.userIdentifier}`)
+            await newMessage.save()
+
+            // Update conversation's last message
+            await Conversation.findByIdAndUpdate(conversationId, {
+              lastMessage: message.text,
+              lastMessageTime: new Date()
+            })
+
+            // Broadcast to other users in the conversation
+            socket.to(conversationId).emit("new-message", {
+              conversationId,
+              message: newMessage.toObject()
+            })
+
+            // Emit delivery confirmation to sender
+            socket.emit("message-delivered", {
+              messageId: newMessage._id,
+              conversationId
+            })
+
+            console.log(`Message saved and broadcasted in conversation ${conversationId} by ${socket.userIdentifier}`)
+          } catch (error) {
+            console.log('MongoDB not available, broadcasting message without saving')
+          }
+        }
+
+        // Fallback: just broadcast the message
+        if (!conversation) {
+          const tempMessage = {
+            _id: `temp_${Date.now()}`,
+            conversationId,
+            senderId: socket.userIdentifier,
+            senderName: socket.userName,
+            text: message.text,
+            messageType: message.messageType || 'text',
+            timestamp: new Date(),
+            isRead: false
+          }
+
+          // Broadcast to other users in the conversation
+          socket.to(conversationId).emit("new-message", {
+            conversationId,
+            message: tempMessage
+          })
+
+          // Emit delivery confirmation to sender
+          socket.emit("message-delivered", {
+            messageId: tempMessage._id,
+            conversationId
+          })
+
+          console.log(`Message broadcasted in conversation ${conversationId} by ${socket.userIdentifier}`)
+        }
       } catch (error) {
-        console.error("Error broadcasting message:", error)
+        console.error("Error saving and broadcasting message:", error)
+        socket.emit("message-error", { error: "Failed to send message" })
       }
     })
 
@@ -166,14 +265,20 @@ function initializeSocket(server) {
         const { conversationId, messageIds } = data
         if (!socket.userIdentifier || !conversationId) return
 
-        await Message.updateMany(
-          {
-            _id: { $in: messageIds },
-            conversationId,
-            senderId: { $ne: socket.userIdentifier },
-          },
-          { isRead: true },
-        )
+        if (Message) {
+          try {
+            await Message.updateMany(
+              {
+                _id: { $in: messageIds },
+                conversationId,
+                senderId: { $ne: socket.userIdentifier },
+              },
+              { isRead: true },
+            )
+          } catch (error) {
+            console.log('MongoDB not available, skipping read status update')
+          }
+        }
 
         socket.to(conversationId).emit("messages-read", {
           conversationId,
@@ -191,7 +296,9 @@ function initializeSocket(server) {
 
       if (socket.userIdentifier) {
         try {
-          await User.findOneAndUpdate({ email: socket.userIdentifier }, { isOnline: false, lastSeen: new Date() })
+          if (User) {
+            await User.findOneAndUpdate({ email: socket.userIdentifier }, { isOnline: false, lastSeen: new Date() })
+          }
 
           userSockets.delete(socket.userIdentifier)
 
@@ -204,184 +311,214 @@ function initializeSocket(server) {
 
           socket.broadcast.emit("user-status-changed", {
             userId: socket.userIdentifier,
+            userName: socket.userName,
             isOnline: false,
           })
         } catch (error) {
-          console.error("Error updating user offline status:", error)
+          console.error("Error handling disconnect:", error)
         }
       }
     })
 
-    // Handle sending notifications
-    socket.on("send-notification", async (data) => {
+    // Handle file uploads
+    socket.on("upload-file", async (data) => {
       try {
-        const { recipientId, type, title, message, metadata } = data
+        const { conversationId, fileData, fileName, fileType } = data
+
+        if (!socket.userIdentifier || !conversationId) return
+
+        let conversation = null;
         
-        if (!recipientId || !type || !title) {
-          socket.emit("notification-error", { error: "Missing required notification data" })
-          return
+        if (Conversation) {
+          try {
+            // Verify conversation exists and user is participant
+            conversation = await Conversation.findById(conversationId)
+            if (!conversation) return
+
+            const isParticipant = conversation.participants.some((p) => p.userId === socket.userIdentifier)
+            if (!isParticipant) return
+
+            // Create message with file
+            const newMessage = new Message({
+              conversationId,
+              senderId: socket.userIdentifier,
+              senderName: socket.userName,
+              text: fileName,
+              messageType: fileType,
+              fileUrl: fileData.url,
+              fileName: fileName,
+              fileSize: fileData.size
+            })
+
+            await newMessage.save()
+
+            // Update conversation's last message
+            await Conversation.findByIdAndUpdate(conversationId, {
+              lastMessage: `Sent ${fileName}`,
+              lastMessageTime: new Date()
+            })
+
+            // Broadcast to other users
+            socket.to(conversationId).emit("new-message", {
+              conversationId,
+              message: newMessage.toObject()
+            })
+
+            socket.emit("message-delivered", {
+              messageId: newMessage._id,
+              conversationId
+            })
+          } catch (error) {
+            console.log('MongoDB not available, broadcasting file message without saving')
+          }
         }
 
-        // Create notification in database
-        const notification = await Notification.createNotification({
-          recipientId: recipientId,
-          senderId: socket.userIdentifier,
-          type: type,
-          title: title,
-          message: message,
-          metadata: metadata
-        })
+        // Fallback: just broadcast the file message
+        if (!conversation) {
+          const tempMessage = {
+            _id: `temp_${Date.now()}`,
+            conversationId,
+            senderId: socket.userIdentifier,
+            senderName: socket.userName,
+            text: fileName,
+            messageType: fileType,
+            fileUrl: fileData.url,
+            fileName: fileName,
+            fileSize: fileData.size,
+            timestamp: new Date(),
+            isRead: false
+          }
 
-        // Send notification to recipient if they're online
-        const recipientSocket = userSockets.get(recipientId)
-        if (recipientSocket) {
-          recipientSocket.emit("notification", {
-            id: notification._id,
-            type: notification.type,
-            title: notification.title,
-            message: notification.message,
-            timestamp: notification.createdAt,
-            isRead: notification.isRead,
-            senderId: notification.senderId,
-            metadata: notification.metadata
+          // Broadcast to other users
+          socket.to(conversationId).emit("new-message", {
+            conversationId,
+            message: tempMessage
+          })
+
+          socket.emit("message-delivered", {
+            messageId: tempMessage._id,
+            conversationId
           })
         }
 
-        // Send confirmation to sender
-        socket.emit("notification-sent", { 
-          success: true, 
-          notificationId: notification._id 
-        })
-
-        console.log(`Notification sent from ${socket.userIdentifier} to ${recipientId}`)
       } catch (error) {
-        console.error("Error sending notification:", error)
-        socket.emit("notification-error", { error: "Failed to send notification" })
+        console.error("Error handling file upload:", error)
+        socket.emit("message-error", { error: "Failed to upload file" })
       }
     })
 
-    // Handle marking notifications as read
-    socket.on("mark-notification-read", async (data) => {
+    // Handle voice messages
+    socket.on("upload-voice", async (data) => {
       try {
-        const { notificationId } = data
+        const { conversationId, audioData, fileName } = data
+
+        if (!socket.userIdentifier || !conversationId) return
+
+        let conversation = null;
         
-        if (!socket.userIdentifier || !notificationId) {
-          socket.emit("notification-error", { error: "Invalid request" })
-          return
+        if (Conversation) {
+          try {
+            // Verify conversation exists and user is participant
+            conversation = await Conversation.findById(conversationId)
+            if (!conversation) return
+
+            const isParticipant = conversation.participants.some((p) => p.userId === socket.userIdentifier)
+            if (!isParticipant) return
+
+            // Create message with voice
+            const newMessage = new Message({
+              conversationId,
+              senderId: socket.userIdentifier,
+              senderName: socket.userName,
+              text: "Voice message",
+              messageType: "audio",
+              fileUrl: audioData.url,
+              fileName: fileName,
+              fileSize: audioData.size
+            })
+
+            await newMessage.save()
+
+            // Update conversation's last message
+            await Conversation.findByIdAndUpdate(conversationId, {
+              lastMessage: "Sent voice message",
+              lastMessageTime: new Date()
+            })
+
+            // Broadcast to other users
+            socket.to(conversationId).emit("new-message", {
+              conversationId,
+              message: newMessage.toObject()
+            })
+
+            socket.emit("message-delivered", {
+              messageId: newMessage._id,
+              conversationId
+            })
+          } catch (error) {
+            console.log('MongoDB not available, broadcasting voice message without saving')
+          }
         }
 
-        const notification = await Notification.findOne({
-          _id: notificationId,
-          recipientId: socket.userIdentifier
-        })
+        // Fallback: just broadcast the voice message
+        if (!conversation) {
+          const tempMessage = {
+            _id: `temp_${Date.now()}`,
+            conversationId,
+            senderId: socket.userIdentifier,
+            senderName: socket.userName,
+            text: "Voice message",
+            messageType: "audio",
+            fileUrl: audioData.url,
+            fileName: fileName,
+            fileSize: audioData.size,
+            timestamp: new Date(),
+            isRead: false
+          }
 
-        if (notification) {
-          await notification.markAsRead()
-          socket.emit("notification-marked-read", { notificationId: notificationId })
+          // Broadcast to other users
+          socket.to(conversationId).emit("new-message", {
+            conversationId,
+            message: tempMessage
+          })
+
+          socket.emit("message-delivered", {
+            messageId: tempMessage._id,
+            conversationId
+          })
         }
+
       } catch (error) {
-        console.error("Error marking notification as read:", error)
-        socket.emit("notification-error", { error: "Failed to mark notification as read" })
+        console.error("Error handling voice upload:", error)
+        socket.emit("message-error", { error: "Failed to upload voice message" })
       }
     })
+  })
 
-    // Handle marking all notifications as read
-    socket.on("mark-all-notifications-read", async () => {
-      try {
-        if (!socket.userIdentifier) {
-          socket.emit("notification-error", { error: "User not authenticated" })
-          return
-        }
-
-        await Notification.markAllAsRead(socket.userIdentifier)
-        socket.emit("all-notifications-marked-read", { success: true })
-      } catch (error) {
-        console.error("Error marking all notifications as read:", error)
-        socket.emit("notification-error", { error: "Failed to mark all notifications as read" })
-      }
-    })
-
-    // Send existing notifications when user connects
-    socket.on("get-notifications", async (data) => {
-      try {
-        if (!socket.userIdentifier) {
-          socket.emit("notification-error", { error: "User not authenticated" })
-          return
-        }
-
-        const { limit = 20, skip = 0 } = data || {}
-        
-        const notifications = await Notification.find({ 
-          recipientId: socket.userIdentifier 
-        })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .skip(skip)
-
-        const unreadCount = await Notification.getUnreadCount(socket.userIdentifier)
-
-        socket.emit("notifications-loaded", {
-          notifications: notifications.map(n => ({
-            id: n._id,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            timestamp: n.createdAt,
-            isRead: n.isRead,
-            senderId: n.senderId,
-            metadata: n.metadata
-          })),
-          unreadCount: unreadCount
-        })
-      } catch (error) {
-        console.error("Error loading notifications:", error)
-        socket.emit("notification-error", { error: "Failed to load notifications" })
-      }
-    })
-
-    // Helper function to send notification to user
-    const sendNotificationToUser = async (recipientId, notificationData) => {
-      try {
-        // Create notification in database
-        const notification = await Notification.createNotification({
-          recipientId: recipientId,
-          senderId: notificationData.senderId || 'system',
+  // Helper function to send notifications
+  const sendNotificationToUser = async (recipientId, notificationData) => {
+    try {
+      if (Notification) {
+        const notification = new Notification({
+          recipientId,
           type: notificationData.type,
           title: notificationData.title,
           message: notificationData.message,
-          metadata: notificationData.metadata || {}
+          data: notificationData.data,
         })
 
-        // Send to user if online
-        const recipientSocket = userSockets.get(recipientId)
-        if (recipientSocket) {
-          recipientSocket.emit("notification", {
-            id: notification._id,
-            type: notification.type,
-            title: notification.title,
-            message: notification.message,
-            timestamp: notification.createdAt,
-            isRead: notification.isRead,
-            senderId: notification.senderId,
-            metadata: notification.metadata
-          })
-        }
-
-        return notification
-      } catch (error) {
-        console.error("Error sending notification to user:", error)
-        return null
+        await notification.save()
       }
+
+      // Send to user's socket if online
+      const userSocket = userSockets.get(recipientId)
+      if (userSocket) {
+        userSocket.emit("new-notification", notificationData)
+      }
+    } catch (error) {
+      console.error("Error sending notification:", error)
     }
-
-    // Attach helper function to socket for use in other events
-    socket.sendNotificationToUser = sendNotificationToUser
-
-    // Handle connection errors
-    socket.on("error", (error) => {
-      console.error("Socket error:", error)
-    })
-  })
+  }
 
   return io
 }
