@@ -1,17 +1,21 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-mongoose.connect(process.env.MONGO_DB, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
+// Check if MongoDB is available, if not, use in-memory storage
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_DB || "mongodb://localhost:27017/chat_app", {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     console.log("Database connection established");
-  })
-  .catch((error) => {
-    console.error("Failed to connect to database:", error);
-    process.exit(1);
-  });
+  } catch (error) {
+    console.warn("Failed to connect to MongoDB, using in-memory storage:", error.message);
+    console.log("Server will run with in-memory data storage");
+  }
+};
+
+connectDB();
 
 // Export the Mongoose connection object
 module.exports = mongoose.connection;

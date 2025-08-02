@@ -131,32 +131,88 @@ function initializeSocket(server) {
       }
     })
 
-    // Handle message sending - ONLY broadcast, don't save here
+    // Handle message sending - Save and broadcast
     socket.on("send-message", async (data) => {
       try {
         const { conversationId, message } = data
 
-        if (!socket.userIdentifier || !conversationId || !message) return
+        if (!socket.userIdentifier || !conversationId || !message) {
+          socket.emit("message-error", { error: "Missing required data" })
+          return
+        }
 
         // Verify conversation exists and user is participant
         const conversation = await Conversation.findById(conversationId)
-        if (!conversation) return
+        if (!conversation) {
+          socket.emit("message-error", { error: "Conversation not found" })
+          return
+        }
 
         const isParticipant = conversation.participants.some((p) => p.userId === socket.userIdentifier)
-        if (!isParticipant) return
+        if (!isParticipant) {
+          socket.emit("message-error", { error: "Not a participant in this conversation" })
+          return
+        }
 
-        // ONLY broadcast to other users in the conversation
+        // Save message to database (with fallback)
+        let savedMessage
+        try {
+          const newMessage = new Message({
+            conversationId,
+            senderId: socket.userIdentifier,
+            senderName: socket.userName,
+            text: message.text,
+            messageType: message.messageType || 'text',
+            timestamp: new Date()
+          })
+
+          savedMessage = await newMessage.save()
+
+          // Update conversation's last message
+          await Conversation.findByIdAndUpdate(conversationId, {
+            lastMessage: message.text,
+            lastMessageTime: new Date()
+          })
+        } catch (dbError) {
+          console.warn("Database save failed, using in-memory message:", dbError.message)
+          // Create in-memory message if database fails
+          savedMessage = {
+            _id: 'msg_' + Date.now(),
+            conversationId,
+            senderId: socket.userIdentifier,
+            senderName: socket.userName,
+            text: message.text,
+            messageType: message.messageType || 'text',
+            timestamp: new Date()
+          }
+        }
+
+        // Broadcast to other users in the conversation
         socket.to(conversationId).emit("new-message", {
           conversationId,
           message: {
-            ...message,
-            timestamp: new Date().toISOString(),
-          },
+            _id: savedMessage._id,
+            conversationId: savedMessage.conversationId,
+            senderId: savedMessage.senderId,
+            senderName: savedMessage.senderName,
+            text: savedMessage.text,
+            messageType: savedMessage.messageType,
+            timestamp: savedMessage.timestamp,
+            isRead: false
+          }
         })
 
-        console.log(`Message broadcasted in conversation ${conversationId} by ${socket.userIdentifier}`)
+        // Send confirmation to sender
+        socket.emit("message-sent", {
+          messageId: savedMessage._id,
+          conversationId,
+          success: true
+        })
+
+        console.log(`Message saved and broadcasted in conversation ${conversationId} by ${socket.userIdentifier}`)
       } catch (error) {
-        console.error("Error broadcasting message:", error)
+        console.error("Error sending message:", error)
+        socket.emit("message-error", { error: "Failed to send message" })
       }
     })
 

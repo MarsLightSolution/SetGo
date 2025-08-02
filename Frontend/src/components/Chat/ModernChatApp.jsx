@@ -49,6 +49,7 @@ export default function ModernChatApp() {
   const [isWindowFocused, setIsWindowFocused] = useState(true)
   const [onlineUsers, setOnlineUsers] = useState(new Set())
   const [messageDeliveryStatus, setMessageDeliveryStatus] = useState({})
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   
   // New modern features
   const [isRecording, setIsRecording] = useState(false)
@@ -62,6 +63,23 @@ export default function ModernChatApp() {
   const [filteredMessages, setFilteredMessages] = useState([])
   const [showVoiceMessage, setShowVoiceMessage] = useState(false)
   const [voiceMessageBlob, setVoiceMessageBlob] = useState(null)
+
+  // Add better error handling
+  const [error, setError] = useState(null)
+
+  // Clear error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [error])
+
+  // Show error message
+  const showError = (message) => {
+    setError(message)
+    console.error("Chat Error:", message)
+  }
 
   // Refs
   const messagesEndRef = useRef(null)
@@ -79,6 +97,21 @@ export default function ModernChatApp() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (socket) {
+        socket.disconnect()
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+    }
+  }, [socket])
 
   // Track window focus for notifications
   useEffect(() => {
@@ -191,16 +224,36 @@ export default function ModernChatApp() {
 
       newSocket.on("disconnect", (reason) => {
         console.log("Disconnected from Socket.IO:", reason)
-        if (reason === "io server disconnect") {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            newSocket.connect()
-          }, 1000)
+        setConnectionError("Connection lost. Reconnecting...")
+        
+        // Clear any existing reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
         }
+        
+        // Attempt to reconnect
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log("Attempting to reconnect...")
+          newSocket.connect()
+        }, 2000)
       })
 
       newSocket.on("connect_error", (error) => {
         console.error("Socket connection error:", error)
-        setConnectionError("Connection lost. Trying to reconnect...")
+        setConnectionError("Connection failed. Please check your internet connection.")
+      })
+
+      newSocket.on("reconnect", (attemptNumber) => {
+        console.log("Reconnected after", attemptNumber, "attempts")
+        setConnectionError(null)
+        if (user) {
+          newSocket.emit("join-user", user.userId)
+        }
+      })
+
+      newSocket.on("reconnect_error", (error) => {
+        console.error("Reconnection error:", error)
+        setConnectionError("Reconnection failed. Please refresh the page.")
       })
 
       // User events
@@ -267,6 +320,24 @@ export default function ModernChatApp() {
         if (user) {
           fetchConversations(user.userId)
         }
+      })
+
+      // Message sent confirmation
+      newSocket.on("message-sent", (data) => {
+        console.log("Message sent successfully:", data)
+        if (data.success) {
+          // Update message delivery status
+          setMessageDeliveryStatus((prev) => ({
+            ...prev,
+            [data.messageId]: "sent"
+          }))
+        }
+      })
+
+      // Message error handling
+      newSocket.on("message-error", (data) => {
+        console.error("Message error:", data.error)
+        showError("Failed to send message: " + data.error)
       })
 
       newSocket.on("message-delivered", (data) => {
@@ -397,6 +468,7 @@ export default function ModernChatApp() {
     }))
 
     try {
+      setIsLoadingMessages(true)
       const response = await fetch(`http://localhost:8080/api/chat/messages/${conversation._id}`)
       const data = await response.json()
       if (data.success) {
@@ -411,9 +483,13 @@ export default function ModernChatApp() {
             markMessagesAsRead(unreadMessages)
           }
         }, 500)
+      } else {
+        console.error("Failed to fetch messages:", data.message)
       }
     } catch (error) {
       console.error("Error fetching messages:", error)
+    } finally {
+      setIsLoadingMessages(false)
     }
   }
 
@@ -437,7 +513,40 @@ export default function ModernChatApp() {
     const messageText = newMessage.trim()
     setNewMessage("")
 
+    // Create temporary message for immediate UI feedback
+    const tempMessage = {
+      _id: 'temp_' + Date.now(),
+      conversationId: selectedConversation._id,
+      senderId: currentUser.userId,
+      senderName: currentUser.userName || currentUser.userId,
+      text: messageText,
+      messageType: 'text',
+      timestamp: new Date(),
+      isRead: false,
+      isTemp: true
+    }
+
+    // Add message to UI immediately
+    setMessages((prev) => [...prev, tempMessage])
+
+    // Set delivery status
+    setMessageDeliveryStatus((prev) => ({
+      ...prev,
+      [tempMessage._id]: "sending",
+    }))
+
     try {
+      // Send via socket for real-time delivery
+      socket.emit("send-message", {
+        conversationId: selectedConversation._id,
+        message: {
+          text: messageText,
+          messageType: 'text',
+          replyTo: replyToMessage?._id
+        },
+      })
+
+      // Also save to database via API for persistence
       const response = await fetch("http://localhost:8080/api/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -451,29 +560,25 @@ export default function ModernChatApp() {
 
       const data = await response.json()
       if (data.success) {
-        const message = data.message
-
-        setMessages((prev) => [...prev, message])
+        // Replace temp message with real message
+        setMessages((prev) => 
+          prev.map(msg => 
+            msg._id === tempMessage._id ? { ...data.message, isTemp: false } : msg
+          )
+        )
 
         setMessageDeliveryStatus((prev) => ({
           ...prev,
-          [message._id]: "sending",
+          [data.message._id]: "sent",
         }))
-
-        socket.emit("send-message", {
-          conversationId: selectedConversation._id,
-          message: message,
-        })
-
-        fetchConversations(currentUser.userId)
-        setReplyToMessage(null)
-      } else {
-        alert("Failed to send message: " + data.message)
-        setNewMessage(messageText)
       }
+
+      fetchConversations(currentUser.userId)
+      setReplyToMessage(null)
     } catch (error) {
       console.error("Error sending message:", error)
-      alert("Failed to send message")
+      // Remove temp message on error
+      setMessages((prev) => prev.filter(msg => msg._id !== tempMessage._id))
       setNewMessage(messageText)
     }
   }
@@ -739,6 +844,18 @@ export default function ModernChatApp() {
         }}
       />
 
+      {/* Error Display */}
+      {error && (
+        <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 max-w-sm">
+          <div className="flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="ml-2 text-white hover:text-gray-200">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-2 flex h-[calc(100vh-160px)] font-sans rounded-2xl shadow-2xl overflow-hidden bg-white">
         {/* Sidebar */}
         <div className="w-[380px] border-r border-gray-200 flex flex-col bg-gray-50">
@@ -888,7 +1005,23 @@ export default function ModernChatApp() {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50">
-                {messages.map((message) => {
+                {isLoadingMessages ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                      Loading messages...
+                    </div>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-center text-gray-500">
+                      <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                      <p>No messages yet</p>
+                      <p className="text-sm">Start a conversation!</p>
+                    </div>
+                  </div>
+                ) : (
+                  messages.map((message) => {
                   const isOwn = message.senderId === currentUser?.userId
                   return (
                     <div key={message._id} className={`flex ${isOwn ? "justify-end" : "justify-start"} items-end group`}>
@@ -929,6 +1062,10 @@ export default function ModernChatApp() {
                     </div>
                   )
                 })}
+
+                  )
+                })
+                )}
 
                 {typingUsers.size > 0 && (
                   <div className="text-sm text-gray-400 italic">
