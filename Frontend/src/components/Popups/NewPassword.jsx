@@ -7,9 +7,13 @@ import {
   showErrorToast,
   ToastifyContainer,
 } from "../../Hooks/Tostify";
-import Footer from "../common/Footer";
+import Footer from "../common/Footer"; // Assuming this path is correct
+
+// i18n import
+import { useTranslation } from 'react-i18next';
 
 function NewPassword() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get("token");
@@ -22,11 +26,11 @@ function NewPassword() {
 
   const handleSubmit = async () => {
     if (!newPassword || !confirmPassword) {
-      return showErrorToast("Both fields are required.");
+      return showErrorToast(t("newPassword.allFieldsRequired")); // Translated
     }
 
     if (newPassword !== confirmPassword) {
-      return showErrorToast("Passwords do not match.");
+      return showErrorToast(t("newPassword.passwordsDoNotMatch")); // Translated
     }
 
     setLoading(true);
@@ -38,17 +42,17 @@ function NewPassword() {
       );
 
       if (res.status === 200) {
-        showSuccessToast("Password reset successful! Redirecting...");
+        showSuccessToast(t("newPassword.resetSuccess")); // Translated
         setTimeout(() => navigate("/login"), 2000);
       } else {
-        showErrorToast("Failed to reset password. Please try again.");
+        showErrorToast(t("newPassword.resetFailed")); // Translated
       }
     } catch (error) {
       console.error("Error resetting password:", error);
       const message =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
-        "Server error. Please try again.";
+        t("newPassword.serverError"); // Translated fallback
       showErrorToast(message);
     } finally {
       setLoading(false);
@@ -61,24 +65,24 @@ function NewPassword() {
 
       <div className="w-full max-w-lg bg-white p-8 shadow-xl rounded-2xl">
         <h1 className="text-3xl font-semibold text-gray-800 mb-4 text-center">
-          Set New Password
+          {t("newPassword.title")} {/* Translated */}
         </h1>
         <p className="text-sm text-gray-500 mb-8 text-center">
-          Create a secure password you’ll remember.
+          {t("newPassword.instructions")} {/* Translated */}
         </p>
 
         <div className="space-y-6">
           {/* New Password Field */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              New Password
+              {t("newPassword.newPasswordLabel")} {/* Translated */}
             </label>
             <input
               type={showNew ? "text" : "password"}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Enter new password"
+              placeholder={t("newPassword.newPasswordPlaceholder")}
             />
             <span
               className="absolute top-9 right-3 text-gray-500 cursor-pointer"
@@ -91,14 +95,14 @@ function NewPassword() {
           {/* Confirm Password Field */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
+              {t("newPassword.confirmPasswordLabel")} {/* Translated */}
             </label>
             <input
               type={showConfirm ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Re-enter new password"
+              placeholder={t("newPassword.confirmPasswordPlaceholder")}
             />
             <span
               className="absolute top-9 right-3 text-gray-500 cursor-pointer"
@@ -135,15 +139,13 @@ function NewPassword() {
                 />
               </svg>
             )}
-            Save Password
+            {loading ? t("newPassword.savingPassword") : t("newPassword.savePasswordButton")} {/* Translated */}
           </button>
         </div>
       </div>
-     <div className="w-full py-4">
-  <Footer />
-</div>
-
-
+      <div className="w-full py-4">
+        <Footer />
+      </div>
     </div>
   );
 }

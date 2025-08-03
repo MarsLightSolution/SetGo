@@ -1,3 +1,4 @@
+import Cookies from "js-cookie";
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
@@ -6,6 +7,8 @@ import { MdOutlineAddCircle } from "react-icons/md";
 import { useSelector } from "react-redux";
 import Slider from "rc-slider";
 import { useDispatch } from "react-redux";
+import NotificationBell from './NotificationBell'
+import { TextField, MenuItem } from "@mui/material"; // Import TextField and MenuItem for language selector
 import {
   setPriceRange,
   setCondition,
@@ -14,24 +17,29 @@ import {
   setLocationFilter,
 } from "../../slices/FilterSlice";
 import "rc-slider/assets/index.css";
+
+// i18n imports
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n'; // Adjust path if necessary based on your project structure
+
 const Navbar = () => {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isDropdownPinned, setIsDropdownPinned] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [minPrice, setMinPrice] = useState(""); // This is not used in the JSX for prices, consider removing or integrating
+  const [maxPrice, setMaxPrice] = useState(""); // This is not used in the JSX for prices, consider removing or integrating
   const [condition, setLocalCondition] = useState("");
   const [radius, setLocalRadius] = useState(0);
   const [selectedCity, setSelectedCity] = useState("");
   const [priceRange, setLocalPriceRange] = useState([0, 10000]);
+
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
-    const accessToken = localStorage.getItem("accessToken");
-
-    if (storedName && accessToken) {
+    if (storedName) {
       setUserName(storedName);
     }
   }, []);
@@ -52,6 +60,7 @@ const Navbar = () => {
       console.error("Logout error:", err);
     }
   };
+
   const wishlist = useSelector((state) => state.wishlist.totalItems);
 
   const dropdownRef = useRef(null);
@@ -69,33 +78,37 @@ const Navbar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-const handleNearbyClick = () => {
-  if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser.");
-    return;
-  }
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
-
-      // ✅ Dispatch to Redux
-      dispatch(setLocationFilter({ latitude, longitude }));
-navigate("/");
-      // You can now trigger your fetch or update state
-      console.log("Location set:", latitude, longitude);
-    },
-    (error) => {
-      if (error.code === error.PERMISSION_DENIED) {
-        alert("Please allow location access to fetch nearby products.");
-      } else {
-        alert("Unable to fetch your location. Try again.");
-      }
-      console.error(error);
+  const handleNearbyClick = () => {
+    if (!navigator.geolocation) {
+      alert(t("geolocationNotSupported")); // Translated alert
+      return;
     }
-  );
-};
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        dispatch(setLocationFilter({ latitude, longitude }));
+        navigate("/");
+        console.log("Location set:", latitude, longitude); // Keep for debugging if needed
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          alert(t("allowLocationAccess")); // Translated alert
+        } else {
+          alert(t("unableToFetchLocation")); // Translated alert
+        }
+        console.error(error);
+      }
+    );
+  };
+
+  // Handler for changing the display language
+  const handleDisplayLanguageChange = (e) => {
+    i18n.changeLanguage(e.target.value);
+  };
 
   return (
     <>
@@ -114,33 +127,60 @@ navigate("/");
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Global Display Language Selector */}
+              <TextField
+                  select
+                  label={t("displayLanguage")}
+                  name="displayLanguage"
+                  value={i18n.language}
+                  onChange={handleDisplayLanguageChange}
+                  size="small" // Make it smaller for navbar
+                  sx={{
+                      minWidth: 100, // Adjust width as needed
+                      '& .MuiOutlinedInput-root': {
+                          '& fieldset': { borderColor: '#2e4a2f' }, // Dark green border
+                          '&:hover fieldset': { borderColor: '#84cc16' }, // Lime green on hover
+                          '&.Mui-focused fieldset': { borderColor: '#84cc16' }, // Lime green when focused
+                      },
+                      '& .MuiInputLabel-root': { color: '#2e4a2f' }, // Dark green label
+                      '& .MuiSelect-select': { color: '#2e4a2f' }, // Dark green text
+                      '& .MuiSvgIcon-root': { color: '#2e4a2f' }, // Dark green dropdown icon
+                      marginRight: '1rem', // Spacing from other buttons
+                  }}
+              >
+                  <MenuItem value="en">English</MenuItem>
+                  <MenuItem value="az">Azərbaycan</MenuItem>
+                  <MenuItem value="ru">Русский</MenuItem>
+              </TextField>
+
               {!userName ? (
                 <>
                   <button
-                    className="border border-black text-black px-4 py-1 rounded-full text-sm"
+                    className="border border-black text-black px-4 py-1 rounded-full text-sm hover:bg-gray-100 transition-colors"
                     onClick={() => navigate("/register")}
                   >
-                    Register
+                    {t("navbar.register")}
                   </button>
-                  <span className="text-sm text-gray-500">or</span>
+                  <span className="text-sm text-gray-500">{t("navbar.or")}</span>
                   <button
-                    className="flex items-center gap-2 bg-lime-400 px-4 py-1 rounded-full text-sm font-medium"
+                    className="flex items-center gap-2 bg-lime-400 px-4 py-1 rounded-full text-sm font-medium hover:bg-lime-500 transition-colors"
                     onClick={() => navigate("/login")}
                   >
                     <FaUser />
-                    Log in
+                    {t("navbar.login")}
                   </button>
                 </>
               ) : (
                 <>
+                  <NotificationBell />
                   <span className="text-sm font-medium text-green-900">
-                    Hello, {userName}
+                    {t("navbar.hello")}, {userName}
                   </span>
                   <button
                     onClick={handleLogout}
-                    className="border border-black text-black px-4 py-1 rounded-full text-sm"
+                    className="border border-black text-black px-4 py-1 rounded-full text-sm hover:bg-gray-100 transition-colors"
                   >
-                    Logout
+                    {t("navbar.logout")}
                   </button>
                 </>
               )}
@@ -158,27 +198,28 @@ navigate("/");
                 <FaSearch className="text-gray-500" />
                 <input
                   type="text"
-                  placeholder="What are you looking for?"
+                  placeholder={t("navbar.searchPlaceholder")} // Translated placeholder
                   className="outline-none text-sm w-full"
                 />
               </div>
               <button
-                className="ml-2 p-2 bg-white rounded-full shadow hover:bg-gray-100"
+                className="ml-2 p-2 bg-white rounded-full shadow hover:bg-gray-100 cursor-pointer"
                 onClick={() => setShowFilter(true)}
-                title="Open Filters"
+                title={t("navbar.openFiltersTitle")} // Translated title
               >
                 <FaFilter className="text-lime-800" />
               </button>
               {/* Category Select */}
               <select className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4">
-                <option>All Products</option>
-                <option>Cars & Motorcycles</option>
-                <option>Real Estate</option>
-                <option>Jobs</option>
-                <option>Household & Furniture</option>
-                <option>Electronics</option>
-                <option>Leisure, Hobby & Neighborhood</option>
-                <option>Service</option>
+                <option>{t("navbar.allProducts")}</option> {/* Translated option */}
+                <option>{t("navbar.category.carsMotorcycles")}</option>
+                <option>{t("navbar.category.realEstate")}</option>
+                <option>{t("navbar.category.jobs")}</option>
+                <option>{t("navbar.category.householdFurniture")}</option>
+                <option>{t("navbar.category.electronics")}</option>
+                <option>{t("navbar.category.leisureHobbyNeighborhood")}</option>
+                <option>{t("navbar.category.service")}</option>
+                <option>{t("navbar.category.other")}</option>
               </select>
 
               {/* Location Input */}
@@ -186,7 +227,7 @@ navigate("/");
                 <FaMapMarkerAlt className="text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Postal"
+                  placeholder={t("navbar.postalCodePlaceholder")} // Translated placeholder
                   className="outline-none text-sm w-full"
                 />
               </div>
@@ -194,50 +235,49 @@ navigate("/");
               {/* Disabled Input */}
               <input
                 type="text"
-                placeholder="Whole place"
+                placeholder={t("navbar.wholePlacePlaceholder")} // Translated placeholder
                 disabled
                 className="text-sm text-gray-400 bg-gray-100 cursor-not-allowed w-[17%] px-1 py-1 rounded"
               />
 
               {/* Find Button */}
               <button className="ml-1 mx-0 bg-lime-500 hover:bg-lime-600 text-white font-semibold px-6 py-1.5 rounded-full">
-                Find
+                {t("navbar.find")} {/* Translated button */}
               </button>
             </div>
 
             {/* Icons */}
             <div className="flex items-center gap-4 text-sm text-green-900 font-medium whitespace-nowrap">
               <div
-                className="flex items-center gap-1 cursor-pointer"
+                className="flex items-center gap-1 cursor-pointer hover:text-lime-800 transition-colors"
                 onClick={() => navigate("/form")}
               >
                 <MdOutlineAddCircle className="text-lg" />
-                Advertise
+                {t("navbar.advertise")} {/* Translated text */}
               </div>
 
               {/* Mine Dropdown */}
-              {/* Mine Dropdown */}
               <div ref={dropdownRef} className="relative">
                 <div
-                  className="flex items-center gap-1 cursor-pointer"
+                  className="flex items-center gap-1 cursor-pointer hover:text-lime-800 transition-colors"
                   onClick={() => {
                     setDropdownOpen((prev) => !prev);
                     setIsDropdownPinned((prev) => !prev);
                   }}
                 >
                   <FaUser className="text-lg" />
-                  <span>Mine</span>
+                  <span>{t("navbar.mine")}</span> {/* Translated text */}
                 </div>
 
                 {(dropdownOpen || isDropdownPinned) && (
-                  <div className="absolute top-full right-0 mt-2 w-40 bg-white shadow-lg rounded-lg border border-gray-200 z-50">
+                  <div className="absolute top-full right-0 mt-2 w-40 bg-white shadow-lg rounded-lg border border-gray-200 z-50 py-1"> {/* Added py-1 for padding */}
                     {[
-                      { label: "News", path: "/chat" },
-                      { label: "Show", path: "/userinfo" },
-                      { label: "Settings", path: "/profile" },
-                      { label: "Watchlist", path: "/watchlist" },
-                      { label: "Users", path: "/userpage" },
-                      { label: "Search Request", path: "/mysearch" },
+                      { labelKey: "navbar.mineDropdown.news", path: "/chat" }, // Using labelKey for translation
+                      { labelKey: "navbar.mineDropdown.show", path: "/userinfo" },
+                      { labelKey: "navbar.mineDropdown.settings", path: "/profile" },
+                      { labelKey: "navbar.mineDropdown.watchlist", path: "/watchlist" },
+                      { labelKey: "navbar.mineDropdown.users", path: "/userpage" },
+                      { labelKey: "navbar.mineDropdown.searchRequest", path: "/mysearch" },
                     ].map((item, index) => (
                       <div
                         key={index}
@@ -248,7 +288,7 @@ navigate("/");
                           setIsDropdownPinned(false);
                         }}
                       >
-                        {item.label}
+                        {t(item.labelKey)} {/* Use t() for item labels */}
                       </div>
                     ))}
                   </div>
@@ -261,12 +301,12 @@ navigate("/");
       {showFilter && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30">
           <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 relative">
-            <h2 className="text-lg font-semibold mb-4">Filter Listings</h2>
+            <h2 className="text-lg font-semibold mb-4">{t("navbar.filterListings")}</h2> {/* Translated heading */}
 
             {/* Price Range Slider */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">
-                Price Range: ₹{priceRange[0]} – ₹{priceRange[1]}
+                {t("navbar.priceRange")}: ₹{priceRange[0]} – ₹{priceRange[1]}
               </label>
               <Slider
                 range
@@ -287,25 +327,25 @@ navigate("/");
             {/* Condition Selector */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">
-                Condition
+                {t("navbar.condition")} {/* Translated label */}
               </label>
               <select
                 value={condition}
                 onChange={(e) => setLocalCondition(e.target.value)}
-                className="w-full border rounded px-2 py-1"
+                className="w-full border rounded px-2 py-1 cursor-pointer"
               >
-                <option value="">Select</option>
-                <option value="new">New</option>
-                <option value="like-new">Like New</option>
-                <option value="used">Used</option>
-                <option value="defective">Defective/Need Repair</option>
+                <option value="">{t("navbar.select")}</option> {/* Translated option */}
+                <option value="new">{t("navbar.conditionNew")}</option>
+                <option value="like-new">{t("navbar.conditionLikeNew")}</option>
+                <option value="used">{t("navbar.conditionUsed")}</option>
+                <option value="defective">{t("navbar.conditionDefective")}</option>
               </select>
             </div>
 
             {/* Radius Slider */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">
-                Radius: {radius} km
+                {t("navbar.radius")}: {radius} km {/* Translated label */}
               </label>
               <input
                 type="range"
@@ -314,24 +354,24 @@ navigate("/");
                 step="10"
                 value={radius}
                 onChange={(e) => setLocalRadius(e.target.value)}
-                className="w-full accent-lime-500"
+                className="w-full accent-lime-500 cursor-pointer"
               />
             </div>
 
             {/* City Selector */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">City</label>
+              <label className="block text-sm font-medium mb-1">{t("navbar.city")}</label> {/* Translated label */}
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full border rounded px-2 py-1"
+                className="w-full border rounded px-2 py-1 cursor-pointer"
               >
-                <option value="">Select City</option>
-                <option value="baku">Baku</option>
-                <option value="ganja">Ganja</option>
-                <option value="sumqayit">Sumqayit</option>
-                <option value="mingachevir">Mingachevir</option>
-                <option value="shaki">Shaki</option>
+                <option value="">{t("navbar.selectCity")}</option> {/* Translated option */}
+                <option value="baku">{t("navbar.cityBaku")}</option>
+                <option value="ganja">{t("navbar.cityGanja")}</option>
+                <option value="sumqayit">{t("navbar.citySumqayit")}</option>
+                <option value="mingachevir">{t("navbar.cityMingachevir")}</option>
+                <option value="shaki">{t("navbar.cityShaki")}</option>
                 {/* Add all cities as needed */}
               </select>
             </div>
@@ -340,29 +380,27 @@ navigate("/");
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowFilter(false)}
-                className="px-4 py-2 text-sm bg-gray-200 rounded"
+                className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors"
               >
-                Cancel
+                {t("navbar.cancel")} {/* Translated button */}
               </button>
               <button
                 onClick={() => {
-                  console.log("typeof setPriceRange", typeof setPriceRange);
-                  console.log("setPriceRange", setPriceRange);
                   dispatch(setPriceRange(priceRange));
                   dispatch(setCondition(condition));
-                  dispatch(setRadius(Number(radius))); // Ensure it's a number
+                  dispatch(setRadius(Number(radius)));
                   dispatch(setCity(selectedCity));
                   setShowFilter(false);
                 }}
-                className="px-4 py-2 text-sm bg-lime-500 text-white rounded"
+                className="px-4 py-2 text-sm bg-lime-500 text-white rounded hover:bg-lime-600 transition-colors"
               >
-                Apply Filters
+                {t("navbar.applyFilters")} {/* Translated button */}
               </button>
               <button
-                className="bg-lime-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-lime-700"
+                className="bg-lime-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-lime-700 transition-colors"
                 onClick={handleNearbyClick}
               >
-                Nearby Products
+                {t("navbar.nearbyProducts")} {/* Translated button */}
               </button>
             </div>
           </div>

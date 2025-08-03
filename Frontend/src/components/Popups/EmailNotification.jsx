@@ -3,28 +3,31 @@ import EmailImage from "../../assets/images/post2.png";
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 
+// i18n import
+import { useTranslation } from 'react-i18next';
+
 function EmailNotification() {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const location = useLocation();
   const email = location.state?.email;
 
   const handleResendEmail = async () => {
     if (!email) {
-      alert("No email provided.");
+      alert(t("emailNotification.noEmailProvided")); // Translated alert
       return;
     }
 
     try {
       const res = await axios.post("http://localhost:8080/forgotpassword", { email });
-      
+
       if (res.status === 200 || res.status === 201) {
-        // Optionally navigate somewhere else:
-        // navigate("/newpassword");
+        alert(t("emailNotification.resendSuccess")); // Translated alert
       } else {
-        alert("Failed to resend email.");
+        alert(t("emailNotification.resendFailed")); // Translated alert
       }
     } catch (error) {
       console.error("Resend email error:", error);
-      alert("An error occurred while resending the email.");
+      alert(t("emailNotification.resendError")); // Translated alert
     }
   };
 
@@ -32,13 +35,13 @@ function EmailNotification() {
     <div className="min-h-screen bg-gray-50">
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-sm p-8">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-8">Email</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-8">{t("emailNotification.mainTitle")}</h1> {/* Translated */}
 
           <div className="text-center mb-8">
             <div className="w-80 h-64 mx-auto mb-6 flex items-center justify-center">
               <img
                 src={EmailImage}
-                alt="Email illustration with envelope and person"
+                alt={t("emailNotification.emailIllustrationAlt")}
                 className="max-w-full max-h-full object-contain"
               />
             </div>
@@ -46,36 +49,35 @@ function EmailNotification() {
 
           <div className="space-y-6 text-gray-900">
             <p className="text-base leading-relaxed">
-              If there is a user account with this email address, we have sent you an email to <b>{email || "your email"}</b>. Please
-              follow the link in the email to create a new password.
+              {t("emailNotification.instructions1", { email: email || t("emailNotification.yourEmail") })} {/* Translated with interpolation */}
             </p>
 
             <div>
-              <p className="font-medium mb-3 text-base">Can't find the email or didn't receive an email?</p>
+              <p className="font-medium mb-3 text-base">{t("emailNotification.cantFindEmailTitle")}</p> {/* Translated */}
               <ul className="space-y-3">
                 <li className="flex items-start">
                   <span className="w-2 h-2 bg-black rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                  <span className="text-base">Check your spam or junk mail folder.</span>
+                  <span className="text-base">{t("emailNotification.tip1")}</span> {/* Translated */}
                 </li>
                 <li className="flex items-start">
                   <span className="w-2 h-2 bg-black rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                  <span className="text-base">Filter your received emails by the keywords "classifieds".</span>
+                  <span className="text-base">{t("emailNotification.tip2")}</span> {/* Translated */}
                 </li>
                 <li className="flex items-start">
                   <span className="w-2 h-2 bg-black rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                  <span className="text-base">Have a new email sent to you</span>
+                  <span className="text-base">{t("emailNotification.tip3")}</span> {/* Translated */}
                 </li>
               </ul>
             </div>
 
-            <p className="text-base">Further tips can be found on our help page.</p>
+            <p className="text-base">{t("emailNotification.furtherTips")}</p> {/* Translated */}
 
             <div className="text-center pt-4">
               <button
                 onClick={handleResendEmail}
                 className="bg-lime-400 text-green-800 hover:bg-green-800 hover:text-white px-8 py-3 rounded font-medium transition-colors"
               >
-                Send new email
+                {t("emailNotification.sendNewEmailButton")} {/* Translated */}
               </button>
             </div>
           </div>

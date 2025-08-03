@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom"; // Added Link
 import { CalendarToday, LocationOn } from "@mui/icons-material";
 import PaymentDialog from "./PaymentDialog";
 import Footer from "../components/common/Footer";
@@ -17,6 +17,11 @@ import { toast } from "react-toastify";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+// i18n import
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n'; // Import i18n instance to get current language
+
 // Fix default icon issue with Leaflet in React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -29,15 +34,16 @@ L.Icon.Default.mergeOptions({
 });
 
 
-// Helper for multilingual fields (can be passed via context if you have one)
-const getLocalizedText = (field, lang = "en") => {
+// Helper for multilingual fields (simplified to use i18n directly)
+const getLocalizedText = (field) => {
   if (!field) return "";
   if (typeof field === "string") return field;
-  return field[lang] || field.en || field.de || "";
+  return field[i18n.language] || field.en || ""; // Fallback to English, then empty string
 };
 
 
 const ProductDetail = () => {
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const { id } = useParams();
   const navigate = useNavigate();
   const token = localStorage.getItem("accessToken");
@@ -55,23 +61,21 @@ const ProductDetail = () => {
   const { wishlist } = useSelector((state) => state.wishlist);
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
 
-  // Default display language, could be dynamic based on user preference
-  const displayLanguage = "en";
 
   const handleAddToWatchlist = (e) => {
     e.stopPropagation();
 
     if (!token) {
-      alert("Please login to add to watchlist.");
+      alert(t("productDetail.loginToWatchlist")); // Translated
       return;
     }
 
     if (isWishlisted) {
       dispatch(unlike(product));
-      toast.info("Removed from your watchlist");
+      toast.info(t("productDetail.removedFromWatchlist")); // Translated
     } else {
       dispatch(like(product));
-      toast.success("Added to your watchlist");
+      toast.success(t("productDetail.addedToWatchlist")); // Translated
     }
   };
 
@@ -88,24 +92,21 @@ const ProductDetail = () => {
   }, []);
 
   useEffect(() => {
+    // Pass i18n.language to fetch products in specific language (for dynamic content)
     fetchProductById();
-  }, [id, token]); // Add token to dependency array if product fetch depends on it
+  }, [id, token, i18n.language]); // Added i18n.language to dependencies
 
   const fetchProductById = async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/product/${id}`,
+        `http://localhost:8080/api/products/product/${id}?lang=${i18n.language}`, // Pass language parameter
         {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Ensure correct header format if using "Bearer"
-          },
+            credentials: "include",
         }
       );
 
       if (!res.ok) {
-        // Handle non-200 responses
         console.error("Failed to fetch product:", res.status, res.statusText);
         setProduct(null);
         return;
@@ -121,17 +122,16 @@ const ProductDetail = () => {
     }
   };
 
-  // categoryObj will be { en: "...", de: "..." }
+  // categoryObj will be { en: "...", az: "...", ru: "..." }
   const fetchRelatedProducts = async (categoryObj) => {
-    const categoryName = getLocalizedText(categoryObj, displayLanguage);
-    if (!categoryName) return; // Don't fetch if category name is not available
+    const categoryName = getLocalizedText(categoryObj); // Get category in current display language
+    if (!categoryName) return;
 
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}` // Encode the category for URL
+        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}?lang=${i18n.language}` // Pass language parameter for related products
       );
       const json = await res.json();
-      // Filter out the current product and limit to 3
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
       setRelatedProducts(filtered || []);
     } catch (err) {
@@ -143,50 +143,51 @@ const ProductDetail = () => {
     if (product?.category) {
       fetchRelatedProducts(product.category);
     }
-  }, [product, id, displayLanguage]); // Add id and displayLanguage to dependencies
+  }, [product, id, i18n.language]); // Added i18n.language to dependencies
 
   const handleBuyNow = async () => {
     const userId = user?._id;
-    // owner can be an ObjectId string or a populated user object
-    const ownerId = product?.owner?._id || product?.owner; // Prioritize _id if owner is populated
+    const ownerId = product?.owner?._id || product?.owner;
 
     if (!userId) {
-      alert("Please login to buy items.");
+      alert(t("productDetail.loginToBuy")); // Translated
       return;
     }
     if (!ownerId) {
-      alert("Product owner information not available.");
+      alert(t("productDetail.ownerInfoMissing")); // Translated
       return;
     }
 
     try {
       const res = await fetch(
         `http://localhost:8080/users/get-users/${userId}`,
-        { headers: { Authorization: `Bearer ${token}` } } // Assuming user info fetch also needs token
+        { credentials: "include", }
       );
       const json = await res.json();
       if (json?.data) {
         setDialogUser(json.data);
         setShowPaymentDialog(true);
       } else {
-        alert("Failed to load user data.");
+        alert(t("productDetail.failedToLoadUserData")); // Translated
       }
     } catch (err) {
       console.error("Error fetching user:", err);
-      alert("Error loading user data.");
+      alert(t("productDetail.errorLoadingUserData")); // Translated
     }
   };
 
   const handleSendMessage = async () => {
     if (!user) {
-      alert("Please login to send messages.");
+      alert(t("productDetail.loginToMessage")); // Translated
       return;
     }
-    // Determine the owner's username for chat
-    const ownerUsername = getLocalizedText(product.name || product.owner?.name) || product.owner; // If product.owner is populated, use its name. Otherwise, fallback to product.name or owner ID
+    // Determine the owner's username for chat (accessing translated name from profile)
+    const ownerRawName = product.owner?.name; // Assuming owner object might be populated with name
+    const ownerUsername = typeof ownerRawName === 'object' ? getLocalizedText(ownerRawName) : ownerRawName || product.owner?.username || product.name?.[i18n.language] || product.name?.en || product.owner;
 
+    console.log("Owner Username:", ownerUsername);
     if (!ownerUsername) {
-      alert("Product owner information not available for messaging.");
+      alert(t("productDetail.ownerInfoMissingMessaging")); // Translated
       return;
     }
 
@@ -195,7 +196,7 @@ const ProductDetail = () => {
     setTimeout(() => {
       if (window.startChatConversation) {
         const productInfo = {
-          title: getLocalizedText(product.title, displayLanguage),
+          title: getLocalizedText(product.title),
           price: product.price,
           id: product._id,
         };
@@ -204,19 +205,19 @@ const ProductDetail = () => {
     }, 1000);
   };
 
-  const ownerId = product?.owner?._id || product?.owner || null; // Ensure this correctly gets the owner's ID
+  const ownerId = product?.owner?._id || product?.owner || null;
 
   useEffect(() => {
     if (user && ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId, token]); // Add token to dependencies
+  }, [user, ownerId, token]);
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
         `http://localhost:8080/check/${followerId}/${followingId}`,
-        { headers: { Authorization: `Bearer ${token}` } } // Add token for auth
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
@@ -227,7 +228,7 @@ const ProductDetail = () => {
 
   const handleFollowToggle = async () => {
     if (!user || !ownerId) {
-      alert("Authentication required or owner information missing.");
+      alert(t("productDetail.authRequiredFollow")); // Translated
       return;
     }
     setFollowLoading(true);
@@ -249,37 +250,33 @@ const ProductDetail = () => {
       const result = await res.json();
 
       if (res.ok && result.success !== false) {
-        await checkFollowStatus(user._id, ownerId); // Re-check status after action
-        toast.success(isFollowing ? "Unfollowed!" : "Followed!");
+        await checkFollowStatus(user._id, ownerId);
+        toast.success(isFollowing ? t("productDetail.unfollowed") : t("productDetail.followed")); // Translated
       } else {
-        const errorMsg = result.message || "Follow/unfollow failed. Try again.";
+        const errorMsg = result.message || t("productDetail.followUnfollowFailed"); // Translated fallback
         alert(errorMsg);
       }
     } catch (err) {
       console.error("Follow/Unfollow error:", err);
-      alert("An error occurred.");
+      alert(t("productDetail.anErrorOccurred")); // Translated
     } finally {
       setFollowLoading(false);
     }
   };
 
-  if (loading) return <div className="text-center mt-10">Loading…</div>;
+  if (loading) return <div className="text-center mt-10">{t("productDetail.loadingProduct")}</div>; // Translated
   if (!product)
     return (
-      <div className="text-center text-red-500 mt-10">Product not found</div>
+      <div className="text-center text-red-500 mt-10">{t("productDetail.productNotFound")}</div> // Translated
     );
 
   // Safely access owner name, prioritizing populated user object, then product.name, then "Unknown Seller"
-  const ownerRawName = product.owner?.name || product.name; // This needs to be consistent with how owner is returned (populated or just ID)
-  const ownerName = getLocalizedText(ownerRawName, displayLanguage) || "Unknown Seller";
+  const ownerRawName = product.owner?.name || product.name;
+  const ownerName = typeof ownerRawName === 'object' ? getLocalizedText(ownerRawName) : ownerRawName || t("productDetail.unknownSeller");
   const ownerInitial = ownerName.charAt(0).toUpperCase();
 
-  // Your MongoDB response has 'postalCode' at the top-level of the product document.
-  // 'location' object contains 'type' and 'coordinates'.
-  const displayPostalCode = product.postalCode || product.location?.postalCode || "Unknown";
-  // If you also want to show a city: You would need to add a 'city' field to your Product model
-  // For example: `city: { en: String, de: String, trim: true }` and then get `getLocalizedText(product.city)`
-
+  // Postal code is a direct field on product now
+  const displayPostalCode = product.postalCode || product.location?.postalCode || t("home.unknownLocation");
 
   return (
     <>
@@ -289,7 +286,7 @@ const ProductDetail = () => {
             <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
               <img
                 src={leftadImage}
-                alt="Left Ad"
+                alt={t("home.leftAdAlt")} // Reusing home key
                 className="w-full h-[550px] object-cover rounded"
               />
             </div>
@@ -305,7 +302,7 @@ const ProductDetail = () => {
                           product.pictures?.[0]?.replace(/\\/g, "/") ||
                           "uploads/placeholder.jpg"
                         }`}
-                        alt={getLocalizedText(product.title, displayLanguage)}
+                        alt={getLocalizedText(product.title)}
                         className="max-h-full object-contain"
                       />
                     </div>
@@ -314,153 +311,151 @@ const ProductDetail = () => {
                   {/* DETAILS CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4">
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                      {getLocalizedText(product.title, displayLanguage) || "Product Title"}
+                      {getLocalizedText(product.title) || t("productDetail.productTitlePlaceholder")}
                     </h1>
                     <p className="text-green-700 text-xl font-bold mb-3">
-                      {product.price?.toLocaleString("en-IN")}€{" "}
-                      <span className="text-sm">VB</span>
+                      € {product.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}{" "}
+                      <span className="text-sm">{t("productDetail.negotiableAbbr")}</span>
                     </p>
 
                     <div className="text-sm text-gray-600 flex flex-wrap gap-4 mb-4">
                       <div className="flex items-center gap-1">
                         <LocationOn fontSize="small" />
-                        {displayPostalCode} {/* Display postal code as per your data */}
-                        {/* If you add city to your model and data: - {getLocalizedText(product.city)} */}
+                        {displayPostalCode}
                       </div>
 
                       <div className="flex items-center gap-1">
                         <CalendarToday fontSize="small" />
                         {new Date(product.createdAt).toLocaleDateString(
-                          "en-GB"
+                          i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-GB')
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <img src={EyeIcon} alt="Views" className="w-5 h-5" />
+                        <img src={EyeIcon} alt={t("productDetail.viewsAlt")} className="w-5 h-5" />
                         {product.views || 0}
                       </div>
                     </div>
 
                     <button
-                      className="mt-4 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-semibold text-sm"
+                      className="mt-4 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-semibold text-sm cursor-pointer"
                       onClick={handleBuyNow}
                     >
-                      Buy Now
+                      {t("productDetail.buyNowButton")}
                     </button>
                   </div>
 
                   {/* EXTRA INFO CONTAINER */}
-                  <div className="bg-white rounded-md shadow p-4 mt-6">
+                  <div className="bg-white rounded-md shadow p-4 mt-6 relative ">
                     {/* MAP LOCATION CONTAINER */}
                     {product.location?.coordinates && product.location.coordinates.length === 2 && (
                       <div className="bg-white rounded-md shadow p-4 mb-6"> {/* Added mb-6 for spacing */}
                         <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
+                         <div className="w-full overflow-hidden rounded-md" style={{ height: "300px" }}>
                         <MapContainer
                           center={[
-                            product.location.coordinates[1], // latitude
-                            product.location.coordinates[0], // longitude
+                            product.location.coordinates[1],
+                            product.location.coordinates[0],
                           ]}
                           zoom={13}
                           scrollWheelZoom={false}
-                          style={{ height: "300px", width: "100%" }}
+                          style={{ height: "300px", width: "100%", zIndex: 0, position: "relative" }}
                         >
                           <TileLayer
-                            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                            attribution={t("productDetail.mapAttribution")}
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           />
                           <Marker
                             position={[
-                              product.location.coordinates[1], // latitude
-                              product.location.coordinates[0], // longitude
+                              product.location.coordinates[1],
+                              product.location.coordinates[0],
                             ]}
                           >
-                            <Popup>{getLocalizedText(product.title, displayLanguage) || "Product location"}</Popup>
+                            <Popup>{getLocalizedText(product.title) || t("productDetail.productLocation")}</Popup>
                           </Marker>
                         </MapContainer>
+                        </div>
                       </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
                       <div>
-                        <div className="font-semibold text-gray-800">Type</div>
-                        <div>{product.type || "NA"}</div>
+                        <div className="font-semibold text-gray-800">{t("productDetail.typeLabel")}</div>
+                        <div>{product.type || t("productDetail.notAvailableAbbr")}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">Brand</div>
-                        <div>{product.brand || "NA"}</div>
+                        <div className="font-semibold text-gray-800">{t("productDetail.brandLabel")}</div>
+                        <div>{product.brand || t("productDetail.notAvailableAbbr")}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">Size</div>
-                        <div>{product.size || "NA"}</div>
+                        <div className="font-semibold text-gray-800">{t("productDetail.sizeLabel")}</div>
+                        <div>{product.size || t("productDetail.notAvailableAbbr")}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">Color</div>
-                        <div>{product.color || "NA"}</div>
+                        <div className="font-semibold text-gray-800">{t("productDetail.colorLabel")}</div>
+                        <div>{product.color || t("productDetail.notAvailableAbbr")}</div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800">
-                          Condition
-                        </div>
-                        <div>{product.condition || "NA"}</div>
+                        <div className="font-semibold text-gray-800">{t("productDetail.conditionLabel")}</div>
+                        <div>{product.condition || t("productDetail.notAvailableAbbr")}</div>
                       </div>
                     </div>
 
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">
-                      Description
+                      {t("productDetail.descriptionSectionTitle")}
                     </h2>
                     <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {getLocalizedText(product.description, displayLanguage) || "Keine Beschreibung verfügbar."}
+                      {getLocalizedText(product.description) || t("productDetail.noDescriptionAvailable")}
                     </p>
                   </div>
 
                   {/* WRITE A MESSAGE CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4 mt-6">
                     <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                      Write a message
+                      {t("productDetail.writeMessageTitle")}
                     </h2>
 
                     <div className="mb-4">
                       <label className="block font-medium text-gray-700 mb-1">
-                        News
+                        {t("productDetail.newsLabel")}
                       </label>
                       <textarea
                         className="w-full border rounded-md p-2 text-sm text-gray-800"
-                        placeholder="Write a friendly message to the seller and get more attention!"
+                        placeholder={t("productDetail.messagePlaceholder")}
                         rows={4}
                       ></textarea>
                     </div>
 
                     <div className="mb-4">
                       <label className="block font-medium text-gray-700 mb-1">
-                        Profile name
+                        {t("productDetail.profileNameLabel")}
                       </label>
                       <div className="w-full border rounded-md p-2 bg-gray-100 text-sm text-gray-800">
-                        {user?.name || "NA"}
+                        {getLocalizedText(user?.name) || t("productDetail.notAvailableAbbr")}
                       </div>
                     </div>
 
                     <p className="text-xs text-gray-600 mb-2">
-                      Your data will be transmitted to the provider and
-                      automatically pre-filled for future requests.{" "}
+                      {t("productDetail.dataTransmissionInfo1")}{" "}
                       <a href="#" className="text-green-700 underline">
-                        More information
+                        {t("productDetail.moreInformation")}
                       </a>
                     </p>
                     <p className="text-xs text-gray-600 mb-4">
-                      We review messages for violations of our{" "}
+                      {t("productDetail.dataTransmissionInfo2")}{" "}
                       <a href="#" className="text-green-700 underline">
-                        Terms of Use
+                        {t("productDetail.termsOfUse")}
                       </a>
-                      . For more information, see our{" "}
+                      . {t("productDetail.dataTransmissionInfo3")}{" "}
                       <a href="#" className="text-green-700 underline">
-                        Privacy Policy
+                        {t("productDetail.privacyPolicy")}
                       </a>
                       .
                     </p>
 
                     <button
-                      onClick={handleSendMessage} // Attach sendMessage to this button
+                      onClick={handleSendMessage}
                       className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-full font-semibold text-sm cursor-pointer">
-                      Send Message
+                      {t("productDetail.sendMessageButton")}
                     </button>
                   </div>
                 </div>
@@ -468,12 +463,12 @@ const ProductDetail = () => {
                 <div>
                   {/* Main Sidebar Section */}
                   <div className="bg-white rounded-xl shadow-md p-5 h-fit border border-gray-200 space-y-4">
-                    {/* Green Rounded "Make an offer" */}
+                    {/* Green Rounded "Write a message" button */}
                     <button
                       onClick={handleSendMessage}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
                     >
-                      Write a message
+                      {t("productDetail.writeMessageButton")}
                     </button>
 
                     {/* Outlined Buttons */}
@@ -481,14 +476,14 @@ const ProductDetail = () => {
                       onClick={handleAddToWatchlist}
                       className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {isWishlisted ? "Remove from watchlist" : "Add to watchlist"}
+                      {isWishlisted ? t("productDetail.removeFromWatchlistButton") : t("productDetail.addToWatchlistButton")} {/* Corrected keys here */}
                     </button>
 
                     <button
                       onClick={() => setShowShareModal(true)}
                       className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Share ad
+                      {t("productDetail.shareAdButton")} {/* Corrected key here */}
                     </button>
 
                     {/* User Info */}
@@ -507,30 +502,30 @@ const ProductDetail = () => {
                       <div className="flex items-center gap-2">
                         <img
                           src={UserIcon}
-                          alt="User Icon"
+                          alt={t("productDetail.userIconAlt")}
                           className="w-5 h-5"
                         />
-                        <p>Private user</p>
+                        <p>{t("productDetail.privateUser")}</p>
                       </div>
 
                       {/* Active since row */}
                       <div className="flex items-center gap-2">
                         <img
                           src={SaveIcon}
-                          alt="Active since icon"
+                          alt={t("productDetail.activeSinceIconAlt")}
                           className="w-5 h-5"
                         />
                         <p>
-                          Active since{" "}
+                          {t("productDetail.activeSince")}{" "}
                           {new Date(product.createdAt).toLocaleDateString(
-                            "en-GB"
+                            i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-GB')
                           )}
                         </p>
                       </div>
                     </div>
 
                     {/* Follow Button */}
-                    {user?._id !== ownerId && ( // Only show follow button if not viewing your own product
+                    {user?._id !== ownerId && (
                       <button
                         onClick={handleFollowToggle}
                         disabled={followLoading}
@@ -541,10 +536,10 @@ const ProductDetail = () => {
                         }`}
                       >
                         {followLoading
-                          ? "Loading..."
+                          ? t("productDetail.loading")
                           : isFollowing
-                          ? "🚫 Unfollow"
-                          : "➕ Follow"}
+                          ? t("productDetail.unfollowButton")
+                          : t("productDetail.followButton")}
                       </button>
                     )}
                   </div>
@@ -552,7 +547,7 @@ const ProductDetail = () => {
                   {/* Ad ID Section Below */}
                   <div className="bg-white rounded-xl shadow-md p-4 mt-4 border border-gray-200 text-sm text-gray-700">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Ad ID:</span>
+                      <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
                       <span className="text-gray-900">{product._id}</span>
                     </div>
                   </div>
@@ -562,14 +557,13 @@ const ProductDetail = () => {
               {relatedProducts.length > 0 && (
                 <div className="max-w-6xl mx-auto mt-8 px-4">
                   <h2 className="text-xl font-semibold mb-6">
-                    This might also interest you
+                    {t("productDetail.mightAlsoInterestYouTitle")}
                   </h2>
                   <div className="grid grid-cols-1 gap-6">
                     {relatedProducts.map((item) => (
                       <div
                         key={item._id}
                         onClick={() =>
-                          // Use navigate for client-side routing
                           navigate(`/products/product/${item._id}`)
                         }
                         className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
@@ -579,28 +573,28 @@ const ProductDetail = () => {
                             item.pictures?.[0]?.replace(/\\/g, "/") ||
                             "uploads/placeholder.jpg"
                           }`}
-                          alt={getLocalizedText(item.title, displayLanguage)}
+                          alt={getLocalizedText(item.title)}
                           className="w-32 h-24 object-cover rounded-md"
                         />
                         <div className="flex-1">
                           <div className="text-sm text-gray-500 flex items-center justify-between">
                             <span>
-                              📍 {item.postalCode || item.location?.postalCode || "Unknown"}{" "}
+                              📍 {item.postalCode || item.location?.postalCode || t("home.unknownLocation")}{" "}
                             </span>
                             <span className="text-xs text-gray-400">
                               {new Date(item.createdAt).toLocaleDateString(
-                                "en-GB"
+                                i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-GB')
                               )}
                             </span>
                           </div>
                           <h3 className="font-semibold text-gray-800 mt-1 mb-1 line-clamp-1">
-                            {getLocalizedText(item.title, displayLanguage)}
+                            {getLocalizedText(item.title)}
                           </h3>
                           <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-                            {getLocalizedText(item.description, displayLanguage)}
+                            {getLocalizedText(item.description)}
                           </p>
                           <div className="flex gap-4 text-sm font-semibold text-green-700">
-                            <span>{item.price?.toLocaleString("en-IN")}€</span>
+                            <span>{item.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}€</span>
                           </div>
                         </div>
                       </div>
@@ -613,7 +607,7 @@ const ProductDetail = () => {
             <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
               <img
                 src={rightadImage}
-                alt="Right Ad"
+                alt={t("home.rightAdAlt")}
                 className="w-full h-[550px] object-cover rounded"
               />
             </div>
