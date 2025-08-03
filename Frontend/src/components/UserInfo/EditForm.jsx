@@ -27,7 +27,8 @@ const EditForm = () => {
   const [formData, setFormData] = useState({
     offerType: "offer",
     title: "",
-    category: "", // This will hold the translated category for display
+    category: "",
+    condition: "",
     price: "",
     description: "",
     postalCode: "",
@@ -312,6 +313,21 @@ const EditForm = () => {
                   {t(key)}
                 </MenuItem>
               ))}
+            </TextField>
+            
+            <TextField
+              select
+              label="Condition"
+              name="condition"
+              value={formData.condition}
+              onChange={handleChange}
+              sx={{ width: "41rem" }}
+            >
+              <MenuItem value="">Select</MenuItem>
+              <MenuItem value="New">New</MenuItem>
+              <MenuItem value="Like New">Like New</MenuItem>
+              <MenuItem value="Used">Used</MenuItem>
+              <MenuItem value="Defective/Need Repair">Defective/Need Repair</MenuItem>
             </TextField>
           </div>
 

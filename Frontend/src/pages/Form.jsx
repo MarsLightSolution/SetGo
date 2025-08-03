@@ -36,6 +36,7 @@ const Form = () => {
     offerType: "offer",
     title: "",
     category: "",
+    condition: "",
     price: "",
     description: "",
     postalCode: "",
@@ -173,6 +174,7 @@ if (name === "condition") {
     const requiredFields = [
       "title",
       "category",
+      "condition",
       "price",
       "condition",
       "description",
@@ -229,6 +231,7 @@ if (name === "condition") {
           offerType: "offer",
           title: "",
           category: "",
+          condition: "",
           price: "",
           condition: "",
           description: "",
@@ -319,6 +322,20 @@ if (name === "condition") {
                 <MenuItem value="Leisure, Hobby & Neighborhood">{t("home.category.leisureHobbyNeighborhood")}</MenuItem>
                 <MenuItem value="Service">{t("home.category.service")}</MenuItem>
                 <MenuItem value="Other">{t("home.category.other")}</MenuItem>
+              </TextField>
+              <TextField
+                select
+                label="Condition"
+                name="condition"
+                value={formData.condition}
+                onChange={handleChange}
+                sx={{ width: "41rem" }}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="New">New</MenuItem>
+                <MenuItem value="Like New">Like New</MenuItem>
+                <MenuItem value="Used">Used</MenuItem>
+                <MenuItem value="Defective/Need Repair">Defective/Need Repair</MenuItem>
               </TextField>
               <TextField
                 label={t("form.price")}
