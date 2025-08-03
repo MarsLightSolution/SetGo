@@ -209,7 +209,7 @@ const getProducts = asyncHandler(async (req, res) => {
   const validLangs = ["en", "az", "ru"];
   const selectedLang = validLangs.includes(lang) ? lang : "en";
 
-  logger.info(`[GetProducts] Query`, {
+  logger.info("[GetProducts] Query Params", {
     category,
     page,
     limit,
@@ -236,7 +236,7 @@ const getProducts = asyncHandler(async (req, res) => {
     });
   }
 
-  // Text search filter
+  // Search filter on title & description
   if (search) {
     pipeline.push({
       $match: {
@@ -248,7 +248,7 @@ const getProducts = asyncHandler(async (req, res) => {
     });
   }
 
-  // Main filter stage
+  // General filter stage
   const matchStage = {
     isSell: false,
     price: {
@@ -257,17 +257,13 @@ const getProducts = asyncHandler(async (req, res) => {
     },
   };
 
-  // Condition filter
-  if (condition) {
-    matchStage.condition = condition;
-  }
+  if (condition) matchStage.condition = condition;
 
-  // Exclude current user's products
   if (userId && mongoose.Types.ObjectId.isValid(userId)) {
     matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
   }
 
-  // Location-based filtering
+  // Geolocation or city filtering
   if (latitude && longitude && radiusInKm) {
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
@@ -284,10 +280,8 @@ const getProducts = asyncHandler(async (req, res) => {
 
   pipeline.push({ $match: matchStage });
 
-  // Sort newest first
   pipeline.push({ $sort: { createdAt: -1 } });
 
-  // Pagination options
   const options = {
     page: Number(page),
     limit: Number(limit),
@@ -303,13 +297,12 @@ const getProducts = asyncHandler(async (req, res) => {
     },
   };
 
-  // Execute aggregation with pagination
   const result = await Product.aggregatePaginate(
     Product.aggregate(pipeline),
     options
   );
 
-  // Map language-specific fields
+  // Translate response fields to selected language
   result.products = result.products.map((prod) => ({
     _id: prod._id,
     title: prod.title?.[selectedLang] || prod.title?.en || "",
@@ -328,7 +321,7 @@ const getProducts = asyncHandler(async (req, res) => {
     updatedAt: prod.updatedAt,
   }));
 
-  logger.info(`[GetProducts] Retrieved products`, {
+  logger.info("[GetProducts] Products fetched", {
     total: result.totalProducts,
   });
 
