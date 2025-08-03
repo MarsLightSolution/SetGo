@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import AddressModal from "./AddressModal"; // Assuming this is the AddressModal component
 import ChangePhone from "../Settings/ChangePhone"; // Assuming this is ChangePhone
-import PhoneVerification from "../Settings/PhoneVerification"; // Assuming this is PhoneVerification
-import SmsVerification from "../Settings/SmsVerification"; // Assuming this is SmsVerification
+import PhoneVerification from "../common/PhoneVerification"; // Assuming this is PhoneVerification
+import SmsVerification from "../common/SmsVerification"; // Assuming this is SmsVerification
 import NewPasswordModal from "../Settings/NewPasswordModal"; // Assuming this is NewPasswordModal
 import useUserProfile from "../../Hooks/useUserProfile"; // Assuming this hook exists
 import axios from "axios";

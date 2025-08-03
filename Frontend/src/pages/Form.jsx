@@ -348,12 +348,6 @@ if (name === "condition") {
                 InputProps={{ endAdornment: <span className="text-gray-500">{t("form.currency")}</span> }}
               />
               <TextField
-                label={t("form.description")}
-                InputProps={{
-                  endAdornment: <span className="text-gray-500">EUR</span>,
-                }}
-              />
-              <TextField
                 select
                 label="Condition"
                 name="condition"

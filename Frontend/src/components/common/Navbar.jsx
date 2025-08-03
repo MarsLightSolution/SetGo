@@ -5,18 +5,14 @@ import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
 import { FaFilter } from "react-icons/fa";
 import { MdOutlineAddCircle } from "react-icons/md";
 import { useSelector } from "react-redux";
-import Slider from "rc-slider";
 import { useDispatch } from "react-redux";
 import NotificationBell from './NotificationBell'
+import ProductFilters from './ProductFilters'
 import { TextField, MenuItem } from "@mui/material"; // Import TextField and MenuItem for language selector
 import {
-  setPriceRange,
-  setCondition,
-  setRadius,
-  setCity,
   setLocationFilter,
+  setSearchQuery,
 } from "../../slices/FilterSlice";
-import "rc-slider/assets/index.css";
 
 // i18n imports
 import { useTranslation } from 'react-i18next';
@@ -30,12 +26,7 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isDropdownPinned, setIsDropdownPinned] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const [minPrice, setMinPrice] = useState(""); // This is not used in the JSX for prices, consider removing or integrating
-  const [maxPrice, setMaxPrice] = useState(""); // This is not used in the JSX for prices, consider removing or integrating
-  const [condition, setLocalCondition] = useState("");
-  const [radius, setLocalRadius] = useState(0);
-  const [selectedCity, setSelectedCity] = useState("");
-  const [priceRange, setLocalPriceRange] = useState([0, 10000]);
+  const [searchInput, setSearchInput] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -199,6 +190,13 @@ const Navbar = () => {
                 <input
                   type="text"
                   placeholder={t("navbar.searchPlaceholder")} // Translated placeholder
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      dispatch(setSearchQuery(searchInput));
+                    }
+                  }}
                   className="outline-none text-sm w-full"
                 />
               </div>
@@ -210,7 +208,16 @@ const Navbar = () => {
                 <FaFilter className="text-lime-800" />
               </button>
               {/* Category Select */}
-              <select className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4">
+              <select 
+                className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4"
+                onChange={(e) => {
+                  const selectedCategory = e.target.value;
+                  if (selectedCategory !== t("navbar.allProducts")) {
+                    // You can add category filtering logic here
+                    console.log("Selected category:", selectedCategory);
+                  }
+                }}
+              >
                 <option>{t("navbar.allProducts")}</option> {/* Translated option */}
                 <option>{t("navbar.category.carsMotorcycles")}</option>
                 <option>{t("navbar.category.realEstate")}</option>
@@ -241,7 +248,13 @@ const Navbar = () => {
               />
 
               {/* Find Button */}
-              <button className="ml-1 mx-0 bg-lime-500 hover:bg-lime-600 text-white font-semibold px-6 py-1.5 rounded-full">
+              <button 
+                onClick={() => {
+                  dispatch(setSearchQuery(searchInput));
+                  navigate("/");
+                }}
+                className="ml-1 mx-0 bg-lime-500 hover:bg-lime-600 text-white font-semibold px-6 py-1.5 rounded-full"
+              >
                 {t("navbar.find")} {/* Translated button */}
               </button>
             </div>
@@ -298,114 +311,14 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-      {showFilter && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30">
-          <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 relative">
-            <h2 className="text-lg font-semibold mb-4">{t("navbar.filterListings")}</h2> {/* Translated heading */}
-
-            {/* Price Range Slider */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">
-                {t("navbar.priceRange")}: ₹{priceRange[0]} – ₹{priceRange[1]}
-              </label>
-              <Slider
-                range
-                min={0}
-                max={10000}
-                step={100}
-                value={priceRange}
-                onChange={setLocalPriceRange}
-                trackStyle={[{ backgroundColor: "#84cc16" }]}
-                handleStyle={[
-                  { borderColor: "#84cc16", backgroundColor: "#84cc16" },
-                  { borderColor: "#84cc16", backgroundColor: "#84cc16" },
-                ]}
-                railStyle={{ backgroundColor: "#d1d5db" }}
-              />
-            </div>
-
-            {/* Condition Selector */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                {t("navbar.condition")} {/* Translated label */}
-              </label>
-              <select
-                value={condition}
-                onChange={(e) => setLocalCondition(e.target.value)}
-                className="w-full border rounded px-2 py-1 cursor-pointer"
-              >
-                <option value="">{t("navbar.select")}</option> {/* Translated option */}
-                <option value="new">{t("navbar.conditionNew")}</option>
-                <option value="like-new">{t("navbar.conditionLikeNew")}</option>
-                <option value="used">{t("navbar.conditionUsed")}</option>
-                <option value="defective">{t("navbar.conditionDefective")}</option>
-              </select>
-            </div>
-
-            {/* Radius Slider */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                {t("navbar.radius")}: {radius} km {/* Translated label */}
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="400"
-                step="10"
-                value={radius}
-                onChange={(e) => setLocalRadius(e.target.value)}
-                className="w-full accent-lime-500 cursor-pointer"
-              />
-            </div>
-
-            {/* City Selector */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">{t("navbar.city")}</label> {/* Translated label */}
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full border rounded px-2 py-1 cursor-pointer"
-              >
-                <option value="">{t("navbar.selectCity")}</option> {/* Translated option */}
-                <option value="baku">{t("navbar.cityBaku")}</option>
-                <option value="ganja">{t("navbar.cityGanja")}</option>
-                <option value="sumqayit">{t("navbar.citySumqayit")}</option>
-                <option value="mingachevir">{t("navbar.cityMingachevir")}</option>
-                <option value="shaki">{t("navbar.cityShaki")}</option>
-                {/* Add all cities as needed */}
-              </select>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowFilter(false)}
-                className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors"
-              >
-                {t("navbar.cancel")} {/* Translated button */}
-              </button>
-              <button
-                onClick={() => {
-                  dispatch(setPriceRange(priceRange));
-                  dispatch(setCondition(condition));
-                  dispatch(setRadius(Number(radius)));
-                  dispatch(setCity(selectedCity));
-                  setShowFilter(false);
-                }}
-                className="px-4 py-2 text-sm bg-lime-500 text-white rounded hover:bg-lime-600 transition-colors"
-              >
-                {t("navbar.applyFilters")} {/* Translated button */}
-              </button>
-              <button
-                className="bg-lime-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-lime-700 transition-colors"
-                onClick={handleNearbyClick}
-              >
-                {t("navbar.nearbyProducts")} {/* Translated button */}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProductFilters 
+        isOpen={showFilter}
+        onClose={() => setShowFilter(false)}
+        onApply={() => {
+          setShowFilter(false);
+          navigate("/");
+        }}
+      />
     </>
   );
 };

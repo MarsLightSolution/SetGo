@@ -60,8 +60,19 @@ const ProductDetail = () => {
   const dispatch = useDispatch();
   const { wishlist } = useSelector((state) => state.wishlist);
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  const nextImage = () => {
+  if (!product?.pictures) return;
+  setCurrentImageIndex((prevIndex) => (prevIndex + 1) % product.pictures.length);
+  };
 
+  const prevImage = () => {
+  if (!product?.pictures) return;
+  setCurrentImageIndex((prevIndex) =>
+    (prevIndex - 1 + product.pictures.length) % product.pictures.length
+  );
+  };
   const handleAddToWatchlist = (e) => {
     e.stopPropagation();
 
@@ -296,18 +307,54 @@ const ProductDetail = () => {
                 <div className="md:col-span-2 space-y-6">
                   {/* IMAGE CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4">
-                    <div className="w-full h-[300px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
-                      <img
-                        src={`http://localhost:8080/${
-                          product.pictures?.[0]?.replace(/\\/g, "/") ||
-                          "uploads/placeholder.jpg"
-                        }`}
-                        alt={getLocalizedText(product.title)}
-                        className="max-h-full object-contain"
-                      />
-                    </div>
-                  </div>
+                  <div className="relative w-full h-[300px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
+  {product?.pictures?.length > 0 ? (
+    <>
+      <img
+        src={`http://localhost:8080/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
+        alt={`Product image ${currentImageIndex + 1}`}
+        className="max-h-full max-w-full object-contain"
+      />
 
+      {/* Left Arrow */}
+      {product.pictures.length > 1 && (
+        <button
+          onClick={prevImage}
+          className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
+          aria-label="Previous Image"
+        >
+          &#10094;
+        </button>
+      )}
+
+      {/* Right Arrow */}
+      {product.pictures.length > 1 && (
+        <button
+          onClick={nextImage}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
+          aria-label="Next Image"
+        >
+          &#10095;
+        </button>
+      )}
+    </>
+  ) : (
+    <img
+      src="http://localhost:8080/uploads/placeholder.jpg"
+      alt="Placeholder"
+      className="max-h-full object-contain"
+    />
+  )}
+</div>
+
+{/* Optional Image Counter */}
+{product.pictures?.length > 1 && (
+  <div className="text-center text-sm text-gray-500 mt-2">
+    {currentImageIndex + 1} / {product.pictures.length}
+  </div>
+)}
+
+                  </div>
                   {/* DETAILS CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4">
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">
