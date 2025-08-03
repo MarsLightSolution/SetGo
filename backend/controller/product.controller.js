@@ -524,55 +524,77 @@ const updateProduct = asyncHandler(async (req, res) => {
 
 const getNearbyProducts = asyncHandler(async (req, res) => {
   const {
-    latitude,
-    longitude,
-    radiusInKm = 10,
     page = 1,
     limit = 10,
+    minPrice,
+    maxPrice,
+    condition,
+    city,
+    search,
+    category,
+    latitude,
+    longitude,
+    radiusInKm,
   } = req.query;
 
-  if (!latitude || !longitude) {
-    throw new ApiError(400, "Latitude and Longitude are required.");
-  }
+  const pipeline = [];
 
-  const radiusInMeters = radiusInKm * 1000;
 
-  const aggregate = Product.aggregate([
-    {
+  if (latitude && longitude) {
+    const radiusInMeters = (radiusInKm || 10) * 1000; // Default 10km
+
+    pipeline.push({
       $geoNear: {
         near: {
           type: "Point",
           coordinates: [parseFloat(longitude), parseFloat(latitude)],
         },
-        distanceField: "distance",
-        spherical: true,
+        distanceField: "distance", // Adds a 'distance' field to each doc
         maxDistance: radiusInMeters,
-        distanceMultiplier: 0.001, // Convert distance from meters to km
+        spherical: true,
+        distanceMultiplier: 0.001, // Optional: convert distance to km
       },
-    },
-    { $sort: { distance: 1 } },
-  ]);
+    });
+  }
 
-  const options = {
-    page: Number(page),
-    limit: Number(limit),
-    customLabels: {
-      docs: "products",
-      totalDocs: "totalProducts",
-      page: "currentPage",
-      totalPages: "totalPages",
-      hasNextPage: "hasNextPage",
-      hasPrevPage: "hasPrevPage",
-      nextPage: "nextPage",
-      prevPage: "prevPage",
-    },
-  };
+  // 2. Build the $match stage for all other filters
+  const matchStage = {};
 
+  if (minPrice && maxPrice) {
+    matchStage.price = { $gte: Number(minPrice), $lte: Number(maxPrice) };
+  }
+  if (condition) {
+    matchStage.condition = condition;
+  }
+  if (city) {
+    matchStage.city = city; // Note: if using geo-search, city might be redundant
+  }
+  if (category) {
+    matchStage["category.en"] = category; // Assuming you filter by English category name
+  }
+  if (search) {
+    // Add your text search logic here, e.g., using a $text index
+    matchStage.$text = { $search: search }; 
+  }
+
+  // 3. Add the $match stage to the pipeline if it has any filters
+  if (Object.keys(matchStage).length > 0) {
+    pipeline.push({ $match: matchStage });
+  }
+
+  // 4. Add a sort stage (e.g., sort by distance if location is used, otherwise by date)
+  const sortStage = latitude && longitude ? { distance: 1 } : { createdAt: -1 };
+  pipeline.push({ $sort: sortStage });
+
+
+  // 5. Execute aggregation with pagination
+  const aggregate = Product.aggregate(pipeline);
+  const options = { /* ... your pagination options ... */ };
   const result = await Product.aggregatePaginate(aggregate, options);
 
   res
     .status(200)
-    .json(new ApiResponse(200, result, "Nearby products fetched successfully."));
+    .json(new ApiResponse(200, result, "Products fetched successfully."));
 });
 
 // module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getNearbyProducts };
