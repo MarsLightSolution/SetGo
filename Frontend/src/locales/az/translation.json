@@ -33,6 +33,7 @@
       "searchRequest": "Axtarış Sorğusu"
     },
     "filterListings": "Siyahıları Filtirlə",
+    "search": "Nə axtarırsınız?",
     "priceRange": "Qiymət Aralığı",
     "condition": "Vəziyyət",
     "select": "Seçin",
@@ -50,6 +51,8 @@
     "cityShaki": "Şəki",
     "cancel": "Ləğv et",
     "applyFilters": "Filtirləri Tətbiq et",
+    "clearFilters": "Filtri Təmizlə",
+    "applying": "Tətbiq edilir...",
     "nearbyProducts": "Yaxınlıqdakı Məhsullar"
   },
   "geolocationNotSupported": "Coğrafi yerləşmə brauzeriniz tərəfindən dəstəklənmir.",

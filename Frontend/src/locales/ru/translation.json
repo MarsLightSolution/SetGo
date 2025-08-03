@@ -33,6 +33,7 @@
       "searchRequest": "Запрос на поиск"
     },
     "filterListings": "Фильтровать объявления",
+    "search": "Что вы ищете?",
     "priceRange": "Ценовой диапазон",
     "condition": "Состояние",
     "select": "Выбрать",
@@ -49,6 +50,8 @@
     "cityMingachevir": "Мингечаур",
     "cityShaki": "Шеки",
     "cancel": "Отмена",
+    "clearFilters": "Очистить фильтры",
+    "applying": "Применение...",
     "applyFilters": "Применить фильтры",
     "nearbyProducts": "Товары поблизости"
   },
