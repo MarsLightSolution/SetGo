@@ -3,7 +3,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 
+import { useTranslation } from 'react-i18next';
+
 function SmsVerify({ phoneNumber, email, onClose }) {
+  const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +31,7 @@ function SmsVerify({ phoneNumber, email, onClose }) {
       navigate("/login");
     } catch (err) {
       console.error("OTP verification failed:", err.response?.data || err.message);
-      setError("Verification failed. Please try again.");
+      setError(t("smsVerify.verificationFailed"));
     } finally {
       setLoading(false);
     }
@@ -46,10 +49,10 @@ function SmsVerify({ phoneNumber, email, onClose }) {
       });
 
       console.log("OTP resent:", res.data);
-      setMessage("A new OTP has been sent.");
+      setMessage(t("smsVerify.otpSentMessage"));
     } catch (err) {
       console.error("Resend failed:", err.response?.data || err.message);
-      setError("Failed to resend OTP. Please try again.");
+      setError(t("smsVerify.resendFailed"));
     } finally {
       setResending(false);
     }
@@ -58,7 +61,6 @@ function SmsVerify({ phoneNumber, email, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
       <div className="relative bg-white w-full max-w-md rounded-xl p-5 shadow-lg space-y-5">
-        {/* Close Icon */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
@@ -66,55 +68,52 @@ function SmsVerify({ phoneNumber, email, onClose }) {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Title */}
         <h2 className="text-lg font-semibold text-center text-gray-900">
-          Verify your phone number
+          {t("smsVerify.title")}
         </h2>
 
         <p className="text-sm text-center text-gray-600">
-          A code has been sent to <span className="font-medium text-gray-800">{phoneNumber}</span>
+          {t("smsVerify.codeSentTo")}{" "}
+          <span className="font-medium text-gray-800">{phoneNumber}</span>
         </p>
 
-        {/* OTP Input */}
         <div className="space-y-1">
           <input
             type="text"
-            placeholder="Enter verification code"
+            placeholder={t("smsVerify.inputPlaceholder")}
             value={code}
             onChange={(e) => setCode(e.target.value)}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
           />
-          <p className="text-xs text-gray-600">Enter the 6-digit code you received.</p>
+          <p className="text-xs text-gray-600">{t("smsVerify.codeLengthInfo")}</p>
           {error && <p className="text-xs text-red-500">{error}</p>}
           {message && <p className="text-xs text-green-600">{message}</p>}
         </div>
 
-        {/* Resend */}
         <div className="text-center text-sm text-gray-700">
-          Didn’t receive the code?{" "}
+          {t("smsVerify.didNotReceiveCode")}{" "}
           <button
             onClick={handleResend}
             disabled={resending}
             className="text-green-600 font-medium hover:underline"
           >
-            {resending ? "Resending..." : "Resend"}
+            {resending ? t("smsVerify.resending") : t("smsVerify.resend")}
           </button>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onClose}
             className="px-5 py-2 text-sm font-medium text-green-800 border border-green-800 rounded-full hover:bg-green-800 hover:text-white transition"
           >
-            Cancel
+            {t("smsVerify.cancelButton")}
           </button>
           <button
             onClick={handleVerify}
             disabled={loading || !code}
             className="px-5 py-2 text-sm font-medium text-white bg-lime-500 rounded-full hover:bg-lime-600 transition disabled:opacity-50"
           >
-            {loading ? "Verifying..." : "Verify"}
+            {loading ? t("smsVerify.verifying") : t("smsVerify.verifyButton")}
           </button>
         </div>
       </div>

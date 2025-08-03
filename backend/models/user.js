@@ -172,6 +172,12 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now,
     },
+        wishlist: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product", // Replace with your actual product model name if different
+  }
+],
     chatDisplayName: {
       type: String,
       default: function () {
