@@ -198,6 +198,12 @@ const getProducts = asyncHandler(async (req, res) => {
     minPrice = 0,
     maxPrice = 1000000,
     lang = "en",
+    condition,
+    city,
+    latitude,
+    longitude,
+    radiusInKm,
+    search,
   } = req.query;
 
   const validLangs = ["en", "az", "ru"];
@@ -211,6 +217,12 @@ const getProducts = asyncHandler(async (req, res) => {
     minPrice,
     maxPrice,
     lang: selectedLang,
+    condition,
+    city,
+    latitude,
+    longitude,
+    radiusInKm,
+    search,
   });
 
   const pipeline = [];
@@ -219,12 +231,24 @@ const getProducts = asyncHandler(async (req, res) => {
   if (category?.trim() && category !== "All Products") {
     pipeline.push({
       $match: {
-        category: new RegExp(`^${category.trim()}$`, "i"),
+        [`category.${selectedLang}`]: new RegExp(`^${category.trim()}$`, "i"),
       },
     });
   }
 
-  // Main filter
+  // Text search filter
+  if (search) {
+    pipeline.push({
+      $match: {
+        $or: [
+          { [`title.${selectedLang}`]: { $regex: search, $options: "i" } },
+          { [`description.${selectedLang}`]: { $regex: search, $options: "i" } },
+        ],
+      },
+    });
+  }
+
+  // Main filter stage
   const matchStage = {
     isSell: false,
     price: {
@@ -233,14 +257,37 @@ const getProducts = asyncHandler(async (req, res) => {
     },
   };
 
-  // Exclude current user
+  // Condition filter
+  if (condition) {
+    matchStage.condition = condition;
+  }
+
+  // Exclude current user's products
   if (userId && mongoose.Types.ObjectId.isValid(userId)) {
     matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
   }
 
+  // Location-based filtering
+  if (latitude && longitude && radiusInKm) {
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    const radiusMeters = parseFloat(radiusInKm) * 1000;
+
+    matchStage["location.coordinates"] = {
+      $geoWithin: {
+        $centerSphere: [[lng, lat], radiusMeters / 6378137],
+      },
+    };
+  } else if (city) {
+    matchStage["location.city"] = new RegExp(`^${city.trim()}$`, "i");
+  }
+
   pipeline.push({ $match: matchStage });
+
+  // Sort newest first
   pipeline.push({ $sort: { createdAt: -1 } });
 
+  // Pagination options
   const options = {
     page: Number(page),
     limit: Number(limit),
@@ -256,17 +303,19 @@ const getProducts = asyncHandler(async (req, res) => {
     },
   };
 
+  // Execute aggregation with pagination
   const result = await Product.aggregatePaginate(
     Product.aggregate(pipeline),
     options
   );
 
-  // Language-aware response mapping
+  // Map language-specific fields
   result.products = result.products.map((prod) => ({
     _id: prod._id,
     title: prod.title?.[selectedLang] || prod.title?.en || "",
     category: prod.category?.[selectedLang] || prod.category?.en || "",
     price: prod.price,
+    condition: prod.condition,
     description: prod.description?.[selectedLang] || prod.description?.en || "",
     pictures: prod.pictures,
     location: prod.location,
@@ -287,6 +336,7 @@ const getProducts = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
+
 
 const getProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
