@@ -198,6 +198,12 @@ const getProducts = asyncHandler(async (req, res) => {
     minPrice = 0,
     maxPrice = 1000000,
     lang = "en",
+    condition,
+    city,
+    search,
+    latitude,
+    longitude,
+    radiusInKm,
   } = req.query;
 
   const validLangs = ["en", "az", "ru"];
@@ -210,21 +216,18 @@ const getProducts = asyncHandler(async (req, res) => {
     userId,
     minPrice,
     maxPrice,
+    condition,
+    city,
+    search,
+    latitude,
+    longitude,
+    radiusInKm,
     lang: selectedLang,
   });
 
   const pipeline = [];
 
-  // Category filter
-  if (category?.trim() && category !== "All Products") {
-    pipeline.push({
-      $match: {
-        category: new RegExp(`^${category.trim()}$`, "i"),
-      },
-    });
-  }
-
-  // Main filter
+  // Build match stage with all filters
   const matchStage = {
     isSell: false,
     price: {
@@ -233,12 +236,73 @@ const getProducts = asyncHandler(async (req, res) => {
     },
   };
 
+  // Category filter
+  if (category?.trim() && category !== "All Products") {
+    // Handle both string and object category formats
+    const categoryRegex = new RegExp(`^${category.trim()}$`, "i");
+    matchStage.$or = [
+      { category: categoryRegex },
+      { "category.en": categoryRegex },
+      { "category.az": categoryRegex },
+      { "category.ru": categoryRegex }
+    ];
+  }
+
+  // Condition filter
+  if (condition?.trim()) {
+    matchStage.condition = new RegExp(condition.trim(), "i");
+  }
+
+  // City/Postal code filter
+  if (city?.trim()) {
+    matchStage.$or = matchStage.$or || [];
+    matchStage.$or.push(
+      { postalCode: new RegExp(city.trim(), "i") },
+      { "location.city": new RegExp(city.trim(), "i") }
+    );
+  }
+
+  // Search filter (title, description, category)
+  if (search?.trim()) {
+    const searchRegex = new RegExp(search.trim(), "i");
+    matchStage.$or = matchStage.$or || [];
+    matchStage.$or.push(
+      { "title.en": searchRegex },
+      { "title.az": searchRegex },
+      { "title.ru": searchRegex },
+      { "description.en": searchRegex },
+      { "description.az": searchRegex },
+      { "description.ru": searchRegex },
+      { "category.en": searchRegex },
+      { "category.az": searchRegex },
+      { "category.ru": searchRegex }
+    );
+  }
+
   // Exclude current user
   if (userId && mongoose.Types.ObjectId.isValid(userId)) {
     matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
   }
 
   pipeline.push({ $match: matchStage });
+  
+  // Add geoNear stage if location-based filtering is requested
+  if (latitude && longitude && radiusInKm) {
+    const radiusInMeters = Number(radiusInKm) * 1000;
+    pipeline.unshift({
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        },
+        distanceField: "distance",
+        spherical: true,
+        maxDistance: radiusInMeters,
+        distanceMultiplier: 0.001, // Convert distance from meters to km
+      },
+    });
+  }
+  
   pipeline.push({ $sort: { createdAt: -1 } });
 
   const options = {

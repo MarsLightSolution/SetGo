@@ -12,6 +12,8 @@ import { TextField, MenuItem } from "@mui/material"; // Import TextField and Men
 import {
   setLocationFilter,
   setSearchQuery,
+  setSelectedCategory,
+  setPostalCode,
 } from "../../slices/FilterSlice";
 
 // i18n imports
@@ -212,9 +214,9 @@ const Navbar = () => {
                 className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4"
                 onChange={(e) => {
                   const selectedCategory = e.target.value;
+                  dispatch(setSelectedCategory(selectedCategory));
                   if (selectedCategory !== t("navbar.allProducts")) {
-                    // You can add category filtering logic here
-                    console.log("Selected category:", selectedCategory);
+                    navigate("/");
                   }
                 }}
               >
@@ -235,6 +237,12 @@ const Navbar = () => {
                 <input
                   type="text"
                   placeholder={t("navbar.postalCodePlaceholder")} // Translated placeholder
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      dispatch(setPostalCode(e.target.value));
+                      navigate("/");
+                    }
+                  }}
                   className="outline-none text-sm w-full"
                 />
               </div>

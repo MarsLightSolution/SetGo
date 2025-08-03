@@ -13,6 +13,7 @@ import { useNotifications } from "../Hooks/useNotifications";
 
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n'; // Ensure this import is present if you remove the global selector from Navbar
+import FilterTest from '../components/common/FilterTest';
 
 
 const AdCard = ({ ad, image, price }) => {
@@ -94,6 +95,7 @@ const token=localStorage.getItem("accessToken");
         <p className="text-gray-400 font-normal text-xs mt-1">{displayLocation}</p>
         <p className="text-green-700 font-bold text-sm mt-2">{price}€</p>
       </div>
+      <FilterTest />
     </div>
   );
 };
@@ -164,7 +166,17 @@ const Home = () => {
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
-  const { priceRange, condition, radius, city, latitude, longitude, searchQuery } = useSelector((state) => state.filter);
+  const { 
+    priceRange, 
+    condition, 
+    radius, 
+    city, 
+    postalCode,
+    latitude, 
+    longitude, 
+    searchQuery,
+    selectedCategory 
+  } = useSelector((state) => state.filter);
   const dispatch = useDispatch();
 
   // Check if any filters are active
@@ -175,7 +187,9 @@ const Home = () => {
       condition ||
       (radius && radius > 0) ||
       city ||
+      postalCode ||
       searchQuery ||
+      selectedCategory ||
       (latitude && longitude)
     );
   };
@@ -226,8 +240,16 @@ const Home = () => {
         params.append("city", city);
       }
 
+      if (postalCode) {
+        params.append("city", postalCode); // Use city parameter for postal code too
+      }
+
       if (searchQuery) {
         params.append("search", searchQuery);
+      }
+
+      if (selectedCategory && selectedCategory !== t("home.allProducts")) {
+        params.append("category", getCategoryValue(selectedCategory));
       }
 
       // Handle location-based filtering
@@ -242,9 +264,10 @@ const Home = () => {
         params.append("radiusInKm", radius);
       }
 
-      // Handle category filtering
-      if (type === "category" && activeCategory !== t("home.allProducts")) {
-        params.append("category", getCategoryValue(activeCategory));
+      // Handle category filtering (use selectedCategory from Redux if available, otherwise use activeCategory)
+      const categoryToUse = selectedCategory || activeCategory;
+      if (type === "category" && categoryToUse !== t("home.allProducts")) {
+        params.append("category", getCategoryValue(categoryToUse));
       }
 
       let endpoint = "http://localhost:8080/api/products/getProducts";
@@ -254,6 +277,17 @@ const Home = () => {
       }
 
       console.log("Fetching products with params:", params.toString());
+      console.log("Current filters:", {
+        priceRange,
+        condition,
+        city,
+        postalCode,
+        searchQuery,
+        selectedCategory,
+        radius,
+        latitude,
+        longitude
+      });
 
       const res = await fetch(`${endpoint}?${params.toString()}`, {
         method: "GET",
@@ -261,11 +295,15 @@ const Home = () => {
       });
 
       if (!res.ok) {
-        console.error(t("home.fetchProductsError"));
+        console.error("API Error:", res.status, res.statusText);
+        const errorText = await res.text();
+        console.error("Error response:", errorText);
         return;
       }
 
       const json = await res.json();
+      console.log("API Response:", json);
+      
       const { products = [], ...pagination } = json.data ?? {};
 
       if (type === "category") {
@@ -276,7 +314,7 @@ const Home = () => {
         setRecommendedPagination(pagination);
       }
     } catch (err) {
-      console.error(t("home.fetchFailed"), err);
+      console.error("Fetch error:", err);
     }
   };
 
@@ -293,10 +331,12 @@ const Home = () => {
     fetchProducts("category", latestPagination.currentPage);
   }, [
     activeCategory, 
+    selectedCategory,
     latestPagination.currentPage, 
     priceRange, 
     condition, 
     city, 
+    postalCode,
     searchQuery,
     radius, 
     latitude, 
@@ -313,7 +353,9 @@ const Home = () => {
     priceRange, 
     condition, 
     city, 
+    postalCode,
     searchQuery,
+    selectedCategory,
     radius, 
     latitude, 
     longitude, 
@@ -457,9 +499,19 @@ const Home = () => {
                           City: {city}
                         </span>
                       )}
+                      {postalCode && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Postal Code: {postalCode}
+                        </span>
+                      )}
                       {radius > 0 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
                           Radius: {radius}km
+                        </span>
+                      )}
+                      {selectedCategory && selectedCategory !== t("home.allProducts") && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Category: {selectedCategory}
                         </span>
                       )}
                       {latitude && longitude && (
@@ -666,6 +718,7 @@ const Home = () => {
       </div>
       
       <Footer />
+      <FilterTest />
     </div>
   );
 };

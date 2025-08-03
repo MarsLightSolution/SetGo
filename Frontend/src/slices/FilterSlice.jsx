@@ -6,8 +6,10 @@ initialState: {
   priceRange: [0, 10000],
   condition: "",
   radius: 0, // radius in km
-  city: "", // optional - manual input by user
+  city: "", // city name
+  postalCode: "", // postal code
   searchQuery: "", // search query
+  selectedCategory: "", // selected category
   location: {
     latitude: null,
     longitude: null,
@@ -37,12 +39,20 @@ initialState: {
   setSearchQuery: (state, action) => {
     state.searchQuery = action.payload;
   },
+  setPostalCode: (state, action) => {
+    state.postalCode = action.payload;
+  },
+  setSelectedCategory: (state, action) => {
+    state.selectedCategory = action.payload;
+  },
   resetFilters: (state) => {
     state.priceRange = [0, 10000];
     state.condition = "";
     state.radius = 0;
     state.city = "";
+    state.postalCode = "";
     state.searchQuery = "";
+    state.selectedCategory = "";
     state.location = { latitude: null, longitude: null };
   },
   },
@@ -56,6 +66,8 @@ export const {
   setLocation,
   setLocationFilter,
   setSearchQuery,
+  setPostalCode,
+  setSelectedCategory,
   resetFilters
 } = filterSlice.actions;
 

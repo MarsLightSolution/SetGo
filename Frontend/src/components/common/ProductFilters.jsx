@@ -7,7 +7,9 @@ import {
   setCondition,
   setRadius,
   setCity,
+  setPostalCode,
   setSearchQuery,
+  setSelectedCategory,
   resetFilters
 } from '../../slices/FilterSlice';
 import "rc-slider/assets/index.css";
@@ -17,14 +19,16 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
   const dispatch = useDispatch();
   
   // Get current filter state
-  const { priceRange, condition, radius, city, searchQuery } = useSelector((state) => state.filter);
+  const { priceRange, condition, radius, city, postalCode, searchQuery, selectedCategory } = useSelector((state) => state.filter);
   
   // Local state for filter form
   const [localPriceRange, setLocalPriceRange] = useState(priceRange);
   const [localCondition, setLocalCondition] = useState(condition);
   const [localRadius, setLocalRadius] = useState(radius);
   const [localCity, setLocalCity] = useState(city);
+  const [localPostalCode, setLocalPostalCode] = useState(postalCode);
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [localSelectedCategory, setLocalSelectedCategory] = useState(selectedCategory);
 
   // Update local state when Redux state changes
   useEffect(() => {
@@ -32,15 +36,19 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
     setLocalCondition(condition);
     setLocalRadius(radius);
     setLocalCity(city);
+    setLocalPostalCode(postalCode);
     setLocalSearchQuery(searchQuery);
-  }, [priceRange, condition, radius, city, searchQuery]);
+    setLocalSelectedCategory(selectedCategory);
+  }, [priceRange, condition, radius, city, postalCode, searchQuery, selectedCategory]);
 
   const handleApplyFilters = () => {
     dispatch(setPriceRange(localPriceRange));
     dispatch(setCondition(localCondition));
     dispatch(setRadius(localRadius));
     dispatch(setCity(localCity));
+    dispatch(setPostalCode(localPostalCode));
     dispatch(setSearchQuery(localSearchQuery));
+    dispatch(setSelectedCategory(localSelectedCategory));
     
     if (onApply) {
       onApply();
@@ -57,7 +65,9 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
     setLocalCondition("");
     setLocalRadius(0);
     setLocalCity("");
+    setLocalPostalCode("");
     setLocalSearchQuery("");
+    setLocalSelectedCategory("");
   };
 
   const handleNearbyClick = () => {
@@ -111,6 +121,28 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
             placeholder={t("navbar.searchPlaceholder")}
             className="w-full border rounded px-3 py-2 text-sm"
           />
+        </div>
+
+        {/* Category Selection */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">
+            {t("navbar.category")}
+          </label>
+          <select
+            value={localSelectedCategory}
+            onChange={(e) => setLocalSelectedCategory(e.target.value)}
+            className="w-full border rounded px-3 py-2 text-sm cursor-pointer"
+          >
+            <option value="">{t("navbar.allProducts")}</option>
+            <option value={t("navbar.category.carsMotorcycles")}>{t("navbar.category.carsMotorcycles")}</option>
+            <option value={t("navbar.category.realEstate")}>{t("navbar.category.realEstate")}</option>
+            <option value={t("navbar.category.jobs")}>{t("navbar.category.jobs")}</option>
+            <option value={t("navbar.category.householdFurniture")}>{t("navbar.category.householdFurniture")}</option>
+            <option value={t("navbar.category.electronics")}>{t("navbar.category.electronics")}</option>
+            <option value={t("navbar.category.leisureHobbyNeighborhood")}>{t("navbar.category.leisureHobbyNeighborhood")}</option>
+            <option value={t("navbar.category.service")}>{t("navbar.category.service")}</option>
+            <option value={t("navbar.category.other")}>{t("navbar.category.other")}</option>
+          </select>
         </div>
 
         {/* Price Range Slider */}
@@ -183,6 +215,18 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
             <option value="mingachevir">{t("navbar.cityMingachevir")}</option>
             <option value="shaki">{t("navbar.cityShaki")}</option>
           </select>
+        </div>
+
+        {/* Postal Code Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">{t("navbar.postalCode")}</label>
+          <input
+            type="text"
+            value={localPostalCode}
+            onChange={(e) => setLocalPostalCode(e.target.value)}
+            placeholder={t("navbar.postalCodePlaceholder")}
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
         </div>
 
         {/* Action Buttons */}
