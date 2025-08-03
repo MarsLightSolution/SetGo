@@ -22,7 +22,6 @@ const EditForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const maxDescriptionLength = 1000;
-  const token = localStorage.getItem("accessToken");
   const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     offerType: "offer",
@@ -255,13 +254,12 @@ const EditForm = () => {
     updatedData.append("inputLanguage", i18n.language); // Send current display language as input language
 
     try {
-      const res = await fetch(`http://localhost:8080/api/products/product/${id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `${token}`,
-        },
-        body: updatedData,
-      });
+     const res = await fetch(`http://localhost:8080/api/products/product/${id}`, {
+  method: "PUT",
+  credentials: "include", // this sends cookies along with the request
+  body: updatedData,
+});
+
 
       const data = await res.json();
       if (res.ok) {

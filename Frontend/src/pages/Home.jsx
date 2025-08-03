@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Favorite, FavoriteBorder } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
+import { resetFilters } from "../slices/FilterSlice";
 import Footer from "../components/common/Footer";
 import { useNavigate } from "react-router-dom";
 import bannerImage from "../assets/images/banner1.png";
@@ -163,7 +164,26 @@ const Home = () => {
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
-  const { priceRange, condition, radius, city, latitude, longitude } = useSelector((state) => state.filter);
+  const { priceRange, condition, radius, city, latitude, longitude, searchQuery } = useSelector((state) => state.filter);
+  const dispatch = useDispatch();
+
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return (
+      (priceRange && priceRange[0] > 0) ||
+      (priceRange && priceRange[1] < 10000) ||
+      condition ||
+      (radius && radius > 0) ||
+      city ||
+      searchQuery ||
+      (latitude && longitude)
+    );
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    dispatch(resetFilters());
+  };
 
   const categoryKeys = [
     "home.allProducts",
@@ -189,30 +209,51 @@ const Home = () => {
     try {
       const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
-      // --- NEW: Add current display language to params ---
+      // Add current display language to params
       params.append("lang", i18n.language);
-      // --- END NEW ---
 
+      // Apply filters from Redux state
+      if (priceRange && priceRange.length === 2) {
+        params.append("minPrice", priceRange[0]);
+        params.append("maxPrice", priceRange[1]);
+      }
+      
+      if (condition) {
+        params.append("condition", condition);
+      }
+      
+      if (city) {
+        params.append("city", city);
+      }
+
+      if (searchQuery) {
+        params.append("search", searchQuery);
+      }
+
+      // Handle location-based filtering
       if (type === "nearby" && latitude && longitude) {
         params.append("latitude", latitude);
         params.append("longitude", longitude);
         params.append("radiusInKm", radius || 10);
+      } else if (latitude && longitude && radius > 0) {
+        // Apply radius filter even for regular products if location is set
+        params.append("latitude", latitude);
+        params.append("longitude", longitude);
+        params.append("radiusInKm", radius);
       }
+
+      // Handle category filtering
       if (type === "category" && activeCategory !== t("home.allProducts")) {
         params.append("category", getCategoryValue(activeCategory));
       }
-
-      if (filter.minPrice) params.append("minPrice", filter.minPrice);
-      if (filter.maxPrice) params.append("maxPrice", filter.maxPrice);
-      if (filter.condition) params.append("condition", filter.condition);
-      if (filter.radius) params.append("radius", filter.radius);
-      if (filter.city) params.append("city", filter.city);
 
       let endpoint = "http://localhost:8080/api/products/getProducts";
 
       if (type === "recommended" && latitude && longitude) {
         endpoint = "http://localhost:8080/api/products/nearby";
       }
+
+      console.log("Fetching products with params:", params.toString());
 
       const res = await fetch(`${endpoint}?${params.toString()}`, {
         method: "GET",
@@ -239,20 +280,46 @@ const Home = () => {
     }
   };
 
+  // Effect for location-based filtering
   useEffect(() => {
     setActiveCategory(t("home.allProducts"));
     if (latitude && longitude) {
       fetchProducts("nearby", 1);
     }
-  }, [latitude, longitude, radius, t, i18n.language]); // --- NEW: Add i18n.language to dependencies ---
+  }, [latitude, longitude, radius, t, i18n.language]);
 
+  // Effect for category and filter changes
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
-  }, [activeCategory, latestPagination.currentPage, filter, t, i18n.language]); // --- NEW: Add i18n.language to dependencies ---
+  }, [
+    activeCategory, 
+    latestPagination.currentPage, 
+    priceRange, 
+    condition, 
+    city, 
+    searchQuery,
+    radius, 
+    latitude, 
+    longitude, 
+    t, 
+    i18n.language
+  ]);
 
+  // Effect for recommended products
   useEffect(() => {
     fetchProducts("recommended", recommendedPagination.currentPage);
-  }, [recommendedPagination.currentPage, filter, t, i18n.language]); // --- NEW: Add i18n.language to dependencies ---
+  }, [
+    recommendedPagination.currentPage, 
+    priceRange, 
+    condition, 
+    city, 
+    searchQuery,
+    radius, 
+    latitude, 
+    longitude, 
+    t, 
+    i18n.language
+  ]);
 
   const galleryData = [
     {
@@ -362,6 +429,60 @@ const Home = () => {
                 </button>
               </div>
             </div>
+
+            {/* Filter Status */}
+            {hasActiveFilters() && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-800 font-medium">Active Filters:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {priceRange && priceRange[0] > 0 && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Min Price: €{priceRange[0]}
+                        </span>
+                      )}
+                      {priceRange && priceRange[1] < 10000 && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Max Price: €{priceRange[1]}
+                        </span>
+                      )}
+                      {condition && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Condition: {condition}
+                        </span>
+                      )}
+                      {city && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          City: {city}
+                        </span>
+                      )}
+                      {radius > 0 && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Radius: {radius}km
+                        </span>
+                      )}
+                      {latitude && longitude && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Location-based
+                        </span>
+                      )}
+                      {searchQuery && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Search: "{searchQuery}"
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={clearFilters}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Category + Gallery Section */}
             <div className="flex flex-wrap gap-4">
