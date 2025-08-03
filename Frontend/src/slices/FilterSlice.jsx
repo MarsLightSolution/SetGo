@@ -33,8 +33,8 @@ initialState: {
     state.location = action.payload; // { latitude, longitude }
   },
   setLocationFilter: (state, action) => {
-  state.latitude = action.payload.latitude;
-  state.longitude = action.payload.longitude;
+  state.location.latitude = action.payload.latitude;
+  state.location.longitude = action.payload.longitude;
 },
   setSearchQuery: (state, action) => {
     state.searchQuery = action.payload;

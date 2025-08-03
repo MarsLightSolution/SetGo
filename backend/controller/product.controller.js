@@ -227,6 +227,23 @@ const getProducts = asyncHandler(async (req, res) => {
 
   const pipeline = [];
 
+  // Add geoNear stage FIRST if location-based filtering is requested
+  if (latitude && longitude && radiusInKm) {
+    const radiusInMeters = Number(radiusInKm) * 1000;
+    pipeline.push({
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        },
+        distanceField: "distance",
+        spherical: true,
+        maxDistance: radiusInMeters,
+        distanceMultiplier: 0.001, // Convert distance from meters to km
+      },
+    });
+  }
+
   // Build match stage with all filters
   const matchStage = {
     isSell: false,
@@ -255,7 +272,7 @@ const getProducts = asyncHandler(async (req, res) => {
 
   // City/Postal code filter
   if (city?.trim()) {
-    matchStage.$or = matchStage.$or || [];
+    if (!matchStage.$or) matchStage.$or = [];
     matchStage.$or.push(
       { postalCode: new RegExp(city.trim(), "i") },
       { "location.city": new RegExp(city.trim(), "i") }
@@ -265,7 +282,7 @@ const getProducts = asyncHandler(async (req, res) => {
   // Search filter (title, description, category)
   if (search?.trim()) {
     const searchRegex = new RegExp(search.trim(), "i");
-    matchStage.$or = matchStage.$or || [];
+    if (!matchStage.$or) matchStage.$or = [];
     matchStage.$or.push(
       { "title.en": searchRegex },
       { "title.az": searchRegex },
@@ -285,24 +302,6 @@ const getProducts = asyncHandler(async (req, res) => {
   }
 
   pipeline.push({ $match: matchStage });
-  
-  // Add geoNear stage if location-based filtering is requested
-  if (latitude && longitude && radiusInKm) {
-    const radiusInMeters = Number(radiusInKm) * 1000;
-    pipeline.unshift({
-      $geoNear: {
-        near: {
-          type: "Point",
-          coordinates: [parseFloat(longitude), parseFloat(latitude)],
-        },
-        distanceField: "distance",
-        spherical: true,
-        maxDistance: radiusInMeters,
-        distanceMultiplier: 0.001, // Convert distance from meters to km
-      },
-    });
-  }
-  
   pipeline.push({ $sort: { createdAt: -1 } });
 
   const options = {

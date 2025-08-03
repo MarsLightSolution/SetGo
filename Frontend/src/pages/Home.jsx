@@ -172,11 +172,12 @@ const Home = () => {
     radius, 
     city, 
     postalCode,
-    latitude, 
-    longitude, 
+    location,
     searchQuery,
     selectedCategory 
   } = useSelector((state) => state.filter);
+
+  const { latitude, longitude } = location || {};
   const dispatch = useDispatch();
 
   // Check if any filters are active
@@ -253,15 +254,11 @@ const Home = () => {
       }
 
       // Handle location-based filtering
-      if (type === "nearby" && latitude && longitude) {
+      if (latitude && longitude) {
         params.append("latitude", latitude);
         params.append("longitude", longitude);
-        params.append("radiusInKm", radius || 10);
-      } else if (latitude && longitude && radius > 0) {
-        // Apply radius filter even for regular products if location is set
-        params.append("latitude", latitude);
-        params.append("longitude", longitude);
-        params.append("radiusInKm", radius);
+        // Apply radius if specified, otherwise use default 10km
+        params.append("radiusInKm", radius > 0 ? radius : 10);
       }
 
       // Handle category filtering (use selectedCategory from Redux if available, otherwise use activeCategory)
@@ -288,6 +285,7 @@ const Home = () => {
         latitude,
         longitude
       });
+      console.log("Location data:", location);
 
       const res = await fetch(`${endpoint}?${params.toString()}`, {
         method: "GET",
@@ -507,6 +505,11 @@ const Home = () => {
                       {radius > 0 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
                           Radius: {radius}km
+                        </span>
+                      )}
+                      {latitude && longitude && radius === 0 && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          Location-based (10km default)
                         </span>
                       )}
                       {selectedCategory && selectedCategory !== t("home.allProducts") && (

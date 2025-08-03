@@ -14,6 +14,7 @@ import {
   setSearchQuery,
   setSelectedCategory,
   setPostalCode,
+  setRadius,
 } from "../../slices/FilterSlice";
 
 // i18n imports
@@ -84,6 +85,8 @@ const Navbar = () => {
         const longitude = position.coords.longitude;
 
         dispatch(setLocationFilter({ latitude, longitude }));
+        // Set a default radius of 10km for nearby search
+        dispatch(setRadius(10));
         navigate("/");
         console.log("Location set:", latitude, longitude); // Keep for debugging if needed
       },

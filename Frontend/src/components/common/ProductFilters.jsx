@@ -10,6 +10,7 @@ import {
   setPostalCode,
   setSearchQuery,
   setSelectedCategory,
+  setLocationFilter,
   resetFilters
 } from '../../slices/FilterSlice';
 import "rc-slider/assets/index.css";
@@ -19,7 +20,7 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
   const dispatch = useDispatch();
   
   // Get current filter state
-  const { priceRange, condition, radius, city, postalCode, searchQuery, selectedCategory } = useSelector((state) => state.filter);
+  const { priceRange, condition, radius, city, postalCode, searchQuery, selectedCategory, location } = useSelector((state) => state.filter);
   
   // Local state for filter form
   const [localPriceRange, setLocalPriceRange] = useState(priceRange);
@@ -80,8 +81,18 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
       (position) => {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-        // This will be handled by the existing location filter logic
-        console.log("Location set:", latitude, longitude);
+        
+        // Dispatch location filter action
+        dispatch(setLocationFilter({ latitude, longitude }));
+        
+        // Apply filters and close modal
+        if (onApply) {
+          onApply();
+        }
+        
+        if (onClose) {
+          onClose();
+        }
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
