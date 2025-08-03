@@ -279,7 +279,6 @@ const Home = () => {
 
       const json = await res.json();
       const { products = [], ...pagination } = json.data ?? {};
-
       const currentUserId = localStorage.getItem("userId");
 
       // Filter the products array, using the correct 'owner' field
