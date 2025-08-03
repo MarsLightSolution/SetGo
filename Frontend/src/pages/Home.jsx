@@ -164,7 +164,7 @@ const Home = () => {
   const [recommendedPagination, setRecommendedPagination] = useState({
     currentPage: 1,
   });
-  const { priceRange, condition, radius, city, latitude, longitude, searchQuery } = useSelector((state) => state.filter);
+  const { priceRange, condition, radius, city, latitude, longitude, searchQuery, location  } = useSelector((state) => state.filter);
   const dispatch = useDispatch();
 
   // Check if any filters are active
@@ -217,6 +217,18 @@ const Home = () => {
         params.append("minPrice", priceRange[0]);
         params.append("maxPrice", priceRange[1]);
       }
+
+      if (location && location.latitude && location.longitude) {
+      params.append("latitude", location.latitude);
+      params.append("longitude", location.longitude);
+      
+      // Also add radius if location is present
+      if (radius > 0) {
+        params.append("radiusInKm", radius);
+      }
+    } else if (city) {
+      params.append("city", city);
+    }
       
       if (condition) {
         params.append("condition", condition);
@@ -268,11 +280,18 @@ const Home = () => {
       const json = await res.json();
       const { products = [], ...pagination } = json.data ?? {};
 
+      const currentUserId = localStorage.getItem("userId");
+
+      // Filter the products array, using the correct 'owner' field
+      const filteredProducts = currentUserId
+      ? products.filter(ad => ad.owner !== currentUserId)
+      : products;
+
       if (type === "category") {
-        setLatestAds(products);
+        setLatestAds(filteredProducts);
         setLatestPagination(pagination);
       } else {
-        setRecommendedAds(products);
+        setRecommendedAds(filteredProducts);
         setRecommendedPagination(pagination);
       }
     } catch (err) {

@@ -33,6 +33,7 @@
       "searchRequest": "Search Request"
     },
     "filterListings": "Filter Listings",
+    "search": "What are you looking for?",
     "priceRange": "Price Range",
     "condition": "Condition",
     "select": "Select",
@@ -50,6 +51,8 @@
     "cityShaki": "Shaki",
     "cancel": "Cancel",
     "applyFilters": "Apply Filters",
+    "clearFilters": "Clear Filters",
+    "applying": "Applying...",
     "nearbyProducts": "Nearby Products"
   },
   "geolocationNotSupported": "Geolocation is not supported by your browser.",

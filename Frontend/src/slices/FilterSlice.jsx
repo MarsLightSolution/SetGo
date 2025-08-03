@@ -1,50 +1,43 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const filterSlice = createSlice({
-  name: "filters",
-initialState: {
+const initialState = {
   priceRange: [0, 10000],
   condition: "",
-  radius: 0, // radius in km
-  city: "", // optional - manual input by user
-  searchQuery: "", // search query
+  radius: 0,
+  city: "",
+  searchQuery: "",
   location: {
     latitude: null,
     longitude: null,
   },
-},
+};
 
+const filterSlice = createSlice({
+  name: "filters",
+  initialState,
   reducers: {
-   setPriceRange: (state, action) => {
-    state.priceRange = action.payload;
-  },
-  setCondition: (state, action) => {
-    state.condition = action.payload;
-  },
-  setRadius: (state, action) => {
-    state.radius = action.payload;
-  },
-  setCity: (state, action) => {
-    state.city = action.payload;
-  },
-  setLocation: (state, action) => {
-    state.location = action.payload; // { latitude, longitude }
-  },
-  setLocationFilter: (state, action) => {
-  state.latitude = action.payload.latitude;
-  state.longitude = action.payload.longitude;
-},
-  setSearchQuery: (state, action) => {
-    state.searchQuery = action.payload;
-  },
-  resetFilters: (state) => {
-    state.priceRange = [0, 10000];
-    state.condition = "";
-    state.radius = 0;
-    state.city = "";
-    state.searchQuery = "";
-    state.location = { latitude: null, longitude: null };
-  },
+    setPriceRange: (state, action) => {
+      state.priceRange = action.payload;
+    },
+    setCondition: (state, action) => {
+      state.condition = action.payload;
+    },
+    setRadius: (state, action) => {
+      state.radius = action.payload;
+    },
+    setCity: (state, action) => {
+      state.city = action.payload;
+    },
+    setLocation: (state, action) => {
+      state.location = action.payload; // Expects { latitude, longitude }
+    },
+    setSearchQuery: (state, action) => {
+      state.searchQuery = action.payload;
+    },
+    resetFilters: (state) => {
+      // This uses Object.assign to reset to the initial state cleanly
+      Object.assign(state, initialState);
+    },
   },
 });
 
@@ -54,9 +47,8 @@ export const {
   setRadius,
   setCity,
   setLocation,
-  setLocationFilter,
   setSearchQuery,
-  resetFilters
+  resetFilters,
 } = filterSlice.actions;
 
 export default filterSlice.reducer;

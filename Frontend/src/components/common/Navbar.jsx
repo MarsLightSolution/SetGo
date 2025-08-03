@@ -10,7 +10,6 @@ import NotificationBell from './NotificationBell'
 import ProductFilters from './ProductFilters'
 import { TextField, MenuItem } from "@mui/material"; // Import TextField and MenuItem for language selector
 import {
-  setLocationFilter,
   setSearchQuery,
 } from "../../slices/FilterSlice";
 
