@@ -82,7 +82,7 @@ const addProduct = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid or unknown postal code.");
   }
 
-  let pictures = [];
+  const pictures = picturesRaw.map(f => f.path.replace(/\\/g, "/"));
   logger.info(`[AddProduct] Pictures processed`, { count: pictures.length });
 
   const targetLanguages = ["en", "az", "ru"];
