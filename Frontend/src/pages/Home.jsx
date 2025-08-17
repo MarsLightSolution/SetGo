@@ -33,10 +33,6 @@ const AdCard = ({ ad, image, price }) => {
 
 const token=localStorage.getItem("accessToken");
   const handleLikeToggle = () => {
-    if (!hasAccessTokenCookie()) {
-      alert(t("home.loginToLike"));
-      return;
-    }
 
     if (!liked) {
       // Add to wishlist

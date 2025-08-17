@@ -28,12 +28,11 @@ const UserPage = () => {
     try {
       const res = await fetch(`http://localhost:8080/${userId}/${type}`); // Assuming this endpoint returns follower/following data
       const data = await res.json();
-
-      if (data.success) { // Assuming success property in response
+      if (res.ok) { // Assuming success property in response
         if (type === "followers") {
-          setFollowers(data.data.followers || []); // Assuming data.data.followers structure
+          setFollowers(data.followers || []); // Assuming data.data.followers structure
         } else {
-          setFollowing(data.data.following || []); // Assuming data.data.following structure
+          setFollowing(data.following || []); // Assuming data.data.following structure
         }
       } else {
         console.error(`Failed to fetch ${type}:`, data.message);
