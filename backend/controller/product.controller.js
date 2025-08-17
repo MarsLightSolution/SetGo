@@ -209,6 +209,9 @@ const getProducts = asyncHandler(async (req, res) => {
   const validLangs = ["en", "az", "ru"];
   const selectedLang = validLangs.includes(lang) ? lang : "en";
 
+  // ✅ Escape regex helper
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   logger.info("[GetProducts] Query Params", {
     category,
     page,
@@ -227,30 +230,32 @@ const getProducts = asyncHandler(async (req, res) => {
 
   const pipeline = [];
 
-  // Category filter
+  // ✅ Category filter
+  // Ensure category is not empty or 'All Products'
   if (category?.trim() && category !== "All Products") {
     pipeline.push({
       $match: {
-        [`category.${selectedLang}`]: new RegExp(`^${category.trim()}$`, "i"),
+        [`category.${selectedLang}`]: new RegExp(`^${escapeRegex(category.trim())}$`, "i"),
       },
     });
   }
 
-  // Search filter on title & description
+  // ✅ Search filter on title & description
   if (search) {
+    const safeSearch = escapeRegex(search);
     pipeline.push({
       $match: {
         $or: [
-          { [`title.${selectedLang}`]: { $regex: search, $options: "i" } },
-          { [`description.${selectedLang}`]: { $regex: search, $options: "i" } },
+          { [`title.${selectedLang}`]: { $regex: safeSearch, $options: "i" } },
+          { [`description.${selectedLang}`]: { $regex: safeSearch, $options: "i" } },
         ],
       },
     });
   }
 
-  // General filter stage
+  // ✅ General filter stage
   const matchStage = {
-    isSell: false,
+    isSell: false, // Make sure 'isSell: false' is the desired default behavior for displayed products
     price: {
       $gte: Number(minPrice),
       $lte: Number(maxPrice),
@@ -259,72 +264,88 @@ const getProducts = asyncHandler(async (req, res) => {
 
   if (condition) matchStage.condition = condition;
 
-  if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-    matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
+  // ✅ Exclude user's own products (works for both ObjectId & string IDs)
+  if (userId) {
+    // Check if userId is a valid MongoDB ObjectId
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
+    } else {
+      // Treat userId as a string if not a valid ObjectId (e.g., for non-MongoDB external user IDs)
+      matchStage.owner = { $ne: userId.toString() };
+    }
   }
 
-  // Geolocation or city filtering
+  // ✅ Geolocation or city filtering
   if (latitude && longitude && radiusInKm) {
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
-    const radiusMeters = parseFloat(radiusInKm) * 1000;
+    const radiusMeters = parseFloat(radiusInKm) * 1000; // Convert km to meters
 
+    // Apply $geoWithin for spherical queries
     matchStage["location.coordinates"] = {
       $geoWithin: {
-        $centerSphere: [[lng, lat], radiusMeters / 6378137],
+        $centerSphere: [[lng, lat], radiusMeters / 6378137], // Earth's radius in meters
       },
     };
   } else if (city) {
-    matchStage["location.city"] = new RegExp(`^${city.trim()}$`, "i");
+    matchStage["location.city"] = new RegExp(`^${escapeRegex(city.trim())}$`, "i");
   }
 
   pipeline.push({ $match: matchStage });
 
+  // ✅ Sort by latest creation date by default
   pipeline.push({ $sort: { createdAt: -1 } });
 
+  // ✅ Projection: select only needed fields and handle multilingual fields
+  pipeline.push({
+    $project: {
+      _id: 1,
+      title: { $ifNull: [`$title.${selectedLang}`, "$title.en"] },
+      category: { $ifNull: [`$category.${selectedLang}`, "$category.en"] },
+      description: { $ifNull: [`$description.${selectedLang}`, "$description.en"] },
+      name: { $ifNull: [`$name.${selectedLang}`, "$name.en"] }, // Assuming 'name' might also be multilingual
+      price: 1,
+      condition: 1,
+      pictures: 1,
+      location: 1,
+      termsAccepted: 1,
+      owner: 1,
+      isBuy: 1,
+      isSell: 1,
+      createdAt: 1,
+      updatedAt: 1,
+    },
+  });
+
+  // Pagination options for aggregatePaginate
   const options = {
-    page: Number(page),
-    limit: Number(limit),
+    page: Number(page) > 0 ? Number(page) : 1, // Ensure page is at least 1
+    limit: Number(limit) > 0 ? Number(limit) : 10, // Ensure limit is at least 10
     customLabels: {
       docs: "products",
       totalDocs: "totalProducts",
       page: "currentPage",
       totalPages: "totalPages",
-      hasNextPage: "hasNextPage",
       hasPrevPage: "hasPrevPage",
-      nextPage: "nextPage",
+      hasNextPage: "hasNextPage",
       prevPage: "prevPage",
+      nextPage: "nextPage",
     },
   };
 
+  // Execute aggregation pipeline with pagination
   const result = await Product.aggregatePaginate(
     Product.aggregate(pipeline),
     options
   );
 
-  // Translate response fields to selected language
-  result.products = result.products.map((prod) => ({
-    _id: prod._id,
-    title: prod.title?.[selectedLang] || prod.title?.en || "",
-    category: prod.category?.[selectedLang] || prod.category?.en || "",
-    price: prod.price,
-    condition: prod.condition,
-    description: prod.description?.[selectedLang] || prod.description?.en || "",
-    pictures: prod.pictures,
-    location: prod.location,
-    name: prod.name?.[selectedLang] || prod.name?.en || "",
-    termsAccepted: prod.termsAccepted,
-    owner: prod.owner,
-    isBuy: prod.isBuy,
-    isSell: prod.isSell,
-    createdAt: prod.createdAt,
-    updatedAt: prod.updatedAt,
-  }));
-
   logger.info("[GetProducts] Products fetched", {
     total: result.totalProducts,
+    currentPage: result.currentPage,
+    totalPages: result.totalPages,
   });
 
+  // Respond with paginated results
   res
     .status(200)
     .json(new ApiResponse(200, result, "Filtered products with pagination."));
