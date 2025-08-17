@@ -243,14 +243,31 @@ exports.uploadFile = async (req, res) => {
                 return res.status(404).json({ success: false, message: "Sender not found" });
             }
 
-            const messageType = file.mimetype.startsWith("image/") ? "image" : "document";
-            const fileUrl = `/uploads/chat/${file.filename}`;
+            // Enhanced file type detection for better UI handling
+            let messageType = "document";
+            let displayText = `📄 ${file.originalname}`;
+            
+            if (file.mimetype.startsWith("image/")) {
+                messageType = "image";
+                displayText = "📷 Image";
+            } else if (file.mimetype === "application/pdf") {
+                displayText = `📄 PDF: ${file.originalname}`;
+            } else if (file.mimetype.includes("word") || file.originalname.toLowerCase().endsWith('.docx')) {
+                displayText = `📝 Document: ${file.originalname}`;
+            } else if (file.mimetype.includes("sheet") || file.originalname.toLowerCase().endsWith('.xlsx')) {
+                displayText = `📊 Spreadsheet: ${file.originalname}`;
+            }
+
+            // Determine file path based on whether it's in images or documents folder
+            const fileUrl = file.path.includes('chat/images') 
+                ? `/uploads/chat/images/${file.filename}`
+                : `/uploads/chat/documents/${file.filename}`;
 
             const message = new Message({
                 conversationId,
                 senderId,
                 senderName: sender.chatDisplayName || sender.profileName || sender.username || sender.email,
-                text: messageType === "image" ? "📷 Image" : `📄 ${file.originalname}`,
+                text: displayText,
                 messageType,
                 fileUrl,
                 fileName: file.originalname,

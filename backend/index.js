@@ -10,7 +10,7 @@ const multer = require("multer");
 
 const mongoose = require("./config/mongoose");
 const logger = require("./utils/logger");
-const initializeSocket = require("./socket");
+const initializeSocket = require("./socket-clean");
 
 // Load environment variables
 dotenv.config();
@@ -78,30 +78,41 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for better support of larger files
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
+      // Images - specifically JPEG and PNG as requested
       "image/jpeg",
-      "image/jpg",
+      "image/jpg", 
       "image/png",
       "image/gif",
       "image/webp",
+      // Documents - specifically PDF and DOCX as requested
       "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword", // .doc
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+      // Additional useful formats
       "text/plain",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel", // .xls
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
     ];
-    allowedTypes.includes(file.mimetype)
-      ? cb(null, true)
-      : cb(new Error("Invalid file type. Only images and documents are allowed."));
+    
+    // Also check file extension as backup
+    const fileExt = file.originalname.toLowerCase();
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx'];
+    const hasValidExtension = allowedExtensions.some(ext => fileExt.endsWith(ext));
+    
+    if (allowedTypes.includes(file.mimetype) || hasValidExtension) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only images (JPEG, PNG) and documents (PDF, DOCX) are allowed."));
+    }
   },
 });
 app.set("upload", upload);
 
-// Routes
-app.use("/api/chat", require("./Routes/chatRoutes"));
+// Routes - Use clean chat implementation
+app.use("/api/chat", require("./Routes/chat-clean"));
 app.use("/api/notifications", require("./Routes/notificationRoutes"));
 app.use("/", require("./Routes")); // All other routes
 

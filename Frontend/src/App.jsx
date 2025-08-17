@@ -5,6 +5,7 @@ import NotificationProvider from './contexts/NotificationContext'
 import Navbar from './components/common/Navbar'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
+import ModernChatApp from './components/Chat/ModernChatApp'
 
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -67,7 +68,7 @@ function App() {
             <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
             <Route path='/product/:id' element={<ProductDetail/>}/>
             <Route path='products/product/:id' element={<ProductDetail/>}/>
-            <Route path="/chat" element={<ChatApp/>}/>
+            <Route path="/chat" element={<ModernChatApp/>}/>
             <Route path='/userinfo' element={<UserInfo/>}/>
             <Route path='/userpage' element={<UserPage/>}/>
             <Route path='/mysearch' element={<MySearch/>}/>

@@ -46,7 +46,7 @@ const ProductDetail = () => {
   const { t } = useTranslation(); // Initialize useTranslation hook
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("accessToken");
+  const token = localStorage.getItem("userId"); // No longer directly using token from localStorage for API auth
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -63,20 +63,23 @@ const ProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const nextImage = () => {
-  if (!product?.pictures) return;
-  setCurrentImageIndex((prevIndex) => (prevIndex + 1) % product.pictures.length);
+    if (!product?.pictures) return;
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % product.pictures.length);
   };
 
   const prevImage = () => {
-  if (!product?.pictures) return;
-  setCurrentImageIndex((prevIndex) =>
-    (prevIndex - 1 + product.pictures.length) % product.pictures.length
-  );
+    if (!product?.pictures) return;
+    setCurrentImageIndex((prevIndex) =>
+      (prevIndex - 1 + product.pictures.length) % product.pictures.length
+    );
   };
   const handleAddToWatchlist = (e) => {
     e.stopPropagation();
 
-    if (!token) {
+    // You might still want to check for a user being logged in,
+    // even if the token isn't explicitly sent as a header.
+    // This assumes your Redux state or another context holds user login status.
+    if (!user) { // Check if user object exists
       alert(t("productDetail.loginToWatchlist")); // Translated
       return;
     }
@@ -105,15 +108,15 @@ const ProductDetail = () => {
   useEffect(() => {
     // Pass i18n.language to fetch products in specific language (for dynamic content)
     fetchProductById();
-  }, [id, token, i18n.language]); // Added i18n.language to dependencies
+  }, [id, i18n.language]); // Removed 'token' from dependencies
 
   const fetchProductById = async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/product/${id}?lang=${i18n.language}`, // Pass language parameter
+        `http://localhost:8080/api/products/product/${id}?lang=${i18n.language}`,
         {
-            credentials: "include",
+            credentials: "include", // This is crucial for sending cookies
         }
       );
 
@@ -140,7 +143,7 @@ const ProductDetail = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}?lang=${i18n.language}` // Pass language parameter for related products
+        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}?lang=${i18n.language}`
       );
       const json = await res.json();
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
@@ -172,7 +175,7 @@ const ProductDetail = () => {
     try {
       const res = await fetch(
         `http://localhost:8080/users/get-users/${userId}`,
-        { credentials: "include", }
+        { credentials: "include", } // Keep credentials for cookie sending
       );
       const json = await res.json();
       if (json?.data) {
@@ -222,13 +225,13 @@ const ProductDetail = () => {
     if (user && ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId, token]);
+  }, [user, ownerId]); // Removed 'token' from dependencies
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
         `http://localhost:8080/check/${followerId}/${followingId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { credentials: "include" } // Ensure credentials are included
       );
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
@@ -253,9 +256,10 @@ const ProductDetail = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          // Removed Authorization header: Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ followerId: user._id }),
+        credentials: "include", // Ensure credentials are included
       });
 
       const result = await res.json();
@@ -308,43 +312,43 @@ const ProductDetail = () => {
                   {/* IMAGE CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4">
                   <div className="relative w-full h-[300px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
-  {product?.pictures?.length > 0 ? (
-    <>
-      <img
-        src={`http://localhost:8080/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
-        alt={`Product image ${currentImageIndex + 1}`}
-        className="max-h-full max-w-full object-contain"
-      />
-
-      {/* Left Arrow */}
-      {product.pictures.length > 1 && (
-        <button
-          onClick={prevImage}
-          className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
-          aria-label="Previous Image"
-        >
-          &#10094;
-        </button>
-      )}
-
-      {/* Right Arrow */}
-      {product.pictures.length > 1 && (
-        <button
-          onClick={nextImage}
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
-          aria-label="Next Image"
-        >
-          &#10095;
-        </button>
-      )}
-    </>
-  ) : (
+{product?.pictures?.length > 0 ? (
+  <>
     <img
-      src="http://localhost:8080/uploads/placeholder.jpg"
-      alt="Placeholder"
-      className="max-h-full object-contain"
+      src={`http://localhost:8080/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
+      alt={`Product image ${currentImageIndex + 1}`}
+      className="max-h-full max-w-full object-contain"
     />
-  )}
+
+    {/* Left Arrow */}
+    {product.pictures.length > 1 && (
+      <button
+        onClick={prevImage}
+        className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
+        aria-label="Previous Image"
+      >
+        &#10094;
+      </button>
+    )}
+
+    {/* Right Arrow */}
+    {product.pictures.length > 1 && (
+      <button
+        onClick={nextImage}
+        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
+        aria-label="Next Image"
+      >
+        &#10095;
+      </button>
+    )}
+  </>
+) : (
+  <img
+    src="http://localhost:8080/uploads/placeholder.jpg"
+    alt="Placeholder"
+    className="max-h-full object-contain"
+  />
+)}
 </div>
 
 {/* Optional Image Counter */}
@@ -397,7 +401,7 @@ const ProductDetail = () => {
                     {product.location?.coordinates && product.location.coordinates.length === 2 && (
                       <div className="bg-white rounded-md shadow p-4 mb-6"> {/* Added mb-6 for spacing */}
                         <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
-                         <div className="w-full overflow-hidden rounded-md" style={{ height: "300px" }}>
+                          <div className="w-full overflow-hidden rounded-md" style={{ height: "300px" }}>
                         <MapContainer
                           center={[
                             product.location.coordinates[1],
