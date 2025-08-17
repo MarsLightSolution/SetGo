@@ -201,98 +201,96 @@ const Home = () => {
     return 'All Products';
   };
 
-  const fetchProducts = async (type, page) => {
-    try {
-      const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+const fetchProducts = async (type, page) => {
+  try {
+    const params = new URLSearchParams({ page, limit: PAGE_SIZE });
 
-      // Add current display language to params
-      params.append("lang", i18n.language);
+    // ✅ Add current display language
+    params.append("lang", i18n.language);
 
-      // Apply filters from Redux state
-      if (priceRange && priceRange.length === 2) {
-        params.append("minPrice", priceRange[0]);
-        params.append("maxPrice", priceRange[1]);
-      }
+    // ✅ Add userId (backend will filter out own products)
+    const currentUserId = localStorage.getItem("userId");
+    if (currentUserId) {
+      params.append("userId", currentUserId);
+    }
 
-      if (location && location.latitude && location.longitude) {
+    // ✅ Price range filter
+    if (priceRange && priceRange.length === 2) {
+      params.append("minPrice", priceRange[0]);
+      params.append("maxPrice", priceRange[1]);
+    }
+
+    // ✅ Location / city filter
+    if (location && location.latitude && location.longitude) {
       params.append("latitude", location.latitude);
       params.append("longitude", location.longitude);
-      
-      // Also add radius if location is present
+
       if (radius > 0) {
         params.append("radiusInKm", radius);
       }
     } else if (city) {
       params.append("city", city);
     }
-      
-      if (condition) {
-        params.append("condition", condition);
-      }
-      
-      if (city) {
-        params.append("city", city);
-      }
 
-      if (searchQuery) {
-        params.append("search", searchQuery);
-      }
-
-      // Handle location-based filtering
-      if (type === "nearby" && latitude && longitude) {
-        params.append("latitude", latitude);
-        params.append("longitude", longitude);
-        params.append("radiusInKm", radius || 10);
-      } else if (latitude && longitude && radius > 0) {
-        // Apply radius filter even for regular products if location is set
-        params.append("latitude", latitude);
-        params.append("longitude", longitude);
-        params.append("radiusInKm", radius);
-      }
-
-      // Handle category filtering
-      if (type === "category" && activeCategory !== t("home.allProducts")) {
-        params.append("category", getCategoryValue(activeCategory));
-      }
-
-      let endpoint = "http://localhost:8080/api/products/getProducts";
-
-      if (type === "recommended" && latitude && longitude) {
-        endpoint = "http://localhost:8080/api/products/nearby";
-      }
-
-      console.log("Fetching products with params:", params.toString());
-
-      const res = await fetch(`${endpoint}?${params.toString()}`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        console.error(t("home.fetchProductsError"));
-        return;
-      }
-
-      const json = await res.json();
-      const { products = [], ...pagination } = json.data ?? {};
-      const currentUserId = localStorage.getItem("userId");
-
-      // Filter the products array, using the correct 'owner' field
-      const filteredProducts = currentUserId
-      ? products.filter(ad => ad.owner !== currentUserId)
-      : products;
-
-      if (type === "category") {
-        setLatestAds(filteredProducts);
-        setLatestPagination(pagination);
-      } else {
-        setRecommendedAds(filteredProducts);
-        setRecommendedPagination(pagination);
-      }
-    } catch (err) {
-      console.error(t("home.fetchFailed"), err);
+    // ✅ Condition filter
+    if (condition) {
+      params.append("condition", condition);
     }
-  };
+
+    // ✅ Search filter
+    if (searchQuery) {
+      params.append("search", searchQuery);
+    }
+
+    // ✅ Handle "nearby" type
+    if (type === "nearby" && latitude && longitude) {
+      params.append("latitude", latitude);
+      params.append("longitude", longitude);
+      params.append("radiusInKm", radius || 10);
+    } else if (latitude && longitude && radius > 0) {
+      params.append("latitude", latitude);
+      params.append("longitude", longitude);
+      params.append("radiusInKm", radius);
+    }
+
+    // ✅ Category filter
+    if (type === "category" && activeCategory !== t("home.allProducts")) {
+      params.append("category", getCategoryValue(activeCategory));
+    }
+
+    // ✅ Endpoint selection
+    let endpoint = "http://localhost:8080/api/products/getProducts";
+    if (type === "recommended" && latitude && longitude) {
+      endpoint = "http://localhost:8080/api/products/nearby";
+    }
+
+    console.log("Fetching products with params:", params.toString());
+
+    const res = await fetch(`${endpoint}?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      console.error(t("home.fetchProductsError"));
+      return;
+    }
+
+    const json = await res.json();
+    const { products = [], ...pagination } = json.data ?? {};
+
+    // ✅ Backend already excludes user’s own ads → no frontend filter needed
+    if (type === "category") {
+      setLatestAds(products);
+      setLatestPagination(pagination);
+    } else {
+      setRecommendedAds(products);
+      setRecommendedPagination(pagination);
+    }
+  } catch (err) {
+    console.error(t("home.fetchFailed"), err);
+  }
+};
 
   // Effect for location-based filtering
   useEffect(() => {
