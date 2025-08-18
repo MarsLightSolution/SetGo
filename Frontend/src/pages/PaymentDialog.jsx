@@ -63,31 +63,36 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       socket.disconnect();
     };
   }, [orderId, onClose, onPaymentSuccess, price]);
-
-   
-  const handleOrderCreation = async () => {
-    try {
-      const res = await fetch("http://localhost:8080/Orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          buyerId: user._id,
-          sellerId: owner,
-          productId: product._id,
-          total: price,
-        }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        setTimeout(() => {
-          navigate(`/order/${data.data._id}`);
-        }, 1500);
-      }
-    } catch (err) {
-      console.error("Order creation failed", err);
+ const handleOrderCreation = async () => {
+  try {
+    const res = await fetch("http://localhost:8080/Orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        buyerId: user._id,
+        sellerId: owner,
+        productId: product._id,
+        total: price,
+        address: {
+          name: user.fullName,      // from CheckoutPage form
+          email: user.email,
+          city: user.city,
+          address: user.address,
+          zipCode: user.postalCode,
+        },
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setTimeout(() => {
+        navigate(`/order/${data.data._id}`);
+      }, 1500);
     }
-  };
+  } catch (err) {
+    console.error("Order creation failed", err);
+  }
+};
+
 
   const Radio = ({ value, label }) => (
     <label className="flex items-center gap-2 cursor-pointer">

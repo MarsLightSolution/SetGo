@@ -1,9 +1,14 @@
 const Order = require("../models/Order.js");
 const Product = require("../models/product.model.js");
-// ✅ Place new order
+
 const placeOrder = async (req, res) => {
   try {
-    const { buyerId, sellerId, productId, total } = req.body;
+    const { buyerId, sellerId, productId, total, address } = req.body;
+
+    // Validate required fields
+    if (!buyerId || !sellerId || !productId || !total || !address) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
 
     const order = new Order({
       buyerId,
@@ -11,6 +16,14 @@ const placeOrder = async (req, res) => {
       productId,
       total,
       status: "paid",
+     
+      checkoutDetails: {
+        name: address.name,
+        email: address.email, // added email
+        city: address.city,
+        address: address.address,
+        pincode: address.zipCode,
+      },
     });
 
     await order.save();
@@ -20,6 +33,7 @@ const placeOrder = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 // ✅ Get all orders of a user
 const getUserOrders = async (req, res) => {
