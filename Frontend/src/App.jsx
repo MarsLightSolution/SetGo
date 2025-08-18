@@ -6,6 +6,9 @@ import Navbar from './components/common/Navbar'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
 import ModernChatApp from './components/Chat/ModernChatApp'
+import CheckoutPage from './components/Checkout/Checkout'
+import MyOrders from './components/Order/MyOrders'
+import OrderDetail from './components/Order/Orderdetail'
 
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -75,6 +78,9 @@ function App() {
             <Route path='/editform/:id' element={<EditForm/>}/>
             <Route path="/my/transactions" element={<TransactionHistory />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/checkout" element={<CheckoutPage/>}/>
+            <Route path="/orders" element={<MyOrders/>} />
+            <Route path="/order/:id" element={<OrderDetail />} />
           </Routes>
         </Suspense>
       </div>

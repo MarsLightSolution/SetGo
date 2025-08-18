@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom"; // Added Link
 import { CalendarToday, LocationOn } from "@mui/icons-material";
-import PaymentDialog from "./PaymentDialog";
 import Footer from "../components/common/Footer";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 import UserIcon from "../assets/icons/user.svg";
 import SaveIcon from "../assets/icons/save.svg";
 import EyeIcon from "../assets/icons/eye.svg";
-import ShareModal from "../components/Popups/ShareModal";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import { toast } from "react-toastify";
@@ -50,13 +48,9 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [dialogUser, setDialogUser] = useState(null);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-
   const dispatch = useDispatch();
   const { wishlist } = useSelector((state) => state.wishlist);
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
@@ -159,37 +153,41 @@ const ProductDetail = () => {
     }
   }, [product, id, i18n.language]); // Added i18n.language to dependencies
 
-  const handleBuyNow = async () => {
-    const userId = user?._id;
-    const ownerId = product?.owner?._id || product?.owner;
+const handleBuyNow = async () => {
+  const userId = user?._id;
+  const ownerId = product?.owner?._id || product?.owner;
 
-    if (!userId) {
-      alert(t("productDetail.loginToBuy")); // Translated
-      return;
-    }
-    if (!ownerId) {
-      alert(t("productDetail.ownerInfoMissing")); // Translated
-      return;
-    }
+  if (!userId) {
+    alert(t("productDetail.loginToBuy"));
+    return;
+  }
+  if (!ownerId) {
+    alert(t("productDetail.ownerInfoMissing"));
+    return;
+  }
 
-    try {
-      const res = await fetch(
-        `http://localhost:8080/users/get-users/${userId}`,
-        { credentials: "include", } // Keep credentials for cookie sending
-      );
-      const json = await res.json();
-      if (json?.data) {
-        setDialogUser(json.data);
-        setShowPaymentDialog(true);
-      } else {
-        alert(t("productDetail.failedToLoadUserData")); // Translated
-      }
-    } catch (err) {
-      console.error("Error fetching user:", err);
-      alert(t("productDetail.errorLoadingUserData")); // Translated
+  try {
+    const res = await fetch(
+      `http://localhost:8080/users/get-users/${userId}`,
+      { credentials: "include" }
+    );
+    const json = await res.json();
+    if (json?.data) {
+      // ✅ instead of dialog, navigate to checkout
+      navigate("/checkout", {
+        state: {
+          product,
+          user: json.data,
+        },
+      });
+    } else {
+      alert(t("productDetail.failedToLoadUserData"));
     }
-  };
-
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    alert(t("productDetail.errorLoadingUserData"));
+  }
+};
   const handleSendMessage = async () => {
     if (!user) {
       alert(t("productDetail.loginToMessage")); // Translated
@@ -665,25 +663,6 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
-
-      {showPaymentDialog && dialogUser && (
-        <PaymentDialog
-          onClose={() => setShowPaymentDialog(false)}
-          product={product}
-          user={dialogUser}
-          owner={ownerId}
-          onPaymentSuccess={() => {
-            console.log("Payment success");
-          }}
-        />
-      )}
-      {showShareModal && (
-        <ShareModal
-          product={product}
-          onClose={() => setShowShareModal(false)}
-        />
-      )}
-
       <Footer />
     </>
   );
