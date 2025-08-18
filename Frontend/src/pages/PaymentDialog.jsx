@@ -63,8 +63,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       socket.disconnect();
     };
   }, [orderId, onClose, onPaymentSuccess, price]);
-
-  
  const handleOrderCreation = async () => {
   try {
     const res = await fetch("http://localhost:8080/Orders", {
@@ -85,7 +83,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       }),
     });
     const data = await res.json();
-
     if (data.success) {
       setTimeout(() => {
         navigate(`/order/${data.data._id}`);
