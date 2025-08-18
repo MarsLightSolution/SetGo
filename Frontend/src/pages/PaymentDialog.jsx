@@ -64,7 +64,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
     };
   }, [orderId, onClose, onPaymentSuccess, price]);
 
-  
+   
   const handleOrderCreation = async () => {
     try {
       const res = await fetch("http://localhost:8080/Orders", {

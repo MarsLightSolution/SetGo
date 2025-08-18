@@ -23,11 +23,15 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "shipped", "delivered"],
-      default: "paid",
+      enum: ["pending", "paid", "shipped", "delivered", "cancelled"], // ✅ Added cancelled
+      default: "pending", // usually starts as pending before payment
+    },
+    trackingId: {
+      type: String,
+      default: null, // only set when seller provides tracking
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Order',orderSchema);
+module.exports = mongoose.model("Order", orderSchema);
