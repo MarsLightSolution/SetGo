@@ -10,7 +10,6 @@ import {
   CreditCard,
   Truck,
   Clock,
-  ShoppingBag,
 } from "lucide-react";
 
 const OrderDetail = () => {
@@ -27,6 +26,11 @@ const OrderDetail = () => {
       try {
         const { data } = await axios.get(`http://localhost:8080/Orders/${id}`);
         if (data.success) setOrder(data.data);
+
+        // If already delivered, mark notify button as clicked
+        if (data.data?.status === "delivered") {
+          setNotifyClicked(true);
+        }
       } catch (err) {
         console.error("Failed to fetch order:", err);
       } finally {
@@ -36,9 +40,24 @@ const OrderDetail = () => {
     fetchOrder();
   }, [id]);
 
-  const handleNotifyClick = () => {
-    setNotifyClicked(true);
-    // Optional: call API to notify
+  const handleNotifyClick = async () => {
+    try {
+      setNotifyClicked(true);
+
+      await axios.post(
+        `http://localhost:8080/${id}/approve-delivery`,
+        { userId: "68a1bb9533d35012fa5e32fa" } // send buyer id
+      );
+
+      // ✅ Update UI to delivered immediately
+      setOrder((prev) => ({
+        ...prev,
+        status: "delivered",
+      }));
+    } catch (err) {
+      console.error("Failed to notify delivery:", err);
+      setNotifyClicked(false); // rollback if failed
+    }
   };
 
   const formatDate = (dateString) => {
@@ -90,6 +109,8 @@ const OrderDetail = () => {
                   ? "bg-blue-500"
                   : status === "delivered"
                   ? "bg-green-600"
+                  : status === "cancelled"
+                  ? "bg-red-600"
                   : "bg-gray-400"
               }`}
             >
@@ -107,7 +128,9 @@ const OrderDetail = () => {
             </div>
             <div className="flex-1 space-y-1">
               <h3 className="font-semibold text-gray-900 text-xl">
-                {order.productId?.title?.[lang] || order.productId?.title?.en || "N/A"}
+                {order.productId?.title?.[lang] ||
+                  order.productId?.title?.en ||
+                  "N/A"}
               </h3>
               <p className="text-gray-600 text-sm">
                 {order.productId?.description?.[lang] ||
@@ -167,10 +190,11 @@ const OrderDetail = () => {
                 </p>
               )}
               {status === "cancelled" && (
-      <p className="text-red-600 font-medium">
-        This order has been cancelled. If you have already paid, please check for a refund.
-      </p>
-    )}
+                <p className="text-red-600 font-medium">
+                  This order has been cancelled. If you have already paid,
+                  please check for a refund.
+                </p>
+              )}
             </div>
           </div>
 
@@ -179,14 +203,18 @@ const OrderDetail = () => {
           {/* Delivery Info */}
           <div>
             <h2 className="text-gray-800 font-semibold flex items-center gap-2 mb-1">
-              <MapPin className="h-5 w-5 text-red-500 text-lg" /> Delivery Address
+              <MapPin className="h-5 w-5 text-red-500 text-lg" /> Delivery
+              Address
             </h2>
             <p className="font-semibold text-gray-900 text-sm">
               {order.checkoutDetails?.name || "N/A"}
             </p>
-            <p className="text-gray-600 text-sm">{order.checkoutDetails?.address || "N/A"}</p>
             <p className="text-gray-600 text-sm">
-              {order.checkoutDetails?.city || "N/A"}, {order.checkoutDetails?.pincode || "N/A"}
+              {order.checkoutDetails?.address || "N/A"}
+            </p>
+            <p className="text-gray-600 text-sm">
+              {order.checkoutDetails?.city || "N/A"},{" "}
+              {order.checkoutDetails?.pincode || "N/A"}
             </p>
             <p className="text-gray-600 text-sm flex items-center gap-1 mt-1">
               <Mail className="h-4 w-4" /> {order.checkoutDetails?.email || "N/A"}
@@ -198,7 +226,8 @@ const OrderDetail = () => {
           {/* Payment Summary */}
           <div>
             <h2 className="text-gray-800 font-semibold flex items-center gap-2 mb-1">
-              <CreditCard className="h-5 w-5 text-blue-600 text-lg" /> Payment Summary
+              <CreditCard className="h-5 w-5 text-blue-600 text-lg" /> Payment
+              Summary
             </h2>
             <div className="flex justify-between text-gray-600 text-sm">
               <span>Item total</span>
@@ -225,8 +254,12 @@ const OrderDetail = () => {
             <h2 className="text-gray-800 font-semibold flex items-center gap-2 mb-1">
               <User className="h-5 w-5 text-purple-600 text-lg" /> Sold by
             </h2>
-            <p className="text-gray-600 text-sm">{order.sellerId?.username || "N/A"}</p>
-            <p className="text-gray-600 text-sm">{order.sellerId?.email || "N/A"}</p>
+            <p className="text-gray-600 text-sm">
+              {order.sellerId?.username || "N/A"}
+            </p>
+            <p className="text-gray-600 text-sm">
+              {order.sellerId?.email || "N/A"}
+            </p>
           </div>
         </div>
       </div>
