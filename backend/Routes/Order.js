@@ -1,8 +1,14 @@
 const express = require("express");
-const { placeOrder, getUserOrders, getOrderById } = require("../controller/Ordercontroller");
+const { placeOrder, getUserOrders, getOrderById,getSellerOrders, uploadTrackingId } = require("../controller/Ordercontroller");
+
 
 const router = express.Router();
 
+// Get all orders for a seller
+router.get("/seller/:sellerId", getSellerOrders);
+
+// Upload tracking ID
+router.patch("/:orderId/tracking", uploadTrackingId);
 // POST - Place new order
 router.post("/", placeOrder);
 
