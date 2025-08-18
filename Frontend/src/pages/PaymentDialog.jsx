@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
 
 const LOTTIES = {
   LOADING: "https://lottie.host/b929aa99-cfcf-4ce7-bdf5-61cad2c3f6f8/wL9y4hrffB.lottie",
@@ -30,7 +31,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
   const [onlineMethod, setOnlineMethod] = useState("");
   const [status, setStatus] = useState("READY");
   const [orderId, setOrderId] = useState(null); // For socket subscription
-
+  const navigate = useNavigate();
   const price = product.price ?? 0;
   const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
   const remainder = price - walletDeduction;
@@ -62,6 +63,31 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       socket.disconnect();
     };
   }, [orderId, onClose, onPaymentSuccess, price]);
+
+  
+  const handleOrderCreation = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/Orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerId: user._id,
+          sellerId: owner,
+          productId: product._id,
+          total: price,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setTimeout(() => {
+          navigate(`/order/${data.data._id}`);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error("Order creation failed", err);
+    }
+  };
 
   const Radio = ({ value, label }) => (
     <label className="flex items-center gap-2 cursor-pointer">
@@ -140,6 +166,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         }
 
         onPaymentSuccess?.(price);
+        await handleOrderCreation();
         setTimeout(onClose, 1800);
       } else {
         setStatus("FAILURE");
