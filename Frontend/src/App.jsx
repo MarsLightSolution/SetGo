@@ -9,6 +9,7 @@ import ModernChatApp from './components/Chat/ModernChatApp'
 import CheckoutPage from './components/Checkout/Checkout'
 import MyOrders from './components/Order/MyOrders'
 import OrderDetail from './components/Order/Orderdetail'
+import SellerAdminDashboard from './components/Admin/SellerAdmin'
 
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -81,6 +82,7 @@ function App() {
             <Route path="/checkout" element={<CheckoutPage/>}/>
             <Route path="/orders" element={<MyOrders/>} />
             <Route path="/order/:id" element={<OrderDetail />} />
+            <Route path="/seller" element={<SellerAdminDashboard />}/>
           </Routes>
         </Suspense>
       </div>
