@@ -8,7 +8,6 @@ const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const userId = localStorage.getItem("userId");
-
   useEffect(() => {
     const fetchOrders = async () => {
       try {

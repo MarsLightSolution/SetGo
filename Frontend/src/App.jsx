@@ -10,6 +10,7 @@ import CheckoutPage from './components/Checkout/Checkout'
 import MyOrders from './components/Order/MyOrders'
 import OrderDetail from './components/Order/Orderdetail'
 import SellerAdminDashboard from './components/Admin/SellerAdmin'
+import AdminOrders from './components/Admin/Adminpanel'
 
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -83,6 +84,7 @@ function App() {
             <Route path="/orders" element={<MyOrders/>} />
             <Route path="/order/:id" element={<OrderDetail />} />
             <Route path="/seller" element={<SellerAdminDashboard />}/>
+            <Route path="/Adminpanel" element={<AdminOrders />}/>
           </Routes>
         </Suspense>
       </div>

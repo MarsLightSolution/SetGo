@@ -54,8 +54,7 @@ const handleCheckout = async () => {
   }
 
   const userId = user?._id;
-  const ownerId = product?.owner?._id || product?.owner;
-
+  const ownerId ="68a1bb9533d35012fa5e32fa";
   if (!userId) {
     alert("⚠️ Please log in to continue.");
     return;
@@ -95,7 +94,7 @@ const handleCheckout = async () => {
 
   const tax = product.price * 0.1;
   const total = product.price + tax;
-  const ownerId = product?.owner?._id || product?.owner;
+  const ownerId ="68a1bb9533d35012fa5e32fa";
 
   const prevImage = () => {
     setCurrentImageIndex(
