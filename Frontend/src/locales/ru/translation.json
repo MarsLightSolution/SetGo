@@ -92,7 +92,17 @@
       "leisureHobbyNeighborhood": "Досуг, Хобби и Соседство",
       "service": "Сервис",
       "other": "Прочее"
-    }
+    },
+    "activeFilters": "Активные фильтры",
+    "minPrice": "Мин. цена",
+    "maxPrice": "Макс. цена",
+    "condition": "Состояние",
+    "city": "Город",
+    "radius": "Радиус: {{val}}км",
+    "locationBased": "На основе местоположения",
+    "search": "Поиск",
+    "clearAllFilters": "Очистить все фильтры",
+    "yourItemPlaceholder": "ваш товар"
   },
   "register": {
     "title": "Зарегистрируйтесь за 30 секунд",
