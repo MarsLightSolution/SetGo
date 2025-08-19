@@ -92,7 +92,17 @@
       "leisureHobbyNeighborhood": "İstirahət, Hobbi və Qonşuluq",
       "service": "Xidmət",
       "other": "Digər"
-    }
+    },
+    "activeFilters": "Aktiv Filterlər",
+    "minPrice": "Minimum Qiymət",
+    "maxPrice": "Maksimum Qiymət",
+    "condition": "Vəziyyət",
+    "city": "Şəhər",
+    "radius": "Radius: {{val}}km",
+    "locationBased": "Məkana əsasən",
+    "search": "Axtarış",
+    "clearAllFilters": "Bütün Filterləri Təmizlə",
+    "yourItemPlaceholder": "sizin məhsulunuz"
   },
   "register": {
     "title": "30 saniyəyə qeydiyyatdan keçin",
@@ -555,7 +565,7 @@
     "failedToUpdateAd": "Elan yenilənmədi.",
     "somethingWentWrong": "Nəsə səhv getdi."
   },
-   "transactionHistory": {
+  "transactionHistory": {
     "noUserId": "İstifadəçi ID-si tapılmadı. Əməliyyatlar əldə edilə bilməz.",
     "loadingTransactions": "Əməliyyatlar yüklənir...",
     "emptyState": "Əməliyyat tapılmadı.",

@@ -4,22 +4,27 @@ import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import { resetFilters } from "../slices/FilterSlice";
 import Footer from "../components/common/Footer";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import bannerImage from "../assets/images/banner1.png";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 import NotificationDemo from "../components/NotificationDemo";
 import { useNotifications } from "../Hooks/useNotifications";
+import EmptyImage from '../assets/images/binocular.png';
 
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n'; // Ensure this import is present if you remove the global selector from Navbar
+import i18n from '../i18n';
 
+import { setProducts } from '../slices/productSlices';
+
+const getLocalizedText = (field) => {
+  if (!field) return "";
+  if (typeof field === "string") return field;
+  return field[i18n.language] || field.en || "";
+};
 
 const AdCard = ({ ad, image, price }) => {
   const { t, i18n } = useTranslation();
-  const hasAccessTokenCookie = () => {
-    return document.cookie.split(";").some((c) => c.trim().startsWith("refreshToken="));
-  };
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { sendLikeNotification } = useNotifications();
@@ -31,27 +36,38 @@ const AdCard = ({ ad, image, price }) => {
   const displayTitle = typeof ad.title === 'object' ? (ad.title?.[currentDisplayLanguage] || ad.title?.en || "") : ad.title || "";
   const displayLocation = typeof ad.location === 'object' ? (ad.location?.postalCode?.[currentDisplayLanguage] || ad.location?.postalCode?.en || "") : ad.postalCode || ad.location || t("home.unknownLocation");
 
-const token=localStorage.getItem("accessToken");
-  const handleLikeToggle = () => {
+  const token = localStorage.getItem("accessToken");
+
+  const isAuthenticated = () => {
+    const userId = localStorage.getItem("userId");
+    const accessToken = localStorage.getItem("accessToken");
+    return !!userId && !!accessToken;
+  };
+
+  const handleLikeToggle = (e) => {
+    e.stopPropagation();
+
+    if (!isAuthenticated()) {
+      alert(t("home.loginToLike"));
+      return;
+    }
 
     if (!liked) {
-      // Add to wishlist
       dispatch(like(ad));
       
-      // Send notification to the product owner
-      if (ad.userId && ad.userId !== localStorage.getItem('userEmail')) {
+      const productOwnerId = ad.owner?._id || ad.owner;
+      if (productOwnerId && productOwnerId !== localStorage.getItem('userId')) {
         const userName = localStorage.getItem('userName') || 'Someone';
-        const productTitle = getLocalizedText(ad.title) || 'your item';
+        const productTitle = getLocalizedText(ad.title) || t("home.yourItemPlaceholder");
         
         sendLikeNotification(
-          ad.userId, // recipient (product owner)
+          productOwnerId,
           userName,
           productTitle,
           ad._id
         );
       }
     } else {
-      // Remove from wishlist
       dispatch(unlike(ad));
     }
   };
@@ -64,18 +80,19 @@ const token=localStorage.getItem("accessToken");
     <div
       onClick={handleCardClick}
       className="relative group cursor-pointer hover:scale-105 transition duration-300 ease-in flex flex-col items-center justify-between border border-gray-800 shadow-md hover:shadow-lg gap-3 p-3 rounded-xl w-[200px] bg-white"
-    >{token &&
+    >
+      {token &&
       <button
         onClick={(e) => {
           e.stopPropagation();
-          handleLikeToggle();
+          handleLikeToggle(e);
         }}
         className={`absolute top-2 right-2 cursor-pointer transition duration-300 text-lg ${liked ? "text-red-500" : "text-gray-400"
           }`}
       >
         {liked ? <Favorite /> : <FavoriteBorder />}
       </button>
-    }
+      }
 
       <div className="w-full h-[140px] flex justify-center items-center">
         <img
@@ -150,33 +167,26 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
 
 const Home = () => {
   const { t, i18n } = useTranslation();
-  const [latestAds, setLatestAds] = useState([]);
-  const [recommendedAds, setRecommendedAds] = useState([]);
   const [activeCategory, setActiveCategory] = useState(t("home.allProducts"));
-  const userId = localStorage.getItem("userId");
-  const PAGE_SIZE = 12;
-  const filter = useSelector((state) => state.filter);
-  const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
-  const [recommendedPagination, setRecommendedPagination] = useState({
-    currentPage: 1,
-  });
-  const { priceRange, condition, radius, city, latitude, longitude, searchQuery, location  } = useSelector((state) => state.filter);
+  const { latestAds, recommendedAds } = useSelector((state) => state.products);
+  const { priceRange, condition, radius, city, latitude, longitude, searchQuery, location } = useSelector((state) => state.filter);
   const dispatch = useDispatch();
 
-  // Check if any filters are active
+  const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
+  const [recommendedPagination, setRecommendedPagination] = useState({ currentPage: 1 });
+
   const hasActiveFilters = () => {
     return (
       (priceRange && priceRange[0] > 0) ||
       (priceRange && priceRange[1] < 10000) ||
       condition ||
-      (radius && radius > 0) ||
+      (radius > 0) ||
       city ||
       searchQuery ||
-      (latitude && longitude)
+      (location.latitude && location.longitude)
     );
   };
 
-  // Clear all filters
   const clearFilters = () => {
     dispatch(resetFilters());
   };
@@ -201,106 +211,74 @@ const Home = () => {
     return 'All Products';
   };
 
-const fetchProducts = async (type, page) => {
-  try {
-    const params = new URLSearchParams({ page, limit: PAGE_SIZE });
+  const fetchProducts = async (type, page) => {
+    try {
+      const params = new URLSearchParams({ page, limit: 12 });
 
-    // ✅ Add current display language
-    params.append("lang", i18n.language);
-
-    // ✅ Add userId (backend will filter out own products)
-    const currentUserId = localStorage.getItem("userId");
-    if (currentUserId) {
-      params.append("userId", currentUserId);
-    }
-
-    // ✅ Price range filter
-    if (priceRange && priceRange.length === 2) {
-      params.append("minPrice", priceRange[0]);
-      params.append("maxPrice", priceRange[1]);
-    }
-
-    // ✅ Location / city filter
-    if (location && location.latitude && location.longitude) {
-      params.append("latitude", location.latitude);
-      params.append("longitude", location.longitude);
-
-      if (radius > 0) {
-        params.append("radiusInKm", radius);
+      params.append("lang", i18n.language);
+      const currentUserId = localStorage.getItem("userId");
+      if (currentUserId) {
+        params.append("userId", currentUserId);
       }
-    } else if (city) {
-      params.append("city", city);
+      if (priceRange && priceRange.length === 2) {
+        params.append("minPrice", priceRange[0]);
+        params.append("maxPrice", priceRange[1]);
+      }
+      if (location && location.latitude && location.longitude) {
+        params.append("latitude", location.latitude);
+        params.append("longitude", location.longitude);
+        if (radius > 0) {
+          params.append("radiusInKm", radius);
+        }
+      } else if (city) {
+        params.append("city", city);
+      }
+      if (condition) {
+        params.append("condition", condition);
+      }
+      if (searchQuery) {
+        params.append("search", searchQuery);
+      }
+
+      let endpoint = "http://localhost:8080/api/products/getProducts";
+      if (type === "nearby" && latitude && longitude && radius > 0) {
+        endpoint = "http://localhost:8080/api/products/nearby";
+      }
+
+      console.log("Fetching products with params:", params.toString());
+
+      const res = await fetch(`${endpoint}?${params.toString()}`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        console.error(t("home.fetchProductsError"));
+        return;
+      }
+
+      const json = await res.json();
+      const { products = [], ...pagination } = json.data ?? {};
+
+      if (type === "category") {
+        dispatch(setProducts({ latestAds: products }));
+        setLatestPagination(pagination);
+      } else {
+        dispatch(setProducts({ recommendedAds: products }));
+        setRecommendedPagination(pagination);
+      }
+    } catch (err) {
+      console.error(t("home.fetchFailed"), err);
     }
+  };
 
-    // ✅ Condition filter
-    if (condition) {
-      params.append("condition", condition);
-    }
-
-    // ✅ Search filter
-    if (searchQuery) {
-      params.append("search", searchQuery);
-    }
-
-    // ✅ Handle "nearby" type
-    if (type === "nearby" && latitude && longitude) {
-      params.append("latitude", latitude);
-      params.append("longitude", longitude);
-      params.append("radiusInKm", radius || 10);
-    } else if (latitude && longitude && radius > 0) {
-      params.append("latitude", latitude);
-      params.append("longitude", longitude);
-      params.append("radiusInKm", radius);
-    }
-
-    // ✅ Category filter
-    if (type === "category" && activeCategory !== t("home.allProducts")) {
-      params.append("category", getCategoryValue(activeCategory));
-    }
-
-    // ✅ Endpoint selection
-    let endpoint = "http://localhost:8080/api/products/getProducts";
-    if (type === "recommended" && latitude && longitude) {
-      endpoint = "http://localhost:8080/api/products/nearby";
-    }
-
-    console.log("Fetching products with params:", params.toString());
-
-    const res = await fetch(`${endpoint}?${params.toString()}`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      console.error(t("home.fetchProductsError"));
-      return;
-    }
-
-    const json = await res.json();
-    const { products = [], ...pagination } = json.data ?? {};
-
-    // ✅ Backend already excludes user’s own ads → no frontend filter needed
-    if (type === "category") {
-      setLatestAds(products);
-      setLatestPagination(pagination);
-    } else {
-      setRecommendedAds(products);
-      setRecommendedPagination(pagination);
-    }
-  } catch (err) {
-    console.error(t("home.fetchFailed"), err);
-  }
-};
-
-  // Effect for location-based filtering
   useEffect(() => {
     setActiveCategory(t("home.allProducts"));
     if (latitude && longitude) {
       fetchProducts("nearby", 1);
     }
-  }, [latitude, longitude, radius, t, i18n.language]);
+  }, [latitude, longitude, radius, t, i18n.language, dispatch]);
 
-  // Effect for category and filter changes
   useEffect(() => {
     fetchProducts("category", latestPagination.currentPage);
   }, [
@@ -314,10 +292,10 @@ const fetchProducts = async (type, page) => {
     latitude, 
     longitude, 
     t, 
-    i18n.language
+    i18n.language,
+    dispatch
   ]);
 
-  // Effect for recommended products
   useEffect(() => {
     fetchProducts("recommended", recommendedPagination.currentPage);
   }, [
@@ -330,7 +308,8 @@ const fetchProducts = async (type, page) => {
     latitude, 
     longitude, 
     t, 
-    i18n.language
+    i18n.language,
+    dispatch
   ]);
 
   const galleryData = [
@@ -394,7 +373,7 @@ const fetchProducts = async (type, page) => {
     },
     {
       name: { en: "Reliance Digital", az: "Reliance Digital", ru: "Reliance Digital" },
-      description: { en: "Electronics & gadgets", az: "Elektronika və cihazlar", ru: "Электроника и гаджеты" },
+      description: { en: "Electronics & gadgets", az: "Elektronika və cihazlar", ru: "Электроника и гадgets" },
       image: "/images/reliance.png",
     },
   ];
@@ -447,41 +426,41 @@ const fetchProducts = async (type, page) => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-800 font-medium">Active Filters:</span>
+                    <span className="text-blue-800 font-medium">{t("home.activeFilters")}:</span>
                     <div className="flex flex-wrap gap-2">
                       {priceRange && priceRange[0] > 0 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          Min Price: €{priceRange[0]}
+                          {t("home.minPrice")}: €{priceRange[0]}
                         </span>
                       )}
                       {priceRange && priceRange[1] < 10000 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          Max Price: €{priceRange[1]}
+                          {t("home.maxPrice")}: €{priceRange[1]}
                         </span>
                       )}
                       {condition && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          Condition: {condition}
+                          {t("home.condition")}: {condition}
                         </span>
                       )}
                       {city && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          City: {city}
+                          {t("home.city")}: {city}
                         </span>
                       )}
                       {radius > 0 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          Radius: {radius}km
+                          {t("home.radius", { val: radius })}
                         </span>
                       )}
-                      {latitude && longitude && (
+                      {location.latitude && location.longitude && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          Location-based
+                          {t("home.locationBased")}
                         </span>
                       )}
                       {searchQuery && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          Search: "{searchQuery}"
+                          {t("home.search")}: "{searchQuery}"
                         </span>
                       )}
                     </div>
@@ -490,7 +469,7 @@ const fetchProducts = async (type, page) => {
                     onClick={clearFilters}
                     className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
                   >
-                    Clear All Filters
+                    {t("home.clearAllFilters")}
                   </button>
                 </div>
               </div>
@@ -509,10 +488,6 @@ const fetchProducts = async (type, page) => {
                         key={key}
                         onClick={() => {
                           setActiveCategory(translatedCat);
-                          setLatestPagination((p) => ({
-                            ...p,
-                            currentPage: 1,
-                          }));
                         }}
                         className={`cursor-pointer hover:underline ${activeCategory === translatedCat
                             ? "font-semibold text-green-700"
