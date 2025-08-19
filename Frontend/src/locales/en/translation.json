@@ -91,7 +91,17 @@
       "leisureHobbyNeighborhood": "Leisure, Hobby & Neighborhood",
       "service": "Service",
       "other": "Other"
-    }
+    },
+    "activeFilters": "Active Filters",
+    "minPrice": "Min Price",
+    "maxPrice": "Max Price",
+    "condition": "Condition",
+    "city": "City",
+    "radius": "Radius: {{val}}km",
+    "locationBased": "Location-based",
+    "search": "Search",
+    "clearAllFilters": "Clear All Filters",
+    "yourItemPlaceholder": "your item"
   },
   "register": {
     "title": "Register in 30 seconds",
@@ -554,7 +564,7 @@
     "failedToUpdateAd": "Failed to update ad.",
     "somethingWentWrong": "Something went wrong."
   },
-"transactionHistory": {
+  "transactionHistory": {
     "noUserId": "User ID not found. Cannot fetch transactions.",
     "loadingTransactions": "Loading transactions...",
     "emptyState": "No transactions found.",
