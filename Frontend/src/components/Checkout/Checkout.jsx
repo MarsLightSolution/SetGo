@@ -54,7 +54,7 @@ const handleCheckout = async () => {
   }
 
   const userId = user?._id;
-  const ownerId ="68a1bb9533d35012fa5e32fa";
+  const ownerId =process.env.ownerId;
   if (!userId) {
     alert("⚠️ Please log in to continue.");
     return;
@@ -94,7 +94,7 @@ const handleCheckout = async () => {
 
   const tax = product.price * 0.1;
   const total = product.price + tax;
-  const ownerId ="68a1bb9533d35012fa5e32fa";
+  const ownerId =process.env.ownerId;
 
   const prevImage = () => {
     setCurrentImageIndex(

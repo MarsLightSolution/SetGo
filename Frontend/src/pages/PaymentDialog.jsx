@@ -63,7 +63,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       socket.disconnect();
     };
   }, [orderId, onClose, onPaymentSuccess, price]);
- const handleOrderCreation = async () => {
+ const handleOrderCreation = async (txnId) => {
   try {
     const res = await fetch("http://localhost:8080/Orders", {
       method: "POST",
@@ -73,6 +73,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         sellerId: owner,
         productId: product._id,
         total: price,
+        transactionId: txnId,
         address: {
           name: user.fullName,      // from CheckoutPage form
           email: user.email,
@@ -171,7 +172,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         }
 
         onPaymentSuccess?.(price);
-        await handleOrderCreation();
+        await handleOrderCreation(txnId);
         setTimeout(onClose, 1800);
       } else {
         setStatus("FAILURE");

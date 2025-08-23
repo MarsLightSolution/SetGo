@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+// import { eventNames } from "../../../../backend/models/user"
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -29,7 +30,7 @@ export default function AdminDashboard() {
       setLoading(true)
       const response = await fetch("http://localhost:8080/dashboard")
       const result = await response.json()
-
+      console.log(result);
       if (result.success) {
         setDashboardData(result.data)
       } else {
@@ -47,49 +48,91 @@ export default function AdminDashboard() {
     fetchDashboardData()
   }, [])
 
- const handleApproveDelivery = async (orderId) => {
-  try {
-    const order = dashboardData.orders.find((o) => o.id === orderId)
+  const handleApproveDelivery = async (orderId) => {
+    try {
+      const order = dashboardData.orders.find((o) => o.id === orderId)
 
-    if (order && order.status === "shipped") {
-      // ✅ Optimistic UI update
-      setDashboardData((prev) => ({
-        ...prev,
-        orders: prev.orders.map((o) =>
-          o.id === orderId
-            ? { ...o, deliveryApproved: true, status: "delivered" }
-            : o
-        ),
-      }))
+      if (order && order.status === "shipped") {
+        // ✅ Optimistic UI update
+        setDashboardData((prev) => ({
+          ...prev,
+          orders: prev.orders.map((o) =>
+            o.id === orderId
+              ? { ...o, deliveryApproved: true, status: "delivered" }
+              : o
+          ),
+        }))
 
-      // ✅ Call backend with adminId
-      const response = await fetch(
-        `http://localhost:8080/${orderId}/approve-delivery`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId:"68a1bb9533d35012fa5e32fa", // admin id
-          }),
+        // ✅ Call backend with adminId
+        const response = await fetch(
+          `http://localhost:8080/${orderId}/approve-delivery`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: process.env.ownerId, // admin id
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error("Failed to approve delivery")
         }
-      )
 
-      if (!response.ok) {
-        throw new Error("Failed to approve delivery")
+        await fetchDashboardData()
       }
-
+    } catch (err) {
+      console.error("Error approving delivery:", err)
+      setError("Failed to approve delivery")
       await fetchDashboardData()
     }
-  } catch (err) {
-    console.error("Error approving delivery:", err)
-    setError("Failed to approve delivery")
-    await fetchDashboardData()
   }
-}
   const handleReleaseFunds = async (orderId) => {
     try {
       const order = dashboardData.orders.find((o) => o.id === orderId)
       if (order && order.deliveryApproved && order.status === "delivered") {
+        const payload = {
+          senderId: process.env.ownerId,
+          receiverId: order.sellerId,
+          type: "transfer",
+          amount: order.amount,
+          description: `Payment for order ${orderTimestamp}`,
+          transactionId: order.transactionId,
+          referenceId: `order_${orderTimestamp}`,
+          source: "wallet",
+        };
+
+        try {
+          const res = await fetch("http://localhost:8080/api/transaction/transferFund", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json().catch(() => ({}));
+          console.log(data);
+
+          if (res.ok) {
+            setStatus("SUCCESS");
+
+            try {
+              await fetch(`http://localhost:8080/api/products/mark-sold/${product._id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+              });
+            } catch (err) {
+              console.warn("Failed to update product as sold", err);
+            }
+
+            onPaymentSuccess?.(price);
+            await handleOrderCreation();
+            setTimeout(onClose, 1800);
+          } else {
+            setStatus("FAILURE");
+          }
+        } catch (err) {
+          console.error(err);
+          setStatus("FAILURE");
+        }
         setDashboardData((prev) => ({
           ...prev,
           orders: prev.orders.map((o) =>
@@ -120,56 +163,56 @@ export default function AdminDashboard() {
     }
   }
 
-const handleCancelOrder = async (orderId) => {
-  try {
-    const order = dashboardData.orders.find((o) => o.id === orderId);
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const order = dashboardData.orders.find((o) => o.id === orderId);
 
-    if (
-      order &&
-      order.status !== "cancel" &&
-      order.status !== "cancelled" &&
-      order.status !== "delivered" &&
-      order.status !== "funds_released"
-    ) {
-      // Optimistic UI update
-      setDashboardData((prev) => ({
-        ...prev,
-        orders: prev.orders.map((o) =>
-          o.id === orderId ? { ...o, status: "cancel", fundsReturned: true } : o
-        ),
-        stats: {
-          ...prev.stats,
-          fundsHeld: prev.stats.fundsHeld - Number.parseFloat(order.amount),
-          pendingOrders: prev.stats.pendingOrders - 1,
-        },
-      }));
-
-      // 🔑 Send userId in request body
-      const response = await fetch(
-        `http://localhost:8080/${orderId}/cancel`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+      if (
+        order &&
+        order.status !== "cancel" &&
+        order.status !== "cancelled" &&
+        order.status !== "delivered" &&
+        order.status !== "funds_released"
+      ) {
+        // Optimistic UI update
+        setDashboardData((prev) => ({
+          ...prev,
+          orders: prev.orders.map((o) =>
+            o.id === orderId ? { ...o, status: "cancel", fundsReturned: true } : o
+          ),
+          stats: {
+            ...prev.stats,
+            fundsHeld: prev.stats.fundsHeld - Number.parseFloat(order.amount),
+            pendingOrders: prev.stats.pendingOrders - 1,
           },
-          body: JSON.stringify({
-            userId: "68a1bb9533d35012fa5e32fa", // ✅ Admin userId
-          }),
+        }));
+
+        // 🔑 Send userId in request body
+        const response = await fetch(
+          `http://localhost:8080/${orderId}/cancel`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userId: "68a1bb9533d35012fa5e32fa", // ✅ Admin userId
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to cancel order");
         }
-      );
 
-      if (!response.ok) {
-        throw new Error("Failed to cancel order");
+        await fetchDashboardData();
       }
-
+    } catch (err) {
+      console.error("Error cancelling order:", err);
+      setError("Failed to cancel order and return funds");
       await fetchDashboardData();
     }
-  } catch (err) {
-    console.error("Error cancelling order:", err);
-    setError("Failed to cancel order and return funds");
-    await fetchDashboardData();
-  }
-};
+  };
   const renderText = (text) => {
     console.log("[v0] renderText called with:", text, "type:", typeof text)
     if (typeof text === "string") {
@@ -317,11 +360,10 @@ const handleCancelOrder = async (orderId) => {
   const TabButton = ({ isActive, onClick, children }) => (
     <button
       onClick={onClick}
-      className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 ${
-        isActive
-          ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 bg-white shadow-md"
-      }`}
+      className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 ${isActive
+        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 bg-white shadow-md"
+        }`}
     >
       {children}
     </button>
@@ -519,11 +561,10 @@ const handleCancelOrder = async (orderId) => {
                       >
                         <div className="flex items-center space-x-4">
                           <div
-                            className={`w-4 h-4 rounded-full shadow-lg ${
-                              renderText(transaction.type) === "credit"
-                                ? "bg-gradient-to-r from-green-400 to-green-600"
-                                : "bg-gradient-to-r from-red-400 to-red-600"
-                            }`}
+                            className={`w-4 h-4 rounded-full shadow-lg ${renderText(transaction.type) === "credit"
+                              ? "bg-gradient-to-r from-green-400 to-green-600"
+                              : "bg-gradient-to-r from-red-400 to-red-600"
+                              }`}
                           />
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{renderText(transaction.description)}</p>
@@ -533,9 +574,8 @@ const handleCancelOrder = async (orderId) => {
                           </div>
                         </div>
                         <div
-                          className={`text-sm font-black ${
-                            renderText(transaction.type) === "credit" ? "text-green-600" : "text-red-600"
-                          }`}
+                          className={`text-sm font-black ${renderText(transaction.type) === "credit" ? "text-green-600" : "text-red-600"
+                            }`}
                         >
                           {renderText(transaction.type) === "credit" ? "+" : "-"}${renderText(transaction.amount)}
                         </div>

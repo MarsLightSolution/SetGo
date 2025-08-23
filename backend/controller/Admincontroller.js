@@ -121,8 +121,10 @@ const getAdminDashboardData = async (req, res) => {
     const ordersForAdmin = orders.map((o) => ({
       id: o._id,
       buyerName: o.buyerId?.profileName || o.buyerId?.email || "Unknown",
+      buyerId: o.buyerId?._id,
       buyerEmail: o.buyerId?.email || "Unknown",
       sellerName: o.sellerId?.profileName || o.sellerId?.email || "Unknown",
+      sellerId: o.sellerId?._id,
       sellerEmail: o.sellerId?.email || "Unknown",
       productName: o.productId?.title || "Unknown Product",
       amount: o.total,
