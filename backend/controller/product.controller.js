@@ -255,7 +255,7 @@ const getProducts = asyncHandler(async (req, res) => {
 
   // ✅ General filter stage
   const matchStage = {
-    isSell: true,
+    isSell: false,
     price: {
       $gte: Number(minPrice),
       $lte: Number(maxPrice),
