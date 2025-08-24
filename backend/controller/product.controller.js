@@ -472,7 +472,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid product ID");
   }
 
-  const product = await Product.findById(id);
+  let product = await Product.findById(id);
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
@@ -484,101 +484,99 @@ const updateProduct = asyncHandler(async (req, res) => {
     condition,
     description,
     postalCode,
-    streetNo,
+    street,
     name,
-    offerType,
-    showFullAddress,
-    subscribe,
     isBuy,
     isSell,
     quantity,
+    latitude,
+    longitude,
     termsAccepted,
   } = req.body;
 
-  // Parse and validate boolean fields
-  const showFullAddressBool =
-    showFullAddress === "true" || showFullAddress === true;
-  const subscribeBool = subscribe === "true" || subscribe === true;
-  const isBuyBool = isBuy === "true" || isBuy === true;
-  const isSellBool = isSell === "true" || isSell === true;
-  const termsAcceptedBool = termsAccepted === "true" || termsAccepted === true;
+  // ✅ Multilingual fields (merge or update en)
+  const updateMultilingual = (field, value) => {
+    if (value !== undefined) {
+      if (typeof value === "string") {
+        product[field].en = value;
+      } else if (typeof value === "object") {
+        product[field] = { ...product[field].toObject?.() || product[field], ...value };
+      }
+    }
+  };
 
-  if (!termsAcceptedBool) {
-    throw new ApiError(400, "You must accept the terms and conditions.");
+  updateMultilingual("title", title);
+  updateMultilingual("category", category);
+  updateMultilingual("description", description);
+  updateMultilingual("name", name);
+
+  // ✅ Scalars
+  if (price !== undefined && !isNaN(price)) {
+    product.price = Number(price);
+  }
+  if (condition) {
+    product.condition = condition;
   }
 
-  // Process new pictures if uploaded
+  // ✅ Quantity
+  if (quantity !== undefined && !isNaN(quantity)) {
+    product.quantity = Number(quantity);
+  }
+
+  // ✅ Pictures
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
-      ? [req.files.pictures]
-      : [];
-
-  let pictures = product.pictures; // default to existing
+    ? [req.files.pictures]
+    : [];
 
   if (picturesRaw.length > 0) {
-    if (picturesRaw.length > 20) {
-      throw new ApiError(400, "You can upload a maximum of 20 pictures.");
+    if (picturesRaw.length > 8) {
+      throw new ApiError(400, "You can upload a maximum of 8 pictures.");
     }
 
-    // Delete previous images from filesystem
-    product.pictures.forEach((imgPath) => {
-      const fullPath = path.join(__dirname, "..", imgPath);
-      fs.unlink(fullPath, (err) => {
-        if (err) console.error("Error deleting old image:", fullPath, err);
+    // delete old images
+    if (product.pictures?.length) {
+      product.pictures.forEach((imgPath) => {
+        const fullPath = path.join(__dirname, "..", imgPath);
+        fs.unlink(fullPath, (err) => {
+          if (err) console.error("Error deleting old image:", fullPath, err);
+        });
       });
-    });
+    }
 
-    // Replace with new uploaded paths
-    pictures = picturesRaw.map((file) => file.path.replace(/\\/g, "/"));
+    product.pictures = picturesRaw.map((file) =>
+      file.path.replace(/\\/g, "/")
+    );
   }
 
-  // Update product fields
-  product.title = title || product.title;
-  product.category = category || product.category;
-  product.price = Number(price) || product.price;
-  product.condition = condition || product.condition;
-  product.description = description || product.description;
-  product.pictures = pictures;
-  product.name = name || product.name;
-  product.termsAccepted = termsAcceptedBool;
-  product.offerType = offerType || product.offerType;
-  product.showFullAddress = showFullAddressBool;
-  product.subscribe = subscribeBool;
-  product.isBuy = isBuyBool;
-  product.isSell = isSellBool;
-  product.location = {
-    postalCode: postalCode || product.location?.postalCode || "",
-    street: streetNo || product.location?.street || "",
-  };
-
-  await product.save();
-
-  // Optionally update user records (buy/sell history)
-  const userId = req.user?._id;
-  const pushObject = {};
-
-  if (isBuyBool) {
-    pushObject.buy = {
-      productId: product._id,
-      purchasedAt: new Date(),
-      quantity: Number(quantity || 1),
-      price: Number(price),
+  // ✅ Location
+  if (latitude && longitude) {
+    product.location = {
+      type: "Point",
+      coordinates: [Number(longitude), Number(latitude)],
     };
   }
+  if (postalCode) product.postalCode = postalCode;
+  if (street) product.street = street;
 
-  if (isSellBool) {
-    pushObject.sell = {
-      productId: product._id,
-      listedAt: new Date(),
-      quantity: Number(quantity || 1),
-      price: Number(price),
-      isSold: false,
-    };
+  // ✅ Flags (convert to boolean properly)
+  if (termsAccepted !== undefined) {
+    product.termsAccepted = termsAccepted === "true" || termsAccepted === true;
+  }
+  if (isBuy !== undefined) {
+    product.isBuy = isBuy === "true" || isBuy === true;
+  }
+  if (isSell !== undefined) {
+    product.isSell = isSell === "true" || isSell === true;
   }
 
-  if (userId && Object.keys(pushObject).length > 0) {
-    await User.findByIdAndUpdate(userId, { $push: pushObject }, { new: true });
+  // ✅ Save
+  try {
+    product = await product.save();
+  } catch (err) {
+    console.error("Mongoose Save Error:", err);
+    throw new ApiError(400, err.message || "Failed to update product");
   }
 
   res

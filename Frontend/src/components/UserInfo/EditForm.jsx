@@ -210,69 +210,68 @@ const EditForm = () => {
   }, [newlySelectedFiles]);
 
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const requiredFields = ["title", "category", "price", "description", "postalCode", "name"];
-    const hasEmptyField = requiredFields.some((field) => !formData[field]);
-
-    if (hasEmptyField) {
-      showErrorToast(t("form.allFieldsRequired"));
-      return;
-    }
-
-    if (Object.keys(errors).some(key => errors[key])) {
-      showErrorToast(t("editForm.fixErrorsPrompt"));
-      return;
-    }
-
-    if (initialImageUrls.length + newlySelectedFiles.length === 0) {
-        showErrorToast(t("form.picturesRequired"));
-        return;
-    }
-
+  try {
     const updatedData = new FormData();
 
-    // Append existing images (as strings/paths) and newly selected files
-    initialImageUrls.forEach(url => updatedData.append("existingPictures", url));
-    newlySelectedFiles.forEach(file => updatedData.append("newPictures", file));
+    // --- Multilingual fields ---
+    updatedData.append(`title[${i18n.language}]`, formData.title);
+    updatedData.append(`description[${i18n.language}]`, formData.description);
+    updatedData.append(`name[${i18n.language}]`, formData.name);
 
-    // Append all other form data, ensuring language fields are handled
-    for (const key in formData) {
-      if (key !== "pictures") {
-        if (["title", "description", "name"].includes(key)) {
-            updatedData.append(key, formData[key]);
-        } else if (key === "category") {
-            // Send English category value to backend using the helper
-            updatedData.append(key, getEnglishCategoryValue(formData[key]));
-        }
-        else {
-            updatedData.append(key, typeof formData[key] === "boolean" ? String(formData[key]) : formData[key]);
-        }
-      }
+    // Always send category in English (backend matches by en)
+    updatedData.append("category[en]", getEnglishCategoryValue(formData.category));
+
+    // --- Scalar fields ---
+    updatedData.append("price", formData.price);
+    updatedData.append("postalCode", formData.postalCode);
+    updatedData.append("street", formData.streetNo);
+    updatedData.append("condition", formData.condition);
+
+    // --- Boolean values ---
+    updatedData.append("isBuy", formData.offerType === "buy" ? "true" : "false");
+    updatedData.append("isSell", formData.offerType === "offer" ? "true" : "false");
+    updatedData.append("termsAccepted", formData.termsAccepted ? "true" : "false");
+    updatedData.append("subscribe", formData.subscribe ? "true" : "false");
+
+    // --- Location (lat/lng array) ---
+    if (formData.location?.coordinates?.length === 2) {
+      updatedData.append("location[type]", "Point");
+      updatedData.append("location[coordinates][]", formData.location.coordinates[0]); // longitude
+      updatedData.append("location[coordinates][]", formData.location.coordinates[1]); // latitude
     }
-    updatedData.append("inputLanguage", i18n.language); // Send current display language as input language
 
-    try {
-     const res = await fetch(`http://localhost:8080/api/products/product/${id}`, {
-  method: "PUT",
-  credentials: "include", // this sends cookies along with the request
-  body: updatedData,
-});
-
-
-      const data = await res.json();
-      if (res.ok) {
-        showSuccessToast(t("editForm.adUpdatedSuccess"));
-        navigate("/userinfo");
-      } else {
-        showErrorToast(data.message || t("editForm.failedToUpdateAd"));
-      }
-    } catch (err) {
-      console.error(err);
-      showErrorToast(t("editForm.somethingWentWrong"));
+    // --- Pictures (if new images uploaded) ---
+    if (formData.pictures && formData.pictures.length > 0) {
+      formData.pictures.forEach((pic) => {
+        if (pic instanceof File) {
+          updatedData.append("pictures", pic);
+        }
+      });
     }
-  };
+
+    // --- API call ---
+    const response = await fetch(`http://localhost:8080/api/products/product/${id}`, {
+      method: "PUT",
+      credentials: "include",
+      body: updatedData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update product");
+    }
+
+    const data = await response.json();
+    console.log("✅ Product updated:", data);
+    showSuccessToast(t("editForm.adUpdatedSuccess"));
+    navigate('/userinfo');
+  } catch (err) {
+    console.error("❌ Update error:", err);
+    showErrorToast(t("editForm.adUpdateError"));
+  }
+};
 
 
   return (

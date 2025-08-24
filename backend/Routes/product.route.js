@@ -43,7 +43,7 @@ router.delete("/product/:id", verifyJWT, deleteProduct);
 router.put(
   "/product/:id",
   verifyJWT,
-  uploadPictures.fields([{ name: "pictures", maxCount: 20 }]),
+  uploadPictures.fields([{ name: "pictures", maxCount: 8}]),
   updateProduct
 );
 
