@@ -2,19 +2,25 @@ const Order = require("../models/Order.js");
 const Product = require("../models/product.model.js");
 
 const placeOrder = async (req, res) => {
+  console.log("hi");
+  
   try {
-    const { buyerId, sellerId, productId, total, address } = req.body;
-
+    const { buyerId, sellerId, productId, total, transactionId,address} = req.body;
+    console.log("const done"+buyerId + " " + sellerId +" " + productId+ " "+  total+" "+ transactionId+ " " + address);
+    
     // Validate required fields
     if (!buyerId || !sellerId || !productId || !total || !address) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
+    console.log("varification  done");
+    
 
     const order = new Order({
       buyerId,
       sellerId,
       productId,
       total,
+      transactionId,
       status: "paid",
      
       checkoutDetails: {
@@ -25,12 +31,13 @@ const placeOrder = async (req, res) => {
         pincode: address.zipCode,
       },
     });
+    console.log(order);
 
     await order.save();
 
     res.json({ success: true, data: order });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(501).json({ success: false, error: err.message });
   }
 };
 

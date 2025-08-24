@@ -7,6 +7,7 @@ const logger = require('../utils/logger'); // Import the logger
 const walletTransfer = asyncHandler(async (req, res) => {
   const { senderId, receiverId, amount, transactionId, description } = req.body;
   logger.info(`[WalletTransfer] Request received from sender: ${senderId} to receiver: ${receiverId} for amount: ${amount}`);
+  console.log(transactionId + " id ");
 
   // Use an existing session if provided, otherwise create a new one
   const session = req.body.session || await mongoose.startSession();
@@ -16,7 +17,6 @@ const walletTransfer = asyncHandler(async (req, res) => {
     session.startTransaction();
     logger.info(`[WalletTransfer] Started new transaction session.`);
   }
-
   try {
     if (!senderId || !receiverId || !amount || !transactionId) {
         logger.warn(`[WalletTransfer] Validation failed: Missing required fields.`);
@@ -36,13 +36,12 @@ const walletTransfer = asyncHandler(async (req, res) => {
         logger.warn(`[WalletTransfer] Insufficient balance for sender: ${senderId}. Balance: ${sender.walletBalance}, Amount: ${amount}`);
         throw new Error("Insufficient wallet balance");
     }
-
     const receiver = await User.findById(receiverId).session(session);
+
     if (!receiver) {
         logger.warn(`[WalletTransfer] Receiver not found: ${receiverId}`);
         throw new Error("Receiver not found");
     }
-
     await Transaction.create([{
       senderId,
       receiverId,
@@ -53,7 +52,6 @@ const walletTransfer = asyncHandler(async (req, res) => {
       paymentMode: "Wallet",
       type: "transfer",
     }], { session });
-
     await User.findByIdAndUpdate(senderId, {
       $inc: { walletBalance: -amount },
       $push: { transactionHistory: { transactionId, amount, direction: "debit", createdAt: new Date() } }
