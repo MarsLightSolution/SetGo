@@ -29,7 +29,6 @@ const e_transactionSchema = new mongoose.Schema(
         },
         transactionId: {
             type: String,
-            unique: true,
             required: true
         },
         referenceId: {
