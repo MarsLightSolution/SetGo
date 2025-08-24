@@ -32,7 +32,7 @@ const EmailNotification = lazy(() => import('./Components/Popups/EmailNotificati
 const UserInfo = lazy(() => import('./components/UserInfo/UserInfo'))
 const Wishlist = lazy(() => import('./pages/Wishlist'))
 const ProductDetail = lazy(() => import('./pages/ProductDescription'))
-// const ChatApp = lazy(() => import('./components/Chat/chatapp'))
+const ChatApp = lazy(() => import('./components/Chat/chatapp'))
 const UserPage = lazy(() => import('./pages/Userpage'))
 const MySearch = lazy(() => import('./pages/MySearch'))
 const EditForm = lazy(() => import('./components/UserInfo/EditForm'))
