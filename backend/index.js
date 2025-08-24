@@ -5,22 +5,16 @@ const fs = require("fs");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-const http = require("http");
-const multer = require("multer");
+const http = require("http");              // <-- ADD
+const { Server } = require("socket.io");   // <-- ADD
 
 const mongoose = require("./config/mongoose");
 const logger = require("./utils/logger");
-const initializeSocket = require("./socket-clean");
+const initSocket = require("./controller/Socketcontroller"); // <-- ADD
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-
-// Initialize Socket.IO
-const io = initializeSocket(server);
-app.set("io", io);
 
 // CORS configuration
 const corsOptions = {
@@ -31,27 +25,15 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Create required directories if not exist
-const directories = [
-  "logs",
-  "uploads",
-  "uploads/chat",
-  "uploads/chat/images",
-  "uploads/chat/documents"
-];
-directories.forEach(dir => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
-
 // Setup access log stream
 const accessLogStream = fs.createWriteStream(
-  path.join(__dirname, 'logs', 'access.log'),
-  { flags: 'a' }
+  path.join(__dirname, "logs", "access.log"),
+  { flags: "a" }
 );
 
 // Logging middleware
-app.use(morgan('combined', { stream: accessLogStream }));
-app.use(morgan('dev'));
+app.use(morgan("combined", { stream: accessLogStream }));
+app.use(morgan("dev"));
 
 // Static assets
 app.use("/api/assets", express.static(path.join(__dirname, "assets")));
@@ -62,59 +44,23 @@ app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Multer configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = file.mimetype.startsWith("image/")
-      ? "uploads/chat/images"
-      : "uploads/chat/documents";
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for better support of larger files
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      // Images - specifically JPEG and PNG as requested
-      "image/jpeg",
-      "image/jpg", 
-      "image/png",
-      "image/gif",
-      "image/webp",
-      // Documents - specifically PDF and DOCX as requested
-      "application/pdf",
-      "application/msword", // .doc
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-      // Additional useful formats
-      "text/plain",
-      "application/vnd.ms-excel", // .xls
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-    ];
-    
-    // Also check file extension as backup
-    const fileExt = file.originalname.toLowerCase();
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx'];
-    const hasValidExtension = allowedExtensions.some(ext => fileExt.endsWith(ext));
-    
-    if (allowedTypes.includes(file.mimetype) || hasValidExtension) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only images (JPEG, PNG) and documents (PDF, DOCX) are allowed."));
-    }
-  },
-});
-app.set("upload", upload);
-
-// Routes - Use clean chat implementation
-app.use("/api/chat", require("./Routes/chat-clean"));
-app.use("/api/notifications", require("./Routes/notificationRoutes"));
+// Routes
 app.use("/", require("./Routes")); // All other routes
+
+// ------------------- SOCKET.IO -------------------
+const server = http.createServer(app); // wrap express in http server
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// Init socket controller
+initSocket(io);
+// -------------------------------------------------
 
 // Start server
 const port = process.env.PORT || 8080;
@@ -122,7 +68,7 @@ server.listen(port, (err) => {
   if (err) {
     console.error("Error starting server:", err);
   } else {
-    console.log(`Socket.IO server running on port ${port}`);
+    console.log(`server running on port ${port}`);
     logger.info(`Server started on port ${port}`);
   }
 });

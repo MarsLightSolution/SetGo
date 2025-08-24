@@ -188,35 +188,64 @@ const handleBuyNow = async () => {
     alert(t("productDetail.errorLoadingUserData"));
   }
 };
-  const handleSendMessage = async () => {
-    if (!user) {
-      alert(t("productDetail.loginToMessage")); // Translated
+const handleSendMessage = async () => {
+  if (!user) {
+    alert(t("productDetail.loginToMessage")); // Translated
+    return;
+  }
+
+  const ownerId = product?.owner?._id || product?.owner;
+  if (!ownerId) {
+    alert(t("productDetail.ownerInfoMissingMessaging"));
+    return;
+  }
+
+  try {
+    // Step 1: Get or create conversation from backend
+    const res = await fetch("http://localhost:8080/api/chat/conversation/get-or-create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        senderId: user._id,
+        receiverId: ownerId,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert(data.message || t("productDetail.failedToStartConversation"));
       return;
     }
-    // Determine the owner's username for chat (accessing translated name from profile)
-    const ownerRawName = product.owner?.name; // Assuming owner object might be populated with name
-    const ownerUsername = typeof ownerRawName === 'object' ? getLocalizedText(ownerRawName) : ownerRawName || product.owner?.username || product.name?.[i18n.language] || product.name?.en || product.owner;
 
-    console.log("Owner Username:", ownerUsername);
-    if (!ownerUsername) {
-      alert(t("productDetail.ownerInfoMissingMessaging")); // Translated
-      return;
-    }
+    const conversationId = data.conversation._id;
 
-    navigate("/chat");
+    // Step 2: Send a hardcoded initial message
+    const initialMessage = "Hi! I'm interested in your product.";
+    await fetch("http://localhost:8080/api/chat/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        conversationId,
+        senderId: user._id,
+        text: initialMessage,
+      }),
+    });
 
-    setTimeout(() => {
-      if (window.startChatConversation) {
-        const productInfo = {
-          title: getLocalizedText(product.title),
-          price: product.price,
-          id: product._id,
-        };
-        window.startChatConversation(ownerUsername, productInfo);
-      }
-    }, 1000);
-  };
-
+    // Step 3: Redirect to chat page with conversationId
+    navigate("/chat", {
+      state: {
+        conversationId,
+        receiverUsername: product.owner?.username || ownerId,
+      },
+    });
+  } catch (err) {
+    console.error("Error starting chat:", err);
+    alert(t("productDetail.anErrorOccurred"));
+  }
+};
   const ownerId = product?.owner?._id || product?.owner || null;
 
   useEffect(() => {

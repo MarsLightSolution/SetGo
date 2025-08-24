@@ -5,7 +5,6 @@ import NotificationProvider from './contexts/NotificationContext'
 import Navbar from './components/common/Navbar'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
-import ModernChatApp from './components/Chat/ModernChatApp'
 import CheckoutPage from './components/Checkout/Checkout'
 import MyOrders from './components/Order/MyOrders'
 import OrderDetail from './components/Order/Orderdetail'
@@ -73,7 +72,7 @@ function App() {
             <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
             <Route path='/product/:id' element={<ProductDetail/>}/>
             <Route path='products/product/:id' element={<ProductDetail/>}/>
-            <Route path="/chat" element={<ModernChatApp/>}/>
+            <Route path="/chat" element={<ChatApp/>}/>
             <Route path='/userinfo' element={<UserInfo/>}/>
             <Route path='/userpage' element={<UserPage/>}/>
             <Route path='/mysearch' element={<MySearch/>}/>
