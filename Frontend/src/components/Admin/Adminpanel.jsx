@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   const [orderSearch, setOrderSearch] = useState("")
   const [sellerSearchInput, setSellerSearchInput] = useState("")
   const [sellerSearch, setSellerSearch] = useState("")
-
+  const orderTimestamp = Date.now().toString();
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              userId: process.env.ownerId, // admin id
+              userId: import.meta.env.VITE_OWNER_ID, // admin id
             }),
           }
         )
@@ -87,21 +87,24 @@ export default function AdminDashboard() {
       await fetchDashboardData()
     }
   }
-  const handleReleaseFunds = async (orderId) => {
+  const handleReleaseFunds = async (orderId, to , transaferTo) => {
     try {
       const order = dashboardData.orders.find((o) => o.id === orderId)
-      if (order && order.deliveryApproved && order.status === "delivered") {
+      console.log(order);
+      
+      if (order && (order.status === "delivered" || order.status === "cancelled" ) ) {
         const payload = {
-          senderId: process.env.ownerId,
-          receiverId: order.sellerId,
-          type: "transfer",
+          senderId: import.meta.env.VITE_OWNER_ID,
+          receiverId: to,
+          type: "transfer to " + transaferTo ,
           amount: order.amount,
-          description: `Payment for order ${orderTimestamp}`,
           transactionId: order.transactionId,
+          description: `Payment for order ${orderTimestamp} to ${transaferTo}`,
           referenceId: `order_${orderTimestamp}`,
-          source: "wallet",
+          source: "Admin wallet",
         };
-
+        console.log(payload);
+        
         try {
           const res = await fetch("http://localhost:8080/api/transaction/transferFund", {
             method: "POST",
@@ -112,48 +115,27 @@ export default function AdminDashboard() {
           console.log(data);
 
           if (res.ok) {
-            setStatus("SUCCESS");
-
-            try {
-              await fetch(`http://localhost:8080/api/products/mark-sold/${product._id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-              });
-            } catch (err) {
-              console.warn("Failed to update product as sold", err);
-            }
-
-            onPaymentSuccess?.(price);
-            await handleOrderCreation();
-            setTimeout(onClose, 1800);
+            alert("release done " + to )
+            setDashboardData((prev) => ({
+              ...prev,
+              orders: prev.orders.map((o) =>
+                o.id === orderId ? { ...o, status: "funds_released_to_" + transaferTo , fundsReleasedToSeller: true } : o,
+              ),
+              stats: {
+                ...prev.stats,
+                fundsHeld: prev.stats.fundsHeld - Number.parseFloat(order.amount),
+                pendingOrders: prev.stats.pendingOrders - 1,
+              },
+            }))
           } else {
+            alert("Failed to release funds " + to )
             setStatus("FAILURE");
           }
+
         } catch (err) {
           console.error(err);
           setStatus("FAILURE");
         }
-        setDashboardData((prev) => ({
-          ...prev,
-          orders: prev.orders.map((o) =>
-            o.id === orderId ? { ...o, status: "funds_released", fundsReleasedToSeller: true } : o,
-          ),
-          stats: {
-            ...prev.stats,
-            fundsHeld: prev.stats.fundsHeld - Number.parseFloat(order.amount),
-            pendingOrders: prev.stats.pendingOrders - 1,
-          },
-        }))
-
-        const response = await fetch(`/api/orders/${orderId}/release-funds`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to release funds")
-        }
-
         await fetchDashboardData()
       }
     } catch (err) {
@@ -458,7 +440,7 @@ export default function AdminDashboard() {
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <p className="text-xl text-red-600 font-medium mb-4">Error loading dashboard: {error}</p>
-          <Button onClick={fetchDashboardData}>Retry</Button>
+          <Button onClick={'http://localhost:5173/adminpanel'}>Retry</Button>
         </div>
       </div>
     )
@@ -905,7 +887,7 @@ export default function AdminDashboard() {
                             {renderText(order.status) === "delivered" && (
                               <Button
                                 size="sm"
-                                onClick={() => handleReleaseFunds(order.id)}
+                                onClick={() => handleReleaseFunds(order.id, order.sellerId,"Seller")}
                                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold"
                               >
                                 💰 Release Funds to Seller
@@ -915,7 +897,7 @@ export default function AdminDashboard() {
                             {(renderText(order.status) === "cancelled" || renderText(order.status) === "cancel") && (
                               <Button
                                 size="sm"
-                                onClick={() => handleCancelOrder(order.id)}
+                                onClick={() => handleReleaseFunds(order.id,order.buyerId,"Buyer")}
                                 className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold"
                               >
                                 🔄 Return Funds to Buyer

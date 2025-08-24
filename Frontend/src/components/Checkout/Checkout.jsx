@@ -15,9 +15,10 @@ const CheckoutPage = () => {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
+  
   const product = state?.product;
   const user = state?.user;
+  const ownerId =import.meta.env.VITE_OWNER_ID;
 
   if (!product) {
     return (
@@ -54,7 +55,8 @@ const handleCheckout = async () => {
   }
 
   const userId = user?._id;
-  const ownerId =process.env.ownerId;
+  // const ownerId =`${import.meta.env.ownerId}`;
+  console.log(ownerId); 
   if (!userId) {
     alert("⚠️ Please log in to continue.");
     return;
@@ -94,7 +96,7 @@ const handleCheckout = async () => {
 
   const tax = product.price * 0.1;
   const total = product.price + tax;
-  const ownerId =process.env.ownerId;
+  
 
   const prevImage = () => {
     setCurrentImageIndex(

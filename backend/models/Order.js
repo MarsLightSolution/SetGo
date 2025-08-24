@@ -17,6 +17,10 @@ const orderSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
+    transactionId:{
+      type:String,
+      required: true,
+    },
     total: {
       type: Number,
       required: true,

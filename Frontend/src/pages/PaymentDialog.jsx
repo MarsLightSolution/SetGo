@@ -9,6 +9,8 @@ const LOTTIES = {
   SUCCESS: "https://lottie.host/4d55262c-ea7c-48e2-9743-3d432f018cab/ziPzpGQKjj.lottie",
   FAILURE: "https://lottie.host/8eb74ef8-201e-44fc-a8a2-48f1737f298a/c0sZhMohd4.lottie",
 };
+const orderTimestamp = Date.now().toString();
+
 
 const LottieWrap = ({ type }) => (
   <motion.div
@@ -35,7 +37,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
   const price = product.price ?? 0;
   const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
   const remainder = price - walletDeduction;
-
+  const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
   useEffect(() => {
     setWalletBalance(user.walletBalance ?? 0);
   }, [user]);
@@ -63,36 +65,36 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       socket.disconnect();
     };
   }, [orderId, onClose, onPaymentSuccess, price]);
- const handleOrderCreation = async (txnId) => {
-  try {
-    const res = await fetch("http://localhost:8080/Orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        buyerId: user._id,
-        sellerId: owner,
-        productId: product._id,
-        total: price,
-        transactionId: txnId,
-        address: {
-          name: user.fullName,      // from CheckoutPage form
-          email: user.email,
-          city: user.city,
-          address: user.address,
-          zipCode: user.postalCode,
-        },
-      }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setTimeout(() => {
-        navigate(`/order/${data.data._id}`);
-      }, 1500);
+  const handleOrderCreation = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/Orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerId: user._id,
+          sellerId: owner,
+          productId: product._id,
+          total: price,
+          transactionId:txnId,
+          address: {
+            name: user.fullName,      // from CheckoutPage form
+            email: user.email,
+            city: user.city,
+            address: user.address,
+            zipCode: user.postalCode,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTimeout(() => {
+          navigate(`/order/${data.data._id}`);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error("Order creation failed", err);
     }
-  } catch (err) {
-    console.error("Order creation failed", err);
-  }
-};
+  };
 
 
   const Radio = ({ value, label }) => (
@@ -136,9 +138,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
 
   const walletTransfer = async () => {
     setStatus("LOADING");
-    const orderTimestamp = Date.now().toString();
-    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
-
+    console.log(owner);
     const payload = {
       senderId: user._id,
       receiverId: owner,
@@ -151,6 +151,8 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
     };
 
     try {
+      // console.log(payload);
+
       const res = await fetch("http://localhost:8080/api/transaction/transferFund", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -158,10 +160,10 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       });
       const data = await res.json().catch(() => ({}));
       console.log(data);
-      
+
       if (res.ok) {
         setStatus("SUCCESS");
-
+        console.log("payment ho gayi")
         try {
           await fetch(`http://localhost:8080/api/products/mark-sold/${product._id}`, {
             method: "PATCH",
@@ -172,7 +174,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         }
 
         onPaymentSuccess?.(price);
-        await handleOrderCreation(txnId);
+        await handleOrderCreation();
         setTimeout(onClose, 1800);
       } else {
         setStatus("FAILURE");
@@ -279,13 +281,12 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
           <button
             disabled={isPayDisabled}
             onClick={handlePay}
-            className={`w-full ${
-              isPayDisabled
+            className={`w-full ${isPayDisabled
                 ? "bg-gray-300 cursor-not-allowed"
                 : status === "FAILURE"
-                ? "bg-indigo-600 hover:bg-indigo-700"
-                : "bg-lime-500 hover:bg-lime-600"
-            } text-white font-semibold py-2 rounded`}
+                  ? "bg-indigo-600 hover:bg-indigo-700"
+                  : "bg-lime-500 hover:bg-lime-600"
+              } text-white font-semibold py-2 rounded`}
           >
             {payLabel}
           </button>

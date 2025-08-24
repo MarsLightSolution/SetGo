@@ -127,6 +127,7 @@ const getAdminDashboardData = async (req, res) => {
       sellerId: o.sellerId?._id,
       sellerEmail: o.sellerId?.email || "Unknown",
       productName: o.productId?.title || "Unknown Product",
+      transactionId:o.transactionId,
       amount: o.total,
       status: o.status,
       trackingId: o.trackingId,
