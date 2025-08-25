@@ -6,6 +6,8 @@ const initialState = {
   radius: 0,
   city: "",
   searchQuery: "",
+  category: "",       // ✅ added
+  postalCode: "",     // ✅ added
   location: {
     latitude: null,
     longitude: null,
@@ -34,13 +36,18 @@ const filterSlice = createSlice({
     setSearchQuery: (state, action) => {
       state.searchQuery = action.payload;
     },
+    setCategoryFilter: (state, action) => {
+      state.category = action.payload;
+    },
+    setPostalCode: (state, action) => {
+      state.postalCode = action.payload;
+    },
     resetFilters: (state) => {
-      // This uses Object.assign to reset to the initial state cleanly
       Object.assign(state, initialState);
     },
   },
 });
-
+console.log("FilterSlice initialized with state:", initialState);
 export const {
   setPriceRange,
   setCondition,
@@ -48,6 +55,8 @@ export const {
   setCity,
   setLocation,
   setSearchQuery,
+  setCategoryFilter,   // ✅ exported
+  setPostalCode,       // ✅ exported
   resetFilters,
 } = filterSlice.actions;
 
