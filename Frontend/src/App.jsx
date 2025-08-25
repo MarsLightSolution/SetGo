@@ -7,7 +7,7 @@ import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
 import CheckoutPage from './components/Checkout/Checkout'
 import MyOrders from './components/Order/MyOrders'
-import OrderDetail from './components/Order/Orderdetail'
+import OrderDetail from './components/Order/OrderDetail'
 import SellerAdminDashboard from './components/Admin/SellerAdmin'
 import AdminOrders from './components/Admin/Adminpanel'
 
