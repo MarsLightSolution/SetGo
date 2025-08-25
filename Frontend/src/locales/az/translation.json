@@ -53,7 +53,8 @@
     "applyFilters": "Filtirləri Tətbiq et",
     "clearFilters": "Filtri Təmizlə",
     "applying": "Tətbiq edilir...",
-    "nearbyProducts": "Yaxınlıqdakı Məhsullar"
+    "nearbyProducts": "Yaxınlıqdakı Məhsullar",
+    "yourLocation": "Sizin Yeriniz"
   },
   "geolocationNotSupported": "Coğrafi yerləşmə brauzeriniz tərəfindən dəstəklənmir.",
   "allowLocationAccess": "Yaxınlıqdakı məhsulları əldə etmək üçün zəhmət olmasa, yerə girişə icazə verin.",
