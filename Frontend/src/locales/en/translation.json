@@ -53,7 +53,8 @@
     "applyFilters": "Apply Filters",
     "clearFilters": "Clear Filters",
     "applying": "Applying...",
-    "nearbyProducts": "Nearby Products"
+    "nearbyProducts": "Nearby Products",
+    "yourLocation": "Your Location"
   },
   "geolocationNotSupported": "Geolocation is not supported by your browser.",
   "allowLocationAccess": "Please allow location access to fetch nearby products.",
