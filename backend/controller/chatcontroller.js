@@ -171,59 +171,62 @@ exports.sendMessage = async (req, res) => {
   }
 };
 
-// ----------------- File Upload -----------------
+// ----------------- File Upload ----------------
 exports.uploadFile = async (req, res) => {
-  const upload = req.app.get("upload");
-  upload.single("file")(req, res, async (err) => {
+  try {
     const { conversationId, senderId } = req.body;
-    if (err) {
-      return res.status(400).json({ success: false, message: err.message });
+
+    if (!conversationId || !senderId) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
-    try {
-      const file = req.file;
-      if (!conversationId || !senderId || !file) {
-        return res.status(400).json({ success: false, message: "Missing required fields" });
-      }
-
-      const sender = await User.findById(senderId);
-      if (!sender) {
-        return res.status(404).json({ success: false, message: "Sender not found" });
-      }
-
-      let messageType = "document";
-      let displayText = `📄 ${file.originalname}`;
-      if (file.mimetype.startsWith("image/")) {
-        messageType = "image";
-        displayText = "📷 Image";
-      }
-
-      const fileUrl = `/uploads/chat/${file.filename}`;
-
-      const message = new Message({
-        conversationId,
-        senderId,
-        senderName: sender.chatDisplayName || sender.username || sender.email,
-        text: displayText,
-        messageType,
-        fileUrl,
-        fileName: file.originalname,
-        fileSize: file.size,
-        mimeType: file.mimetype,
-      });
-      await message.save();
-
-      await Conversation.findByIdAndUpdate(conversationId, {
-        lastMessage: message.text,
-        lastMessageTime: new Date(),
-      });
-
-      res.json({ success: true, message });
-    } catch (error) {
-      logger.error(`[UploadFile] Error: ${error.stack}`);
-      res.status(500).json({ success: false, message: "Failed to upload file" });
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
     }
-  });
+
+    // Validate sender
+    const sender = await User.findById(senderId);
+    if (!sender) {
+      return res.status(404).json({ success: false, message: "Sender not found" });
+    }
+
+    // Determine file type
+    let messageType = "document";
+    let displayText = `📄 ${file.originalname}`;
+    if (file.mimetype.startsWith("image/")) {
+      messageType = "image";
+      displayText = "📷 Image";
+    }
+
+    // Since chat uploads go directly to ./uploads/chat via uploadChatFiles
+    const fileUrl = `/uploads/chat/${file.filename}`;
+
+    // Save message
+    const message = new Message({
+      conversationId,
+      senderId,
+      senderName: sender.chatDisplayName || sender.username || sender.email,
+      text: displayText,
+      messageType,
+      fileUrl,
+      fileName: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+    });
+    await message.save();
+
+    // Update conversation
+    await Conversation.findByIdAndUpdate(conversationId, {
+      lastMessage: message.text,
+      lastMessageTime: new Date(),
+    });
+
+    res.json({ success: true, message });
+  } catch (error) {
+    logger.error(`[UploadFile] Error: ${error.stack}`);
+    res.status(500).json({ success: false, message: "Failed to upload file" });
+  }
 };
 
 // ----------------- Lookup -----------------

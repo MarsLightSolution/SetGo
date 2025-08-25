@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
@@ -8,7 +8,8 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
     senderId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId, // better to store as ObjectId (User reference)
+      ref: "User",
       required: true,
     },
     senderName: {
@@ -17,9 +18,20 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
       trim: true,
     },
+
+    // 🔑 For files / media
+    messageType: {
+      type: String,
+      enum: ["text", "image", "video", "audio", "document"],
+      default: "text",
+    },
+    fileUrl: { type: String },   // where the file is stored
+    fileName: { type: String },  // original filename
+    fileSize: { type: Number },  // size in bytes
+    mimeType: { type: String },  // e.g., image/png, application/pdf
+
     timestamp: {
       type: Date,
       default: Date.now,
@@ -29,9 +41,7 @@ const messageSchema = new mongoose.Schema(
       default: false,
     },
   },
-  {
-    timestamps: true,
-  },
-)
+  { timestamps: true }
+);
 
-module.exports = mongoose.models.Message || mongoose.model("Message", messageSchema)
+module.exports = mongoose.models.Message || mongoose.model("Message", messageSchema);
