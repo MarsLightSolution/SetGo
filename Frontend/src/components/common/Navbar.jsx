@@ -4,21 +4,22 @@ import { useNavigate } from "react-router-dom";
 import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
 import { FaFilter } from "react-icons/fa";
 import { MdOutlineAddCircle } from "react-icons/md";
-import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
-import NotificationBell from './NotificationBell'
-import ProductFilters from './ProductFilters'
-import { TextField, MenuItem } from "@mui/material"; // Import TextField and MenuItem for language selector
+import { useSelector, useDispatch } from "react-redux";
+import NotificationBell from "./NotificationBell";
+import ProductFilters from "./ProductFilters";
+import { TextField, MenuItem } from "@mui/material"; 
 import {
   setSearchQuery,
+  setCategoryFilter,
+  setPostalCode,
 } from "../../slices/FilterSlice";
 
 // i18n imports
-import { useTranslation } from 'react-i18next';
-import i18n from '../../i18n'; // Adjust path if necessary based on your project structure
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n"; 
 
 const Navbar = () => {
-  const { t } = useTranslation(); // Initialize useTranslation hook
+  const { t } = useTranslation(); 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("");
@@ -26,6 +27,8 @@ const Navbar = () => {
   const [isDropdownPinned, setIsDropdownPinned] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [searchInput, setSearchInput] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [postalCode, setPostalCodeInput] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -71,7 +74,7 @@ const Navbar = () => {
 
   const handleNearbyClick = () => {
     if (!navigator.geolocation) {
-      alert(t("geolocationNotSupported")); // Translated alert
+      alert(t("geolocationNotSupported")); 
       return;
     }
 
@@ -82,20 +85,19 @@ const Navbar = () => {
 
         dispatch(setLocationFilter({ latitude, longitude }));
         navigate("/");
-        console.log("Location set:", latitude, longitude); // Keep for debugging if needed
+        console.log("Location set:", latitude, longitude);
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
-          alert(t("allowLocationAccess")); // Translated alert
+          alert(t("allowLocationAccess")); 
         } else {
-          alert(t("unableToFetchLocation")); // Translated alert
+          alert(t("unableToFetchLocation")); 
         }
         console.error(error);
       }
     );
   };
 
-  // Handler for changing the display language
   const handleDisplayLanguageChange = (e) => {
     i18n.changeLanguage(e.target.value);
   };
@@ -119,28 +121,28 @@ const Navbar = () => {
             <div className="flex items-center gap-3">
               {/* Global Display Language Selector */}
               <TextField
-                  select
-                  label={t("displayLanguage")}
-                  name="displayLanguage"
-                  value={i18n.language}
-                  onChange={handleDisplayLanguageChange}
-                  size="small" // Make it smaller for navbar
-                  sx={{
-                      minWidth: 100, // Adjust width as needed
-                      '& .MuiOutlinedInput-root': {
-                          '& fieldset': { borderColor: '#2e4a2f' }, // Dark green border
-                          '&:hover fieldset': { borderColor: '#84cc16' }, // Lime green on hover
-                          '&.Mui-focused fieldset': { borderColor: '#84cc16' }, // Lime green when focused
-                      },
-                      '& .MuiInputLabel-root': { color: '#2e4a2f' }, // Dark green label
-                      '& .MuiSelect-select': { color: '#2e4a2f' }, // Dark green text
-                      '& .MuiSvgIcon-root': { color: '#2e4a2f' }, // Dark green dropdown icon
-                      marginRight: '1rem', // Spacing from other buttons
-                  }}
+                select
+                label={t("displayLanguage")}
+                name="displayLanguage"
+                value={i18n.language}
+                onChange={handleDisplayLanguageChange}
+                size="small"
+                sx={{
+                  minWidth: 100,
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": { borderColor: "#2e4a2f" },
+                    "&:hover fieldset": { borderColor: "#84cc16" },
+                    "&.Mui-focused fieldset": { borderColor: "#84cc16" },
+                  },
+                  "& .MuiInputLabel-root": { color: "#2e4a2f" },
+                  "& .MuiSelect-select": { color: "#2e4a2f" },
+                  "& .MuiSvgIcon-root": { color: "#2e4a2f" },
+                  marginRight: "1rem",
+                }}
               >
-                  <MenuItem value="en">English</MenuItem>
-                  <MenuItem value="az">Azərbaycan</MenuItem>
-                  <MenuItem value="ru">Русский</MenuItem>
+                <MenuItem value="en">English</MenuItem>
+                <MenuItem value="az">Azərbaycan</MenuItem>
+                <MenuItem value="ru">Русский</MenuItem>
               </TextField>
 
               {!userName ? (
@@ -188,74 +190,77 @@ const Navbar = () => {
                 <FaSearch className="text-gray-500" />
                 <input
                   type="text"
-                  placeholder={t("navbar.searchPlaceholder")} // Translated placeholder
+                  placeholder={t("navbar.searchPlaceholder")}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       dispatch(setSearchQuery(searchInput));
                     }
                   }}
                   className="outline-none text-sm w-full"
                 />
               </div>
+
               <button
                 className="ml-2 p-2 bg-white rounded-full shadow hover:bg-gray-100 cursor-pointer"
                 onClick={() => setShowFilter(true)}
-                title={t("navbar.openFiltersTitle")} // Translated title
+                title={t("navbar.openFiltersTitle")}
               >
                 <FaFilter className="text-lime-800" />
               </button>
+
               {/* Category Select */}
-              <select 
-                className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4"
-                onChange={(e) => {
-                  const selectedCategory = e.target.value;
-                  if (selectedCategory !== t("navbar.allProducts")) {
-                    // You can add category filtering logic here
-                    console.log("Selected category:", selectedCategory);
-                  }
-                }}
-              >
-                <option>{t("navbar.allProducts")}</option> {/* Translated option */}
-                <option>{t("navbar.category.carsMotorcycles")}</option>
-                <option>{t("navbar.category.realEstate")}</option>
-                <option>{t("navbar.category.jobs")}</option>
-                <option>{t("navbar.category.householdFurniture")}</option>
-                <option>{t("navbar.category.electronics")}</option>
-                <option>{t("navbar.category.leisureHobbyNeighborhood")}</option>
-                <option>{t("navbar.category.service")}</option>
-                <option>{t("navbar.category.other")}</option>
-              </select>
+                            {/* Category Select */}
+                <select
+                  className="text-sm text-gray-700 outline-none w-[25%] border-l pl-4"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="">{t("navbar.allProducts")}</option>
+                  <option value="navbar.category.carsMotorcycles">{t("navbar.category.carsMotorcycles")}</option>
+                  <option value="navbar.category.realEstate">{t("navbar.category.realEstate")}</option>
+                  <option value="navbar.category.jobs">{t("navbar.category.jobs")}</option>
+                  <option value="navbar.category.householdFurniture">{t("navbar.category.householdFurniture")}</option>
+                  <option value="navbar.category.electronics">{t("navbar.category.electronics")}</option>
+                  <option value="navbar.category.leisureHobbyNeighborhood">{t("navbar.category.leisureHobbyNeighborhood")}</option>
+                  <option value="navbar.category.service">{t("navbar.category.service")}</option>
+                  <option value="navbar.category.other">{t("navbar.category.other")}</option>
+                </select>
 
-              {/* Location Input */}
-              <div className="flex items-center gap-2 border-l border-gray-300 pl-4 w-[21%]">
-                <FaMapMarkerAlt className="text-gray-500" />
-                <input
-                  type="text"
-                  placeholder={t("navbar.postalCodePlaceholder")} // Translated placeholder
-                  className="outline-none text-sm w-full"
-                />
-              </div>
+                {/* Postal Code Input */}
+                <div className="flex items-center gap-2 border-l border-gray-300 pl-4 w-[21%]">
+                  <FaMapMarkerAlt className="text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder={t("navbar.postalCodePlaceholder")}
+                    value={postalCode}
+                    onChange={(e) => setPostalCodeInput(e.target.value)}
+                    className="outline-none text-sm w-full"
+                  />
+                </div>
 
-              {/* Disabled Input */}
-              <input
-                type="text"
-                placeholder={t("navbar.wholePlacePlaceholder")} // Translated placeholder
-                disabled
-                className="text-sm text-gray-400 bg-gray-100 cursor-not-allowed w-[17%] px-1 py-1 rounded"
-              />
+                {/* Find Button */}
+                <button
+                  onClick={() => {
+                    dispatch(setSearchQuery(searchInput));
 
-              {/* Find Button */}
-              <button 
-                onClick={() => {
-                  dispatch(setSearchQuery(searchInput));
-                  navigate("/");
-                }}
-                className="ml-1 mx-0 bg-lime-500 hover:bg-lime-600 text-white font-semibold px-6 py-1.5 rounded-full"
-              >
-                {t("navbar.find")} {/* Translated button */}
-              </button>
+                    // ✅ Always send category to backend in English
+                    if (selectedCategory) {
+                      const englishCategory = t(selectedCategory, { lng: "en" });
+                      dispatch(setCategoryFilter(englishCategory));
+                    } else {
+                      dispatch(setCategoryFilter("")); // all products
+                    }
+
+                    dispatch(setPostalCode(postalCode));
+                    navigate("/");
+                  }}
+                  className="ml-1 mx-0 bg-lime-500 hover:bg-lime-600 text-white font-semibold px-6 py-1.5 rounded-full"
+                >
+                  {t("navbar.find")}
+                </button>
+
             </div>
 
             {/* Icons */}
@@ -265,7 +270,7 @@ const Navbar = () => {
                 onClick={() => navigate("/form")}
               >
                 <MdOutlineAddCircle className="text-lg" />
-                {t("navbar.advertise")} {/* Translated text */}
+                {t("navbar.advertise")}
               </div>
 
               {/* Mine Dropdown */}
@@ -278,13 +283,13 @@ const Navbar = () => {
                   }}
                 >
                   <FaUser className="text-lg" />
-                  <span>{t("navbar.mine")}</span> {/* Translated text */}
+                  <span>{t("navbar.mine")}</span>
                 </div>
 
                 {(dropdownOpen || isDropdownPinned) && (
-                  <div className="absolute top-full right-0 mt-2 w-40 bg-white shadow-lg rounded-lg border border-gray-200 z-50 py-1"> {/* Added py-1 for padding */}
+                  <div className="absolute top-full right-0 mt-2 w-40 bg-white shadow-lg rounded-lg border border-gray-200 z-50 py-1">
                     {[
-                      { labelKey: "navbar.mineDropdown.news", path: "/chat" }, // Using labelKey for translation
+                      { labelKey: "navbar.mineDropdown.news", path: "/chat" },
                       { labelKey: "navbar.mineDropdown.show", path: "/userinfo" },
                       { labelKey: "navbar.mineDropdown.settings", path: "/profile" },
                       { labelKey: "navbar.mineDropdown.watchlist", path: "/watchlist" },
@@ -300,7 +305,7 @@ const Navbar = () => {
                           setIsDropdownPinned(false);
                         }}
                       >
-                        {t(item.labelKey)} {/* Use t() for item labels */}
+                        {t(item.labelKey)}
                       </div>
                     ))}
                   </div>
@@ -310,7 +315,8 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-      <ProductFilters 
+
+      <ProductFilters
         isOpen={showFilter}
         onClose={() => setShowFilter(false)}
         onApply={() => {
@@ -322,4 +328,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;  
+export default Navbar;

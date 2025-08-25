@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { Favorite, FavoriteBorder } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
-import { resetFilters } from "../slices/FilterSlice";
+import { 
+  resetFilters,setCategoryFilter as setCategory
+} from "../slices/FilterSlice"; 
 import Footer from "../components/common/Footer";
 import { useNavigate, Link } from "react-router-dom";
 import bannerImage from "../assets/images/banner1.png";
@@ -169,23 +171,26 @@ const Home = () => {
   const { t, i18n } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(t("home.allProducts"));
   const { latestAds, recommendedAds } = useSelector((state) => state.products);
-  const { priceRange, condition, radius, city, latitude, longitude, searchQuery, location } = useSelector((state) => state.filter);
+  const { priceRange, condition, radius, city, category,
+  postalCode, latitude, longitude, searchQuery, location } = useSelector((state) => state.filter);
   const dispatch = useDispatch();
-
+  console.log("Current Filters:", { priceRange, condition, radius, city, category, postalCode, location, searchQuery });
   const [latestPagination, setLatestPagination] = useState({ currentPage: 1 });
   const [recommendedPagination, setRecommendedPagination] = useState({ currentPage: 1 });
 
-  const hasActiveFilters = () => {
-    return (
-      (priceRange && priceRange[0] > 0) ||
-      (priceRange && priceRange[1] < 10000) ||
-      condition ||
-      (radius > 0) ||
-      city ||
-      searchQuery ||
-      (location.latitude && location.longitude)
-    );
-  };
+const hasActiveFilters = () => {
+  return (
+    (priceRange && priceRange[0] > 0) ||
+    (priceRange && priceRange[1] < 10000) ||
+    condition ||
+    (radius > 0) ||
+    city ||
+    searchQuery ||
+    (location && location.latitude && location.longitude) ||
+    category ||          // ✅ check category
+    postalCode           // ✅ check postalCode
+  );
+};
 
   const clearFilters = () => {
     dispatch(resetFilters());
@@ -202,76 +207,89 @@ const Home = () => {
     "navbar.category.service",
     "navbar.category.other"
   ];
+const fetchProducts = async (type, page) => {
+  try {
+    const params = new URLSearchParams({ page, limit: 12 });
 
-  const getCategoryValue = (translatedCategory) => {
-    const foundKey = categoryKeys.find(key => t(key) === translatedCategory);
-    if (foundKey) {
-        return t(foundKey, { lng: 'en' });
+    // Language
+    params.append("lang", i18n.language);
+
+    // User
+    const currentUserId = localStorage.getItem("userId");
+    if (currentUserId) {
+      params.append("userId", currentUserId);
     }
-    return 'All Products';
-  };
 
-  const fetchProducts = async (type, page) => {
-    try {
-      const params = new URLSearchParams({ page, limit: 12 });
-
-      params.append("lang", i18n.language);
-      const currentUserId = localStorage.getItem("userId");
-      if (currentUserId) {
-        params.append("userId", currentUserId);
-      }
-      if (priceRange && priceRange.length === 2) {
-        params.append("minPrice", priceRange[0]);
-        params.append("maxPrice", priceRange[1]);
-      }
-      if (location && location.latitude && location.longitude) {
-        params.append("latitude", location.latitude);
-        params.append("longitude", location.longitude);
-        if (radius > 0) {
-          params.append("radiusInKm", radius);
-        }
-      } else if (city) {
-        params.append("city", city);
-      }
-      if (condition) {
-        params.append("condition", condition);
-      }
-      if (searchQuery) {
-        params.append("search", searchQuery);
-      }
-
-      let endpoint = "http://localhost:8080/api/products/getProducts";
-      if (type === "nearby" && latitude && longitude && radius > 0) {
-        endpoint = "http://localhost:8080/api/products/nearby";
-      }
-
-      console.log("Fetching products with params:", params.toString());
-
-      const res = await fetch(`${endpoint}?${params.toString()}`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        console.error(t("home.fetchProductsError"));
-        return;
-      }
-
-      const json = await res.json();
-      const { products = [], ...pagination } = json.data ?? {};
-
-      if (type === "category") {
-        dispatch(setProducts({ latestAds: products }));
-        setLatestPagination(pagination);
-      } else {
-        dispatch(setProducts({ recommendedAds: products }));
-        setRecommendedPagination(pagination);
-      }
-    } catch (err) {
-      console.error(t("home.fetchFailed"), err);
+    // Price range
+    if (priceRange && priceRange.length === 2) {
+      params.append("minPrice", priceRange[0]);
+      params.append("maxPrice", priceRange[1]);
     }
-  };
 
+    // Location or City
+    if (location && location.latitude && location.longitude) {
+      params.append("latitude", location.latitude);
+      params.append("longitude", location.longitude);
+      if (radius > 0) {
+        params.append("radiusInKm", radius);
+      }
+    } else if (city) {
+      params.append("city", city);
+    }
+
+    // Condition
+    if (condition) {
+      params.append("condition", condition);
+    }
+
+    // Category ✅
+    if (category) {
+      params.append("category", category);
+    }
+
+    // Postal code ✅
+    if (postalCode) {
+      params.append("postalCode", postalCode);
+    }
+
+    // Search query
+    if (searchQuery) {
+      params.append("search", searchQuery);
+    }
+
+    // Endpoint
+    let endpoint = "http://localhost:8080/api/products/getProducts";
+    if (type === "nearby" && location?.latitude && location?.longitude && radius > 0) {
+      endpoint = "http://localhost:8080/api/products/nearby";
+    }
+
+    console.log("Fetching products with params:", params.toString());
+
+    // API Call
+    const res = await fetch(`${endpoint}?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      console.error(t("home.fetchProductsError"));
+      return;
+    }
+
+    const json = await res.json();
+    const { products = [], ...pagination } = json.data ?? {};
+
+    if (type === "category") {
+      dispatch(setProducts({ latestAds: products }));
+      setLatestPagination(pagination);
+    } else {
+      dispatch(setProducts({ recommendedAds: products }));
+      setRecommendedPagination(pagination);
+    }
+  } catch (err) {
+    console.error(t("home.fetchFailed"), err);
+  }
+};
   useEffect(() => {
     setActiveCategory(t("home.allProducts"));
     if (latitude && longitude) {
@@ -279,38 +297,42 @@ const Home = () => {
     }
   }, [latitude, longitude, radius, t, i18n.language, dispatch]);
 
-  useEffect(() => {
-    fetchProducts("category", latestPagination.currentPage);
-  }, [
-    activeCategory, 
-    latestPagination.currentPage, 
-    priceRange, 
-    condition, 
-    city, 
-    searchQuery,
-    radius, 
-    latitude, 
-    longitude, 
-    t, 
-    i18n.language,
-    dispatch
-  ]);
+useEffect(() => {
+  fetchProducts("category", latestPagination.currentPage);
+}, [
+  activeCategory, 
+  latestPagination.currentPage, 
+  priceRange, 
+  condition, 
+  city, 
+  searchQuery,
+  radius, 
+  latitude, 
+  longitude, 
+  category,          // ✅ added
+  postalCode,        // ✅ added
+  t, 
+  i18n.language,
+  dispatch
+]);
 
-  useEffect(() => {
-    fetchProducts("recommended", recommendedPagination.currentPage);
-  }, [
-    recommendedPagination.currentPage, 
-    priceRange, 
-    condition, 
-    city, 
-    searchQuery,
-    radius, 
-    latitude, 
-    longitude, 
-    t, 
-    i18n.language,
-    dispatch
-  ]);
+useEffect(() => {
+  fetchProducts("recommended", recommendedPagination.currentPage);
+}, [
+  recommendedPagination.currentPage, 
+  priceRange, 
+  condition, 
+  city, 
+  searchQuery,
+  radius, 
+  latitude, 
+  longitude, 
+  category,          // ✅ added
+  postalCode,        // ✅ added
+  t, 
+  i18n.language,
+  dispatch
+]);
 
   const galleryData = [
     {
@@ -463,6 +485,17 @@ const Home = () => {
                           {t("home.search")}: "{searchQuery}"
                         </span>
                       )}
+                      {category && (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                            {"category"}: "{category}"
+                          </span>
+                        )}
+
+                        {postalCode && (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                            {"postalCode"}: {postalCode}
+                          </span>
+                        )}
                     </div>
                   </div>
                   <button
@@ -478,29 +511,40 @@ const Home = () => {
             {/* Category + Gallery Section */}
             <div className="flex flex-wrap gap-4">
               {/* Categories */}
-              <div className="bg-white p-4 rounded shadow w-full md:w-[38%] h-[350px] overflow-y-auto">
-                <h2 className="text-lg font-semibold mb-3">{t("home.categories")}</h2>
-                <ul className="text-sm space-y-4 pl-2 text-gray-700">
-                  {categoryKeys.map((key) => {
-                    const translatedCat = t(key);
-                    return (
-                      <li
-                        key={key}
-                        onClick={() => {
-                          setActiveCategory(translatedCat);
-                        }}
-                        className={`cursor-pointer hover:underline ${activeCategory === translatedCat
-                            ? "font-semibold text-green-700"
-                            : ""
-                          }`}
-                      >
-                        {translatedCat}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+<div className="bg-white p-4 rounded shadow w-full md:w-[38%] h-[350px] overflow-y-auto">
+  <h2 className="text-lg font-semibold mb-3">{t("home.categories")}</h2>
+  <ul className="text-sm space-y-4 pl-2 text-gray-700">
+    {categoryKeys.map((key) => {
+      const translatedCat = t(key);
+      return (
+        <li
+          key={key}
+          onClick={() => {
+            setActiveCategory(translatedCat);
 
+            // update Redux filter
+            if (key === "home.allProducts") {
+              dispatch(setCategory("")); // clear filter for "All Products"
+            } else {
+              dispatch(setCategory(translatedCat));
+            }
+
+            // reset pagination when switching category
+            setLatestPagination({ currentPage: 1 });
+            setRecommendedPagination({ currentPage: 1 });
+          }}
+          className={`cursor-pointer hover:underline ${
+            activeCategory === translatedCat
+              ? "font-semibold text-green-700"
+              : ""
+          }`}
+        >
+          {translatedCat}
+        </li>
+      );
+    })}
+  </ul>
+</div>
               {/* Gallery */}
               <div className="bg-white p-4 rounded shadow flex-1 w-full md:w-[60%]">
                 <div className="flex justify-between items-center mb-4">
