@@ -11,6 +11,7 @@ const { Server } = require("socket.io");   // <-- ADD
 const mongoose = require("./config/mongoose");
 const logger = require("./utils/logger");
 const initSocket = require("./controller/Socketcontroller"); // <-- ADD
+const uploadPictures = require("./middlewares/multer.middleware");
 
 dotenv.config();
 

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const uploadPictures = require("../middlewares/multer.middleware.js");
+const { uploadPictures } = require("../middlewares/multer.middleware.js");
 const verifyJWT = require("../middlewares/auth.middlewares.js");
 const {
   addProduct,
