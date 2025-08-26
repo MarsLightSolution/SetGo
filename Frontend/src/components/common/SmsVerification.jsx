@@ -20,7 +20,7 @@ function SmsVerification({ phoneNumber, email, onClose, showCloseButton = false,
 
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/auth/verify-otp",
+        `${import.meta.env.VITE_SERVER}/api/auth/verify-otp`,
         {
           phoneNumber: phoneNumber,
           otp: otp,
@@ -57,7 +57,7 @@ function SmsVerification({ phoneNumber, email, onClose, showCloseButton = false,
 
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/auth/send-otp",
+        `${import.meta.env.VITE_SERVER}/api/auth/send-otp`,
         {
           phoneNumber: phoneNumber,
           email: email,

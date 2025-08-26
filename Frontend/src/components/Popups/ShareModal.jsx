@@ -3,7 +3,7 @@ import { FaWhatsapp, FaFacebookF, FaEnvelope } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 
 const ShareModal = ({ onClose, product }) => {
-  const shareUrl = `https://yourdomain.com/products/product/${product._id}`;
+  const shareUrl = `${import.meta.env.VITE_SERVER}/products/product/${product._id}`;
   const title = encodeURIComponent(product.title);
 
   return (

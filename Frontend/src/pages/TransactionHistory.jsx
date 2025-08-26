@@ -35,7 +35,7 @@ const TransactionHistory = ({ forcedUserId }) => {
     (async () => {
       try {
         const res = await fetch(
-          `http://localhost:8080/users/${userId}/transactions`,
+          `${import.meta.env.VITE_SERVER}/users/${userId}/transactions`,
           {
             credentials: "include",
           }

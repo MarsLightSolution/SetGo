@@ -45,7 +45,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
   useEffect(() => {
     if (!orderId) return;
 
-    const socket = io("http://localhost:8080", { withCredentials: true });
+    const socket = io(`${import.meta.env.VITE_SERVER}`, { withCredentials: true });
 
     socket.emit("subscribePayment", orderId);
 
@@ -67,7 +67,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
   }, [orderId, onClose, onPaymentSuccess, price]);
   const handleOrderCreation = async () => {
     try {
-      const res = await fetch("http://localhost:8080/Orders", {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/Orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
     try {
       // console.log(payload);
 
-      const res = await fetch("http://localhost:8080/api/transaction/transferFund", {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -165,7 +165,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         setStatus("SUCCESS");
         console.log("payment ho gayi")
         try {
-          await fetch(`http://localhost:8080/api/products/mark-sold/${product._id}`, {
+          await fetch(`${import.meta.env.VITE_SERVER}/api/products/mark-sold/${product._id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
           });
@@ -203,7 +203,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
     };
 
     try {
-      const res = await fetch("http://localhost:8080/api/payment/create", {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/payment/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -60,7 +60,7 @@ const Wishlist = () => {
                     {/* Image */}
                     <Link to={`/product/${post._id}`} className="w-full md:w-[160px] h-[120px] flex items-center justify-center mb-4 md:mb-0 flex-shrink-0">
                       <img
-                        src={`http://localhost:8080/${post.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
+                        src={`${import.meta.env.VITE_SERVER}/${post.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
                         alt={displayTitle}
                         className="h-full w-full object-contain rounded-md"
                       />
@@ -127,7 +127,7 @@ const Wishlist = () => {
 
             {/* Browse Listings Button */}
             <Link to="/">
-              <button className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md px-6 py-2 transition duration-300 border border-green-600 hover:bg-white hover:text-green-700">
+              <button className="bg-green-600 hover\:bg-green-700 text-white text-sm font-medium rounded-md px-6 py-2 transition duration-300 border border-green-600 hover:bg-white hover:text-green-700">
                 {t("wishlist.browseButton")} {/* Corrected key */}
               </button>
             </Link>

@@ -39,7 +39,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:8080/logout", {
+      await fetch(`${import.meta.env.VITE_SERVER}/logout`, {
         method: "POST",
         credentials: "include",
       });

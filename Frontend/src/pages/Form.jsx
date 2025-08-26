@@ -217,7 +217,7 @@ if (name === "condition") {
     });
 
     try {
-      const res = await fetch("http://localhost:8080/api/products/add", {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/products/add`, {
         method: "POST",
         body: formDataToSend,
         credentials: "include",

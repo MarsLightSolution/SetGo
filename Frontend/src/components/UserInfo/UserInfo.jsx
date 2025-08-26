@@ -93,7 +93,7 @@ export default function UserInfo() {
     const fetchUserAds = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:8080/api/products/user/${userId}/ads`,
+          `${import.meta.env.VITE_SERVER}/api/products/user/${userId}/ads`,
           {
             // IMPORTANT: Pass Authorization header with Bearer token
             headers: {
@@ -133,7 +133,7 @@ export default function UserInfo() {
 
   const deleteAd = async (id) => {
     try {
-      await axios.delete(`http://localhost:8080/api/products/product/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_SERVER}/api/products/product/${id}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }, // Add header for delete too
         withCredentials: true,
       });
@@ -291,7 +291,7 @@ export default function UserInfo() {
                     <div className="h-44 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
                       {ad.pictures?.[0] ? (
                         <img
-                          src={`http://localhost:8080/${
+                          src={`${import.meta.env.VITE_SERVER}/${
                             ad.pictures?.[0]?.replace(/\\/g, "/") ||
                             "uploads/placeholder.jpg"
                           }`}

@@ -22,8 +22,8 @@ export default function ChatApp() {
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const API_BASE = "http://localhost:8080/api/chat"
-  const SOCKET_URL = "http://localhost:8080"
+  const API_BASE = `${import.meta.env.VITE_SERVER}${import.meta.env.VITE_SERVER}/api/chat`
+  const SOCKET_URL = `${import.meta.env.VITE_SERVER}`
 
   const socketRef = useRef(null)
   // Auto-focus conversation after currentUser and conversations are ready
@@ -464,7 +464,7 @@ const handleSendMessage = async (e) => {
                       >
                         {message.messageType === "image" ? (
                          <img
-                          src={`http://localhost:8080${message.fileUrl}`}
+                          src={`${import.meta.env.VITE_SERVER}${message.fileUrl}`}
                           alt={message.fileName || "Shared image"}
                           className="max-w-[200px] max-h-[200px] object-cover rounded-xl mb-2 shadow"
                         />

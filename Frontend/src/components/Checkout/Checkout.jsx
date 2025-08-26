@@ -68,7 +68,7 @@ const handleCheckout = async () => {
 
   // Fetch user data
   try {
-    const res = await fetch(`http://localhost:8080/users/get-users/${userId}`, {
+    const res = await fetch(`${import.meta.env.VITE_SERVER}/users/get-users/${userId}`, {
       credentials: "include",
     });
     const json = await res.json();
@@ -158,7 +158,7 @@ const handleCheckout = async () => {
                   </>
                 ) : (
                   <img
-                    src="http://localhost:8080/uploads/placeholder.jpg"
+                    src={`${import.meta.env.VITE_SERVER}/uploads/placeholder.jpg`}
                     alt="Placeholder"
                     className="w-full h-full object-cover rounded-xl"
                   />

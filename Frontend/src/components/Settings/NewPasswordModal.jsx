@@ -34,7 +34,7 @@ function NewPasswordModal({ onClose }) {
 
     try {
       setLoading(true);
-      const res = await axios.patch(`http://localhost:8080/updatepassword/${userId}`, {
+      const res = await axios.patch(`${import.meta.env.VITE_SERVER}/updatepassword/${userId}`, {
         password: newPassword.trim()
       });
 
