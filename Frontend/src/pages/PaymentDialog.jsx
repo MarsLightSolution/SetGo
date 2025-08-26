@@ -164,15 +164,6 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
       if (res.ok) {
         setStatus("SUCCESS");
         console.log("payment ho gayi")
-        try {
-          await fetch(`${import.meta.env.VITE_SERVER}/api/products/mark-sold/${product._id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-          });
-        } catch (err) {
-          console.warn("Failed to update product as sold", err);
-        }
-
         onPaymentSuccess?.(price);
         await handleOrderCreation();
         setTimeout(onClose, 1800);
