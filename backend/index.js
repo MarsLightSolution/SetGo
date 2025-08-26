@@ -21,8 +21,7 @@ const app = express();
 // ------------------- CORS -------------------
 const allowedOrigins = [
   "http://localhost:5173",  // dev
-  "http://51.20.123.49",    // prod HTTP
-  "https://51.20.123.49"    // prod HTTPS
+  "http://51.20.123.49",    // prod HTTPS
 ];
 
 const corsOptions = {
