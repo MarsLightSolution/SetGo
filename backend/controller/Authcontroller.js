@@ -113,7 +113,7 @@ module.exports.verifyEmail = async (req, res) => {
     await TempUser.deleteOne({ _id: tempUser._id });
 
     logger.info(`[VerifyEmail] Email verified for: ${tempUser.email}`);
-    return res.redirect(`http://localhost:5173/confirm?verified=true&email=${encodeURIComponent(tempUser.email)}`);
+    return res.redirect(`http://51.20.123.49/confirm?verified=true&email=${encodeURIComponent(tempUser.email)}`);
   } catch (err) {
     logger.error(`[VerifyEmail] Error: ${err.stack}`);
     return res.status(500).send("An error occurred during email verification.");
