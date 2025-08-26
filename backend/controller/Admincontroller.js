@@ -249,9 +249,52 @@ const approveDelivery = async (req, res) => {
     res.status(500).json({ error: "Server error approving delivery" });
   }
 };
+// Release funds (only admin)
+const releaseFunds = async (req, res) => {
+  try {
+    const { userId } = req.body; // admin id from frontend
+    const { orderId } = req.params;
+
+    console.log("Releasing funds for order:", orderId, "by user:", userId);
+
+    // ✅ Ensure only admin can release funds
+    if (userId !== ADMIN_ID) {
+      return res.status(403).json({ error: "Only admin can release funds" });
+    }
+
+    // 🔍 Find order
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // ❌ Prevent releasing if already released/cancelled
+    if (["released"].includes(order.status)) {
+      return res.status(400).json({ error: `Order already ${order.status}` });
+    }
+
+    // ✅ Release funds
+    order.status = "released";
+    order.fundsReleasedAt = new Date();
+    await order.save();
+
+    // (Optional) Add logic to credit seller's wallet here:
+    // await creditSeller(order.sellerId, order.total);
+
+    return res.json({
+      success: true,
+      message: "Funds released successfully",
+      order,
+    });
+  } catch (err) {
+    console.error("Release funds error:", err);
+    res.status(500).json({ error: "Server error releasing funds" });
+  }
+};
 
 module.exports = {
   getAdminDashboardData,
   cancelOrder,
-  approveDelivery
+  approveDelivery,
+  releaseFunds
 };

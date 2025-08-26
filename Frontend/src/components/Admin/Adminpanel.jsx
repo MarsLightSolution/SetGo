@@ -7,6 +7,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [status, setStatus] = useState("")
 
   const [dashboardData, setDashboardData] = useState({
     stats: { totalRevenue: 0, activeBuyers: 0, pendingOrders: 0, fundsHeld: 0 },
@@ -24,13 +25,15 @@ export default function AdminDashboard() {
   const [orderSearch, setOrderSearch] = useState("")
   const [sellerSearchInput, setSellerSearchInput] = useState("")
   const [sellerSearch, setSellerSearch] = useState("")
-  const orderTimestamp = Date.now().toString();
+  const orderTimestamp = Date.now().toString()
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
       const response = await fetch(`${import.meta.env.VITE_SERVER}/dashboard`)
       const result = await response.json()
-      console.log(result);
+      console.log(result)
       if (result.success) {
         setDashboardData(result.data)
       } else {
@@ -46,7 +49,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-  }, [])
+  }, [refreshTrigger])
 
   const handleApproveDelivery = async (orderId) => {
     try {
@@ -57,23 +60,18 @@ export default function AdminDashboard() {
         setDashboardData((prev) => ({
           ...prev,
           orders: prev.orders.map((o) =>
-            o.id === orderId
-              ? { ...o, deliveryApproved: true, status: "delivered" }
-              : o
+            o.id === orderId ? { ...o, deliveryApproved: true, status: "delivered" } : o,
           ),
         }))
 
         // ✅ Call backend with adminId
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVER}/${orderId}/approve-delivery`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userId: import.meta.env.VITE_OWNER_ID, // admin id
-            }),
-          }
-        )
+        const response = await fetch(`${import.meta.env.VITE_SERVER}/${orderId}/approve-delivery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: import.meta.env.VITE_OWNER_ID, // admin id
+          }),
+        })
 
         if (!response.ok) {
           throw new Error("Failed to approve delivery")
@@ -87,39 +85,54 @@ export default function AdminDashboard() {
       await fetchDashboardData()
     }
   }
-  const handleReleaseFunds = async (orderId, to, transaferTo) => {
-    try {
-      const order = dashboardData.orders.find((o) => o.id === orderId)
-      console.log(order);
+const handleReleaseFunds = async (orderId, to, transaferTo) => {
+  try {
+    const order = dashboardData.orders.find((o) => o.id === orderId)
+    console.log(order)
 
-      if (order && (order.status === "delivered" || order.status === "cancelled")) {
-        const payload = {
-          senderId: import.meta.env.VITE_OWNER_ID,
-          receiverId: to,
-          type: "transfer to " + transaferTo,
-          amount: order.amount,
-          transactionId: order.transactionId,
-          description: `Payment for order ${orderTimestamp} to ${transaferTo}`,
-          referenceId: `order_${orderTimestamp}`,
-          source: "Admin wallet",
-        };
-        console.log(payload);
+    if (order && (order.status === "delivered" || order.status === "cancelled")) {
+      const orderTimestamp = Date.now() // ✅ ensure unique referenceId
+      const payload = {
+        senderId: import.meta.env.VITE_OWNER_ID,
+        receiverId: to,
+        type: "transfer to " + transaferTo,
+        amount: order.amount,
+        transactionId: order.transactionId,
+        description: `Payment for order ${orderTimestamp} to ${transaferTo}`,
+        referenceId: `order_${orderTimestamp}`,
+        source: "Admin wallet",
+      }
 
-        try {
-          const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
-            method: "POST",
+      console.log(payload)
+
+      try {
+        // Step 1: Transfer funds
+        const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json().catch(() => ({}))
+        console.log(data)
+
+        if (res.ok) {
+          // ✅ Step 2: Update order as "funds released"
+          const orderRes = await fetch(`${import.meta.env.VITE_SERVER}/${orderId}/release`, {
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          const data = await res.json().catch(() => ({}));
-          console.log(data);
+            body: JSON.stringify({ userId: import.meta.env.VITE_OWNER_ID }),
+          })
 
-          if (res.ok) {
-            alert("release done " + to)
+          if (orderRes.ok) {
+            alert("Funds released successfully to " + to)
+
+            // Update frontend state
             setDashboardData((prev) => ({
               ...prev,
               orders: prev.orders.map((o) =>
-                o.id === orderId ? { ...o, status: "funds_released_to_" + transaferTo, fundsReleasedToSeller: true } : o,
+                o.id === orderId
+                  ? { ...o, status: "funds_released_to_" + transaferTo, fundsReleasedToSeller: true }
+                  : o,
               ),
               stats: {
                 ...prev.stats,
@@ -127,27 +140,30 @@ export default function AdminDashboard() {
                 pendingOrders: prev.stats.pendingOrders - 1,
               },
             }))
+            setRefreshTrigger((prev) => prev + 1)
           } else {
-            alert("Failed to release funds " + to)
-            setStatus("FAILURE");
+            alert("Transaction done but order update failed!")
           }
-
-        } catch (err) {
-          console.error(err);
-          setStatus("FAILURE");
+        } else {
+          alert("Failed to release funds " + to)
+          setStatus("FAILURE")
         }
-        await fetchDashboardData()
+      } catch (err) {
+        console.error(err)
+        setStatus("FAILURE")
       }
-    } catch (err) {
-      console.error("Error releasing funds:", err)
-      setError("Failed to release funds to seller")
       await fetchDashboardData()
     }
+  } catch (err) {
+    console.error("Error releasing funds:", err)
+    setError("Failed to release funds to seller")
+    await fetchDashboardData()
   }
+}
 
   const handleCancelOrder = async (orderId) => {
     try {
-      const order = dashboardData.orders.find((o) => o.id === orderId);
+      const order = dashboardData.orders.find((o) => o.id === orderId)
 
       if (
         order &&
@@ -159,42 +175,37 @@ export default function AdminDashboard() {
         // Optimistic UI update
         setDashboardData((prev) => ({
           ...prev,
-          orders: prev.orders.map((o) =>
-            o.id === orderId ? { ...o, status: "cancel", fundsReturned: true } : o
-          ),
+          orders: prev.orders.map((o) => (o.id === orderId ? { ...o, status: "cancel", fundsReturned: true } : o)),
           stats: {
             ...prev.stats,
             fundsHeld: prev.stats.fundsHeld - Number.parseFloat(order.amount),
             pendingOrders: prev.stats.pendingOrders - 1,
           },
-        }));
+        }))
 
         // 🔑 Send userId in request body
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVER}/${orderId}/cancel`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              userId: import.meta.env.VITE_OWNER_ID, // ✅ Admin userId
-            }),
-          }
-        );
+        const response = await fetch(`${import.meta.env.VITE_SERVER}/${orderId}/cancel`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: import.meta.env.VITE_OWNER_ID, // ✅ Admin userId
+          }),
+        })
 
         if (!response.ok) {
-          throw new Error("Failed to cancel order");
+          throw new Error("Failed to cancel order")
         }
 
-        await fetchDashboardData();
+        await fetchDashboardData()
       }
     } catch (err) {
-      console.error("Error cancelling order:", err);
-      setError("Failed to cancel order and return funds");
-      await fetchDashboardData();
+      console.error("Error cancelling order:", err)
+      setError("Failed to cancel order and return funds")
+      await fetchDashboardData()
     }
-  };
+  }
   const renderText = (text) => {
     console.log("[v0] renderText called with:", text, "type:", typeof text)
     if (typeof text === "string") {
@@ -342,10 +353,11 @@ export default function AdminDashboard() {
   const TabButton = ({ isActive, onClick, children }) => (
     <button
       onClick={onClick}
-      className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 ${isActive
-        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 bg-white shadow-md"
-        }`}
+      className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 ${
+        isActive
+          ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 bg-white shadow-md"
+      }`}
     >
       {children}
     </button>
@@ -423,6 +435,17 @@ export default function AdminDashboard() {
     setSellerSearch("")
   }
 
+  const isFundsReleased = (status) => {
+    return status.includes("funds_released_to_")
+  }
+
+  const handleButtonClick = (callback) => {
+    return async (...args) => {
+      await callback(...args)
+      setRefreshTrigger((prev) => prev + 1)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 p-6 flex items-center justify-center">
@@ -440,7 +463,7 @@ export default function AdminDashboard() {
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <p className="text-xl text-red-600 font-medium mb-4">Error loading dashboard: {error}</p>
-          <Button onClick={`${import.meta.env.VITE_FRONTEND}/adminpanel`}>Retry</Button>
+          <Button onClick={() => (window.location.href = `${import.meta.env.VITE_FRONTEND}/adminpanel`)}>Retry</Button>
         </div>
       </div>
     )
@@ -543,10 +566,11 @@ export default function AdminDashboard() {
                       >
                         <div className="flex items-center space-x-4">
                           <div
-                            className={`w-4 h-4 rounded-full shadow-lg ${renderText(transaction.type) === "credit"
-                              ? "bg-gradient-to-r from-green-400 to-green-600"
-                              : "bg-gradient-to-r from-red-400 to-red-600"
-                              }`}
+                            className={`w-4 h-4 rounded-full shadow-lg ${
+                              renderText(transaction.type) === "credit"
+                                ? "bg-gradient-to-r from-green-400 to-green-600"
+                                : "bg-gradient-to-r from-red-400 to-red-600"
+                            }`}
                           />
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{renderText(transaction.description)}</p>
@@ -556,8 +580,9 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div
-                          className={`text-sm font-black ${renderText(transaction.type) === "credit" ? "text-green-600" : "text-red-600"
-                            }`}
+                          className={`text-sm font-black ${
+                            renderText(transaction.type) === "credit" ? "text-green-600" : "text-red-600"
+                          }`}
                         >
                           {renderText(transaction.type) === "credit" ? "+" : "-"}${renderText(transaction.amount)}
                         </div>
@@ -851,7 +876,7 @@ export default function AdminDashboard() {
                                 </Badge>
                                 <Button
                                   size="sm"
-                                  onClick={() => handleCancelOrder(order.id)}
+                                  onClick={handleButtonClick(() => handleCancelOrder(order.id))}
                                   className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold"
                                 >
                                   ❌ Cancel Order
@@ -869,14 +894,14 @@ export default function AdminDashboard() {
                                 </Badge>
                                 <Button
                                   size="sm"
-                                  onClick={() => handleApproveDelivery(order.id)}
+                                  onClick={handleButtonClick(() => handleApproveDelivery(order.id))}
                                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold"
                                 >
                                   ✅ Approve Delivery
                                 </Button>
                                 <Button
                                   size="sm"
-                                  onClick={() => handleCancelOrder(order.id)}
+                                  onClick={handleButtonClick(() => handleCancelOrder(order.id))}
                                   className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold"
                                 >
                                   ❌ Cancel Order
@@ -884,30 +909,59 @@ export default function AdminDashboard() {
                               </>
                             )}
 
-                            {renderText(order.status) === "delivered" && (
+                            {(renderText(order.status) === "delivered" ||
+                              order.status.includes("funds_released_to_")) &&
+                              !order.status.includes("funds_released_to_Seller") && (
+                                <Button
+                                  size="sm"
+                                  onClick={handleButtonClick(() =>
+                                    handleReleaseFunds(order.id, order.sellerId, "Seller"),
+                                  )}
+                                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold"
+                                >
+                                  💰 Release Funds to Seller
+                                </Button>
+                              )}
+
+                            {order.status.includes("funds_released_to_Seller") && (
                               <Button
                                 size="sm"
-                                onClick={() => handleReleaseFunds(order.id, order.sellerId, "Seller")}
-                                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold"
+                                disabled
+                                className="bg-gray-400 text-gray-600 cursor-not-allowed font-semibold"
                               >
-                                💰 Release Funds to Seller
+                                ✅ Funds Released to Seller
                               </Button>
                             )}
 
-                            {(renderText(order.status) === "cancelled" || renderText(order.status) === "cancel") && (
+                            {(renderText(order.status) === "cancelled" ||
+                              renderText(order.status) === "cancel" ||
+                              order.status.includes("funds_released_to_")) &&
+                              !order.status.includes("funds_released_to_Buyer") && (
+                                <Button
+                                  size="sm"
+                                  onClick={handleButtonClick(() =>
+                                    handleReleaseFunds(order.id, order.buyerId, "Buyer"),
+                                  )}
+                                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold"
+                                >
+                                  🔄 Return Funds to Buyer
+                                </Button>
+                              )}
+
+                            {order.status.includes("funds_released_to_Buyer") && (
                               <Button
                                 size="sm"
-                                onClick={() => handleReleaseFunds(order.id, order.buyerId, "Buyer")}
-                                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold"
+                                disabled
+                                className="bg-gray-400 text-gray-600 cursor-not-allowed font-semibold"
                               >
-                                🔄 Return Funds to Buyer
+                                ✅ Funds Returned to Buyer
                               </Button>
                             )}
 
                             {renderText(order.status) === "pending" && (
                               <Button
                                 size="sm"
-                                onClick={() => handleCancelOrder(order.id)}
+                                onClick={handleButtonClick(() => handleCancelOrder(order.id))}
                                 className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold"
                               >
                                 ❌ Cancel Order
