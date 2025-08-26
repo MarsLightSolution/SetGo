@@ -23,7 +23,7 @@ export default function ChatApp() {
   const fileInputRef = useRef(null)
 
   const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
-  const SOCKET_URL = `${import.meta.env.VITE_SERVER}`
+  const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
 
   const socketRef = useRef(null)
   // Auto-focus conversation after currentUser and conversations are ready
