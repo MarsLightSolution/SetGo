@@ -10,6 +10,7 @@ import MyOrders from './components/Order/MyOrders'
 import OrderDetail from './components/Order/OrderDetail'
 import SellerAdminDashboard from './components/Admin/SellerAdmin'
 import AdminOrders from './components/Admin/Adminpanel'
+import AdminRoute from './components/Admin/AdminRoute' 
 
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -49,41 +50,45 @@ function App() {
   return (
     <NotificationProvider>
       <div>
-        <Navbar/>
+        <Navbar />
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            <Route path='/' element={<Home/>}/>
-            <Route path='/register' element={<PublicRoute><Register/></PublicRoute>}/>
-            <Route path='/login' element={<PublicRoute><Login/></PublicRoute>}/>
-            <Route path='/phoneverify' element={<PhoneVerification/>}/>
-            <Route path='/SMS' element={<SmsVerify/>}/>
-            <Route path='/form' element={<ProtectedRoute><Form/></ProtectedRoute>}/>
-            <Route path='/renewpassword' element={<RenewPassword/>}/>
-            <Route path='/confirm' element={<Confirm/>}/>
-            <Route path='/pverify' element={<PVerify/>}/>
-            <Route path='/profile' element={<ProtectedRoute><ProfileMgmt/></ProtectedRoute>}/>
-            <Route path='/accountsettings' element={<ProtectedRoute><AccountSettings/></ProtectedRoute>}/>
-            <Route path='/paymentsettings' element={<ProtectedRoute><PaymentSettings/></ProtectedRoute>}/>
-            <Route path='/dataprotection' element={<ProtectedRoute><DataProtection/></ProtectedRoute>}/>
-            <Route path='/emailsettings' element={<ProtectedRoute><EmailSettings/></ProtectedRoute>}/>
-            <Route path='/aboutclassifieds' element={<ProtectedRoute><AboutClassifieds/></ProtectedRoute>}/>
-            <Route path='/newpassword' element={<NewPassword/>}/>
-            <Route path='/emailnotify' element={<ProtectedRoute><EmailNotification/></ProtectedRoute>}/>
-            <Route path='/watchlist' element={<ProtectedRoute><Wishlist/></ProtectedRoute>}/>
-            <Route path='/product/:id' element={<ProductDetail/>}/>
-            <Route path='products/product/:id' element={<ProductDetail/>}/>
-            <Route path="/chat" element={<ChatApp/>}/>
-            <Route path='/userinfo' element={<UserInfo/>}/>
-            <Route path='/userpage' element={<UserPage/>}/>
-            <Route path='/mysearch' element={<MySearch/>}/>
-            <Route path='/editform/:id' element={<EditForm/>}/>
+            <Route path='/' element={<Home />} />
+            <Route path='/register' element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path='/login' element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path='/phoneverify' element={<PhoneVerification />} />
+            <Route path='/SMS' element={<SmsVerify />} />
+            <Route path='/form' element={<ProtectedRoute><Form /></ProtectedRoute>} />
+            <Route path='/renewpassword' element={<RenewPassword />} />
+            <Route path='/confirm' element={<Confirm />} />
+            <Route path='/pverify' element={<PVerify />} />
+            <Route path='/profile' element={<ProtectedRoute><ProfileMgmt /></ProtectedRoute>} />
+            <Route path='/accountsettings' element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+            <Route path='/paymentsettings' element={<ProtectedRoute><PaymentSettings /></ProtectedRoute>} />
+            <Route path='/dataprotection' element={<ProtectedRoute><DataProtection /></ProtectedRoute>} />
+            <Route path='/emailsettings' element={<ProtectedRoute><EmailSettings /></ProtectedRoute>} />
+            <Route path='/aboutclassifieds' element={<ProtectedRoute><AboutClassifieds /></ProtectedRoute>} />
+            <Route path='/newpassword' element={<NewPassword />} />
+            <Route path='/emailnotify' element={<ProtectedRoute><EmailNotification /></ProtectedRoute>} />
+            <Route path='/watchlist' element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+            <Route path='/product/:id' element={<ProductDetail />} />
+            <Route path='products/product/:id' element={<ProductDetail />} />
+            <Route path="/chat" element={<ChatApp />} />
+            <Route path='/userinfo' element={<UserInfo />} />
+            <Route path='/userpage' element={<UserPage />} />
+            <Route path='/mysearch' element={<MySearch />} />
+            <Route path='/editform/:id' element={<EditForm />} />
             <Route path="/my/transactions" element={<TransactionHistory />} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            <Route path="/checkout" element={<CheckoutPage/>}/>
-            <Route path="/orders" element={<MyOrders/>} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/orders" element={<MyOrders />} />
             <Route path="/order/:id" element={<OrderDetail />} />
-            <Route path="/seller" element={<SellerAdminDashboard />}/>
-            <Route path="/Adminpanel" element={<AdminOrders />}/>
+            <Route path="/seller" element={<SellerAdminDashboard />} />
+            <Route path="/Adminpanel" element={
+              <AdminRoute>
+                <AdminOrders />
+              </AdminRoute>
+            } />
           </Routes>
         </Suspense>
       </div>
