@@ -1,7 +1,7 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import io from "socket.io-client"
-import { useLocation } from "react-router-dom"
+import { useLocation } from "react-router-dom";
 
 export default function ChatApp() {
   const [currentUser, setCurrentUser] = useState(null)
@@ -13,63 +13,60 @@ export default function ChatApp() {
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState("")
   const [apiStatus, setApiStatus] = useState("checking")
-  const location = useLocation()
-  const focusedConversationId = location.state?.conversationId
-  const focusedReceiver = location.state?.receiverUsername
+  const location = useLocation();
+  const focusedConversationId = location.state?.conversationId;
+  const focusedReceiver = location.state?.receiverUsername;
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
-  const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
+  const API_BASE = "http://localhost:8080/api/chat"
+  const SOCKET_URL = "http://localhost:8080"
 
   const socketRef = useRef(null)
   // Auto-focus conversation after currentUser and conversations are ready
-  useEffect(() => {
-    if (!currentUser || conversations.length === 0) return
+useEffect(() => {
+  if (!currentUser || conversations.length === 0) return;
 
-    if (focusedConversationId) {
-      const targetConversation = conversations.find((c) => c._id === focusedConversationId)
+  if (focusedConversationId) {
+    const targetConversation = conversations.find(c => c._id === focusedConversationId);
 
-      if (targetConversation) {
-        setActiveConversation(targetConversation)
-
-        // Wait for messages to load, then join socket
-        loadMessages(targetConversation._id).then(() => {
-          if (socketRef.current) {
-            socketRef.current.emit("joinConversation", targetConversation._id)
-          }
-        })
-      }
+    if (targetConversation) {
+      setActiveConversation(targetConversation);
+      
+      // Wait for messages to load, then join socket
+      loadMessages(targetConversation._id).then(() => {
+        if (socketRef.current) {
+          socketRef.current.emit("joinConversation", targetConversation._id);
+        }
+      });
     }
-  }, [currentUser, conversations, focusedConversationId])
+  }
+}, [currentUser, conversations, focusedConversationId]);
 
-  // Socket connection setup - only depends on user connection
+
+  // Socket setup
   useEffect(() => {
     if (isConnected && currentUser) {
-      socketRef.current = io(SOCKET_URL, { withCredentials: true, transports: ["websocket"] })
+      socketRef.current = io(SOCKET_URL, { withCredentials: true })
 
       socketRef.current.on("newMessage", (msg) => {
-        setMessages((prev) => {
-          // Only add if this message is for the currently active conversation
-          if (msg.conversationId === activeConversation?._id) {
-            return [
-              ...prev,
-              {
-                id: msg._id || Date.now(),
-                text: msg.text,
-                sender: msg.senderId === currentUser.userId ? "me" : "other",
-                timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                senderName: msg.senderName,
-                fileUrl: msg.fileUrl,
-                messageType: msg.messageType,
-              },
-            ]
-          }
-          return prev
-        })
+        if (msg.conversationId === activeConversation?._id) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: msg._id || Date.now(),
+              text: msg.text,
+              sender: msg.senderId === currentUser.userId ? "me" : "other",
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              senderName: msg.senderName,
+              fileUrl: msg.fileUrl,
+              messageType: msg.messageType,
+            },
+          ])
+        }
       })
 
       socketRef.current.on("typing", ({ conversationId, userId }) => {
@@ -80,19 +77,10 @@ export default function ChatApp() {
       })
 
       return () => {
-        if (socketRef.current) {
-          socketRef.current.disconnect()
-          socketRef.current = null
-        }
+        socketRef.current.disconnect()
       }
     }
-  }, [isConnected, currentUser]) // Removed activeConversation dependency
-
-  useEffect(() => {
-    if (socketRef.current && activeConversation) {
-      socketRef.current.emit("joinConversation", activeConversation._id)
-    }
-  }, [activeConversation])
+  }, [isConnected, currentUser, activeConversation])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -137,7 +125,7 @@ export default function ChatApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: finalUsername,
-          displayName: finalUsername,
+          displayName: finalUsername
         }),
       })
 
@@ -164,13 +152,14 @@ export default function ChatApp() {
 
   // Auto-connect on page load
   useEffect(() => {
-    const storedUsername = localStorage.getItem("chatUsername")
+    const storedUsername = localStorage.getItem("userName")
 
     if (storedUsername) {
       // Call connectUser with stored username
       connectUser(storedUsername)
     }
   }, [])
+
 
   const loadAllUsers = async () => {
     try {
@@ -182,20 +171,23 @@ export default function ChatApp() {
     }
   }
 
-  const loadConversations = async (userId) => {
-    try {
-      const response = await fetch(`${API_BASE}/conversations/${userId}`, {
-        credentials: "include",
-      })
-      const data = await response.json()
+const loadConversations = async (userId) => {
+  try {
+    const response = await fetch(`${API_BASE}/conversations/${userId}`, {
+      credentials: "include",
+    });
+    const data = await response.json();
 
-      if (data.success) {
-        setConversations(data.conversations)
-      }
-    } catch (error) {
-      console.log("Error loading conversations:", error)
+    if (data.success) {
+      setConversations(data.conversations);
     }
+  } catch (error) {
+    console.log("Error loading conversations:", error);
   }
+};
+
+
+
 
   const startConversation = async (otherUser) => {
     if (!currentUser) return
@@ -219,75 +211,78 @@ export default function ChatApp() {
     }
   }
 
-  const loadMessages = async (conversationId) => {
-    if (!currentUser) return // ✅ don’t map messages until user is ready
+const loadMessages = async (conversationId) => {
+  if (!currentUser) return; // ✅ don’t map messages until user is ready
 
-    try {
-      const response = await fetch(`${API_BASE}/messages/${conversationId}`)
-      const data = await response.json()
+  try {
+    const response = await fetch(`${API_BASE}/messages/${conversationId}`);
+    const data = await response.json();
 
-      if (data.success) {
-        const formattedMessages = data.messages.reverse().map((msg) => ({
-          id: msg._id,
-          text: msg.text,
-          sender: msg.senderId === currentUser.userId ? "me" : "other", // ✅ works only when currentUser set
-          timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          senderName: msg.senderName,
-          fileUrl: msg.fileUrl,
-          messageType: msg.messageType,
-          fileName: msg.fileName,
-        }))
-        setMessages(formattedMessages)
-      }
-    } catch (error) {
-      console.log("Error loading messages:", error)
+    if (data.success) {
+      const formattedMessages = data.messages.reverse().map((msg) => ({
+        id: msg._id,
+        text: msg.text,
+        sender: msg.senderId === currentUser.userId ? "me" : "other", // ✅ works only when currentUser set
+        timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        senderName: msg.senderName,
+        fileUrl: msg.fileUrl,
+        messageType: msg.messageType,
+        fileName: msg.fileName,
+      }));
+      setMessages(formattedMessages);
     }
+  } catch (error) {
+    console.log("Error loading messages:", error);
   }
+};
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !activeConversation || !currentUser) return
 
-    try {
-      const response = await fetch(`${API_BASE}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+const handleSendMessage = async (e) => {
+  e.preventDefault();
+  if (!newMessage.trim() || !activeConversation || !currentUser) return;
+
+  try {
+    const response = await fetch(`${API_BASE}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: activeConversation._id,
+        senderId: currentUser.userId,
+        text: newMessage,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      const newMsg = {
+        id: data.message._id,
+        text: data.message.text,
+        sender: "me",
+        timestamp: new Date(data.message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        senderName: data.message.senderName,
+      };
+
+      setMessages((prev) => [...prev, newMsg]);
+
+      // Make sure socket exists before sending
+      if (socketRef.current && activeConversation) {
+        socketRef.current.emit("sendMessage", {
           conversationId: activeConversation._id,
           senderId: currentUser.userId,
-          text: newMessage,
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        const newMsg = {
-          id: data.message._id,
           text: data.message.text,
-          sender: "me",
-          timestamp: new Date(data.message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          fileUrl: data.message.fileUrl,
+          messageType: data.message.messageType,
           senderName: data.message.senderName,
-        }
-
-        setMessages((prev) => [...prev, newMsg])
-
-        if (socketRef.current && activeConversation) {
-          socketRef.current.emit("sendMessage", {
-            conversationId: activeConversation._id,
-            senderId: currentUser.userId,
-            text: data.message.text,
-            fileUrl: data.message.fileUrl,
-            messageType: data.message.messageType,
-            senderName: data.message.senderName,
-          })
-        }
-
-        setNewMessage("")
+        });
       }
-    } catch (error) {
-      console.log("Error sending message:", error)
+
+      setNewMessage("");
     }
+  } catch (error) {
+    console.log("Error sending message:", error);
   }
+};
+
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0]
@@ -313,16 +308,14 @@ export default function ChatApp() {
         }
         setMessages((prev) => [...prev, newMsg])
 
-        if (socketRef.current) {
-          socketRef.current.emit("sendMessage", {
-            conversationId: activeConversation._id,
-            senderId: currentUser.userId,
-            text: data.message.text,
-            fileUrl: data.message.fileUrl,
-            messageType: data.message.messageType,
-            senderName: data.message.senderName,
-          })
-        }
+        socketRef.current.emit("sendMessage", {
+          conversationId: activeConversation._id,
+          senderId: currentUser.userId,
+          text: data.message.text,
+          fileUrl: data.message.fileUrl,
+          messageType: data.message.messageType,
+          senderName: data.message.senderName,
+        })
       }
     } catch (error) {
       console.log("Error uploading file:", error)
@@ -375,8 +368,11 @@ export default function ChatApp() {
           <div className="space-y-3">
             {allUsers
               .filter((user) => user.userId !== currentUser?.userId)
-              .filter((user) => conversations.some((conv) => conv.participants.some((p) => p.userId === user.userId)))
-              .map((user) => (
+              .filter((user) =>
+              conversations.some((conv) =>
+              conv.participants.some((p) => p.userId === user.userId)
+              )
+              ).map((user) => (
                 <div
                   key={user.userId}
                   className="group p-4 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 cursor-pointer transition-all duration-300 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-lg transform hover:scale-[1.02]"
@@ -459,40 +455,40 @@ export default function ChatApp() {
                         {message.senderName?.charAt(0)?.toUpperCase() || "U"}
                       </div>
                     )}
-                    <div
-                      className={`px-5 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                        message.sender === "me"
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-br-md shadow-lg shadow-emerald-500/25"
-                          : "bg-white border border-gray-200 text-gray-800 rounded-bl-md hover:border-gray-300"
-                      }`}
-                    >
-                      {message.messageType === "image" ? (
-                        <img
-                          src={`${import.meta.env.VITE_SERVER}${message.fileUrl}`}
+                                <div
+                        className={`px-5 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                          message.sender === "me"
+                            ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-br-md shadow-lg shadow-emerald-500/25"
+                            : "bg-white border border-gray-200 text-gray-800 rounded-bl-md hover:border-gray-300"
+                        }`}
+                      >
+                        {message.messageType === "image" ? (
+                         <img
+                          src={`http://localhost:8080${message.fileUrl}`}
                           alt={message.fileName || "Shared image"}
                           className="max-w-[200px] max-h-[200px] object-cover rounded-xl mb-2 shadow"
                         />
-                      ) : message.messageType === "document" ? (
-                        <a
-                          href={message.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-2 text-sm font-medium text-emerald-600 hover:underline"
-                        >
-                          📄 {message.fileName}
-                        </a>
-                      ) : (
-                        <p className="text-sm leading-relaxed font-medium">{message.text}</p>
-                      )}
+                        ) : message.messageType === "document" ? (
+                          <a
+                            href={message.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-2 text-sm font-medium text-emerald-600 hover:underline"
+                          >
+                            📄 {message.fileName}
+                          </a>
+                        ) : (
+                          <p className="text-sm leading-relaxed font-medium">{message.text}</p>
+                        )}
 
-                      <p
-                        className={`text-xs mt-2 font-medium ${
-                          message.sender === "me" ? "text-white/80" : "text-gray-500"
-                        }`}
-                      >
-                        {message.timestamp}
-                      </p>
-                    </div>
+                        <p
+                          className={`text-xs mt-2 font-medium ${
+                            message.sender === "me" ? "text-white/80" : "text-gray-500"
+                          }`}
+                        >
+                          {message.timestamp}
+                        </p>
+                      </div>
                   </div>
                 </div>
               ))}
