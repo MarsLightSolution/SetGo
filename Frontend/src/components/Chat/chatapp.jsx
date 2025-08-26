@@ -50,7 +50,7 @@ useEffect(() => {
   // Socket setup
   useEffect(() => {
     if (isConnected && currentUser) {
-      socketRef.current = io(SOCKET_URL, { withCredentials: true })
+      socketRef.current = io(SOCKET_URL, {withCredentials:true,transports: ["websocket"],},)
 
       socketRef.current.on("newMessage", (msg) => {
         if (msg.conversationId === activeConversation?._id) {
