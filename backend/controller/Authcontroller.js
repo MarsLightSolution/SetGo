@@ -43,9 +43,13 @@ module.exports.signup = async (req, res) => {
     }
 
     // --- Create temp user -----------------------------------------
-    const token          = crypto.randomBytes(32).toString("hex");
+    const token = crypto.randomBytes(32).toString("hex");
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const temp_user = await TempUser.findOne({ email });
+    if (temp_user) {
+      await TempUser.deleteOne({ _id: temp_user._id });
+    }
     await TempUser.create({ email, username, password: hashedPassword, token });
     logger.info(`[Signup] Temp user created: ${username}`);
 
@@ -148,25 +152,25 @@ module.exports.login = async (req, res) => {
     //   user = JSON.parse(cachedUserData);
     // } else {
     //   // 2️⃣ Fallback to MongoDB if not in Redis
-      user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({ message: "The email address you entered is incorrect." });
-      }
+    user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "The email address you entered is incorrect." });
+    }
 
-      // // Only cache what's needed (avoid full sensitive object)
-      // const safeToCache = {
-      //   _id: user._id,
-      //   username: user.username,
-      //   email: user.email,
-      //   password: user.password, // hashed
-      //   role: user.role
-      // };
+    // // Only cache what's needed (avoid full sensitive object)
+    // const safeToCache = {
+    //   _id: user._id,
+    //   username: user.username,
+    //   email: user.email,
+    //   password: user.password, // hashed
+    //   role: user.role
+    // };
 
-      // Save to Redis for 24 hours
-      // await redisClient.set(redisKey, JSON.stringify(safeToCache), {
-      //   EX: 60 * 60 * 24 // 24 hours
-      // });
-      // console.log("💾 User data cached in Redis");
+    // Save to Redis for 24 hours
+    // await redisClient.set(redisKey, JSON.stringify(safeToCache), {
+    //   EX: 60 * 60 * 24 // 24 hours
+    // });
+    // console.log("💾 User data cached in Redis");
     // 3️⃣ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -299,7 +303,7 @@ module.exports.forgetpassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User not found or email not verified" });
 
-    user.resetToken           = crypto.randomBytes(32).toString("hex");
+    user.resetToken = crypto.randomBytes(32).toString("hex");
     user.resetTokenExpiration = Date.now() + 3600000; // 1 h
     await user.save({ validateBeforeSave: false });
     logger.info(`[ForgetPassword] Reset token created for: ${email}`);
@@ -376,8 +380,8 @@ module.exports.resetPassword = async (req, res) => {
     });
     if (!user) return res.status(400).json({ error: "Invalid or expired token" });
 
-    user.password             = await bcrypt.hash(newPassword, 12);
-    user.resetToken           = undefined;
+    user.password = await bcrypt.hash(newPassword, 12);
+    user.resetToken = undefined;
     user.resetTokenExpiration = undefined;
     await user.save();
 
