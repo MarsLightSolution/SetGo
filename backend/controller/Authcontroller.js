@@ -60,7 +60,7 @@ module.exports.signup = async (req, res) => {
       },
     });
 
-    const verificationLink = `http://localhost:8080/verifyemail?token=${token}`;
+    const verificationLink = `${process.env.SERVER}/verifyemail?token=${token}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -113,7 +113,7 @@ module.exports.verifyEmail = async (req, res) => {
     await TempUser.deleteOne({ _id: tempUser._id });
 
     logger.info(`[VerifyEmail] Email verified for: ${tempUser.email}`);
-    return res.redirect(`http://51.20.123.49/confirm?verified=true&email=${encodeURIComponent(tempUser.email)}`);
+    return res.redirect(`${process.env.SERVER}/confirm?verified=true&email=${encodeURIComponent(tempUser.email)}`);
   } catch (err) {
     logger.error(`[VerifyEmail] Error: ${err.stack}`);
     return res.status(500).send("An error occurred during email verification.");
@@ -311,7 +311,7 @@ module.exports.forgetpassword = async (req, res) => {
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
     });
 
-    const resetLink = `http://localhost:8080/verifytoken?token=${user.resetToken}`;
+    const resetLink = `${process.env.SERVER}/verifytoken?token=${user.resetToken}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -352,7 +352,7 @@ module.exports.verifyResetToken = async (req, res) => {
     if (!user) return res.status(400).json({ error: "Invalid or expired token" });
 
     logger.info(`[VerifyResetToken] Valid reset token for: ${user.email}`);
-    return res.redirect(`http://localhost:5173/newpassword?token=${token}`);
+    return res.redirect(`${process.env.SERVER}/newpassword?token=${token}`);
   } catch (err) {
     logger.error(`[VerifyResetToken] Error: ${err.stack}`);
     return res.status(500).json({ error: "Server error during token verification" });
