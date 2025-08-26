@@ -87,16 +87,16 @@ export default function AdminDashboard() {
       await fetchDashboardData()
     }
   }
-  const handleReleaseFunds = async (orderId, to , transaferTo) => {
+  const handleReleaseFunds = async (orderId, to, transaferTo) => {
     try {
       const order = dashboardData.orders.find((o) => o.id === orderId)
       console.log(order);
-      
-      if (order && (order.status === "delivered" || order.status === "cancelled" ) ) {
+
+      if (order && (order.status === "delivered" || order.status === "cancelled")) {
         const payload = {
           senderId: import.meta.env.VITE_OWNER_ID,
           receiverId: to,
-          type: "transfer to " + transaferTo ,
+          type: "transfer to " + transaferTo,
           amount: order.amount,
           transactionId: order.transactionId,
           description: `Payment for order ${orderTimestamp} to ${transaferTo}`,
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
           source: "Admin wallet",
         };
         console.log(payload);
-        
+
         try {
           const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
             method: "POST",
@@ -115,11 +115,11 @@ export default function AdminDashboard() {
           console.log(data);
 
           if (res.ok) {
-            alert("release done " + to )
+            alert("release done " + to)
             setDashboardData((prev) => ({
               ...prev,
               orders: prev.orders.map((o) =>
-                o.id === orderId ? { ...o, status: "funds_released_to_" + transaferTo , fundsReleasedToSeller: true } : o,
+                o.id === orderId ? { ...o, status: "funds_released_to_" + transaferTo, fundsReleasedToSeller: true } : o,
               ),
               stats: {
                 ...prev.stats,
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
               },
             }))
           } else {
-            alert("Failed to release funds " + to )
+            alert("Failed to release funds " + to)
             setStatus("FAILURE");
           }
 
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              userId: "68a1bb9533d35012fa5e32fa", // ✅ Admin userId
+              userId: import.meta.env.VITE_OWNER_ID, // ✅ Admin userId
             }),
           }
         );
@@ -887,7 +887,7 @@ export default function AdminDashboard() {
                             {renderText(order.status) === "delivered" && (
                               <Button
                                 size="sm"
-                                onClick={() => handleReleaseFunds(order.id, order.sellerId,"Seller")}
+                                onClick={() => handleReleaseFunds(order.id, order.sellerId, "Seller")}
                                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold"
                               >
                                 💰 Release Funds to Seller
@@ -897,7 +897,7 @@ export default function AdminDashboard() {
                             {(renderText(order.status) === "cancelled" || renderText(order.status) === "cancel") && (
                               <Button
                                 size="sm"
-                                onClick={() => handleReleaseFunds(order.id,order.buyerId,"Buyer")}
+                                onClick={() => handleReleaseFunds(order.id, order.buyerId, "Buyer")}
                                 className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold"
                               >
                                 🔄 Return Funds to Buyer

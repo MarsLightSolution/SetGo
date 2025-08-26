@@ -1,7 +1,7 @@
 const Order = require("../models/Order.js");
 const User = require("../models/user.js");
 const Product = require("../models/product.model.js");
-const ADMIN_ID = "68a1bb9533d35012fa5e32fa";
+const ADMIN_ID = process.env.Admin_Id;
 const getAdminDashboardData = async (req, res) => {
   try {
     // Fetch orders with buyer/seller/product info
@@ -175,7 +175,7 @@ const cancelOrder = async (req, res) => {
     const userId = req.body.userId;
     console.log(userId, ADMIN_ID);
     // 🔒 Only admin can cancel
-    if (userId !== ADMIN_ID) {
+    if (userId !== ADMIN_ID ) {
       return res.status(403).json({
         success: false,
         message: "Only admin can cancel orders",
