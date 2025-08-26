@@ -124,7 +124,7 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
           <AdCard
             key={ad._id || `ad-${index}`}
             ad={ad}
-            image={ad.image || `http://localhost:8080/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
+            image={ad.image || `${import.meta.env.VITE_SERVER}/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
             price={ad.price}
           />
         ))}
@@ -258,9 +258,9 @@ const fetchProducts = async (type, page) => {
     }
 
     // Endpoint
-    let endpoint = "http://localhost:8080/api/products/getProducts";
+    let endpoint = `${import.meta.env.VITE_SERVER}/api/products/getProducts`;
     if (type === "nearby" && location?.latitude && location?.longitude && radius > 0) {
-      endpoint = "http://localhost:8080/api/products/nearby";
+      endpoint = `${import.meta.env.VITE_SERVER}/api/products/nearby`;
     }
 
     console.log("Fetching products with params:", params.toString());

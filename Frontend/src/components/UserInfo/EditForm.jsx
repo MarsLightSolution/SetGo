@@ -97,7 +97,7 @@ const EditForm = () => {
   useEffect(() => {
     const fetchAd = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/products/product/${id}?lang=${i18n.language}`, {
+        const res = await fetch(`${import.meta.env.VITE_SERVER}/api/products/product/${id}?lang=${i18n.language}`, {
           credentials: "include",
         });
         const data = await res.json();
@@ -253,7 +253,7 @@ const handleSubmit = async (e) => {
     }
 
     // --- API call ---
-    const response = await fetch(`http://localhost:8080/api/products/product/${id}`, {
+    const response = await fetch(`${import.meta.env.VITE_SERVER}/api/products/product/${id}`, {
       method: "PUT",
       credentials: "include",
       body: updatedData,
@@ -414,7 +414,7 @@ const handleSubmit = async (e) => {
                     {initialImageUrls.map((url, index) => (
                         <div key={`initial-${index}`} className="relative">
                             <img
-                                src={`http://localhost:8080/${url.replace(/\\/g, "/")}`}
+                                src={`${import.meta.env.VITE_SERVER}/${url.replace(/\\/g, "/")}`}
                                 alt={`${t("editForm.existingImageAlt")} ${index + 1}`}
                                 className="w-24 h-24 object-cover rounded-md border"
                             />

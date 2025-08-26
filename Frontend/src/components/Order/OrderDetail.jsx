@@ -24,7 +24,7 @@ const OrderDetail = () => {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:8080/Orders/${id}`);
+        const { data } = await axios.get(`${import.meta.env.VITE_SERVER}/Orders/${id}`);
         if (data.success) setOrder(data.data);
 
         // If already delivered, mark notify button as clicked
@@ -45,7 +45,7 @@ const OrderDetail = () => {
       setNotifyClicked(true);
 
       await axios.post(
-        `http://localhost:8080/${id}/approve-delivery`,
+        `${import.meta.env.VITE_SERVER}/${id}/approve-delivery`,
         { userId: "68a1bb9533d35012fa5e32fa" } // send buyer id
       );
 

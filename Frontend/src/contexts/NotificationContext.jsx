@@ -24,7 +24,7 @@ export const NotificationProvider = ({ children }) => {
     const userEmail = localStorage.getItem('userEmail');
     
     if (userId || userEmail) {
-      const socketInstance = io('http://localhost:8080', {
+      const socketInstance = io(`${import.meta.env.VITE_SERVER}`, {
         withCredentials: true,
         transports: ['websocket', 'polling']
       });

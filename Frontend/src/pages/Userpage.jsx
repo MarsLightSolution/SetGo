@@ -26,7 +26,7 @@ const UserPage = () => {
   const fetchFollowData = async (type) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8080/${userId}/${type}`); // Assuming this endpoint returns follower/following data
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/${userId}/${type}`); // Assuming this endpoint returns follower/following data
       const data = await res.json();
       if (res.ok) { // Assuming success property in response
         if (type === "followers") {

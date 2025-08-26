@@ -19,7 +19,7 @@ function EmailSettings() {
   const handleToggleNewsletter = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:8080/newsletter/${userId}`);
+      const res = await axios.get(`${import.meta.env.VITE_SERVER}/newsletter/${userId}`);
       setNewsletter(res.data.data.newsletter);
       toast.success(t("emailSettings.newsletterToggleSuccess")); // Translated
     } catch (err) {
@@ -33,7 +33,7 @@ function EmailSettings() {
   const handleToggleMessages = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:8080/messageforuser/${userId}`);
+      const res = await axios.get(`${import.meta.env.VITE_SERVER}/messageforuser/${userId}`);
       setMessagesFromUsers(res.data.data.messageforuser);
       toast.success(t("emailSettings.messagesToggleSuccess")); // Translated
     } catch (err) {

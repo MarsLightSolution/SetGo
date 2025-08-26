@@ -9,7 +9,7 @@ const PaymentStatus = () => {
   useEffect(() => {
     if (!orderId) return;
 
-    const socket = io("http://localhost:8080", { withCredentials: true });
+    const socket = io(`${import.meta.env.VITE_SERVER}`, { withCredentials: true });
     socket.emit("subscribePayment", orderId);
 
     socket.on("paymentUpdate", (data) => {

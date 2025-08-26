@@ -17,7 +17,7 @@ function EmailVerify() {
       }
 
       try {
-        const res = await axios.post('http://localhost:8080/verifyemail', { token });
+        const res = await axios.post(`${import.meta.env.VITE_SERVER}/verifyemail`, { token });
         if (res.status === 200 || res.status === 201) {
           navigate("/postcard1");
         } else {

@@ -14,7 +14,7 @@ const MyOrders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:8080/Orders/user/${userId}`);
+        const { data } = await axios.get(`${import.meta.env.VITE_SERVER}/Orders/user/${userId}`);
         if(data.success){
         setOrders(data.data);
         }

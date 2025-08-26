@@ -108,7 +108,7 @@ const ProductDetail = () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/product/${id}?lang=${i18n.language}`,
+        `${import.meta.env.VITE_SERVER}/api/products/product/${id}?lang=${i18n.language}`,
         {
             credentials: "include", // This is crucial for sending cookies
         }
@@ -137,7 +137,7 @@ const ProductDetail = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:8080/api/products/category/${encodeURIComponent(categoryName)}?lang=${i18n.language}`
+        `${import.meta.env.VITE_SERVER}/api/products/category/${encodeURIComponent(categoryName)}?lang=${i18n.language}`
       );
       const json = await res.json();
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
@@ -168,7 +168,7 @@ const handleBuyNow = async () => {
 
   try {
     const res = await fetch(
-      `http://localhost:8080/users/get-users/${userId}`,
+      `${import.meta.env.VITE_SERVER}/users/get-users/${userId}`,
       { credentials: "include" }
     );
     const json = await res.json();
@@ -202,7 +202,7 @@ const handleSendMessage = async () => {
 
   try {
     // Step 1: Get or create conversation from backend
-    const res = await fetch("http://localhost:8080/api/chat/conversation/get-or-create", {
+    const res = await fetch(`${import.meta.env.VITE_SERVER}/api/chat/conversation/get-or-create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -223,7 +223,7 @@ const handleSendMessage = async () => {
 
     // Step 2: Send a hardcoded initial message
     const initialMessage = "Hi! I'm interested in your product.";
-    await fetch("http://localhost:8080/api/chat/messages", {
+    await fetch(`${import.meta.env.VITE_SERVER}/api/chat/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -257,7 +257,7 @@ const handleSendMessage = async () => {
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
-        `http://localhost:8080/check/${followerId}/${followingId}`,
+        `${import.meta.env.VITE_SERVER}/check/${followerId}/${followingId}`,
         { credentials: "include" } // Ensure credentials are included
       );
       const data = await res.json();
@@ -276,8 +276,8 @@ const handleSendMessage = async () => {
 
     try {
       const endpoint = isFollowing
-        ? `http://localhost:8080/unfollow/${ownerId}`
-        : `http://localhost:8080/follow/${ownerId}`;
+        ? `${import.meta.env.VITE_SERVER}/unfollow/${ownerId}`
+        : `${import.meta.env.VITE_SERVER}/follow/${ownerId}`;
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -342,7 +342,7 @@ const handleSendMessage = async () => {
 {product?.pictures?.length > 0 ? (
   <>
     <img
-      src={`http://localhost:8080/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
+      src={`${import.meta.env.VITE_SERVER}/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
       alt={`Product image ${currentImageIndex + 1}`}
       className="max-h-full max-w-full object-contain"
     />
@@ -371,7 +371,7 @@ const handleSendMessage = async () => {
   </>
 ) : (
   <img
-    src="http://localhost:8080/uploads/placeholder.jpg"
+    src={`${import.meta.env.VITE_SERVER}/uploads/placeholder.jpg`}
     alt="Placeholder"
     className="max-h-full object-contain"
   />
@@ -647,7 +647,7 @@ const handleSendMessage = async () => {
                         className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
                       >
                         <img
-                          src={`http://localhost:8080/${
+                          src={`${import.meta.env.VITE_SERVER}/${
                             item.pictures?.[0]?.replace(/\\/g, "/") ||
                             "uploads/placeholder.jpg"
                           }`}

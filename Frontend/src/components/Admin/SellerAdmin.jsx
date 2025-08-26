@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const API_URL = "http://localhost:8080/Orders";
+const API_URL = `${import.meta.env.VITE_SERVER}/Orders`;
 
 export default function SellerAdminDashboard() {
   const [orders, setOrders] = useState([]);
@@ -52,7 +52,7 @@ export default function SellerAdminDashboard() {
   };
 const handleReject = async (id) => {
   try {
-    await axios.post(`http://localhost:8080/${id}/cancel`, {
+    await axios.post(`${import.meta.env.VITE_SERVER}/${id}/cancel`, {
       userId: "68a1bb9533d35012fa5e32fa", // or current logged-in user ID
     });
     await fetchOrders();

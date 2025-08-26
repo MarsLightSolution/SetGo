@@ -27,7 +27,7 @@ function RenewPassword() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:8080/forgotpassword", {
+      const res = await axios.post(`${import.meta.env.VITE_SERVER}/forgotpassword`, {
         email,
       });
 

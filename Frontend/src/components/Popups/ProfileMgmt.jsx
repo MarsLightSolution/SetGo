@@ -28,7 +28,7 @@ function ProfileMgmt() {
 
     try {
       const res = await axios.patch(
-        `http://localhost:8080/nameupdate/${userId}/profileName`,
+        `${import.meta.env.VITE_SERVER}/nameupdate/${userId}/profileName`,
         { profileName: tempProfileName }
       );
 
@@ -50,7 +50,7 @@ function ProfileMgmt() {
 
     try {
       const res = await axios.patch(
-        `http://localhost:8080/deliveryaddress/${userId}/delivery-Address`,
+        `${import.meta.env.VITE_SERVER}/deliveryaddress/${userId}/delivery-Address`,
         { deliveryAddress: newAddress }
       );
 

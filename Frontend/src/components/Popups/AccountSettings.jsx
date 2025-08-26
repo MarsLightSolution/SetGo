@@ -38,7 +38,7 @@ function AccountSettings() {
     const fetchUserAds = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:8080/api/products/user/${userId}/ads`,
+          `${import.meta.env.VITE_SERVER}/api/products/user/${userId}/ads`,
           { withCredentials: true }
         );
         if (response.data && Array.isArray(response.data.data)) {
@@ -66,7 +66,7 @@ function AccountSettings() {
     try {
       setLoading(true);
       const res = await axios.patch(
-        `http://localhost:8080/billingaddress/${profile._id}/billingAddress`,
+        `${import.meta.env.VITE_SERVER}/billingaddress/${profile._id}/billingAddress`,
         {
           billingAddress: newAddress,
         },
@@ -108,10 +108,10 @@ function AccountSettings() {
       }
 
       const res = await axios.delete(
-        `http://localhost:8080/deleteuser/${profile._id}`
+        `${import.meta.env.VITE_SERVER}/deleteuser/${profile._id}`
       );
       if (res.status === 200) {
-        await fetch("http://localhost:8080/logout", {
+        await fetch(`${import.meta.env.VITE_SERVER}/logout`, {
           method: "POST",
           credentials: "include",
         });
@@ -137,7 +137,7 @@ function AccountSettings() {
 
     try {
       setLoading(true);
-      const res = await axios.post(`http://localhost:8080/emailverify`, {
+      const res = await axios.post(`${import.meta.env.VITE_SERVER}/emailverify`, {
         userId: profile._id,
         password: emailPassword,
         newEmail: newEmail,

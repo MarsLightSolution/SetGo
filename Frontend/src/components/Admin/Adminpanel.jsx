@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:8080/dashboard")
+      const response = await fetch(`${import.meta.env.VITE_SERVER}/dashboard`)
       const result = await response.json()
       console.log(result);
       if (result.success) {
@@ -65,7 +65,7 @@ export default function AdminDashboard() {
 
         // ✅ Call backend with adminId
         const response = await fetch(
-          `http://localhost:8080/${orderId}/approve-delivery`,
+          `${import.meta.env.VITE_SERVER}/${orderId}/approve-delivery`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
         console.log(payload);
         
         try {
-          const res = await fetch("http://localhost:8080/api/transaction/transferFund", {
+          const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
 
         // 🔑 Send userId in request body
         const response = await fetch(
-          `http://localhost:8080/${orderId}/cancel`,
+          `${import.meta.env.VITE_SERVER}/${orderId}/cancel`,
           {
             method: "POST",
             headers: {
@@ -440,7 +440,7 @@ export default function AdminDashboard() {
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <p className="text-xl text-red-600 font-medium mb-4">Error loading dashboard: {error}</p>
-          <Button onClick={'http://localhost:5173/adminpanel'}>Retry</Button>
+          <Button onClick={`${import.meta.env.VITE_FRONTEND}/adminpanel`}>Retry</Button>
         </div>
       </div>
     )

@@ -18,7 +18,7 @@ function EmailNotification() {
     }
 
     try {
-      const res = await axios.post("http://localhost:8080/forgotpassword", { email });
+      const res = await axios.post(`${import.meta.env.VITE_SERVER}/forgotpassword`, { email });
 
       if (res.status === 200 || res.status === 201) {
         alert(t("emailNotification.resendSuccess")); // Translated alert

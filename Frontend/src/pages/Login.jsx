@@ -30,7 +30,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8080/login", {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/login`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -47,7 +47,7 @@ const Login = () => {
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("userName", data.userName);
         const userRes = await fetch(
-          `http://localhost:8080/userdata/${data.userId}`,
+          `${import.meta.env.VITE_SERVER}/userdata/${data.userId}`,
           { method: "GET" }
         );
 
