@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import io from "socket.io-client"
 import { useLocation } from "react-router-dom";
+import { Import } from "lucide-react";
 
 export default function ChatApp() {
   const [currentUser, setCurrentUser] = useState(null)
@@ -22,8 +23,8 @@ export default function ChatApp() {
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const API_BASE = "http://localhost:8080/api/chat"
-  const SOCKET_URL = "http://localhost:8080"
+  const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
+  const SOCKET_URL = `${import.meta.env.VITE_SERVER}`
 
   const socketRef = useRef(null)
   // Auto-focus conversation after currentUser and conversations are ready
