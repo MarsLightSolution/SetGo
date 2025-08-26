@@ -22,7 +22,7 @@ export default function ChatApp() {
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const API_BASE = `${import.meta.env.VITE_SERVER}${import.meta.env.VITE_SERVER}/api/chat`
+  const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SERVER}`
 
   const socketRef = useRef(null)
