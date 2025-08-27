@@ -143,7 +143,7 @@ const OrderDetail = () => {
             </div>
             <div className="text-right">
               <p className="text-xl font-bold text-green-700">
-                € {order.productId?.price || 0}
+                ₼  {order.productId?.price || 0}
               </p>
             </div>
           </div>
@@ -231,7 +231,7 @@ const OrderDetail = () => {
             </h2>
             <div className="flex justify-between text-gray-600 text-sm">
               <span>Item total</span>
-              <span>€{order.productId?.price || 0}</span>
+              <span>₼ {order.productId?.price || 0}</span>
             </div>
             <div className="flex justify-between text-gray-600 text-sm">
               <span>Delivery charges</span>
@@ -240,7 +240,7 @@ const OrderDetail = () => {
             <div className="border-t border-gray-300 my-2"></div>
             <div className="flex justify-between font-semibold text-base">
               <span>Total Amount</span>
-              <span>€{order.total || 0}</span>
+              <span>₼ {order.total || 0}</span>
             </div>
             <p className="mt-1 text-sm text-green-800 font-medium">
               Payment Status: {order.status}

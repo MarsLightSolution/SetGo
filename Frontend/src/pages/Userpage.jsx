@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Footer from "../components/common/Footer";
 import binocularImage from "../assets/images/binocular.png";
-
+import { useNavigate } from "react-router-dom";
 // i18n import
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n'; // Import i18n for language detection and dynamic content
@@ -17,7 +17,7 @@ const getLocalizedText = (field) => {
 const UserPage = () => {
   const { t, i18n } = useTranslation(); // Initialize useTranslation hook
   const userId = localStorage.getItem("userId");
-
+  const navigate = useNavigate();   
   const [activeTab, setActiveTab] = useState("following"); // 'following' or 'followers'
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
@@ -132,9 +132,9 @@ const UserPage = () => {
                       </div>
                       <div>
                         <p className="text-base font-medium text-gray-800">{name}</p>
-                        {user.email && (
+{/*                         {user.email && (
                           <p className="text-sm text-gray-500">{user.email}</p>
-                        )}
+                        )} */}
                       </div>
                       </div>
 
@@ -180,7 +180,7 @@ const UserPage = () => {
                   ? t("userPage.followInstructions")
                   : t("userPage.followersAppearHere")}
               </p>
-              <button className="bg-lime-500 hover:bg-lime-600 text-white px-6 py-2 rounded-full mt-2 font-semibold">
+              <button onClick={() => navigate("/")} className="bg-lime-500 hover:bg-lime-600 text-white px-6 py-2 rounded-full mt-2 font-semibold">
                 {t("userPage.browseAdsButton")}
               </button>
             </div>

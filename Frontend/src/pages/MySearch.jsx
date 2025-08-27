@@ -30,7 +30,7 @@ const MySearch = () => {
               {t("mySearch.saveSearchInstructions")} {/* Translated */}
             </p>
             <button
-              onClick={() => navigate("/browse")}
+              onClick={() => navigate("/")}
               className="bg-lime-500 hover:bg-lime-600 text-white px-6 py-2 rounded-full mt-1 font-semibold cursor-pointer"
             >
               {t("mySearch.browseAdsButton")} {/* Translated */}

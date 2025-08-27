@@ -107,7 +107,7 @@ const AdCard = ({ ad, image, price }) => {
       <div className="w-full text-left">
         <p className="truncate text-gray-700 font-semibold text-sm">{displayTitle}</p>
         <p className="text-gray-400 font-normal text-xs mt-1">{displayLocation}</p>
-        <p className="text-green-700 font-bold text-sm mt-2">{price}€</p>
+        <p className="text-green-700 font-bold text-sm mt-2">₼ {price}</p>
       </div>
     </div>
   );
@@ -338,25 +338,25 @@ useEffect(() => {
     {
       title: { en: "XVS 950 Midnightstar", az: "XVS 950 Midnightstar", ru: "XVS 950 Midnightstar" },
       location: { en: "Oelde", az: "Oelde", ru: "Ольде" },
-      price: "5,195 €",
+      price: "₼ 5,195 ",
       image: "/images/bike.jpg",
     },
     {
       title: { en: "Washing machine", az: "Paltaryuyan maşın", ru: "Стиральная машина" },
       location: { en: "Mönchengladbach", az: "Mönchengladbach", ru: "Мёнхенгладбах" },
-      price: "333 €",
+      price: "333 ₼ ",
       image: "/images/washingMachine.png",
     },
     {
       title: { en: "Transport trolleys", az: "Nəqliyyat arabaları", ru: "Транспортные тележки" },
       location: { en: "Bad Buchau", az: "Bad Buchau", ru: "Бад Бухау" },
-      price: "115 €",
+      price: "115 ₼ ",
       image: "/images/transportTrolley.png",
     },
     {
       title: { en: "Camping gear set", az: "Kamp ləvazimatları dəsti", ru: "Набор для кемпинга" },
       location: { en: "Dresden", az: "Dresden", ru: "Дрезден" },
-      price: "150 €",
+      price: "150 ₼ ",
       image: "/images/camping.png",
     },
     {
@@ -452,12 +452,12 @@ useEffect(() => {
                     <div className="flex flex-wrap gap-2">
                       {priceRange && priceRange[0] > 0 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          {t("home.minPrice")}: €{priceRange[0]}
+                          {t("home.minPrice")}: ₼ {priceRange[0]}
                         </span>
                       )}
                       {priceRange && priceRange[1] < 10000 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          {t("home.maxPrice")}: €{priceRange[1]}
+                          {t("home.maxPrice")}: ₼ {priceRange[1]}
                         </span>
                       )}
                       {condition && (

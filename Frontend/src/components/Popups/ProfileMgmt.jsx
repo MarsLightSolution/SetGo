@@ -166,17 +166,6 @@ function ProfileMgmt() {
                   <div className="text-gray-900 text-sm">{profile.username || t('profileMgmt.notAvailable')}</div>
                 )}
               </div>
-              {!isEditingName && (
-                <button
-                  className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
-                  onClick={() => {
-                    setTempProfileName(profile.username || '');
-                    setIsEditingName(true);
-                  }}
-                >
-                  {t("profileMgmt.editButton")} {/* Translated */}
-                </button>
-              )}
             </div>
 
             {/* Delivery Address */}

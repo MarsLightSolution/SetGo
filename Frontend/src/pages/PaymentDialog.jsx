@@ -25,7 +25,7 @@ const LottieWrap = ({ type }) => (
   </motion.div>
 );
 
-const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
+const PaymentDialog = ({ product, user, owner,productOwner, onClose, onPaymentSuccess, }) => {
   if (!product || !user || !owner) return null;
 
   const [walletBalance, setWalletBalance] = useState(0);
@@ -72,7 +72,7 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           buyerId: user._id,
-          sellerId: owner,
+          sellerId: productOwner,
           productId: product._id,
           total: price,
           transactionId:txnId,
@@ -115,9 +115,9 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
     if (status === "LOADING") return "Processing…";
     if (status === "SUCCESS") return "Paid";
     if (status === "FAILURE") return "Retry Payment";
-    if (remainder === 0) return `Pay ₹${price} with Wallet`;
+    if (remainder === 0) return `Pay ₼ ${price} with Wallet`;
     if (!onlineMethod) return "Select payment method";
-    return `Pay ₹${remainder} via ${onlineMethod}`;
+    return `Pay ₼ ${remainder} via ${onlineMethod}`;
   }, [status, price, remainder, onlineMethod]);
 
   const isPayDisabled = status === "LOADING" || (status === "READY" && remainder > 0 && !onlineMethod);
@@ -228,12 +228,12 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
           <p className="font-semibold">Order Summary</p>
           <div className="flex justify-between mt-2">
             <span>Product Price</span>
-            <span className="font-bold text-green-600">₹{price}</span>
+            <span className="font-bold text-green-600">₼ {price}</span>
           </div>
           <div className="flex justify-between mt-1">
             <span>Wallet Balance</span>
             <span className={`font-semibold ${walletBalance ? "text-green-600" : "text-red-500"}`}>
-              ₹{walletBalance}
+              ₼ {walletBalance}
             </span>
           </div>
         </section>
@@ -244,13 +244,13 @@ const PaymentDialog = ({ product, user, owner, onClose, onPaymentSuccess }) => {
             onChange={(e) => setUseWallet(e.target.checked)}
             disabled={!walletBalance || status !== "READY"}
           />
-          <span>Use Wallet {walletBalance > 0 && `(up to ₹${walletBalance})`}</span>
+          <span>Use Wallet {walletBalance > 0 && `(up to ₼ ${walletBalance})`}</span>
         </label>
         {useWallet && (
           <div className="bg-green-50 text-green-700 text-sm p-3 rounded mb-4">
             {remainder === 0
               ? "Full amount will be paid from wallet."
-              : `₹${walletDeduction} will be deducted from wallet. Remaining ₹${remainder} to pay online.`}
+              : `₼ ${walletDeduction} will be deducted from wallet. Remaining ₼ ${remainder} to pay online.`}
           </div>
         )}
         {remainder > 0 && (

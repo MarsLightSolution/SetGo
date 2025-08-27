@@ -85,7 +85,7 @@ const TransactionHistory = ({ forcedUserId }) => {
             {t("transactionHistory.walletBalanceLabel")}
           </p>
           <p className="text-xl font-bold text-green-700">
-            ₹ {walletBalance.toFixed(2)}
+            ₼  {walletBalance.toFixed(2)}
           </p>
         </div>
         <div className="bg-blue-50 p-4 rounded shadow">
@@ -93,7 +93,7 @@ const TransactionHistory = ({ forcedUserId }) => {
             {t("transactionHistory.totalCreditedLabel")}
           </p>
           <p className="text-xl font-bold text-blue-700">
-            ₹ {totalCredit.toFixed(2)}
+            ₼  {totalCredit.toFixed(2)}
           </p>
         </div>
         <div className="bg-red-50 p-4 rounded shadow">
@@ -101,7 +101,7 @@ const TransactionHistory = ({ forcedUserId }) => {
             {t("transactionHistory.totalDebitedLabel")}
           </p>
           <p className="text-xl font-bold text-red-700">
-            ₹ {totalDebit.toFixed(2)}
+            ₼  {totalDebit.toFixed(2)}
           </p>
         </div>
       </div>
@@ -140,7 +140,7 @@ const TransactionHistory = ({ forcedUserId }) => {
             >
               <td className="py-3 px-4 text-gray-600">{idx + 1}</td>
               <td className="py-3 px-4 font-semibold text-green-700">
-                ₹ {txn.amount.toFixed(2)}
+                ₼  {txn.amount.toFixed(2)}
               </td>
               <td className="py-3 px-4">
                 <span

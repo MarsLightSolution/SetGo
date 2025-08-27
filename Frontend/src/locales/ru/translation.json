@@ -600,7 +600,7 @@
     "connectingToChatWait": "Пожалуйста, подождите, идет подключение к чату...",
     "selectConversationFirst": "Пожалуйста, выберите сначала беседу",
     "failedToUploadFile": "Не удалось загрузить файл",
-    "productOfInterest": "Привет! Я заинтересован в вашем продукте: {{title}} - €{{price}}",
+    "productOfInterest": "Привет! Я заинтересован в вашем продукте: {{title}} - ₼ {{price}}",
     "sharedImageAlt": "Общее изображение",
     "fileSize": "{{size}} КБ",
     "connectingStatus": "Подключение к чату...",

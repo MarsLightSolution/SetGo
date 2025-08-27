@@ -392,7 +392,7 @@ const handleSendMessage = async () => {
                       {getLocalizedText(product.title) || t("productDetail.productTitlePlaceholder")}
                     </h1>
                     <p className="text-green-700 text-xl font-bold mb-3">
-                      € {product.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}{" "}
+                      ₼  {product.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}{" "}
                       <span className="text-sm">{t("productDetail.negotiableAbbr")}</span>
                     </p>
 
@@ -672,7 +672,7 @@ const handleSendMessage = async () => {
                             {getLocalizedText(item.description)}
                           </p>
                           <div className="flex gap-4 text-sm font-semibold text-green-700">
-                            <span>{item.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}€</span>
+                            <span>{item.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}₼ </span>
                           </div>
                         </div>
                       </div>

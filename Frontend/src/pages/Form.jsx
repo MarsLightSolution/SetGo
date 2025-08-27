@@ -31,7 +31,8 @@ const Form = () => {
 
   const maxDescriptionLength = 1000;
   const fileInputRef = useRef(null);
-
+  
+  const username = localStorage.getItem("userName");
   const [formData, setFormData] = useState({
     offerType: "offer",
     title: "",
@@ -43,7 +44,7 @@ const Form = () => {
     location: "",
     streetNo: "",
     showFullAddress: false,
-    name: "",
+    name: username ,
     termsAccepted: false,
     subscribe: false,
     pictures: [],
@@ -466,22 +467,22 @@ if (name === "condition") {
           {/* Your Details */}
           <div>
             <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-green-700">{t("form.yourDetails")}</h2>
-            <TextField
-              label={t("form.name")}
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              error={!!errors.name}
-              helperText={
-                errors.name || (
-                  <span>
-                    {t("form.nameHelper1")} <br />
-                    <strong>{t("form.note")}:</strong> {t("form.nameHelper2", { link: <a href="#" className="text-blue-600 underline">{t("form.helpCenter")}</a> })}
-                  </span>
-                )
-              }
-              fullWidth
-            />
+          <TextField
+          label="Name"
+          name="name"
+          value={username} // hardcoded value
+          disabled // optional: makes it readonly
+          helperText={
+            <span>
+              Please enter your full name <br />
+              <strong>Note:</strong> For more info, visit{" "}
+              <a href="#" className="text-blue-600 underline">
+                Help Center
+              </a>
+            </span>
+          }
+          fullWidth
+        />
             <FormControlLabel
               control={
                 <Checkbox

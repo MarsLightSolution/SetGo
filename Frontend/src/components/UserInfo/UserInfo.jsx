@@ -327,7 +327,7 @@ export default function UserInfo() {
                           )}
                         </p>
                         <p className="text-green-700 font-semibold text-base mt-1">
-                          {ad.price} €
+                          {ad.price} ₼ 
                         </p>
                       </div>
 

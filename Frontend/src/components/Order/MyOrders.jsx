@@ -148,7 +148,7 @@ const MyOrders = () => {
                 </h3>
                 <div className="flex items-center gap-4 mb-2">
                   <span className="text-xl font-bold text-green-700">
-                    €{order.productId?.price?.toLocaleString() || 0}
+                    ₼ {order.productId?.price?.toLocaleString() || 0}
                   </span>
                   {/* <span className="text-sm text-gray-500">Qty: {order.quantity || 1}</span> */}
                 </div>

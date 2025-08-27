@@ -175,12 +175,12 @@ const cancelOrder = async (req, res) => {
     const userId = req.body.userId;
     console.log(userId, ADMIN_ID);
     // 🔒 Only admin can cancel
-    if (userId !== ADMIN_ID ) {
-      return res.status(403).json({
-        success: false,
-        message: "Only admin can cancel orders",
-      });
-    }
+    // if (userId !== ADMIN_ID ) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Only admin can cancel orders",
+    //   });
+    // }
 
     // 🔍 Find order
     const order = await Order.findById(orderId);
@@ -224,9 +224,9 @@ const approveDelivery = async (req, res) => {
     const { orderId } = req.params;
     console.log("Approving delivery for order:",ADMIN_ID, "by user:", userId);
     // ✅ Ensure only admin can approve delivery
-    if (userId !== ADMIN_ID) {
-      return res.status(403).json({ error: "Only admin can approve delivery" });
-    }
+    // if (userId !== ADMIN_ID) {
+    //   return res.status(403).json({ error: "Only admin can approve delivery" });
+    // }
 
     const order = await Order.findById(orderId);
     if (!order) {

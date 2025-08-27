@@ -19,7 +19,7 @@ const CheckoutPage = () => {
   const product = state?.product;
   const user = state?.user;
   const ownerId =import.meta.env.VITE_OWNER_ID;
-
+  const productOwnerId = product?.owner;
   if (!product) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
@@ -94,7 +94,7 @@ const handleCheckout = async () => {
 };
 
 
-  const tax = product.price * 0.1;
+  const tax = product.price * 0;
   const total = product.price + tax;
   
 
@@ -190,7 +190,7 @@ const handleCheckout = async () => {
 
               {/* Price + Share */}
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-bold text-green-600">${product.price}</p>
+                <p className="text-2xl font-bold text-green-600">₼ {product.price}</p>
 
                 <button
                   onClick={() => setShowShareModal(true)}
@@ -271,16 +271,16 @@ const handleCheckout = async () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Product Price:</span>
                   <span className="font-medium text-gray-800">
-                    ${product.price.toFixed(2)}
+                    ₼ {product.price.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Tax (10%):</span>
-                  <span className="font-medium text-gray-800">${tax.toFixed(2)}</span>
+                  <span className="text-gray-600">Tax (0%):</span>
+                  <span className="font-medium text-gray-800">₼ {tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg mt-3 text-green-600">
                   <span>Total:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₼ {total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -309,6 +309,7 @@ const handleCheckout = async () => {
           product={product}
           user={dialogUser}
           owner={ownerId}
+          productOwner={productOwnerId}
           onPaymentSuccess={() => console.log("✅ Payment success")}
         />
       )}

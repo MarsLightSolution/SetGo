@@ -509,7 +509,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-4xl font-black text-white">
-                    ${renderText(dashboardData.stats.totalRevenue).toLocaleString()}
+                    ₼ {renderText(dashboardData.stats.totalRevenue).toLocaleString()}
                   </div>
                   <p className="text-sm text-emerald-100 mt-2 font-medium">+12% from last month</p>
                 </CardContent>
@@ -544,7 +544,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-4xl font-black text-white">
-                    ${renderText(dashboardData.stats.fundsHeld).toLocaleString()}
+                    ₼ {renderText(dashboardData.stats.fundsHeld).toLocaleString()}
                   </div>
                   <p className="text-sm text-purple-100 mt-2 font-medium">Pending release</p>
                 </CardContent>
@@ -573,7 +573,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                             }`}
                           />
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">{renderText(transaction.description)}</p>
+                            <p className="text-sm font-semibold text-gray-900">{renderText(transaction.description  )}</p>
                             <p className="text-xs text-gray-500 font-medium">
                               {new Date(transaction.date).toLocaleDateString()}
                             </p>
@@ -584,7 +584,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                             renderText(transaction.type) === "credit" ? "text-green-600" : "text-red-600"
                           }`}
                         >
-                          {renderText(transaction.type) === "credit" ? "+" : "-"}${renderText(transaction.amount)}
+                          {renderText(transaction.type) === "credit" ? "+" : "-"}₼ {renderText(transaction.amount)}
                         </div>
                       </div>
                     ))}
@@ -609,7 +609,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                           <div>
                             <p className="text-sm font-bold text-gray-900">{renderText(order.productName)}</p>
                             <p className="text-xs text-gray-600 font-medium">
-                              Order {renderText(order.id).toString().slice(-6)} - ${renderText(order.amount)}
+                              Order {renderText(order.id).toString().slice(-6)} - ₼ {renderText(order.amount)}
                             </p>
                           </div>
                           <Badge
@@ -684,7 +684,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                         <TableCell
                           className={`font-black text-lg ${renderText(transaction.type) === "credit" ? "text-green-600" : "text-red-600"}`}
                         >
-                          {renderText(transaction.type) === "credit" ? "+" : "-"}${renderText(transaction.amount)}
+                          {renderText(transaction.type) === "credit" ? "+" : "-"}₼ {renderText(transaction.amount)}
                         </TableCell>
                         <TableCell className="text-gray-700 font-medium">
                           {renderText(transaction.description)}
@@ -762,7 +762,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                         </TableCell>
                         <TableCell className="font-medium text-gray-900">{renderText(buyer.name)}</TableCell>
                         <TableCell className="text-gray-600">{renderText(buyer.email)}</TableCell>
-                        <TableCell className="text-green-600 font-bold">${renderText(buyer.totalSpent)}</TableCell>
+                        <TableCell className="text-green-600 font-bold">₼ {renderText(buyer.totalSpent)}</TableCell>
                         <TableCell className="text-gray-700">{renderText(buyer.totalOrders)}</TableCell>
                         <TableCell>
                           <Badge variant={renderText(buyer.status) === "active" ? "default" : "secondary"}>
@@ -836,7 +836,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                         <TableCell className="text-gray-700 font-medium">{renderText(order.buyerName)}</TableCell>
                         <TableCell className="text-gray-700 font-medium">{renderText(order.sellerName)}</TableCell>
                         <TableCell className="font-bold text-gray-900">{renderText(order.productName)}</TableCell>
-                        <TableCell className="font-black text-lg text-gray-900">${renderText(order.amount)}</TableCell>
+                        <TableCell className="font-black text-lg text-gray-900">₼ {renderText(order.amount)}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
@@ -1031,9 +1031,9 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                         </TableCell>
                         <TableCell className="font-medium text-gray-900">{renderText(seller.name)}</TableCell>
                         <TableCell className="text-gray-600">{renderText(seller.email)}</TableCell>
-                        <TableCell className="text-green-600 font-bold">${renderText(seller.totalEarnings)}</TableCell>
+                        <TableCell className="text-green-600 font-bold">₼ {renderText(seller.totalEarnings)}</TableCell>
                         <TableCell className="text-orange-600 font-bold">
-                          ${renderText(seller.pendingEarnings)}
+                          ₼ {renderText(seller.pendingEarnings)}
                         </TableCell>
                         <TableCell className="text-gray-700">{renderText(seller.commissionRate)}%</TableCell>
                         <TableCell>

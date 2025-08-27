@@ -48,8 +48,8 @@ const Wishlist = () => {
             <div className="flex flex-col gap-6">
               {wishlist.map((post, index) => {
                 // Access translated title and description
-                const displayTitle = post.title?.[i18n.language] || post.title?.en || t("wishlist.untitledProduct");
-                const displayDescription = post.description?.[i18n.language] || post.description?.en || t("wishlist.noDescription");
+                const displayTitle = post.title || post.title?.en || t("wishlist.untitledProduct");
+                const displayDescription = post.description|| post.description?.en || t("wishlist.noDescription");
                 const displayLocation = post.postalCode || post.location?.postalCode || t("home.unknownLocation"); // Reusing unknown location key
 
                 return (
@@ -70,10 +70,6 @@ const Wishlist = () => {
                     <div className="flex-1 md:ml-4 w-full">
                       <div className="flex justify-between text-sm text-gray-500 mb-1">
                         <span className="flex items-center gap-1">
-                          <FaMapMarkerAlt className="text-gray-400" />
-                          {displayLocation}
-                        </span>
-                        <span className="flex items-center gap-1">
                           <MdOutlineCalendarToday className="text-gray-400" />
                           {formatPostDate(post.createdAt)} {/* Use localized date */}
                         </span>
@@ -89,7 +85,7 @@ const Wishlist = () => {
                       </p>
 
                       <p className="text-green-700 font-bold text-xl mt-2">
-                        € {post.price}
+                        ₼  {post.price}
                         <span className="text-sm font-normal text-green-700 ml-1">{t("wishlist.negotiable")}</span> {/* Translated */}
                       </p>
 

@@ -153,7 +153,7 @@ const getLocalizedTitle = (product) => {
                     <input type="text" value={localSearchQuery} onChange={(e) => setLocalSearchQuery(e.target.value)} placeholder={t("navbar.searchPlaceholder")} className="w-full border rounded px-3 py-2 text-sm" />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">{t("navbar.priceRange")}: €{localPriceRange[0]} – €{localPriceRange[1]}</label>
+                    <label className="block text-sm font-medium mb-2">{t("navbar.priceRange")}: ₼ {localPriceRange[0]} – ₼ {localPriceRange[1]}</label>
                     <Slider range min={0} max={10000} step={100} value={localPriceRange} onChange={setLocalPriceRange} trackStyle={[{ backgroundColor: "#84cc16" }]} handleStyle={[{ borderColor: "#84cc16" }, { borderColor: "#84cc16" }]} />
                 </div>
                 <div className="mb-4">
@@ -196,7 +196,7 @@ const getLocalizedTitle = (product) => {
                                                     <div>
                                                         <b>{getLocalizedTitle(product)}</b>
                                                         <br/>
-                                                        <span>€{product.price}</span>
+                                                        <span>₼ {product.price}</span>
                                                     </div>
                                                 </Popup>
                                             </Marker>

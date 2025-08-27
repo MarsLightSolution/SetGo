@@ -600,7 +600,7 @@
     "connectingToChatWait": "Zəhmət olmasa, gözləyin, çata qoşulur...",
     "selectConversationFirst": "Zəhmət olmasa, əvvəlcə söhbət seçin",
     "failedToUploadFile": "Fayl yüklənmədi",
-    "productOfInterest": "Salam! Mən sizin məhsulunuzla maraqlanıram: {{title}} - €{{price}}",
+    "productOfInterest": "Salam! Mən sizin məhsulunuzla maraqlanıram: {{title}} - ₼ {{price}}",
     "sharedImageAlt": "Paylaşılan şəkil",
     "fileSize": "{{size}} KB",
     "connectingStatus": "Çata qoşulur...",
