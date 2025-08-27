@@ -204,6 +204,7 @@ const getProducts = asyncHandler(async (req, res) => {
     longitude,
     radiusInKm,
     search,
+    postalCode, // ✅ Added postal code from query
   } = req.query;
 
   const validLangs = ["en", "az", "ru"];
@@ -226,12 +227,12 @@ const getProducts = asyncHandler(async (req, res) => {
     longitude,
     radiusInKm,
     search,
+    postalCode, // log postal code
   });
 
   const pipeline = [];
 
   // ✅ Category filter
-  // Ensure category is not empty or 'All Products'
   if (category?.trim() && category !== "All Products") {
     pipeline.push({
       $match: {
@@ -264,13 +265,11 @@ const getProducts = asyncHandler(async (req, res) => {
 
   if (condition) matchStage.condition = condition;
 
-  // ✅ Exclude user's own products (works for both ObjectId & string IDs)
+  // ✅ Exclude user's own products
   if (userId) {
-    // Check if userId is a valid MongoDB ObjectId
     if (mongoose.Types.ObjectId.isValid(userId)) {
       matchStage.owner = { $ne: new mongoose.Types.ObjectId(userId) };
     } else {
-      // Treat userId as a string if not a valid ObjectId (e.g., for non-MongoDB external user IDs)
       matchStage.owner = { $ne: userId.toString() };
     }
   }
@@ -279,31 +278,35 @@ const getProducts = asyncHandler(async (req, res) => {
   if (latitude && longitude && radiusInKm) {
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
-    const radiusMeters = parseFloat(radiusInKm) * 1000; // Convert km to meters
+    const radiusMeters = parseFloat(radiusInKm) * 1000;
 
-    // Apply $geoWithin for spherical queries
     matchStage["location.coordinates"] = {
       $geoWithin: {
-        $centerSphere: [[lng, lat], radiusMeters / 6378137], // Earth's radius in meters
+        $centerSphere: [[lng, lat], radiusMeters / 6378137],
       },
     };
   } else if (city) {
     matchStage["location.city"] = new RegExp(`^${escapeRegex(city.trim())}$`, "i");
   }
 
+  // ✅ Postal code filter
+  if (postalCode?.trim()) {
+    matchStage["postalCode"] = new RegExp(`^${escapeRegex(postalCode.trim())}$`, "i");
+  }
+
   pipeline.push({ $match: matchStage });
 
-  // ✅ Sort by latest creation date by default
+  // ✅ Sort by latest creation date
   pipeline.push({ $sort: { createdAt: -1 } });
 
-  // ✅ Projection: select only needed fields and handle multilingual fields
+  // ✅ Projection
   pipeline.push({
     $project: {
       _id: 1,
       title: { $ifNull: [`$title.${selectedLang}`, "$title.en"] },
       category: { $ifNull: [`$category.${selectedLang}`, "$category.en"] },
       description: { $ifNull: [`$description.${selectedLang}`, "$description.en"] },
-      name: { $ifNull: [`$name.${selectedLang}`, "$name.en"] }, // Assuming 'name' might also be multilingual
+      name: { $ifNull: [`$name.${selectedLang}`, "$name.en"] },
       price: 1,
       condition: 1,
       pictures: 1,
@@ -317,10 +320,10 @@ const getProducts = asyncHandler(async (req, res) => {
     },
   });
 
-  // Pagination options for aggregatePaginate
+  // Pagination options
   const options = {
-    page: Number(page) > 0 ? Number(page) : 1, // Ensure page is at least 1
-    limit: Number(limit) > 0 ? Number(limit) : 10, // Ensure limit is at least 10
+    page: Number(page) > 0 ? Number(page) : 1,
+    limit: Number(limit) > 0 ? Number(limit) : 10,
     customLabels: {
       docs: "products",
       totalDocs: "totalProducts",
@@ -334,10 +337,7 @@ const getProducts = asyncHandler(async (req, res) => {
   };
 
   // Execute aggregation pipeline with pagination
-  const result = await Product.aggregatePaginate(
-    Product.aggregate(pipeline),
-    options
-  );
+  const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
 
   logger.info("[GetProducts] Products fetched", {
     total: result.totalProducts,
@@ -350,6 +350,7 @@ const getProducts = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, result, "Filtered products with pagination."));
 });
+
 
 
 const getProductById = asyncHandler(async (req, res) => {
