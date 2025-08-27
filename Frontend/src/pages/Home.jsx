@@ -251,7 +251,7 @@ const fetchProducts = async (type, page) => {
     if (postalCode) {
       params.append("postalCode", postalCode);
     }
-
+     
     // Search query
     if (searchQuery) {
       params.append("search", searchQuery);
