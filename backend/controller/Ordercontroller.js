@@ -1,5 +1,15 @@
 const Order = require("../models/Order.js");
 const Product = require("../models/product.model.js");
+const { sendEmail } = require("../services/emailService.js");
+const {
+  buyerPaymentTemplate,
+  sellerPaymentTemplate,
+  adminPaymentTemplate,
+  trackingUpdateTemplate,
+  orderRejectedTemplate,
+  itemReceivedTemplate,
+  fundsReleasedTemplate
+} = require("../services/templates.js");
 
 const placeOrder = async (req, res) => {
   console.log("hi");
@@ -14,6 +24,23 @@ const placeOrder = async (req, res) => {
     }
     console.log("varification  done");
     
+    const product = await Product.findById(productId).populate("owner","username email");
+    if (!product) {
+      return res.status(404).json({ success: false, error: "Product not found" });
+    }
+
+    const buyer = { id: buyerId, name: address.name, email: address.email };
+    const seller = { 
+      id: sellerId, 
+      name: product.owner.username, 
+      email: product.owner.email 
+    };
+    const newOrder = {
+      id: transactionId,
+      product: product.title.en,
+      amount: total,
+    };
+    console.log(newOrder, buyer, seller);
 
     const order = new Order({
       buyerId,
@@ -34,6 +61,22 @@ const placeOrder = async (req, res) => {
     console.log(order);
 
     await order.save();
+    try {
+    await sendEmail(
+      buyer.email,
+      "New Order Received",
+      buyerPaymentTemplate(buyer, newOrder, seller)
+    );
+
+    await sendEmail(
+      seller.email,
+      "New Order Notification",
+      sellerPaymentTemplate(seller, newOrder, buyer)
+    );
+  } catch (mailErr) {
+    console.error("Email sending failed:", mailErr.message);
+    // don’t throw, just log
+  }
 
     res.json({ success: true, data: order });
   } catch (err) {
@@ -100,7 +143,11 @@ const uploadTrackingId = async (req, res) => {
       return res.status(400).json({ success: false, message: "Tracking ID is required" });
     }
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId)
+      .populate("buyerId", "username email")
+      .populate("sellerId", "username email")
+      .populate("productId", "title");
+
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
@@ -117,9 +164,31 @@ const uploadTrackingId = async (req, res) => {
 
     await order.save();
 
+    // Buyer & Seller objects for email template
+    const buyer = { name: order.buyerId.username, email: order.buyerId.email };
+    const seller = { name: order.sellerId.username, email: order.sellerId.email };
+    const productTitle = order.productId.title?.en || order.productId.title; // fallback
+
+    // ✅ Send emails
+    try {
+      await sendEmail(
+        buyer.email,
+        "Your Order Has Been Shipped",
+        trackingUpdateTemplate(buyer, order, trackingId)
+      );
+
+      await sendEmail(
+        seller.email,
+        "Tracking ID Uploaded Successfully",
+        trackingUpdateTemplate(seller, order, trackingId)
+      );
+    } catch (mailErr) {
+      console.error("Email sending failed:", mailErr.message);
+    }
+
     res.status(200).json({
       success: true,
-      message: "Tracking ID uploaded successfully",
+      message: "Tracking ID uploaded successfully & emails sent",
       order,
     });
   } catch (error) {
