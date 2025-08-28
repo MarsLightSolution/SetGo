@@ -2,6 +2,12 @@ const Order = require("../models/Order.js");
 const User = require("../models/user.js");
 const Product = require("../models/product.model.js");
 const ADMIN_ID = process.env.Admin_Id;
+const { sendEmail } = require("../services/emailService.js");
+const {
+  orderRejectedTemplate,
+  itemReceivedTemplate,
+  fundsReleasedTemplate
+} = require("../services/templates.js");
 const getAdminDashboardData = async (req, res) => {
   try {
     // Fetch orders with buyer/seller/product info
@@ -183,13 +189,14 @@ const cancelOrder = async (req, res) => {
     // }
 
     // 🔍 Find order
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).populate("productId", "title"); // 👈 choose the fields you need
+
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
     // 🚫 Already cancelled / delivered
-    if (["cancelled", "delivered", "funds_released"].includes(order.status)) {
+    if (["cancelled", "delivered", "released"].includes(order.status)) {
       return res.status(400).json({
         success: false,
         message: `Order already ${order.status}, cannot cancel.`,
@@ -200,12 +207,29 @@ const cancelOrder = async (req, res) => {
     order.status = "cancelled";
     await order.save();
 
-    // (Optional) Refund logic here if you maintain wallet/credits
-    // await refundBuyer(order.buyerId, order.total);
+    // 📧 Send Rejected Email to Buyer
+    try {
+      const buyer = await User.findById(order.buyerId);
+      if (buyer && buyer.email) {
+        const emailHtml = orderRejectedTemplate(
+          buyer,
+          { id: order._id, product: order.productId?.title.en }, // 👈 Pass order details
+          "Cancelled" // 👈 Reason
+        );
+
+        await sendEmail(
+          buyer.email,
+          "Your Order Has Been Cancelled",
+          emailHtml,
+        );
+      }
+    } catch (emailErr) {
+      console.error("❌ Failed to send cancellation email:", emailErr.message);
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Order cancelled successfully by admin",
+      message: "Order cancelled successfully by admin & email sent to buyer",
       order,
     });
   } catch (error) {
@@ -228,7 +252,15 @@ const approveDelivery = async (req, res) => {
     //   return res.status(403).json({ error: "Only admin can approve delivery" });
     // }
 
-    const order = await Order.findById(orderId);
+    console.log("Approving delivery for order:", ADMIN_ID, "by user:", userId);
+
+    // // ✅ Ensure only admin can approve delivery
+    // if (userId !== ADMIN_ID) {
+    //   return res.status(403).json({ error: "Only admin can approve delivery" });
+    // }
+
+    // 🔍 Find order with product populated
+    const order = await Order.findById(orderId).populate("productId", "title");
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
@@ -242,6 +274,20 @@ const approveDelivery = async (req, res) => {
     order.status = "delivered";
     order.deliveryApprovedAt = new Date();
     await order.save();
+
+    // 🔍 Get seller details
+    const seller = await User.findById(order.sellerId);
+    if (seller) {
+      // 📧 Send email to seller
+      await sendEmail(
+        seller.email,
+        "Item Received & Delivery Approved ✅",
+        itemReceivedTemplate(
+          { name: seller.username },
+          { id: order._id, product: order.productId?.title.en || "Product" }
+        )
+      );
+    }
 
     res.json({ message: "Order delivery approved successfully", order });
   } catch (err) {
@@ -262,28 +308,61 @@ const releaseFunds = async (req, res) => {
       return res.status(403).json({ error: "Only admin can release funds" });
     }
 
-    // 🔍 Find order
-    const order = await Order.findById(orderId);
+    // 🔍 Find order + populate buyer & seller
+    const order = await Order.findById(orderId)
+      .populate("buyerId", "username email")
+      .populate("sellerId", "username email");
+
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
     // ❌ Prevent releasing if already released/cancelled
-    if (["released"].includes(order.status)) {
+    if (["released", "cancelled"].includes(order.status)) {
       return res.status(400).json({ error: `Order already ${order.status}` });
     }
 
-    // ✅ Release funds
-    order.status = "released";
-    order.fundsReleasedAt = new Date();
-    await order.save();
+    let emailUser, emailTemplate;
 
-    // (Optional) Add logic to credit seller's wallet here:
-    // await creditSeller(order.sellerId, order.total);
+    if (order.status === "cancelled") {
+      // 🔄 Refund to Buyer
+      emailUser = order.buyerId;
+      emailTemplate = fundsReleasedTemplate(
+        emailUser,
+        {
+          id: order._id,
+          product: order.productName,
+          amount: order.total,
+        },
+        "buyer"
+      );
+    } else {
+      // ✅ Release to Seller
+      order.status = "released";
+      order.fundsReleasedAt = new Date();
+      await order.save();
+
+      emailUser = order.sellerId;
+      emailTemplate = fundsReleasedTemplate(
+        emailUser,
+        {
+          id: order._id,
+          product: order.productName,
+          amount: order.total,
+        },
+        "seller"
+      );
+    }
+
+    // 📧 Send email
+    await sendEmail(emailUser.email, "Funds Update - Order", emailTemplate);
 
     return res.json({
       success: true,
-      message: "Funds released successfully",
+      message:
+        order.status === "released"
+          ? "Funds released to seller successfully & email sent"
+          : "Refund initiated to buyer successfully & email sent",
       order,
     });
   } catch (err) {
