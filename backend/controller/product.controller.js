@@ -383,24 +383,21 @@ const markProductAsSold = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
-  if (product.isSell === true) {
-    logger.info(`[MarkProductAsSold] Product already marked as sold`, {
-      productId,
-    });
-    return res
-      .status(200)
-      .json(new ApiResponse(200, product, "Product already marked as sold."));
-  }
-
-  product.isSell = true;
+  // Toggle the status
+  product.isSell = !product.isSell;
   await product.save();
 
-  logger.info(`[MarkProductAsSold] Product updated as sold`, { productId });
+  logger.info(`[MarkProductAsSold] Product toggled to ${product.isSell ? "sold" : "available"}`, { productId });
 
-  res
-    .status(200)
-    .json(new ApiResponse(200, product, "Product marked as sold."));
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      product,
+      `Product marked as ${product.isSell ? "sold" : "available"}.`
+    )
+  );
 });
+
 const getProductsByCategory = asyncHandler(async (req, res) => {
   const { category } = req.params;
 
@@ -659,6 +656,119 @@ const getNearbyProducts = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, result, "Products fetched successfully."));
 });
+const getPriorityProducts = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    lang = "en",
+    category,
+    search,
+    minPrice = 0,
+    maxPrice = 1000000,
+  } = req.query;
+
+  const validLangs = ["en", "az", "ru"];
+  const selectedLang = validLangs.includes(lang) ? lang : "en";
+
+  const pipeline = [];
+
+  // Category filter
+  if (category?.trim() && category !== "All Products") {
+    pipeline.push({
+      $match: {
+        [`category.${selectedLang}`]: new RegExp(`^${category.trim()}$`, "i"),
+      },
+    });
+  }
+
+  // Search filter
+  if (search) {
+    const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    pipeline.push({
+      $match: {
+        $or: [
+          { [`title.${selectedLang}`]: { $regex: safeSearch, $options: "i" } },
+          { [`description.${selectedLang}`]: { $regex: safeSearch, $options: "i" } },
+        ],
+      },
+    });
+  }
+
+  // ✅ General filters (priority must be true)
+  const matchStage = {
+    price: { $gte: Number(minPrice), $lte: Number(maxPrice) },
+    priority: true,
+  };
+
+  pipeline.push({ $match: matchStage });
+
+  // Sort
+  pipeline.push({ $sort: { createdAt: -1 } });
+
+  // Projection
+  pipeline.push({
+    $project: {
+      _id: 1,
+      title: { $ifNull: [`$title.${selectedLang}`, "$title.en"] },
+      category: { $ifNull: [`$category.${selectedLang}`, "$category.en"] },
+      description: { $ifNull: [`$description.${selectedLang}`, "$description.en"] },
+      name: { $ifNull: [`$name.${selectedLang}`, "$name.en"] },
+      price: 1,
+      condition: 1,
+      pictures: 1,
+      location: 1,
+      owner: 1,
+      priority: 1,
+      createdAt: 1,
+    },
+  });
+
+  const options = {
+    page: Number(page),
+    limit: Number(limit),
+    customLabels: {
+      docs: "products",
+      totalDocs: "totalProducts",
+      page: "currentPage",
+      totalPages: "totalPages",
+      hasPrevPage: "hasPrevPage",
+      hasNextPage: "hasNextPage",
+      prevPage: "prevPage",
+      nextPage: "nextPage",
+    },
+  };
+
+  const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
+
+  res.status(200).json(
+    new ApiResponse(200, result, "Fetched only priority products.")
+  );
+});
+
+const updateProductPriority = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  if (!productId) {
+    throw new ApiError(400, "Product ID is required");
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  // If priority is not set yet, default to 0
+  const currentPriority = product.priority || 0;
+
+  // Toggle between 0 and 1
+  product.priority = currentPriority === 1 ? 0 : 1;
+
+  await product.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, product, `Product priority toggled to ${product.priority}`));
+});
 
 // module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getNearbyProducts };
 module.exports = {
@@ -671,4 +781,6 @@ module.exports = {
   markProductAsSold,
   getProductsByCategory,
   getNearbyProducts,
+  getPriorityProducts,
+  updateProductPriority
 };

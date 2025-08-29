@@ -30,12 +30,11 @@ const productSchema = new mongoose.Schema(
         message: "You can upload a maximum of 8 pictures.",
       },
     },
-    condition:
-    {
-      type:String,
-      required:true,
-      trim:true,
-      index:true,
+    condition: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
       enum: ["New", "Like New", "Used", "Defective / Needs Repair"],
     },
     location: {
@@ -76,6 +75,11 @@ const productSchema = new mongoose.Schema(
     isSell: {
       type: Boolean,
       default: false
+    },
+    priority: {
+      type: Boolean,
+      default: false, // ✅ false by default, admin can set to true
+      index: true,    // ✅ index for faster queries
     },
     createdBy: {
       type: Date,

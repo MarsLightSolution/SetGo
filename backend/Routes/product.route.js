@@ -11,7 +11,9 @@ const {
   deleteProduct,
   markProductAsSold,
   getProductsByCategory,
-  getNearbyProducts
+  getNearbyProducts,
+  getPriorityProducts
+  ,updateProductPriority
 } = require("../controller/product.controller.js");
 
 router.post("/add",
@@ -60,4 +62,6 @@ router.route("/try").post((req, res) => {
 router.patch("/mark-sold/:productId", markProductAsSold);
 router.get('/category/:category', getProductsByCategory);
 router.route("/productadds")
+router.get("/priority", getPriorityProducts);
+router.put("/priority/:productId", updateProductPriority);
 module.exports = router;

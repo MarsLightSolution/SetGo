@@ -17,6 +17,9 @@ export default function AdminDashboard() {
     orders: [],
   })
 
+  const [galleryData, setGalleryData] = useState([])
+  const [galleryLoading, setGalleryLoading] = useState(false)
+
   const [transactionSearchInput, setTransactionSearchInput] = useState("")
   const [transactionSearch, setTransactionSearch] = useState("")
   const [buyerSearchInput, setBuyerSearchInput] = useState("")
@@ -47,9 +50,49 @@ export default function AdminDashboard() {
     }
   }
 
+  const fetchGalleryData = async () => {
+    try {
+      setGalleryLoading(true)
+      const response = await fetch(`${import.meta.env.VITE_SERVER}/api/products/priority`)
+      const result = await response.json()
+      console.log("Gallery data:", result)
+      if (result.success) {
+        const products = result.data.products || []
+        const mappedProducts = products.map((product) => ({
+          id: product._id,
+          name: product.title,
+          description: product.description,
+          price: product.price,
+          image:
+            product.pictures && product.pictures.length > 0
+              ? `${import.meta.env.VITE_SERVER}/${product.pictures[0]}`
+              : null,
+          stock: product.condition, // Using condition as stock info since no stock field
+          category: product.category,
+          location: product.location,
+          owner: product.name || "Unknown",
+        }))
+        setGalleryData(mappedProducts)
+      } else {
+        setError(result.error || "Failed to fetch gallery data")
+      }
+    } catch (err) {
+      setError("Network error: " + err.message)
+      console.error("Gallery API error:", err)
+    } finally {
+      setGalleryLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchDashboardData()
   }, [refreshTrigger])
+
+  useEffect(() => {
+    if (activeTab === "gallery") {
+      fetchGalleryData()
+    }
+  }, [activeTab])
 
   const handleApproveDelivery = async (orderId) => {
     try {
@@ -85,81 +128,81 @@ export default function AdminDashboard() {
       await fetchDashboardData()
     }
   }
-const handleReleaseFunds = async (orderId, to, transaferTo) => {
-  try {
-    const order = dashboardData.orders.find((o) => o.id === orderId)
-    console.log(order)
+  const handleReleaseFunds = async (orderId, to, transaferTo) => {
+    try {
+      const order = dashboardData.orders.find((o) => o.id === orderId)
+      console.log(order)
 
-    if (order && (order.status === "delivered" || order.status === "cancelled")) {
-      const orderTimestamp = Date.now() // ✅ ensure unique referenceId
-      const payload = {
-        senderId: import.meta.env.VITE_OWNER_ID,
-        receiverId: to,
-        type: "transfer to " + transaferTo,
-        amount: order.amount,
-        transactionId: order.transactionId,
-        description: `Payment for order ${orderTimestamp} to ${transaferTo}`,
-        referenceId: `order_${orderTimestamp}`,
-        source: "Admin wallet",
-      }
+      if (order && (order.status === "delivered" || order.status === "cancelled")) {
+        const orderTimestamp = Date.now() // ✅ ensure unique referenceId
+        const payload = {
+          senderId: import.meta.env.VITE_OWNER_ID,
+          receiverId: to,
+          type: "transfer to " + transaferTo,
+          amount: order.amount,
+          transactionId: order.transactionId,
+          description: `Payment for order ${orderTimestamp} to ${transaferTo}`,
+          referenceId: `order_${orderTimestamp}`,
+          source: "Admin wallet",
+        }
 
-      console.log(payload)
+        console.log(payload)
 
-      try {
-        // Step 1: Transfer funds
-        const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-        const data = await res.json().catch(() => ({}))
-        console.log(data)
-
-        if (res.ok) {
-          // ✅ Step 2: Update order as "funds released"
-          const orderRes = await fetch(`${import.meta.env.VITE_SERVER}/${orderId}/release`, {
-            method: "PUT",
+        try {
+          // Step 1: Transfer funds
+          const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: import.meta.env.VITE_OWNER_ID }),
+            body: JSON.stringify(payload),
           })
+          const data = await res.json().catch(() => ({}))
+          console.log(data)
 
-          if (orderRes.ok) {
-            alert("Funds released successfully to " + to)
+          if (res.ok) {
+            // ✅ Step 2: Update order as "funds released"
+            const orderRes = await fetch(`${import.meta.env.VITE_SERVER}/${orderId}/release`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: import.meta.env.VITE_OWNER_ID }),
+            })
 
-            // Update frontend state
-            setDashboardData((prev) => ({
-              ...prev,
-              orders: prev.orders.map((o) =>
-                o.id === orderId
-                  ? { ...o, status: "funds_released_to_" + transaferTo, fundsReleasedToSeller: true }
-                  : o,
-              ),
-              stats: {
-                ...prev.stats,
-                fundsHeld: prev.stats.fundsHeld - Number.parseFloat(order.amount),
-                pendingOrders: prev.stats.pendingOrders - 1,
-              },
-            }))
-            setRefreshTrigger((prev) => prev + 1)
+            if (orderRes.ok) {
+              alert("Funds released successfully to " + to)
+
+              // Update frontend state
+              setDashboardData((prev) => ({
+                ...prev,
+                orders: prev.orders.map((o) =>
+                  o.id === orderId
+                    ? { ...o, status: "funds_released_to_" + transaferTo, fundsReleasedToSeller: true }
+                    : o,
+                ),
+                stats: {
+                  ...prev.stats,
+                  fundsHeld: prev.stats.fundsHeld - Number.parseFloat(order.amount),
+                  pendingOrders: prev.stats.pendingOrders - 1,
+                },
+              }))
+              setRefreshTrigger((prev) => prev + 1)
+            } else {
+              alert("Transaction done but order update failed!")
+            }
           } else {
-            alert("Transaction done but order update failed!")
+            alert("Failed to release funds " + to)
+            setStatus("FAILURE")
           }
-        } else {
-          alert("Failed to release funds " + to)
+        } catch (err) {
+          console.error(err)
           setStatus("FAILURE")
         }
-      } catch (err) {
-        console.error(err)
-        setStatus("FAILURE")
+        await fetchDashboardData()
       }
+    } catch (err) {
+      console.error("Error releasing funds:", err)
+      setError("Failed to release funds to seller")
       await fetchDashboardData()
     }
-  } catch (err) {
-    console.error("Error releasing funds:", err)
-    setError("Failed to release funds to seller")
-    await fetchDashboardData()
   }
-}
 
   const handleCancelOrder = async (orderId) => {
     try {
@@ -496,6 +539,9 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
             <TabButton isActive={activeTab === "sellers"} onClick={() => setActiveTab("sellers")}>
               🏪 Sellers
             </TabButton>
+            <TabButton isActive={activeTab === "gallery"} onClick={() => setActiveTab("gallery")}>
+              🖼️ Gallery
+            </TabButton>
           </div>
         </div>
 
@@ -573,7 +619,7 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                             }`}
                           />
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">{renderText(transaction.description  )}</p>
+                            <p className="text-sm font-semibold text-gray-900">{renderText(transaction.description)}</p>
                             <p className="text-xs text-gray-500 font-medium">
                               {new Date(transaction.date).toLocaleDateString()}
                             </p>
@@ -1053,6 +1099,73 @@ const handleReleaseFunds = async (orderId, to, transaferTo) => {
                 )}
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {activeTab === "gallery" && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-800">Product Gallery</h2>
+              <button
+                onClick={fetchGalleryData}
+                disabled={galleryLoading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2"
+              >
+                {galleryLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Refreshing...
+                  </>
+                ) : (
+                  <>🔄 Refresh Gallery</>
+                )}
+              </button>
+            </div>
+
+            {galleryLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {galleryData.length > 0 ? (
+                  galleryData.map((product, index) => (
+                    <div
+                      key={product.id || index}
+                      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                    >
+                      {product.image && (
+                        <img
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name || "Product"}
+                          className="w-full h-48 object-cover"
+                        />
+                      )}
+                      <div className="p-4">
+                        <h3 className="font-semibold text-gray-800 mb-2">{product.name || "Unnamed Product"}</h3>
+                        <p className="text-gray-600 text-sm mb-2">
+                          {product.description || "No description available"}
+                        </p>
+                        <div className="text-xs text-gray-500 mb-2">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">{product.category}</span>
+                          <span>by {product.owner}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-bold text-green-600">₼ {product.price || "0.00"}</span>
+                          <span className="text-sm text-gray-500">Condition: {product.stock || "Unknown"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12">
+                    <div className="text-6xl mb-4">📦</div>
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">No Products Found</h3>
+                    <p className="text-gray-500">Click the refresh button to load products from the database.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
