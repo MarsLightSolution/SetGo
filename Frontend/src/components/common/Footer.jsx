@@ -25,34 +25,39 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-white border-t border-gray-200 mt-5">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {footerColumns.map((col, i) => (
-            <div key={i}>
-              <h3 className="font-semibold text-gray-900 mb-4">{col.title}</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                {col.links.map((link, j) => (
-                  <li key={j}>
-                    <a href="#" className="hover:text-green-800 transition-colors">
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+  <footer className="bg-white border-t border-gray-200 mt-5">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    {/* Responsive Grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 text-center sm:text-left">
+      {footerColumns.map((col, i) => (
+        <div key={i}>
+          <h3 className="font-semibold text-gray-900 mb-4 text-base">{col.title}</h3>
+          <ul className="space-y-2 text-sm text-gray-600">
+            {col.links.map((link, j) => (
+              <li key={j}>
+                <a href="#" className="hover:text-green-800 transition-colors">
+                  {link}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
+      ))}
+    </div>
 
-        <div className="border-t border-gray-200 mt-8 pt-6 text-center text-xs text-gray-500 space-y-1">
-          <p>
-            Copyright © 2005-2025 Marktplaats B.V. All rights reserved.
-            Designated trademarks belong to their respective owners.
-          </p>
-          <p>The classifieds services are operated by kleinanzeigen.de GmbH.</p>
-        </div>
-      </div>
-    </footer>
+    {/* Bottom Info */}
+    <div className="border-t border-gray-200 mt-10 pt-6 text-center text-xs text-gray-500 space-y-2 px-4">
+      <p>
+        Copyright © 2005-2025 <span className="font-medium">Marktplaats B.V.</span> All rights reserved.
+        Designated trademarks belong to their respective owners.
+      </p>
+      <p>
+        The classifieds services are operated by <span className="font-medium">kleinanzeigen.de GmbH</span>.
+      </p>
+    </div>
+  </div>
+</footer>
+
   );
 };
 
