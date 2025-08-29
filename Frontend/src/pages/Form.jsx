@@ -167,7 +167,7 @@ if (name === "condition") {
     if (!formData.description.trim()) currentErrors.description = t("form.descriptionRequired");
     if (!formData.postalCode.trim()) currentErrors.postalCode = t("form.postalCodeRequired");
     else if (!/^\d{6}$/.test(formData.postalCode)) currentErrors.postalCode = t("form.postalCodeFormatError");
-    if (!formData.location.trim()) currentErrors.location = t("form.locationRequired");
+    // if (!formData.location.trim()) currentErrors.location = t("form.locationRequired");
     if (formData.location.length > 50) currentErrors.location = t("form.locationLengthError");
     if (!formData.name.trim()) currentErrors.name = t("form.nameRequired");
     else if (!/^[A-Za-z\s]+$/.test(formData.name)) currentErrors.name = t("form.nameAlphabetOnly");
@@ -195,10 +195,10 @@ if (name === "condition") {
       return;
     }
 
-    if (!formData.latitude || !formData.longitude) {
-      showErrorToast(t("form.locationNotFound")); // Translated
-      return;
-    }
+    // if (!formData.latitude || !formData.longitude) {
+    //   showErrorToast(t("form.locationNotFound")); // Translated
+    //   return;
+    // }
 
     if (formData.pictures.length === 0) {
         showErrorToast(t("form.picturesRequired")); // Translated

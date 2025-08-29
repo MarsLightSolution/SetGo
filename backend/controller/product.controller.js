@@ -54,10 +54,10 @@ const addProduct = asyncHandler(async (req, res) => {
   if (picturesRaw.length > 20)
     throw new ApiError(400, "You can upload a maximum of 20 pictures.");
 
-  if (!latitude || !longitude) {
-    logger.warn(`[AddProduct] Missing latitude or longitude`);
-    throw new ApiError(400, "Location coordinates are required.");
-  }
+  // if (!latitude || !longitude) {
+  //   logger.warn(`[AddProduct] Missing latitude or longitude`);
+  //   throw new ApiError(400, "Location coordinates are required.");
+  // }
 
   const validatePostalCodeWithGoogle = async (postalCode) => {
     try {

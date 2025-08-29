@@ -323,395 +323,349 @@ const handleSendMessage = async () => {
   // Postal code is a direct field on product now
   const displayPostalCode = product.postalCode || product.location?.postalCode || t("home.unknownLocation");
 
-  return (
-    <>
-      <div className="min-h-screen bg-white-100 pt-3">
-        <div className="w-full flex justify-center">
-          <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
-            <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
-              <img
-                src={leftadImage}
-                alt={t("home.leftAdAlt")} // Reusing home key
-                className="w-full h-[550px] object-cover rounded"
-              />
-            </div>
-
-            <div className="flex-1 w-full lg:w-auto">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-4">
-                <div className="md:col-span-2 space-y-6">
-                  {/* IMAGE CONTAINER */}
-                  <div className="bg-white rounded-md shadow p-4">
-                  <div className="relative w-full h-[300px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
-{product?.pictures?.length > 0 ? (
+return (
   <>
-    <img
-      src={`${import.meta.env.VITE_SERVER}/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
-      alt={`Product image ${currentImageIndex + 1}`}
-      className="max-h-full max-w-full object-contain"
-    />
+    <div className="min-h-screen bg-white-100 pt-3">
+      <div className="w-full flex justify-center">
+        <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
+          
+          {/* Left Ad (Desktop only) */}
+          <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
+            <img
+              src={leftadImage}
+              alt={t("home.leftAdAlt")}
+              className="w-full h-[550px] object-cover rounded"
+            />
+          </div>
 
-    {/* Left Arrow */}
-    {product.pictures.length > 1 && (
-      <button
-        onClick={prevImage}
-        className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
-        aria-label="Previous Image"
-      >
-        &#10094;
-      </button>
-    )}
+          {/* Main Content */}
+          <div className="flex-1 w-full lg:w-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-4 p-4">
+              <div className="md:col-span-2 space-y-6">
+                
+                {/* IMAGE CONTAINER */}
+                <div className="bg-white rounded-md shadow p-4">
+                  <div className="relative w-full h-[220px] sm:h-[300px] md:h-[350px] lg:h-[350px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
+                    {product?.pictures?.length > 0 ? (
+                      <>
+                        <img
+                          src={`${import.meta.env.VITE_SERVER}/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
+                          alt={`Product image ${currentImageIndex + 1}`}
+                          className="max-h-full max-w-full object-contain"
+                        />
 
-    {/* Right Arrow */}
-    {product.pictures.length > 1 && (
-      <button
-        onClick={nextImage}
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
-        aria-label="Next Image"
-      >
-        &#10095;
-      </button>
-    )}
-  </>
-) : (
-  <img
-    src={`${import.meta.env.VITE_SERVER}/uploads/placeholder.jpg`}
-    alt="Placeholder"
-    className="max-h-full object-contain"
-  />
-)}
-</div>
-
-{/* Optional Image Counter */}
-{product.pictures?.length > 1 && (
-  <div className="text-center text-sm text-gray-500 mt-2">
-    {currentImageIndex + 1} / {product.pictures.length}
-  </div>
-)}
-
-                  </div>
-                  {/* DETAILS CONTAINER */}
-                  <div className="bg-white rounded-md shadow p-4">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                      {getLocalizedText(product.title) || t("productDetail.productTitlePlaceholder")}
-                    </h1>
-                    <p className="text-green-700 text-xl font-bold mb-3">
-                      ₼  {product.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}{" "}
-                      <span className="text-sm">{t("productDetail.negotiableAbbr")}</span>
-                    </p>
-
-                    <div className="text-sm text-gray-600 flex flex-wrap gap-4 mb-4">
-                      <div className="flex items-center gap-1">
-                        <LocationOn fontSize="small" />
-                        {displayPostalCode}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <CalendarToday fontSize="small" />
-                        {new Date(product.createdAt).toLocaleDateString(
-                          i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-GB')
+                        {/* Left Arrow */}
+                        {product.pictures.length > 1 && (
+                          <button
+                            onClick={prevImage}
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
+                            aria-label="Previous Image"
+                          >
+                            &#10094;
+                          </button>
                         )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <img src={EyeIcon} alt={t("productDetail.viewsAlt")} className="w-5 h-5" />
-                        {product.views || 0}
-                      </div>
-                    </div>
 
-                    <button
-                      className="mt-4 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-semibold text-sm cursor-pointer"
-                      onClick={handleBuyNow}
-                    >
-                      {t("productDetail.buyNowButton")}
-                    </button>
+                        {/* Right Arrow */}
+                        {product.pictures.length > 1 && (
+                          <button
+                            onClick={nextImage}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
+                            aria-label="Next Image"
+                          >
+                            &#10095;
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <img
+                        src={`${import.meta.env.VITE_SERVER}/uploads/placeholder.jpg`}
+                        alt="Placeholder"
+                        className="max-h-full object-contain"
+                      />
+                    )}
                   </div>
 
-                  {/* EXTRA INFO CONTAINER */}
-                  <div className="bg-white rounded-md shadow p-4 mt-6 relative ">
-                    {/* MAP LOCATION CONTAINER */}
-                    {product.location?.coordinates && product.location.coordinates.length === 2 && (
-                      <div className="bg-white rounded-md shadow p-4 mb-6"> {/* Added mb-6 for spacing */}
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
-                          <div className="w-full overflow-hidden rounded-md" style={{ height: "300px" }}>
+                  {/* Image Counter */}
+                  {product.pictures?.length > 1 && (
+                    <div className="text-center text-sm text-gray-500 mt-2">
+                      {currentImageIndex + 1} / {product.pictures.length}
+                    </div>
+                  )}
+                </div>
+
+                {/* DETAILS CONTAINER */}
+                <div className="bg-white rounded-md shadow p-4">
+                  <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                    {getLocalizedText(product.title) || t("productDetail.productTitlePlaceholder")}
+                  </h1>
+                  <p className="text-green-700 text-xl font-bold mb-3">
+                    ₼ {product.price?.toLocaleString(i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-IN"))}{" "}
+                    <span className="text-sm">{t("productDetail.negotiableAbbr")}</span>
+                  </p>
+
+                  <div className="text-sm text-gray-600 flex flex-wrap gap-4 mb-4">
+                    <div className="flex items-center gap-1">
+                      <LocationOn fontSize="small" />
+                      {displayPostalCode}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <CalendarToday fontSize="small" />
+                      {new Date(product.createdAt).toLocaleDateString(
+                        i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-GB")
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <img src={EyeIcon} alt={t("productDetail.viewsAlt")} className="w-5 h-5" />
+                      {product.views || 0}
+                    </div>
+                  </div>
+
+                  <button
+                    className="mt-4 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-semibold text-sm cursor-pointer"
+                    onClick={handleBuyNow}
+                  >
+                    {t("productDetail.buyNowButton")}
+                  </button>
+                </div>
+
+                {/* EXTRA INFO + MAP */}
+                <div className="bg-white rounded-md shadow p-4 mt-6 relative">
+                  {product.location?.coordinates && product.location.coordinates.length === 2 && (
+                    <div className="bg-white rounded-md shadow p-4 mb-6">
+                      <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
+                      <div className="w-full overflow-hidden rounded-md h-[220px] sm:h-[300px]">
                         <MapContainer
-                          center={[
-                            product.location.coordinates[1],
-                            product.location.coordinates[0],
-                          ]}
+                          center={[product.location.coordinates[1], product.location.coordinates[0]]}
                           zoom={13}
                           scrollWheelZoom={false}
-                          style={{ height: "300px", width: "100%", zIndex: 0, position: "relative" }}
+                          style={{ height: "100%", width: "100%", zIndex: 0, position: "relative" }}
                         >
                           <TileLayer
                             attribution={t("productDetail.mapAttribution")}
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           />
-                          <Marker
-                            position={[
-                              product.location.coordinates[1],
-                              product.location.coordinates[0],
-                            ]}
-                          >
+                          <Marker position={[product.location.coordinates[1], product.location.coordinates[0]]}>
                             <Popup>{getLocalizedText(product.title) || t("productDetail.productLocation")}</Popup>
                           </Marker>
                         </MapContainer>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
-                      <div>
-                        <div className="font-semibold text-gray-800">{t("productDetail.typeLabel")}</div>
-                        <div>{product.type || t("productDetail.notAvailableAbbr")}</div>
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-800">{t("productDetail.brandLabel")}</div>
-                        <div>{product.brand || t("productDetail.notAvailableAbbr")}</div>
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-800">{t("productDetail.sizeLabel")}</div>
-                        <div>{product.size || t("productDetail.notAvailableAbbr")}</div>
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-800">{t("productDetail.colorLabel")}</div>
-                        <div>{product.color || t("productDetail.notAvailableAbbr")}</div>
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-800">{t("productDetail.conditionLabel")}</div>
-                        <div>{product.condition || t("productDetail.notAvailableAbbr")}</div>
                       </div>
                     </div>
+                  )}
 
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2">
-                      {t("productDetail.descriptionSectionTitle")}
-                    </h2>
-                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {getLocalizedText(product.description) || t("productDetail.noDescriptionAvailable")}
-                    </p>
+                  {/* Specs */}
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
+                    <div>
+                      <div className="font-semibold text-gray-800">{t("productDetail.typeLabel")}</div>
+                      <div>{product.type || t("productDetail.notAvailableAbbr")}</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-800">{t("productDetail.brandLabel")}</div>
+                      <div>{product.brand || t("productDetail.notAvailableAbbr")}</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-800">{t("productDetail.sizeLabel")}</div>
+                      <div>{product.size || t("productDetail.notAvailableAbbr")}</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-800">{t("productDetail.colorLabel")}</div>
+                      <div>{product.color || t("productDetail.notAvailableAbbr")}</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-800">{t("productDetail.conditionLabel")}</div>
+                      <div>{product.condition || t("productDetail.notAvailableAbbr")}</div>
+                    </div>
                   </div>
 
-                  {/* WRITE A MESSAGE CONTAINER */}
-                  <div className="bg-white rounded-md shadow p-4 mt-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                      {t("productDetail.writeMessageTitle")}
-                    </h2>
-
-                    <div className="mb-4">
-                      <label className="block font-medium text-gray-700 mb-1">
-                        {t("productDetail.newsLabel")}
-                      </label>
-                      <textarea
-                        className="w-full border rounded-md p-2 text-sm text-gray-800"
-                        placeholder={t("productDetail.messagePlaceholder")}
-                        rows={4}
-                      ></textarea>
-                    </div>
-
-                    <div className="mb-4">
-                      <label className="block font-medium text-gray-700 mb-1">
-                        {t("productDetail.profileNameLabel")}
-                      </label>
-                      <div className="w-full border rounded-md p-2 bg-gray-100 text-sm text-gray-800">
-                        {getLocalizedText(user?.name) || t("productDetail.notAvailableAbbr")}
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-gray-600 mb-2">
-                      {t("productDetail.dataTransmissionInfo1")}{" "}
-                      <a href="#" className="text-green-700 underline">
-                        {t("productDetail.moreInformation")}
-                      </a>
-                    </p>
-                    <p className="text-xs text-gray-600 mb-4">
-                      {t("productDetail.dataTransmissionInfo2")}{" "}
-                      <a href="#" className="text-green-700 underline">
-                        {t("productDetail.termsOfUse")}
-                      </a>
-                      . {t("productDetail.dataTransmissionInfo3")}{" "}
-                      <a href="#" className="text-green-700 underline">
-                        {t("productDetail.privacyPolicy")}
-                      </a>
-                      .
-                    </p>
-
-                    <button
-                      onClick={handleSendMessage}
-                      className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-full font-semibold text-sm cursor-pointer">
-                      {t("productDetail.sendMessageButton")}
-                    </button>
-                  </div>
+                  <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                    {t("productDetail.descriptionSectionTitle")}
+                  </h2>
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                    {getLocalizedText(product.description) || t("productDetail.noDescriptionAvailable")}
+                  </p>
                 </div>
 
-                <div>
-<div className="sticky top-[180px] w-[280px] space-y-4">
-  {/* Main Sidebar Section */}
-  <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
-    {/* Green Rounded "Make an offer" */}
-                    <button
-                      onClick={handleSendMessage}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
-                    >
-                      Write a message
-                    </button>
-    {/* Watchlist Button */}
-    <button
-      onClick={handleAddToWatchlist}
-      className={`w-full text-sm font-medium py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer 
-        ${isWishlisted 
-          ? "bg-green-600 text-white hover:bg-green-700" 
-          : "border border-gray-400 text-gray-700 hover:bg-gray-100"}`}
-    >
-      {isWishlisted 
-        ? t("productDetail.removeFromWatchlistButton") 
-        : t("productDetail.addToWatchlistButton")}
-    </button>
+                {/* WRITE A MESSAGE */}
+                <div className="bg-white rounded-md shadow p-4 mt-6">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                    {t("productDetail.writeMessageTitle")}
+                  </h2>
+                  <div className="mb-4">
+                    <label className="block font-medium text-gray-700 mb-1">{t("productDetail.newsLabel")}</label>
+                    <textarea
+                      className="w-full border rounded-md p-2 text-sm text-gray-800"
+                      placeholder={t("productDetail.messagePlaceholder")}
+                      rows={4}
+                    ></textarea>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block font-medium text-gray-700 mb-1">{t("productDetail.profileNameLabel")}</label>
+                    <div className="w-full border rounded-md p-2 bg-gray-100 text-sm text-gray-800">
+                      {getLocalizedText(user?.name) || t("productDetail.notAvailableAbbr")}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-2">
+                    {t("productDetail.dataTransmissionInfo1")}{" "}
+                    <a href="#" className="text-green-700 underline">{t("productDetail.moreInformation")}</a>
+                  </p>
+                  <p className="text-xs text-gray-600 mb-4">
+                    {t("productDetail.dataTransmissionInfo2")}{" "}
+                    <a href="#" className="text-green-700 underline">{t("productDetail.termsOfUse")}</a>.{" "}
+                    {t("productDetail.dataTransmissionInfo3")}{" "}
+                    <a href="#" className="text-green-700 underline">{t("productDetail.privacyPolicy")}</a>.
+                  </p>
+                  <button
+                    onClick={handleSendMessage}
+                    className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-full font-semibold text-sm cursor-pointer"
+                  >
+                    {t("productDetail.sendMessageButton")}
+                  </button>
+                </div>
+              </div>
 
-    {/* Share Button */}
-    <button
-      onClick={() => setShowShareModal(true)}
-      className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
-    >
-      {t("productDetail.shareAdButton")}
-    </button>
+              {/* Sidebar (User Info + Actions) */}
+              <div className="md:col-span-1">
+  <div className="sticky top-[170px] w-full sm:max-w-[280px] mx-auto space-y-4">
 
-    {/* User Info */}
-    <div className="flex items-center gap-2">
-      <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
-        {ownerInitial}
-      </div>
-      <p className="font-semibold text-sm text-gray-900">
-        {ownerName}
-      </p>
-    </div>
-
-    {/* User Status */}
-    <div className="text-sm text-gray-600 space-y-1 pl-1">
-      <div className="flex items-center gap-2">
-        <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">👤</span>
-        <p>{t("productDetail.privateUser")}</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">📅</span>
-        <p>
-          {t("productDetail.activeSince")}{" "}
-          {new Date(product.createdAt).toLocaleDateString(
-            i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-GB")
-          )}
-        </p>
-      </div>
-    </div>
-
-    {/* Follow Button */}
-    {user?._id !== ownerId && (
+    {/* Seller / Actions Card */}
+    <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
       <button
-        onClick={handleFollowToggle}
-        disabled={followLoading}
-        className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
-          ${isFollowing
-            ? "text-red-600 border-red-500 hover:bg-red-50"
-            : "text-green-700 border-green-600 hover:bg-green-50"
-          }`}
+        onClick={handleSendMessage}
+        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
       >
-        {followLoading
-          ? t("productDetail.loading")
-          : isFollowing
-            ? t("productDetail.unfollowButton")
-            : t("productDetail.followButton")}
+        Write a message
       </button>
-    )}
-  </div>
 
-  {/* Ad ID Section (now sticky with sidebar) */}
-  <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 text-sm text-gray-700">
-    <div className="flex items-center justify-between">
-      <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
-      <span className="text-gray-900">{product._id}</span>
+      <button
+        onClick={handleAddToWatchlist}
+        className={`w-full text-sm font-medium py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer 
+          ${isWishlisted 
+            ? "bg-green-600 text-white hover:bg-green-700" 
+            : "border border-gray-400 text-gray-700 hover:bg-gray-100"}`}
+      >
+        {isWishlisted 
+          ? t("productDetail.removeFromWatchlistButton") 
+          : t("productDetail.addToWatchlistButton")}
+      </button>
+
+      <button
+        onClick={() => setShowShareModal(true)}
+        className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+      >
+        {t("productDetail.shareAdButton")}
+      </button>
+
+      <div className="flex items-center gap-2">
+        <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
+          {ownerInitial}
+        </div>
+        <p className="font-semibold text-sm text-gray-900">{ownerName}</p>
+      </div>
+
+      <div className="text-sm text-gray-600 space-y-1 pl-1">
+        <div className="flex items-center gap-2">
+          <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">👤</span>
+          <p>{t("productDetail.privateUser")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">📅</span>
+          <p>
+            {t("productDetail.activeSince")}{" "}
+            {new Date(product.createdAt).toLocaleDateString(
+              i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-GB")
+            )}
+          </p>
+        </div>
+      </div>
+
+      {user?._id !== ownerId && (
+        <button
+          onClick={handleFollowToggle}
+          disabled={followLoading}
+          className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
+            ${isFollowing
+              ? "text-red-600 border-red-500 hover:bg-red-50"
+              : "text-green-700 border-green-600 hover:bg-green-50"}`}
+        >
+          {followLoading
+            ? t("productDetail.loading")
+            : isFollowing
+              ? t("productDetail.unfollowButton")
+              : t("productDetail.followButton")}
+        </button>
+      )}
+    </div>
+
+    {/* Ad ID Section */}
+    <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 text-sm text-gray-700">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
+        <span className="text-gray-900">{product._id}</span>
+      </div>
     </div>
   </div>
 </div>
 
+            </div>
 
-{showShareModal && (
-        <ShareModal
-          product={product}
-          onClose={() => setShowShareModal(false)}
-        />
-      )}
-
-
-
-                  {/* Ad ID Section Below */}
-                  {/* <div className="bg-white rounded-xl shadow-md p-4 mt-4 border border-gray-200 text-sm text-gray-700">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
-                      <span className="text-gray-900">{product._id}</span>
-                    </div>
-                  </div> */}
-                </div>
-              </div>
-
-              {relatedProducts.length > 0 && (
-                <div className="max-w-6xl mx-auto mt-8 px-4">
-                  <h2 className="text-xl font-semibold mb-6">
-                    {t("productDetail.mightAlsoInterestYouTitle")}
-                  </h2>
-                  <div className="grid grid-cols-1 gap-6">
-                    {relatedProducts.map((item) => (
-                      <div
-                        key={item._id}
-                        onClick={() =>
-                          navigate(`/products/product/${item._id}`)
-                        }
-                        className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
-                      >
-                        <img
-                          src={`${import.meta.env.VITE_SERVER}/${
-                            item.pictures?.[0]?.replace(/\\/g, "/") ||
-                            "uploads/placeholder.jpg"
-                          }`}
-                          alt={getLocalizedText(item.title)}
-                          className="w-32 h-24 object-cover rounded-md"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm text-gray-500 flex items-center justify-between">
-                            <span>
-                              📍 {item.postalCode || item.location?.postalCode || t("home.unknownLocation")}{" "}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {new Date(item.createdAt).toLocaleDateString(
-                                i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-GB')
-                              )}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-gray-800 mt-1 mb-1 line-clamp-1">
-                            {getLocalizedText(item.title)}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-                            {getLocalizedText(item.description)}
-                          </p>
-                          <div className="flex gap-4 text-sm font-semibold text-green-700">
-                            <span>{item.price?.toLocaleString(i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-IN'))}₼ </span>
-                          </div>
+            {/* Related Products */}
+            {relatedProducts.length > 0 && (
+              <div className="max-w-6xl mx-auto mt-8 px-4">
+                <h2 className="text-xl font-semibold mb-6">
+                  {t("productDetail.mightAlsoInterestYouTitle")}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {relatedProducts.map((item) => (
+                    <div
+                      key={item._id}
+                      onClick={() => navigate(`/products/product/${item._id}`)}
+                      className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
+                    >
+                      <img
+                        src={`${import.meta.env.VITE_SERVER}/${item.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
+                        alt={getLocalizedText(item.title)}
+                        className="w-32 h-24 object-cover rounded-md"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-500 flex items-center justify-between">
+                          <span>
+                            📍 {item.postalCode || item.location?.postalCode || t("home.unknownLocation")}{" "}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(item.createdAt).toLocaleDateString(
+                              i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-GB")
+                            )}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-gray-800 mt-1 mb-1 line-clamp-1">
+                          {getLocalizedText(item.title)}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-1">
+                          {getLocalizedText(item.description)}
+                        </p>
+                        <div className="flex gap-4 text-sm font-semibold text-green-700">
+                          <span>{item.price?.toLocaleString(i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-IN"))}₼ </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
-              <img
-                src={rightadImage}
-                alt={t("home.rightAdAlt")}
-                className="w-full h-[550px] object-cover rounded"
-              />
-            </div>
+          {/* Right Ad (Desktop only) */}
+          <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
+            <img
+              src={rightadImage}
+              alt={t("home.rightAdAlt")}
+              className="w-full h-[550px] object-cover rounded"
+            />
           </div>
         </div>
       </div>
-      <Footer />
-    </>
-  );
-};
-
+    </div>
+    <Footer />
+  </>
+);
+}
 export default ProductDetail;
