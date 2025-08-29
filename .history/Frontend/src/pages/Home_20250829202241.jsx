@@ -15,7 +15,7 @@ import { Image as ImageIcon } from "lucide-react"; // <-- add lucide-react icon
 import { motion } from "framer-motion"
 import { Image as RefreshCw, ArrowLeft, ArrowRight, Tag, Package } from "lucide-react"
 import { Heart } from "lucide-react"  
-
+import { CalendarMonth } from "lucide-react" 
 <Package className="w-6 h-6 text-green-600" />
 import { useTranslation } from "react-i18next"
 import i18n from "../i18n"
@@ -50,7 +50,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text
   }
 
-  const displayDescription = trimText(description || ad.description || "", 25)
+  const displayDescription = trimText(description || ad.description || "", 50)
   const token = localStorage.getItem("accessToken")
 
   const isAuthenticated = () => {
@@ -116,6 +116,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
         <div className="flex items-center justify-between mt-2">
           <p className="text-green-700 font-bold text-sm">₼ {price}</p>
           <span className="text-[11px] text-gray-400 flex items-center gap-1">
+            <CalendarMonth className="w-3 h-3" />
             {new Date(createdAt).toLocaleDateString()}
           </span>
         </div>
@@ -410,23 +411,16 @@ const Home = () => {
       const products = result.data?.products || []
 
       // Map API data to gallery format
-   const mappedProducts = products.map((product) => ({
-  _id: product._id,
-  title: product.title,
-  location: product.location || product.postalCode || "Unknown Location",
-  price: product.price, // Handle ₼ symbol while rendering
-  description: product.description,
-  condition: product.condition,
-  image: product.pictures?.[0]
-    ? `${import.meta.env.VITE_SERVER}/${product.pictures[0].replace(/\\/g, "/")}`
-    : "/images/placeholder.jpg",
-  owner: product.owner,         // backend user ID
-  name: product.name,      // display name
-  createdAt: product.createdAt, // for date display
-  category: product.category,   // helpful for filters/tags
-  priority: product.priority || false, // premium/featured flag
-}))
-
+      const mappedProducts = products.map((product) => ({
+        _id: product._id,
+        title: product.title,
+        location: product.location || product.postalCode || "Unknown Location",
+        price: product.price, // Removed ₼ symbol formatting to handle it in display
+        image: product.pictures?.[0]
+          ? `${import.meta.env.VITE_SERVER}/${product.pictures[0].replace(/\\/g, "/")}`
+          : "/images/placeholder.jpg",
+        owner: product.owner, // Added owner data for navigation
+      }))
 
       setGalleryData(mappedProducts)
     } catch (error) {
@@ -612,7 +606,7 @@ const Home = () => {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white p-5 rounded-2xl shadow-lg w-full md:w-[35%] h-[395px] overflow-y-auto border border-gray-100"
+        className="bg-white p-5 rounded-2xl shadow-lg w-full md:w-[35%] h-[350px] overflow-y-auto border border-gray-100"
       >
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
           <Tag className="w-5 h-5 text-green-600" /> {t("home.categories")}
@@ -700,84 +694,51 @@ const Home = () => {
             </div>
           ) : galleryData.length > 0 ? (
             galleryData.map((item, index) => (
-      <motion.div
-  key={item._id}
-  whileHover={{ scale: 1.05 }}
-  transition={{ duration: 0.3 }}
-  onClick={() => handleGalleryItemClick(item._id)}
-  className="min-w-[200px] max-w-[220px] flex-shrink-0 
-             bg-white border border-gray-200 rounded-2xl 
-             shadow-md hover:shadow-xl cursor-pointer 
-             transition-all relative overflow-hidden group"
->
-  {/* Image */}
-  <div className="w-full h-[150px] bg-gray-50 flex justify-center items-center overflow-hidden rounded-t-2xl relative">
-    <img
-      src={item.image || "/placeholder.svg"}
-      alt={item.title}
-      className="h-full w-full object-cover 
-                 group-hover:scale-110 transition-transform duration-500"
-    />
-    {/* Heart Icon (wishlist) */}
-    <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-        className="w-4 h-4 text-gray-400 hover:text-red-500 transition"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733C11.285 4.876 9.623 3.75 7.688 3.75 5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-        />
-      </svg>
-    </div>
-  </div>
+              <motion.div
+                key={item._id || index}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.3 }}
+                onClick={() => handleGalleryItemClick(item._id)}
+                className="min-w-[200px] max-w-[220px] flex-shrink-0 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-xl cursor-pointer transition-all relative overflow-hidden group"
+              >
+                {/* Floating Icon */}
+                <div className="absolute top-2 left-2 bg-white shadow-md rounded-full p-1 z-10">
+                  <ImageIcon className="w-4 h-4 text-green-600" />
+                </div>
 
-  {/* Content */}
-  <div className="p-3 flex flex-col gap-1">
-    {/* Title */}
-    <p className="text-sm font-semibold text-gray-800 truncate capitalize">
-      {item.title}
-    </p>
+                {/* Image */}
+                <div className="w-full h-[150px] bg-gray-50 flex justify-center items-center overflow-hidden rounded-t-2xl">
+                  <img
+                    src={item.image || "/placeholder.svg"}
+                    alt={
+                      typeof item.title === "object"
+                        ? item.title[i18n.language] || item.title.en
+                        : item.title
+                    }
+                    className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                </div>
 
-    {/* Description */}
-    <p className="text-xs text-gray-500 truncate leading-snug">
-      {item.description}
-    </p>
+                {/* Content */}
+                <div className="p-3">
+                  <p className="text-sm font-semibold text-gray-800 truncate mb-1">
+                    {typeof item.title === "object"
+                      ? item.title[i18n.language] || item.title.en
+                      : item.title}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate mb-2">
+                    {typeof item.description === "object"
+                      ? item.description
+                      : item.description}
+                  </p>
+                  <p className="text-sm font-bold text-green-700">
+                    ₼ {item.price}
+                  </p>
+                </div>
 
-    {/* Price + Date Row */}
-    <div className="flex justify-between items-center">
-      <p className="text-sm font-bold text-green-700">₼ {item.price}</p>
-      <span className="text-[11px] text-gray-400">
-        {new Date(item.createdAt).toLocaleDateString()}
-      </span>
-    </div>
-
-    {/* Condition + Owner */}
-    <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
-      <span>{item.condition}</span>
-      <span className="flex items-center gap-1">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          className="w-3 h-3 text-purple-600"
-        >
-          <path
-            fillRule="evenodd"
-            d="M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-          />
-        </svg>
-        {item.name}
-      </span>
-    </div>
-  </div>
-</motion.div>
-
+                {/* Overlay Effect */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+              </motion.div>
             ))
           ) : (
             <div className="flex items-center justify-center w-full h-[200px]">
@@ -787,6 +748,7 @@ const Home = () => {
         </div>
       </motion.div>
     </div>
+
             <SectionWithAds
               titleKey="home.latestAds"
               ads={latestAds}
