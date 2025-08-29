@@ -419,7 +419,7 @@ useEffect(() => {
       <div className="w-full flex justify-center">
         <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
           {/* Left Ad */}
-          <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
+          <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
             <img
               src={leftadImage}
               alt={t("home.leftAdAlt")}
@@ -430,7 +430,7 @@ useEffect(() => {
           {/* Main Content */}
           <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto">
             {/* Banner */}
-            <div className="relative">
+            <div className="relative ">
               <img
                 src={bannerImage}
                 alt={t("home.bannerAlt")}
@@ -681,7 +681,7 @@ useEffect(() => {
           </div>
 
           {/* Right Ad */}
-          <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
+          <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
             <img
               src={rightadImage}
               alt={t("home.rightAdAlt")}

@@ -11,7 +11,7 @@ import OrderDetail from './components/Order/OrderDetail'
 import SellerAdminDashboard from './components/Admin/SellerAdmin'
 import AdminOrders from './components/Admin/Adminpanel'
 import AdminRoute from './components/Admin/AdminRoute' 
-
+import Dashboard from './components/common/Dashboard'
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
 const Register = lazy(() => import('./pages/Register'))
@@ -84,6 +84,7 @@ function App() {
             <Route path="/orders" element={<MyOrders />} />
             <Route path="/order/:id" element={<OrderDetail />} />
             <Route path="/seller" element={<SellerAdminDashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/Adminpanel" element={
               <AdminRoute>
                 <AdminOrders />

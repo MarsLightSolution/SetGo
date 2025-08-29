@@ -1,8 +1,8 @@
 import Cookies from "js-cookie";
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaMapMarkerAlt, FaUser } from "react-icons/fa";
-import { FaFilter } from "react-icons/fa";
+import { FaSearch, FaMapMarkerAlt, FaUser, FaBars   } from "react-icons/fa";
+import { FaFilter, FaTimes } from "react-icons/fa";
 import { MdOutlineAddCircle } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 import NotificationBell from "./NotificationBell";
@@ -229,16 +229,24 @@ const Navbar = () => {
                 </select>
 
                 {/* Postal Code Input */}
-                <div className="flex items-center gap-2 border-l border-gray-300 pl-4 w-[21%]">
-                  <FaMapMarkerAlt className="text-gray-500" />
-                  <input
-                    type="text"
-                    placeholder={t("navbar.postalCodePlaceholder")}
-                    value={postalCode}
-                    onChange={(e) => setPostalCodeInput(e.target.value)}
-                    className="outline-none text-sm w-full"
-                  />
-                </div>
+               <div className="flex items-center gap-2 border-l border-gray-300 pl-4 w-[21%]">
+  <FaMapMarkerAlt className="text-gray-500" />
+  <input
+    type="text"
+    placeholder={t("navbar.postalCodePlaceholder")}
+    value={postalCode}
+    onChange={(e) => {
+      // Allow only numbers and limit to 6 digits
+      const value = e.target.value.replace(/\D/g, ""); 
+      if (value.length <= 6) {
+        setPostalCodeInput(value);
+      }
+    }}
+    maxLength={6} // 👈 ensures no more than 6 chars
+    className="outline-none text-sm w-full"
+  />
+</div>
+
 
                 {/* Find Button */}
                 <button
@@ -260,6 +268,27 @@ const Navbar = () => {
                 >
                   {t("navbar.find")}
                 </button>
+{/* ❌ Clear Icon Button (only show if any filter is applied) */}
+{(searchInput || selectedCategory || postalCode) && (
+  <button
+    onClick={() => {
+      setSearchInput("");
+      setSelectedCategory("");
+      setPostalCodeInput("");
+
+      dispatch(setSearchQuery(""));
+      dispatch(setCategoryFilter(""));
+      dispatch(setPostalCode(""));
+
+      navigate("/"); // optional: refresh results
+    }}
+    className="ml-2 p-2 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-700"
+    title={t("Clear")}
+  >
+    <FaTimes />
+  </button>
+)}
+
 
             </div>
 
@@ -311,6 +340,16 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
+
+              {/* Dashboard Button */}
+<div
+  className="flex items-center gap-1 cursor-pointer hover:text-lime-800 transition-colors"
+  onClick={() => navigate("/dashboard")}
+>
+  <FaBars   className="text-lg" /> 
+  <span>{t("Dashboard")}</span>
+</div>
+
             </div>
           </div>
         </div>
