@@ -22,14 +22,30 @@ export default function ChatApp() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
 
   const socketRef = useRef(null)
 
-  
+   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex">
+      {/* Sidebar */}
+      <div className={`${sidebarOpen ? "block" : "hidden"} md:block`}>
+        {/* Sidebar content */}
+      </div>
+
+      {/* Toggle Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="p-2 bg-blue-500 text-white rounded"
+      >
+        {sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+      </button>
+    </div>
+  );
   // Auto-focus conversation after currentUser and conversations are ready
 useEffect(() => {
   if (!currentUser || conversations.length === 0) return;
