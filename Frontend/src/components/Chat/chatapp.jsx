@@ -22,11 +22,14 @@ export default function ChatApp() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
 
   const socketRef = useRef(null)
+
+  
   // Auto-focus conversation after currentUser and conversations are ready
 useEffect(() => {
   if (!currentUser || conversations.length === 0) return;
@@ -327,269 +330,281 @@ const handleSendMessage = async (e) => {
     fileInputRef.current?.click()
   }
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-xl">
-        <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                ChatFlow
-              </h1>
-              <p className="text-sm text-gray-600 mt-1 font-medium">Welcome, {currentUser?.userName}</p>
-            </div>
-            <button
-              onClick={() => {
-                setIsConnected(false)
-                setCurrentUser(null)
-                setActiveConversation(null)
-                setMessages([])
-              }}
-              className="text-gray-400 hover:text-red-500 p-2 rounded-xl hover:bg-red-50 transition-all duration-200 group"
-            >
-              <svg
-                className="w-5 h-5 group-hover:scale-110 transition-transform duration-200"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-            </button>
-          </div>
+  <div className="flex h-screen bg-gray-50">
+    {/* Sidebar */}
+    <div
+      className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 flex flex-col shadow-xl transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
+      {/* Sidebar Header */}
+      <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            ChatFlow
+          </h1>
+          <p className="text-sm text-gray-600 mt-1 font-medium">
+            Welcome, {currentUser?.userName}
+          </p>
         </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide">Available Users</h3>
-          <div className="space-y-3">
-            {allUsers
-              .filter((user) => user.userId !== currentUser?.userId)
-              .filter((user) =>
-              conversations.some((conv) =>
-              conv.participants.some((p) => p.userId === user.userId)
-              )
-              ).map((user) => (
-                <div
-                  key={user.userId}
-                  className="group p-4 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 cursor-pointer transition-all duration-300 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-lg transform hover:scale-[1.02]"
-                  onClick={() => startConversation(user)}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="relative">
-                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow-lg">
-                        {user.userName?.charAt(0)?.toUpperCase() || "U"}
-                      </div>
-                      <div
-                        className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${
-                          user.isOnline ? "bg-emerald-500" : "bg-gray-400"
-                        }`}
-                      ></div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-800 truncate group-hover:text-emerald-700 transition-colors duration-200">
-                        {user.userName}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {user.isOnline ? (
-                          <span className="text-emerald-600 font-medium">● Online</span>
-                        ) : (
-                          `Last seen ${new Date(user.lastSeen).toLocaleDateString()}`
-                        )}
-                      </p>
-                    </div>
-                    <button className="opacity-0 group-hover:opacity-100 text-xs px-3 py-2 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 transform hover:scale-105">
-                      Chat
-                    </button>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
+        {/* Close button (mobile only) */}
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="lg:hidden text-gray-400 hover:text-red-500 p-2 rounded-xl hover:bg-red-50 transition"
+        >
+          ✕
+        </button>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {activeConversation ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-6 border-b border-gray-200 bg-white shadow-sm">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow-lg">
-                    {activeConversation.participants
-                      .find((p) => p.userId !== currentUser?.userId)
-                      ?.userName?.charAt(0)
-                      ?.toUpperCase() || "U"}
+      {/* User List */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide">
+          Available Users
+        </h3>
+        <div className="space-y-3">
+          {allUsers
+            .filter((user) => user.userId !== currentUser?.userId)
+            .filter((user) =>
+              conversations.some((conv) =>
+                conv.participants.some((p) => p.userId === user.userId)
+              )
+            )
+            .map((user) => (
+              <div
+                key={user.userId}
+                className="group p-4 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 cursor-pointer transition-all duration-300 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 hover:shadow-lg transform hover:scale-[1.02]"
+                onClick={() => {
+                  startConversation(user)
+                  setSidebarOpen(false) // close sidebar on mobile
+                }}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow-lg">
+                      {user.userName?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                    <div
+                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${
+                        user.isOnline ? "bg-emerald-500" : "bg-gray-400"
+                      }`}
+                    ></div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {activeConversation.participants.find((p) => p.userId !== currentUser?.userId)?.userName ||
-                      "Unknown User"}
-                  </h2>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <p className="text-sm text-emerald-600 font-semibold">Online • Active now</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-800 truncate group-hover:text-emerald-700 transition-colors duration-200">
+                      {user.userName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user.isOnline ? (
+                        <span className="text-emerald-600 font-medium">● Online</span>
+                      ) : (
+                        `Last seen ${new Date(user.lastSeen).toLocaleDateString()}`
+                      )}
+                    </p>
                   </div>
+                  <button className="opacity-0 group-hover:opacity-100 text-xs px-3 py-2 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 transform hover:scale-105">
+                    Chat
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-gray-50 to-white">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex animate-in slide-in-from-bottom-2 duration-300 ${message.sender === "me" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`flex items-end space-x-3 max-w-xs lg:max-w-md ${message.sender === "me" ? "flex-row-reverse space-x-reverse" : ""}`}
-                  >
-                    {message.sender === "other" && (
-                      <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
-                        {message.senderName?.charAt(0)?.toUpperCase() || "U"}
-                      </div>
-                    )}
-                                <div
-                        className={`px-5 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                          message.sender === "me"
-                            ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-br-md shadow-lg shadow-emerald-500/25"
-                            : "bg-white border border-gray-200 text-gray-800 rounded-bl-md hover:border-gray-300"
-                        }`}
-                      >
-                        {message.messageType === "image" ? (
-                         <img
-                          src={`http://localhost:8080${message.fileUrl}`}
-                          alt={message.fileName || "Shared image"}
-                          className="max-w-[200px] max-h-[200px] object-cover rounded-xl mb-2 shadow"
-                        />
-                        ) : message.messageType === "document" ? (
-                          <a
-                            href={message.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 text-sm font-medium text-emerald-600 hover:underline"
-                          >
-                            📄 {message.fileName}
-                          </a>
-                        ) : (
-                          <p className="text-sm leading-relaxed font-medium">{message.text}</p>
-                        )}
-
-                        <p
-                          className={`text-xs mt-2 font-medium ${
-                            message.sender === "me" ? "text-white/80" : "text-gray-500"
-                          }`}
-                        >
-                          {message.timestamp}
-                        </p>
-                      </div>
-                  </div>
-                </div>
-              ))}
-
-              {isTyping && (
-                <div className="flex justify-start animate-in fade-in-0 duration-300">
-                  <div className="flex items-end space-x-3 max-w-xs lg:max-w-md">
-                    <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
-                      U
-                    </div>
-                    <div className="px-5 py-3 rounded-2xl rounded-bl-md bg-white border border-gray-200 shadow-sm">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.1s]"></div>
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input */}
-            <div className="p-6 border-t border-gray-200 bg-white">
-              <form onSubmit={handleSendMessage} className="flex items-end space-x-4">
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-
-                <button
-                  type="button"
-                  onClick={handleImageUpload}
-                  className="text-gray-400 hover:text-emerald-600 transition-all duration-200 p-3 rounded-2xl hover:bg-emerald-50 group"
-                >
-                  <svg
-                    className="w-6 h-6 group-hover:scale-110 transition-transform duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </button>
-
-                <div className="flex-1">
-                  <input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type your message..."
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all duration-200"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 shadow-lg shadow-emerald-500/25"
-                  disabled={!newMessage.trim()}
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                    />
-                  </svg>
-                  Send
-                </button>
-              </form>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
-            <div className="text-center animate-in fade-in-0 slide-in-from-bottom-4 duration-700">
-              <div className="relative mx-auto mb-8">
-                <div className="w-32 h-32 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl flex items-center justify-center shadow-xl">
-                  <svg className="w-16 h-16 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-lime-500 to-emerald-500 rounded-full animate-pulse shadow-lg"></div>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Start a Conversation</h3>
-              <p className="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
-                Select someone from the sidebar to begin chatting and connect instantly
-              </p>
-            </div>
-          </div>
-        )}
+            ))}
+        </div>
       </div>
     </div>
-  )
+
+    {/* Backdrop for mobile */}
+    {sidebarOpen && (
+      <div
+        className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+        onClick={() => setSidebarOpen(false)}
+      ></div>
+    )}
+
+    {/* Main Chat Area */}
+    <div className="flex-1 flex flex-col">
+      {/* Mobile Topbar */}
+      <div className="lg:hidden p-4 border-b bg-white flex items-center justify-between">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="text-gray-600 hover:text-emerald-600"
+        >
+          ☰
+        </button>
+        <h2 className="font-bold text-lg text-gray-800">ChatFlow</h2>
+        <div className="w-6"></div>
+      </div>
+
+      {activeConversation ? (
+        <>
+          {/* Chat Header */}
+          <div className="p-4 lg:p-6 border-b border-gray-200 bg-white shadow-sm flex items-center space-x-4">
+            <div className="relative">
+              <div className="h-12 w-12 lg:h-14 lg:w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold shadow-lg">
+                {activeConversation.participants
+                  .find((p) => p.userId !== currentUser?.userId)
+                  ?.userName?.charAt(0)
+                  ?.toUpperCase() || "U"}
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 lg:w-5 lg:h-5 bg-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
+            </div>
+            <div>
+              <h2 className="text-base lg:text-xl font-bold text-gray-800">
+                {activeConversation.participants.find(
+                  (p) => p.userId !== currentUser?.userId
+                )?.userName || "Unknown User"}
+              </h2>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <p className="text-xs lg:text-sm text-emerald-600 font-semibold">
+                  Online • Active now
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 bg-gradient-to-b from-gray-50 to-white">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex animate-in slide-in-from-bottom-2 duration-300 ${
+                  message.sender === "me" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`flex items-end space-x-3 max-w-[80%] sm:max-w-xs lg:max-w-md ${
+                    message.sender === "me"
+                      ? "flex-row-reverse space-x-reverse"
+                      : ""
+                  }`}
+                >
+                  {message.sender === "other" && (
+                    <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
+                      {message.senderName?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                  )}
+                  <div
+                    className={`px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                      message.sender === "me"
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-br-md shadow-lg shadow-emerald-500/25"
+                        : "bg-white border border-gray-200 text-gray-800 rounded-bl-md hover:border-gray-300"
+                    }`}
+                  >
+                    {message.messageType === "image" ? (
+                      <img
+                        src={`http://localhost:8080${message.fileUrl}`}
+                        alt={message.fileName || "Shared image"}
+                        className="max-w-[150px] sm:max-w-[200px] max-h-[200px] object-cover rounded-xl mb-2 shadow"
+                      />
+                    ) : message.messageType === "document" ? (
+                      <a
+                        href={message.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 text-sm font-medium text-emerald-600 hover:underline"
+                      >
+                        📄 {message.fileName}
+                      </a>
+                    ) : (
+                      <p className="text-sm leading-relaxed font-medium">
+                        {message.text}
+                      </p>
+                    )}
+
+                    <p
+                      className={`text-xs mt-2 font-medium ${
+                        message.sender === "me"
+                          ? "text-white/80"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {message.timestamp}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {isTyping && (
+              <div className="flex justify-start animate-in fade-in-0 duration-300">
+                <div className="flex items-end space-x-3 max-w-xs lg:max-w-md">
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
+                    U
+                  </div>
+                  <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-white border border-gray-200 shadow-sm">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className="p-4 lg:p-6 border-t border-gray-200 bg-white">
+            <form
+              onSubmit={handleSendMessage}
+              className="flex items-end space-x-3 lg:space-x-4"
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={handleImageUpload}
+                className="text-gray-400 hover:text-emerald-600 transition p-2 lg:p-3 rounded-xl hover:bg-emerald-50 group"
+              >
+                📷
+              </button>
+
+              <div className="flex-1">
+                <input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="w-full px-4 lg:px-6 py-3 lg:py-4 bg-gray-50 border border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all duration-200 text-sm lg:text-base"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="px-4 lg:px-6 py-3 lg:py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 shadow-lg shadow-emerald-500/25 text-sm lg:text-base"
+                disabled={!newMessage.trim()}
+              >
+                ➤
+              </button>
+            </form>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+          <div className="text-center animate-in fade-in-0 slide-in-from-bottom-4 duration-700 p-4">
+            <div className="relative mx-auto mb-6 lg:mb-8">
+              <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl flex items-center justify-center shadow-xl">
+                💬
+              </div>
+              <div className="absolute -top-2 -right-2 w-6 h-6 lg:w-8 lg:h-8 bg-gradient-to-r from-lime-500 to-emerald-500 rounded-full animate-pulse shadow-lg"></div>
+            </div>
+            <h3 className="text-lg lg:text-2xl font-bold text-gray-800 mb-2 lg:mb-3">
+              Start a Conversation
+            </h3>
+            <p className="text-gray-600 text-sm lg:text-lg max-w-md mx-auto leading-relaxed">
+              Select someone from the sidebar to begin chatting and connect instantly
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)
+
 }
