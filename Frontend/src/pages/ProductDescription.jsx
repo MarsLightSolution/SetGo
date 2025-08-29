@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import ShareModal from "../components/Popups/ShareModal";
 
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -55,6 +56,8 @@ const ProductDetail = () => {
   const { wishlist } = useSelector((state) => state.wishlist);
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
+
 
   const nextImage = () => {
     if (!product?.pictures) return;
@@ -325,7 +328,7 @@ const handleSendMessage = async () => {
       <div className="min-h-screen bg-white-100 pt-3">
         <div className="w-full flex justify-center">
           <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
-            <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
+            <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
               <img
                 src={leftadImage}
                 alt={t("home.leftAdAlt")} // Reusing home key
@@ -539,96 +542,110 @@ const handleSendMessage = async () => {
                 </div>
 
                 <div>
-                  {/* Main Sidebar Section */}
-                  <div className="bg-white rounded-xl shadow-md p-5 h-fit border border-gray-200 space-y-4">
-                    {/* Green Rounded "Write a message" button */}
+<div className="sticky top-[180px] w-[280px] space-y-4">
+  {/* Main Sidebar Section */}
+  <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
+    {/* Green Rounded "Make an offer" */}
                     <button
                       onClick={handleSendMessage}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
                     >
-                      {t("productDetail.writeMessageButton")}
+                      Write a message
                     </button>
+    {/* Watchlist Button */}
+    <button
+      onClick={handleAddToWatchlist}
+      className={`w-full text-sm font-medium py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer 
+        ${isWishlisted 
+          ? "bg-green-600 text-white hover:bg-green-700" 
+          : "border border-gray-400 text-gray-700 hover:bg-gray-100"}`}
+    >
+      {isWishlisted 
+        ? t("productDetail.removeFromWatchlistButton") 
+        : t("productDetail.addToWatchlistButton")}
+    </button>
 
-                    {/* Outlined Buttons */}
-                    <button
-                      onClick={handleAddToWatchlist}
-                      className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {isWishlisted ? t("productDetail.removeFromWatchlistButton") : t("productDetail.addToWatchlistButton")} {/* Corrected keys here */}
-                    </button>
+    {/* Share Button */}
+    <button
+      onClick={() => setShowShareModal(true)}
+      className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+    >
+      {t("productDetail.shareAdButton")}
+    </button>
 
-                    <button
-                      onClick={() => setShowShareModal(true)}
-                      className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {t("productDetail.shareAdButton")} {/* Corrected key here */}
-                    </button>
+    {/* User Info */}
+    <div className="flex items-center gap-2">
+      <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
+        {ownerInitial}
+      </div>
+      <p className="font-semibold text-sm text-gray-900">
+        {ownerName}
+      </p>
+    </div>
 
-                    {/* User Info */}
-                    <div className="flex items-center gap-2">
-                      <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
-                        {ownerInitial}
-                      </div>
-                      <p className="font-semibold text-sm text-gray-900">
-                        {ownerName}
-                      </p>
-                    </div>
+    {/* User Status */}
+    <div className="text-sm text-gray-600 space-y-1 pl-1">
+      <div className="flex items-center gap-2">
+        <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">👤</span>
+        <p>{t("productDetail.privateUser")}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">📅</span>
+        <p>
+          {t("productDetail.activeSince")}{" "}
+          {new Date(product.createdAt).toLocaleDateString(
+            i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-GB")
+          )}
+        </p>
+      </div>
+    </div>
 
-                    {/* User Status */}
-                    <div className="text-sm text-gray-600 space-y-1 pl-1">
-                      {/* Private user row */}
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={UserIcon}
-                          alt={t("productDetail.userIconAlt")}
-                          className="w-5 h-5"
-                        />
-                        <p>{t("productDetail.privateUser")}</p>
-                      </div>
+    {/* Follow Button */}
+    {user?._id !== ownerId && (
+      <button
+        onClick={handleFollowToggle}
+        disabled={followLoading}
+        className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
+          ${isFollowing
+            ? "text-red-600 border-red-500 hover:bg-red-50"
+            : "text-green-700 border-green-600 hover:bg-green-50"
+          }`}
+      >
+        {followLoading
+          ? t("productDetail.loading")
+          : isFollowing
+            ? t("productDetail.unfollowButton")
+            : t("productDetail.followButton")}
+      </button>
+    )}
+  </div>
 
-                      {/* Active since row */}
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={SaveIcon}
-                          alt={t("productDetail.activeSinceIconAlt")}
-                          className="w-5 h-5"
-                        />
-                        <p>
-                          {t("productDetail.activeSince")}{" "}
-                          {new Date(product.createdAt).toLocaleDateString(
-                            i18n.language === 'az' ? 'az-AZ' : (i18n.language === 'ru' ? 'ru-RU' : 'en-GB')
-                          )}
-                        </p>
-                      </div>
-                    </div>
+  {/* Ad ID Section (now sticky with sidebar) */}
+  <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 text-sm text-gray-700">
+    <div className="flex items-center justify-between">
+      <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
+      <span className="text-gray-900">{product._id}</span>
+    </div>
+  </div>
+</div>
 
-                    {/* Follow Button */}
-                    {user?._id !== ownerId && (
-                      <button
-                        onClick={handleFollowToggle}
-                        disabled={followLoading}
-                        className={`w-full border border-gray-600 text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 hover:bg-green-50 ${
-                          isFollowing
-                            ? "text-red-600 border-red-500 hover:bg-red-50"
-                            : "text-green-700 border-green-600 hover:bg-green-50"
-                        }`}
-                      >
-                        {followLoading
-                          ? t("productDetail.loading")
-                          : isFollowing
-                          ? t("productDetail.unfollowButton")
-                          : t("productDetail.followButton")}
-                      </button>
-                    )}
-                  </div>
+
+{showShareModal && (
+        <ShareModal
+          product={product}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+
 
                   {/* Ad ID Section Below */}
-                  <div className="bg-white rounded-xl shadow-md p-4 mt-4 border border-gray-200 text-sm text-gray-700">
+                  {/* <div className="bg-white rounded-xl shadow-md p-4 mt-4 border border-gray-200 text-sm text-gray-700">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
                       <span className="text-gray-900">{product._id}</span>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
@@ -682,7 +699,7 @@ const handleSendMessage = async () => {
               )}
             </div>
 
-            <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
+            <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
               <img
                 src={rightadImage}
                 alt={t("home.rightAdAlt")}
