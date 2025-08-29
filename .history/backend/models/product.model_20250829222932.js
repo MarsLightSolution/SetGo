@@ -47,7 +47,7 @@ const productSchema = new mongoose.Schema(
       coordinates: {
         type: [Number], // [longitude, latitude]
         required: false,
-        default: [24, 80]
+        default: [123, 134]
       }
     },
     postalCode: {

@@ -195,10 +195,10 @@ if (name === "condition") {
       return;
     }
 
-    // if (!formData.latitude || !formData.longitude) {
-    //   showErrorToast(t("form.locationNotFound")); // Translated
-    //   return;
-    // }
+    if (!formData.latitude || !formData.longitude) {
+      showErrorToast(t("form.locationNotFound")); // Translated
+      return;
+    }
 
     if (formData.pictures.length === 0) {
         showErrorToast(t("form.picturesRequired")); // Translated

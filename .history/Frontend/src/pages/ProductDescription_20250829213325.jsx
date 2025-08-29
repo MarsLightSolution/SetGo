@@ -345,7 +345,7 @@ return (
                 
                 {/* IMAGE CONTAINER */}
                 <div className="bg-white rounded-md shadow p-4">
-                  <div className="relative w-full h-[220px] sm:h-[300px] md:h-[350px] lg:h-[350px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
+                  <div className="relative w-full h-[220px] sm:h-[300px] md:h-[350px] lg:h-[500px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
                     {product?.pictures?.length > 0 ? (
                       <>
                         <img
@@ -523,88 +523,77 @@ return (
               </div>
 
               {/* Sidebar (User Info + Actions) */}
-              <div className="md:col-span-1">
-  <div className="sticky top-[170px] w-full sm:max-w-[280px] mx-auto space-y-4">
+              <div className="sticky top-[120px] w-full sm:max-w-[280px] space-y-4">
+                <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
+                  <button
+                    onClick={handleSendMessage}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
+                  >
+                    Write a message
+                  </button>
+                  <button
+                    onClick={handleAddToWatchlist}
+                    className={`w-full text-sm font-medium py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer 
+                      ${isWishlisted 
+                        ? "bg-green-600 text-white hover:bg-green-700" 
+                        : "border border-gray-400 text-gray-700 hover:bg-gray-100"}`}
+                  >
+                    {isWishlisted 
+                      ? t("productDetail.removeFromWatchlistButton") 
+                      : t("productDetail.addToWatchlistButton")}
+                  </button>
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {t("productDetail.shareAdButton")}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
+                      {ownerInitial}
+                    </div>
+                    <p className="font-semibold text-sm text-gray-900">{ownerName}</p>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1 pl-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">👤</span>
+                      <p>{t("productDetail.privateUser")}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">📅</span>
+                      <p>
+                        {t("productDetail.activeSince")}{" "}
+                        {new Date(product.createdAt).toLocaleDateString(
+                          i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-GB")
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  {user?._id !== ownerId && (
+                    <button
+                      onClick={handleFollowToggle}
+                      disabled={followLoading}
+                      className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
+                        ${isFollowing
+                          ? "text-red-600 border-red-500 hover:bg-red-50"
+                          : "text-green-700 border-green-600 hover:bg-green-50"}`}
+                    >
+                      {followLoading
+                        ? t("productDetail.loading")
+                        : isFollowing
+                          ? t("productDetail.unfollowButton")
+                          : t("productDetail.followButton")}
+                    </button>
+                  )}
+                </div>
 
-    {/* Seller / Actions Card */}
-    <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
-      <button
-        onClick={handleSendMessage}
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
-      >
-        Write a message
-      </button>
-
-      <button
-        onClick={handleAddToWatchlist}
-        className={`w-full text-sm font-medium py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer 
-          ${isWishlisted 
-            ? "bg-green-600 text-white hover:bg-green-700" 
-            : "border border-gray-400 text-gray-700 hover:bg-gray-100"}`}
-      >
-        {isWishlisted 
-          ? t("productDetail.removeFromWatchlistButton") 
-          : t("productDetail.addToWatchlistButton")}
-      </button>
-
-      <button
-        onClick={() => setShowShareModal(true)}
-        className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
-      >
-        {t("productDetail.shareAdButton")}
-      </button>
-
-      <div className="flex items-center gap-2">
-        <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
-          {ownerInitial}
-        </div>
-        <p className="font-semibold text-sm text-gray-900">{ownerName}</p>
-      </div>
-
-      <div className="text-sm text-gray-600 space-y-1 pl-1">
-        <div className="flex items-center gap-2">
-          <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">👤</span>
-          <p>{t("productDetail.privateUser")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">📅</span>
-          <p>
-            {t("productDetail.activeSince")}{" "}
-            {new Date(product.createdAt).toLocaleDateString(
-              i18n.language === "az" ? "az-AZ" : (i18n.language === "ru" ? "ru-RU" : "en-GB")
-            )}
-          </p>
-        </div>
-      </div>
-
-      {user?._id !== ownerId && (
-        <button
-          onClick={handleFollowToggle}
-          disabled={followLoading}
-          className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
-            ${isFollowing
-              ? "text-red-600 border-red-500 hover:bg-red-50"
-              : "text-green-700 border-green-600 hover:bg-green-50"}`}
-        >
-          {followLoading
-            ? t("productDetail.loading")
-            : isFollowing
-              ? t("productDetail.unfollowButton")
-              : t("productDetail.followButton")}
-        </button>
-      )}
-    </div>
-
-    {/* Ad ID Section */}
-    <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 text-sm text-gray-700">
-      <div className="flex items-center justify-between">
-        <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
-        <span className="text-gray-900">{product._id}</span>
-      </div>
-    </div>
-  </div>
-</div>
-
+                <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 text-sm text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{t("productDetail.adIdLabel")}:</span>
+                    <span className="text-gray-900">{product._id}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Related Products */}

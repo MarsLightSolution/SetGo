@@ -524,7 +524,7 @@ return (
 
               {/* Sidebar (User Info + Actions) */}
               <div className="md:col-span-1">
-  <div className="sticky top-[170px] w-full sm:max-w-[280px] mx-auto space-y-4">
+  <div className="sticky top-[150px] w-full sm:max-w-[280px] mx-auto space-y-4">
 
     {/* Seller / Actions Card */}
     <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
