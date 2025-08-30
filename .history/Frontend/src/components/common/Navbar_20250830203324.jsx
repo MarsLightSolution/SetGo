@@ -115,7 +115,7 @@ const Navbar = () => {
       className="flex items-center space-x-2 cursor-pointer"
       onClick={() => navigate("/")}
     >
-      <img src={logo} alt="logo" className="h-10 w-10" />
+      <img src="" alt="logo" className="h-6 w-6" />
       {/* Always show full text */}
       <span className="text-xl sm:text-2xl font-semibold text-[#2e4a2f]">
         SATGOO
