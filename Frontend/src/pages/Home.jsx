@@ -104,7 +104,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
       )}
 
       {/* Image */}
-      <div className="w-full h-40 flex justify-center items-center bg-gray-50 rounded-xl overflow-hidden">
+      <div className="w-full h-40 flex gap-4 justify-center items-center bg-gray-50 rounded-xl ">
         <img src={image || "/placeholder.svg"} alt={displayTitle} className="h-full w-full object-contain" />
       </div>
 
@@ -514,7 +514,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-100 pt-[2rem]">
       <div className="w-full flex justify-center">
-        <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
+        <div className="w-full max-w-screen-xl px-4 flex  gap-4 items-start">
           {/* Left Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
             <img
@@ -860,7 +860,7 @@ const Home = () => {
             <img
               src={rightadImage || "/placeholder.svg"}
               alt={t("home.rightAdAlt")}
-              className="w-full h-[550px] object-cover rounded"
+              className="w-[160px] h-[550px] object-cover rounded"
             />
           </div>
         </div>

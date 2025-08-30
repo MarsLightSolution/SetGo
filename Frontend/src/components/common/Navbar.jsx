@@ -385,7 +385,12 @@ const Navbar = () => {
   {mobileSearchOpen && (
     <div className="md:hidden mt-3 px-3">
       <div className="bg-white rounded-lg shadow p-4 flex flex-col gap-3">
-        
+            <button
+        onClick={() => setMobileSearchOpen(false)}
+        className="absolute top-26 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+      >
+        ×
+      </button>
         {/* Search Input */}
         <div className="flex items-center gap-2 border-b pb-2">
           <FaSearch className="text-gray-500" />
