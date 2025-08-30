@@ -104,7 +104,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
       )}
 
       {/* Image */}
-      <div className="w-full h-40 flex gap-4 justify-center items-center bg-gray-50 rounded-xl ">
+      <div className="w-full h-40 flex justify-center items-center bg-gray-50 rounded-xl overflow-hidden">
         <img src={image || "/placeholder.svg"} alt={displayTitle} className="h-full w-full object-contain" />
       </div>
 
@@ -132,16 +132,6 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
 /* -------------------- SectionWithAds -------------------- */
 const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
   const { t } = useTranslation()
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handlePageChange = (page) => {
-    if (isLoading) return // prevent double clicks
-    setIsLoading(true)
-    onPageChange((p) => ({ ...p, currentPage: page }))
-
-    // Small delay to sync with animation
-    setTimeout(() => setIsLoading(false), 500)
-  }
 
   return (
     <motion.div
@@ -157,43 +147,36 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
       </h2>
 
       {/* Ads Grid */}
-      <motion.div
-        key={pagination.currentPage} // <-- triggers animation when page changes
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.4 }}
-        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6"
-      >
-        {ads.length > 0 ? (
-          ads.map((ad, index) => (
-            <motion.div
-              key={ad._id || `ad-${index}`}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <AdCard
-                ad={ad}
-                image={
-                  ad.image ||
-                  `${import.meta.env.VITE_SERVER}/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`
-                }
-                price={ad.price}
-                description={ad.description}
-                condition={ad.condition}
-                name={ad.name}
-                createdAt={ad.createdAt}
-              />
-            </motion.div>
-          ))
-        ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+        {ads.map((ad, index) => (
+          <motion.div
+            key={ad._id || `ad-${index}`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+          >
+            <AdCard
+              ad={ad}
+              image={
+                ad.image ||
+                `${import.meta.env.VITE_SERVER}/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`
+              }
+              price={ad.price}
+              description={ad.description}
+              condition={ad.condition}
+              name={ad.name}
+              createdAt={ad.createdAt}
+            />
+          </motion.div>
+        ))}
+
+        {ads.length === 0 && (
           <div className="flex flex-col items-center justify-center text-gray-500 text-center w-full py-10">
             <Package className="w-10 h-10 mb-2 text-gray-400" />
             <p className="text-sm">{t("home.noAdsFound")}</p>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Pagination */}
       {ads.length > 0 && pagination && (
@@ -203,10 +186,10 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
           className="flex justify-center items-center gap-4 mt-8"
         >
           <button
-            disabled={!pagination.hasPrevPage || isLoading}
-            onClick={() => handlePageChange(pagination.prevPage)}
+            disabled={!pagination.hasPrevPage}
+            onClick={() => onPageChange((p) => ({ ...p, currentPage: pagination.prevPage }))}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
-              pagination.hasPrevPage && !isLoading
+              pagination.hasPrevPage
                 ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 : "bg-gray-50 cursor-not-allowed text-gray-400"
             }`}
@@ -223,10 +206,10 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
           </span>
 
           <button
-            disabled={!pagination.hasNextPage || isLoading}
-            onClick={() => handlePageChange(pagination.nextPage)}
+            disabled={!pagination.hasNextPage}
+            onClick={() => onPageChange((p) => ({ ...p, currentPage: pagination.nextPage }))}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
-              pagination.hasNextPage && !isLoading
+              pagination.hasNextPage
                 ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 : "bg-gray-50 cursor-not-allowed text-gray-400"
             }`}
@@ -239,7 +222,6 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
     </motion.div>
   )
 }
-
 const Home = () => {
   const { t, i18n } = useTranslation()
   const [activeCategory, setActiveCategory] = useState(t("home.allProducts"))
@@ -532,7 +514,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-100 pt-[2rem]">
       <div className="w-full flex justify-center">
-        <div className="w-full max-w-screen-xl px-4 flex  gap-4 items-start">
+        <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
           {/* Left Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
             <img
@@ -624,13 +606,12 @@ const Home = () => {
             )}
 
             {/* Category + Gallery Section */}
-             <div className="flex flex-wrap gap-6">
       {/* Categories */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white p-5 rounded-2xl shadow-lg w-full md:w-[35%] h-[395px] overflow-y-auto border border-gray-100"
+        className="bg-white p-5 rounded-2xl shadow-lg w-40 md:w-[40%] h-[395px] overflow-y-auto border border-gray-100"
       >
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
           <Tag className="w-5 h-5 text-green-600" /> {t("home.categories")}
@@ -670,7 +651,7 @@ const Home = () => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 flex-1 w-full md:w-[60%]"
+        className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 flex-1 w-full md:w-[40%]"
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-5">
@@ -804,7 +785,6 @@ const Home = () => {
           )}
         </div>
       </motion.div>
-    </div>
             <SectionWithAds
               titleKey="home.latestAds"
               ads={latestAds}
@@ -878,7 +858,7 @@ const Home = () => {
             <img
               src={rightadImage || "/placeholder.svg"}
               alt={t("home.rightAdAlt")}
-              className="w-[160px] h-[550px] object-cover rounded"
+              className="w-full h-[550px] object-cover rounded"
             />
           </div>
         </div>

@@ -199,7 +199,7 @@
     "pictures": "Pictures",
     "picturesRequired": "At least one picture is required.",
     "uploadTip": "Click to upload or drag files here",
-    "maxImagesTip": "Max 8 images (Max 2MB each)",
+    "maxImagesTip": "Max 8 images (Max 12MB each)",
     "location": "Location",
     "postalCode": "Postal Code",
     "postalCodeRequired": "Postal code is required",

@@ -173,10 +173,10 @@ const handleCheckout = async () => {
               {/* Description */}
               <p className="text-gray-600 leading-relaxed text-m mb-4">
                 {product.description?.en 
-                  ? product.description.en.length > 100 
-                    ? product.description.en.substring(0, 100) + "..."
-                    : product.description.en
-                  : ""}
+    ? product.description.en.length > 100 
+      ? product.description.en.substring(0, 100) + "..."
+      : product.description.en
+    : ""}
               </p>
 
               {/* Details */}

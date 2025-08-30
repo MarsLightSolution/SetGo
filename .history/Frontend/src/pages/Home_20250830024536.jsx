@@ -82,68 +82,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
     navigate(`products/product/${ad._id}`)
   }
 
-  return (
-    <motion.div
-      onClick={handleCardClick}
-      whileHover={{ scale: 1.03 }}
-      className="relative group flex flex-col border border-gray-200 rounded-2xl bg-white shadow-md hover:shadow-lg transition-all duration-300 p-4 cursor-pointer w-[100%]"
-    >
-      {/* Like Button */}
-      {token && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            handleLikeToggle(e)
-          }}
-          className={`absolute top-3 right-3 cursor-pointer transition duration-300 text-xl ${
-            liked ? "text-red-500" : "text-gray-400"
-          }`}
-        >
-          {liked ? <Favorite /> : <FavoriteBorder />}
-        </button>
-      )}
-
-      {/* Image */}
-      <div className="w-full h-40 flex gap-4 justify-center items-center bg-gray-50 rounded-xl ">
-        <img src={image || "/placeholder.svg"} alt={displayTitle} className="h-full w-full object-contain" />
-      </div>
-
-      {/* Content */}
-      <div className="mt-3 w-full">
-        <p className="truncate text-gray-800 font-semibold text-base">{displayTitle}</p>
-        <p className="text-gray-500 text-xs mt-1">{displayDescription}</p>
-
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-green-700 font-bold text-sm">₼ {price}</p>
-          <span className="text-[11px] text-gray-400 flex items-center gap-1">
-            {new Date(createdAt).toLocaleDateString()}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-          <span>{condition || "—"}</span>
-          <span className="font-medium text-gray-600">👤 {name || "Unknown"}</span>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-/* -------------------- SectionWithAds -------------------- */
-const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
-  const { t } = useTranslation()
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handlePageChange = (page) => {
-    if (isLoading) return // prevent double clicks
-    setIsLoading(true)
-    onPageChange((p) => ({ ...p, currentPage: page }))
-
-    // Small delay to sync with animation
-    setTimeout(() => setIsLoading(false), 500)
-  }
-
-  return (
+   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -240,6 +179,99 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
   )
 }
 
+/* -------------------- SectionWithAds -------------------- */
+const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
+  const { t } = useTranslation()
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="bg-white p-6 rounded-2xl shadow-lg mt-5 border border-gray-100"
+    >
+      {/* Header */}
+      <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <Package className="w-6 h-6 text-green-600" />
+        {t(titleKey)}
+      </h2>
+
+      {/* Ads Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+        {ads.map((ad, index) => (
+          <motion.div
+            key={ad._id || `ad-${index}`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+          >
+            <AdCard
+              ad={ad}
+              image={
+                ad.image ||
+                `${import.meta.env.VITE_SERVER}/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`
+              }
+              price={ad.price}
+              description={ad.description}
+              condition={ad.condition}
+              name={ad.name}
+              createdAt={ad.createdAt}
+            />
+          </motion.div>
+        ))}
+
+        {ads.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-gray-500 text-center w-full py-10">
+            <Package className="w-10 h-10 mb-2 text-gray-400" />
+            <p className="text-sm">{t("home.noAdsFound")}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {ads.length > 0 && pagination && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex justify-center items-center gap-4 mt-8"
+        >
+          <button
+            disabled={!pagination.hasPrevPage}
+            onClick={() => onPageChange((p) => ({ ...p, currentPage: pagination.prevPage }))}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
+              pagination.hasPrevPage
+                ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                : "bg-gray-50 cursor-not-allowed text-gray-400"
+            }`}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {t("home.pagination.prev")}
+          </button>
+
+          <span className="text-sm font-medium text-gray-700">
+            {t("home.pagination.pageOf", {
+              currentPage: pagination.currentPage,
+              totalPages: pagination.totalPages,
+            })}
+          </span>
+
+          <button
+            disabled={!pagination.hasNextPage}
+            onClick={() => onPageChange((p) => ({ ...p, currentPage: pagination.nextPage }))}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
+              pagination.hasNextPage
+                ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                : "bg-gray-50 cursor-not-allowed text-gray-400"
+            }`}
+          >
+            {t("home.pagination.next")}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </motion.div>
+      )}
+    </motion.div>
+  )
+}
 const Home = () => {
   const { t, i18n } = useTranslation()
   const [activeCategory, setActiveCategory] = useState(t("home.allProducts"))
@@ -532,7 +564,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-100 pt-[2rem]">
       <div className="w-full flex justify-center">
-        <div className="w-full max-w-screen-xl px-4 flex  gap-4 items-start">
+        <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
           {/* Left Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
             <img
@@ -878,7 +910,7 @@ const Home = () => {
             <img
               src={rightadImage || "/placeholder.svg"}
               alt={t("home.rightAdAlt")}
-              className="w-[160px] h-[550px] object-cover rounded"
+              className="w-full h-[550px] object-cover rounded"
             />
           </div>
         </div>

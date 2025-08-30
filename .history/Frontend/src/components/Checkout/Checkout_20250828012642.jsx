@@ -132,7 +132,7 @@ const handleCheckout = async () => {
                 {product?.pictures?.length > 0 ? (
                   <>
                     <img
-                      src={`${import.meta.env.VITE_SERVER}/${product.pictures[currentImageIndex]}`}
+                      src={product.pictures[currentImageIndex]}
                       alt={`Product image ${currentImageIndex + 1}`}
                       className="w-full h-full object-cover rounded-xl transition duration-300"
                     />
@@ -172,11 +172,7 @@ const handleCheckout = async () => {
 
               {/* Description */}
               <p className="text-gray-600 leading-relaxed text-m mb-4">
-                {product.description?.en 
-                  ? product.description.en.length > 100 
-                    ? product.description.en.substring(0, 100) + "..."
-                    : product.description.en
-                  : ""}
+                {product.description?.en}
               </p>
 
               {/* Details */}

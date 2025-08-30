@@ -585,5 +585,5 @@ return (
     </div>
     <Footer />
   </>
-);}
+);
 export default Form;
