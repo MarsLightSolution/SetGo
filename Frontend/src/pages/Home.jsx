@@ -132,6 +132,16 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
 /* -------------------- SectionWithAds -------------------- */
 const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
   const { t } = useTranslation()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handlePageChange = (page) => {
+    if (isLoading) return // prevent double clicks
+    setIsLoading(true)
+    onPageChange((p) => ({ ...p, currentPage: page }))
+
+    // Small delay to sync with animation
+    setTimeout(() => setIsLoading(false), 500)
+  }
 
   return (
     <motion.div
@@ -147,36 +157,43 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
       </h2>
 
       {/* Ads Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-        {ads.map((ad, index) => (
-          <motion.div
-            key={ad._id || `ad-${index}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-          >
-            <AdCard
-              ad={ad}
-              image={
-                ad.image ||
-                `${import.meta.env.VITE_SERVER}/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`
-              }
-              price={ad.price}
-              description={ad.description}
-              condition={ad.condition}
-              name={ad.name}
-              createdAt={ad.createdAt}
-            />
-          </motion.div>
-        ))}
-
-        {ads.length === 0 && (
+      <motion.div
+        key={pagination.currentPage} // <-- triggers animation when page changes
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.4 }}
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6"
+      >
+        {ads.length > 0 ? (
+          ads.map((ad, index) => (
+            <motion.div
+              key={ad._id || `ad-${index}`}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+            >
+              <AdCard
+                ad={ad}
+                image={
+                  ad.image ||
+                  `${import.meta.env.VITE_SERVER}/${ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`
+                }
+                price={ad.price}
+                description={ad.description}
+                condition={ad.condition}
+                name={ad.name}
+                createdAt={ad.createdAt}
+              />
+            </motion.div>
+          ))
+        ) : (
           <div className="flex flex-col items-center justify-center text-gray-500 text-center w-full py-10">
             <Package className="w-10 h-10 mb-2 text-gray-400" />
             <p className="text-sm">{t("home.noAdsFound")}</p>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Pagination */}
       {ads.length > 0 && pagination && (
@@ -186,10 +203,10 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
           className="flex justify-center items-center gap-4 mt-8"
         >
           <button
-            disabled={!pagination.hasPrevPage}
-            onClick={() => onPageChange((p) => ({ ...p, currentPage: pagination.prevPage }))}
+            disabled={!pagination.hasPrevPage || isLoading}
+            onClick={() => handlePageChange(pagination.prevPage)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
-              pagination.hasPrevPage
+              pagination.hasPrevPage && !isLoading
                 ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 : "bg-gray-50 cursor-not-allowed text-gray-400"
             }`}
@@ -206,10 +223,10 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
           </span>
 
           <button
-            disabled={!pagination.hasNextPage}
-            onClick={() => onPageChange((p) => ({ ...p, currentPage: pagination.nextPage }))}
+            disabled={!pagination.hasNextPage || isLoading}
+            onClick={() => handlePageChange(pagination.nextPage)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
-              pagination.hasNextPage
+              pagination.hasNextPage && !isLoading
                 ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 : "bg-gray-50 cursor-not-allowed text-gray-400"
             }`}
@@ -222,6 +239,7 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
     </motion.div>
   )
 }
+
 const Home = () => {
   const { t, i18n } = useTranslation()
   const [activeCategory, setActiveCategory] = useState(t("home.allProducts"))
