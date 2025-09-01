@@ -11,12 +11,13 @@ import useUserProfile from "../../Hooks/useUserProfile"; // Assuming this hook e
 import axios from "axios";
 import Cookies from "js-cookie";
 import { toast, ToastContainer } from "react-toastify"; // Using react-toastify directly here
-
+import Footer from "../common/Footer";
+// import { useTranslation } from 'react-i18next';
 // i18n import
 import { useTranslation } from 'react-i18next';
 
 function AccountSettings() {
-  const { t } = useTranslation(); // Initialize useTranslation hook
+  const { t , i18n  } = useTranslation(); // Initialize useTranslation hook
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -28,19 +29,33 @@ function AccountSettings() {
   const [emailPassword, setEmailPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [ads, setAds] = useState([]);
+  // const [ads, setAds] = useState([]);
+  // const { t, i18n } = useTranslation(); 
+  const currentLang = i18n.language || "en"; // fallback
 
   const { profile, updateField } = useUserProfile();
 
   const userId = localStorage.getItem("userId");
   const token = Cookies.get("refreshToken");
 
+  const sidebarItems = [
+    { labelKey: "profileMgmt.profileInfo", icon: "👤", path: "/profile" },
+    { labelKey: "profileMgmt.accountSettings", icon: "⚙️", path: "/accountsettings", active: true },
+    { labelKey: "profileMgmt.payments", icon: "💳", path: "/paymentsettings" },
+    { labelKey: "profileMgmt.dataProtection", icon: "🛡️", path: "/dataprotection" },
+    { labelKey: "profileMgmt.emails", icon: "✉️", path: "/emailsettings" },
+    { labelKey: "profileMgmt.aboutClassifiedAds", icon: "❤️", path: "/aboutclassifieds" },
+  ];
   useEffect(() => {
     const fetchUserAds = async () => {
       try {
         const response = await axios.get(
           `${import.meta.env.VITE_SERVER}/api/products/user/${userId}/ads`,
-          { withCredentials: true }
+          {
+            withCredentials: true,
+          }
         );
+
         if (response.data && Array.isArray(response.data.data)) {
           setAds(response.data.data);
         } else {
@@ -52,10 +67,16 @@ function AccountSettings() {
       }
     };
 
-    if (userId && token) {
+    const accessToken = localStorage.getItem("accessToken");
+
+    if (userId && accessToken) {
       fetchUserAds();
+    } else {
+      console.log("DEBUG: Ads fetch skipped. userId or accessToken missing.");
+      setAds([]);
     }
-  }, [userId, token]);
+  }, [userId]);
+
 
   const handleBillingUpdate = async (newAddress) => {
     if (!profile || !profile._id) {
@@ -161,274 +182,289 @@ function AccountSettings() {
   };
 
   return (
-    <motion.div
-      className="min-h-screen bg-gray-50 py-10"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Toastify */}
-      <ToastContainer position="top-right" autoClose={3000} />
+      <motion.div
+  className="min-h-screen bg-gray-50 flex flex-col"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3 }}
+>
+  <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* Loader Overlay */}
-      {loading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white px-4 py-2 rounded shadow text-sm text-gray-700">
-            {t("accountSettings.loading")} {/* Translated */}
-          </div>
-        </div>
-      )}
+  {loading && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white px-4 py-2 rounded shadow text-sm text-gray-700">
+        {t("accountSettings.loading")}
+      </div>
+    </div>
+  )}
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200 p-6">
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.settingsTitle")}</h1> {/* Reusing key from ProfileMgmt */}
-          <nav className="space-y-1 text-sm font-medium">
-            <button
-              onClick={() => navigate("/profile")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
-            >
-              <span className="mr-3">👤</span> {t("profileMgmt.profileInfo")} {/* Reusing key */}
-            </button>
-            <button
-              onClick={() => navigate("/accountsettings")}
-              className="flex items-center px-3 py-2 text-green-700 bg-green-50 rounded-md w-full text-left cursor-pointer"
-            >
-              <span className="mr-3">⚙️</span> {t("profileMgmt.accountSettings")} {/* Reusing key */}
-            </button>
-            <button
-              onClick={() => navigate("/paymentsettings")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
-            >
-              <span className="mr-3">💳</span> {t("profileMgmt.payments")} {/* Reusing key */}
-            </button>
-            <button
-              onClick={() => navigate("/dataprotection")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
-            >
-              <span className="mr-3">🛡️</span> {t("profileMgmt.dataProtection")} {/* Reusing key */}
-            </button>
-            <button
-              onClick={() => navigate("/emailsettings")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
-            >
-              <span className="mr-3">✉️</span> {t("profileMgmt.emails")} {/* Reusing key */}
-            </button>
-            <button
-              onClick={() => navigate("/aboutclassifieds")}
-              className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md w-full text-left cursor-pointer"
-            >
-              <span className="mr-3">❤️</span> {t("profileMgmt.aboutClassifiedAds")} {/* Reusing key */}
-            </button>
-          </nav>
-        </div>
-
-        {/* Main */}
-        <div className="flex-1 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {t("accountSettings.title")} {/* Translated */}
-          </h2>
-
-          <div className="flex items-center gap-2 text-gray-600 text-sm mb-6">
-            <Eye className="w-4 h-4" />
-            <span>{t("accountSettings.infoVisibility")}</span> {/* Translated */}
+  {/* Content */}
+  <div className="flex-1 py-10 px-4">
+    <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex flex-col md:flex-row overflow-hidden">
+          {/* Sidebar */}
+          <div className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-6">
+            <h1 className="text-xl font-semibold text-gray-900 mb-6">
+              {t("profileMgmt.settingsTitle")}
+            </h1>
+            <nav className="space-y-1 text-sm font-medium flex flex-wrap md:block">
+              {sidebarItems.map((item) => (
+                <button
+                  key={item.labelKey}
+                  onClick={() => navigate(item.path)}
+                  className={`flex items-center px-3 py-2 rounded-md w-full md:w-auto text-left cursor-pointer transition duration-200 ${
+                    item.active
+                      ? "text-green-700 bg-green-50"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <span className="mr-3">{item.icon}</span>
+                  {t(item.labelKey)}
+                </button>
+              ))}
+            </nav>
           </div>
 
-          <div className="space-y-4">
-            {/* Phone */}
-            <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
-              <div className="flex items-center gap-10">
-                <label className="text-sm font-medium text-gray-700 w-40">
-                  {t("accountSettings.verifiedPhoneNumber")} {/* Translated */}
-                </label>
-                <span className="text-gray-900 text-sm">
-                  {profile.phoneNumber || "+49*****863"}
-                </span>
-              </div>
-              <button
-                onClick={() => setPopupStep("popup")}
-                className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
-              >
-                {t("accountSettings.changeButton")} {/* Translated */}
-              </button>
+          {/* Main */}
+          <div className="flex-1 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {t("accountSettings.title")}
+            </h2>
+
+            <div className="flex items-center gap-2 text-gray-600 text-sm mb-6">
+              <Eye className="w-4 h-4" />
+              <span>{t("accountSettings.infoVisibility")}</span>
             </div>
 
-            {/* Email */}
-            <div className="border-b border-gray-100 py-2.5">
-              {!showEmailForm ? (
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-10">
-                    <label className="text-sm font-medium text-gray-700 w-40">
-                      {t("accountSettings.emailAddressLabel")} {/* Translated */}
-                    </label>
-                    <span className="text-gray-900 text-sm">
-                      {profile.email}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setShowEmailForm(true)}
-                    className="text-green-600 hover:text-green-700 text-sm  cursor-pointer"
-                  >
-                    {t("accountSettings.changeButton")} {/* Translated */}
-                  </button>
-                </div>
-              ) : (
-                <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-md space-y-5">
-                  {/* Info Box */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-sm text-gray-700">
-                    <p>
-                      {t("accountSettings.emailChangeInfo1")}
-                      <br />• {t("accountSettings.emailChangeInfo2")}
-                      <br />• {t("accountSettings.emailChangeInfo3")}
-                    </p>
-                  </div>
+            {/* Sections */}
+            <div className="space-y-4">
+              {/* Phone */}
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center border-b border-gray-100 py-2.5">
+  <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-10">
+    <label className="text-sm font-medium text-gray-700 md:w-40">
+      {t("accountSettings.verifiedPhoneNumber")}
+    </label>
+    <span className="text-gray-900 text-sm">
+      {profile.phoneNumber
+        ? profile.phoneNumber
+        : t("")}
+    </span>
+  </div>
 
-                  {/* Current Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("accountSettings.currentEmailLabel")} {/* Translated */}
-                    </label>
-                    <input
-                      disabled
-                      type="text"
-                      value={profile.email}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-600"
-                    />
-                  </div>
+  <button
+    onClick={() => setPopupStep("popup")}
+    className="text-green-600 hover:text-green-700 text-sm cursor-pointer mt-2 md:mt-0"
+  >
+    {profile.phoneNumber
+      ? t("Change")
+      : t("Add")}
+  </button>
+</div>
 
-                  {/* New Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("accountSettings.newEmailLabel")} {/* Translated */}
-                    </label>
-                    <input
-                      type="email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder={t("accountSettings.newEmailPlaceholder")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm"
-                    />
-                  </div>
 
-                  {/* Repeat Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("accountSettings.repeatNewEmailLabel")} {/* Translated */}
-                    </label>
-                    <input
-                      type="email"
-                      value={repeatEmail}
-                      onChange={(e) => setRepeatEmail(e.target.value)}
-                      placeholder={t("accountSettings.repeatNewEmailPlaceholder")}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm"
-                    />
+              {/* Email */}
+              <div className="border-b border-gray-100 py-2.5">
+                {!showEmailForm ? (
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-10">
+                      <label className="text-sm font-medium text-gray-700 md:w-40">
+                        {t("accountSettings.emailAddressLabel")}
+                      </label>
+                      <span className="text-gray-900 text-sm">
+                        {profile.email}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowEmailForm(true)}
+                      className="text-green-600 hover:text-green-700 text-sm cursor-pointer mt-2 md:mt-0"
+                    >
+                      {t("accountSettings.changeButton")}
+                    </button>
                   </div>
+                ) : (
+                  /* Email Form (kept same layout as yours, responsive naturally) */
+                  <div className="p-4 sm:p-6 bg-white border border-gray-200 rounded-xl shadow-md space-y-5">
+                    {/* Info Box */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-sm text-gray-700">
+                      <p>
+                        {t("accountSettings.emailChangeInfo1")}
+                        <br />• {t("accountSettings.emailChangeInfo2")}
+                        <br />• {t("accountSettings.emailChangeInfo3")}
+                      </p>
+                    </div>
 
-                  {/* Password Input */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("accountSettings.yourPasswordLabel")} {/* Translated */}
-                    </label>
-                    <div className="relative">
+                    {/* Current Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t("accountSettings.currentEmailLabel")}
+                      </label>
                       <input
-                        type={showPassword ? "text" : "password"}
-                        value={emailPassword}
-                        onChange={(e) => setEmailPassword(e.target.value)}
-                        placeholder={t("accountSettings.passwordPlaceholder")} 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md pr-10 text-sm"
+                        disabled
+                        type="text"
+                        value={profile.email}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-600"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        className="absolute right-3 top-2.5 text-gray-400 cursor-pointer"
-                      >
-                        {showPassword ? (
-                          <Eye size={18} />
-                        ) : (
-                          <EyeOff size={18} />
+                    </div>
+
+                    {/* New Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t("accountSettings.newEmailLabel")}
+                      </label>
+                      <input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder={t("accountSettings.newEmailPlaceholder")}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm"
+                      />
+                    </div>
+
+                    {/* Repeat Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t("accountSettings.repeatNewEmailLabel")}
+                      </label>
+                      <input
+                        type="email"
+                        value={repeatEmail}
+                        onChange={(e) => setRepeatEmail(e.target.value)}
+                        placeholder={t(
+                          "accountSettings.repeatNewEmailPlaceholder"
                         )}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm"
+                      />
+                    </div>
+
+                    {/* Password Input */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t("accountSettings.yourPasswordLabel")}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={emailPassword}
+                          onChange={(e) => setEmailPassword(e.target.value)}
+                          placeholder={t("accountSettings.passwordPlaceholder")}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md pr-10 text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute right-3 top-2.5 text-gray-400 cursor-pointer"
+                        >
+                          {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => setShowEmailForm(false)}
+                        className="px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100 cursor-pointer"
+                      >
+                        {t("accountSettings.cancelButton")}
+                      </button>
+                      <button
+                        onClick={handleEmailSave}
+                        className="px-5 py-2 text-sm text-white bg-lime-500 hover:bg-lime-600 rounded-md cursor-pointer"
+                      >
+                        {t("accountSettings.saveEmailButton")}
                       </button>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  {/* Buttons */}
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button
-                      onClick={() => setShowEmailForm(false)}
-                      className="px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100 cursor-pointer"
-                    >
-                      {t("accountSettings.cancelButton")} {/* Translated */}
-                    </button>
-                    <button
-                      onClick={handleEmailSave}
-                      className="px-5 py-2 text-sm text-white bg-lime-500 hover:bg-lime-600 rounded-md cursor-pointer"
-                    >
-                      {t("accountSettings.saveEmailButton")} {/* Translated */}
-                    </button>
-                  </div>
+              {/* Password */}
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center border-b border-gray-100 py-2.5">
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-10">
+                  <label className="text-sm font-medium text-gray-700 md:w-40">
+                    {t("accountSettings.passwordLabel")}
+                  </label>
+                  <span className="text-gray-900 text-sm">****</span>
                 </div>
-              )}
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="text-green-600 hover:text-green-700 text-sm cursor-pointer mt-2 md:mt-0"
+                >
+                  {t("accountSettings.changeButton")}
+                </button>
+              </div>
             </div>
+ {/* Activity */}
+  <div className="mt-8 mb-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+      {t("accountSettings.yourActivity")}
+    </h3>
 
-            {/* Password */}
-            <div className="flex justify-between items-center border-b border-gray-100 py-2.5">
-              <div className="flex items-center gap-10">
-                <label className="text-sm font-medium text-gray-700 w-40">
-                  {t("accountSettings.passwordLabel")} {/* Translated */}
+    {ads.length > 0 ? (
+      <div className="space-y-2">
+        <p className="text-sm text-gray-500">
+          {t("accountSettings.adsAvailable", { count: ads.length })}
+        </p>
+
+        {/* Show a small preview of ads */}
+        {/* <ul className="divide-y divide-gray-100 border border-gray-200 rounded-md">
+          {ads.slice(0, 5).map((ad) => (
+            <li
+              key={ad._id}
+              className="flex justify-between items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            > */}
+              {/* <span className="truncate"> */}
+                {/* ✅ choose based on i18n.language */}
+                {/* {ad.title?.[currentLang] || t("accountSettings.untitledAd")}
+              </span> */}
+              {/* <span className="text-xs text-gray-400">
+                {new Date(ad.createdAt).toLocaleDateString()}
+              </span> */}
+            {/* </li>
+          ))}
+        </ul> */}
+
+        {/* {ads.length > 5 && (
+          <button className="text-green-600 hover:text-green-700 text-sm mt-2">
+            {t("View All ")}
+          </button>
+        )} */}
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500">
+        {t("accountSettings.noAdsAvailable")}
+      </p>
+    )}
+  </div>
+
+
+            {/* Billing */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between py-4 border-b border-gray-100 mb-8 gap-3">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+                <label className="text-sm font-medium text-gray-700 md:w-40">
+                  {t("accountSettings.billingAddressLabel")}
                 </label>
-                <span className="text-gray-900 text-sm">****</span>
+                <div className="text-gray-900 text-sm">
+                  {profile.billingAddress || t("accountSettings.notAvailable")}
+                </div>
               </div>
               <button
-                onClick={() => setShowPasswordModal(true)}
                 className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
+                onClick={() => setShowBillingModal(true)}
               >
-                {t("accountSettings.changeButton")} {/* Translated */}
+                {t("accountSettings.editButton")}
               </button>
             </div>
-          </div>
 
-          {/* Activity */}
-          <div className="mt-8 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              {t("accountSettings.yourActivity")} {/* Translated */}
-            </h3>
-            {ads.length > 0 ? (
-              <p className="text-sm text-gray-500">
-                {t("accountSettings.adsAvailable", { count: ads.length })} {/* Translated with interpolation */}
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500">{t("accountSettings.noAdsAvailable")}</p>
-            )}
-          </div>
-
-          {/* Billing */}
-          <div className="flex items-center justify-between py-4 border-b border-gray-100 mb-8">
-            <div className="flex items-center gap-6">
-              <label className="text-sm font-medium text-gray-700 w-40">
-                {t("accountSettings.billingAddressLabel")} {/* Translated */}
-              </label>
-              <div className="text-gray-900 text-sm">
-                {profile.billingAddress || t("accountSettings.notAvailable")} {/* Translated N/A */}
-              </div>
+            {/* Delete */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleDeleteAccount}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                {t("accountSettings.deleteAccountButton")}
+              </button>
             </div>
-            <button
-              className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
-              onClick={() => setShowBillingModal(true)}
-            >
-              {t("accountSettings.editButton")} {/* Translated */}
-            </button>
-          </div>
-
-          {/* Delete */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleDeleteAccount}
-              className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-              {t("accountSettings.deleteAccountButton")} {/* Translated */}
-            </button>
           </div>
         </div>
       </div>
@@ -439,6 +475,8 @@ function AccountSettings() {
         onClose={() => setShowBillingModal(false)}
         onSave={handleBillingUpdate}
       />
+
+      {/* Phone Verification Flow */}
       <AnimatePresence>
         {popupStep && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
@@ -459,7 +497,7 @@ function AccountSettings() {
               {popupStep === "phone" && (
                 <PhoneVerification
                   onSendOTP={() => setPopupStep("sms")}
-                  setPhoneNumber={handlePhoneUpdate}
+                  setPhoneNumber={() => {}}
                   email={profile.email}
                   onClose={() => setPopupStep(null)}
                   showCloseButton={true}
@@ -495,6 +533,9 @@ function AccountSettings() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ✅ Footer at the end */}
+      <Footer />
     </motion.div>
   );
 }
