@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AddressModal from './AddressModal'; // Assuming AddressModal is a local component
-import useUserProfile from '../../Hooks/useUserProfile'; // Assuming this hook exists
+import { motion } from "framer-motion";
+import AddressModal from './AddressModal'; 
+import useUserProfile from '../../Hooks/useUserProfile'; 
 import axios from 'axios';
 import {
   showSuccessToast,
   showErrorToast,
   ToastifyContainer,
-} from '../../Hooks/Tostify'; // Assuming this utility exists
-
-// i18n import
+} from '../../Hooks/Tostify'; 
 import { useTranslation } from 'react-i18next';
 
+// Import Footer
+import Footer from '../common/Footer';
+
 function ProfileMgmt() {
-  const { t } = useTranslation(); // Initialize useTranslation hook
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile, updateField, loading: profileLoading } = useUserProfile();
 
@@ -21,6 +23,15 @@ function ProfileMgmt() {
   const [tempProfileName, setTempProfileName] = useState(profile.username || '');
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [savingName, setSavingName] = useState(false);
+
+  const sidebarItems = [
+    { labelKey: "profileMgmt.profileInfo", icon: "👤", path: "/profile", active: true },
+    { labelKey: "profileMgmt.accountSettings", icon: "⚙️", path: "/accountsettings" },
+    { labelKey: "profileMgmt.payments", icon: "💳", path: "/paymentsettings" },
+    { labelKey: "profileMgmt.dataProtection", icon: "🛡️", path: "/dataprotection" },
+    { labelKey: "profileMgmt.emails", icon: "✉️", path: "/emailsettings" },
+    { labelKey: "profileMgmt.aboutClassifiedAds", icon: "❤️", path: "/aboutclassieds" },
+  ];
 
   const handleSaveName = async () => {
     const userId = JSON.parse(localStorage.getItem('userData'))?._id;
@@ -36,10 +47,10 @@ function ProfileMgmt() {
       localStorage.setItem('userData', JSON.stringify(updatedUser));
       updateField('username', tempProfileName);
       setIsEditingName(false);
-      showSuccessToast(t('profileMgmt.nameUpdateSuccess')); // Translated
+      showSuccessToast(t('profileMgmt.nameUpdateSuccess'));
     } catch (err) {
       console.error(err);
-      showErrorToast(err.response?.data?.message || t('profileMgmt.nameUpdateFailed')); // Translated fallback
+      showErrorToast(err.response?.data?.message || t('profileMgmt.nameUpdateFailed'));
     } finally {
       setSavingName(false);
     }
@@ -57,129 +68,133 @@ function ProfileMgmt() {
       const updatedUser = res.data.data;
       localStorage.setItem('userData', JSON.stringify(updatedUser));
       updateField('deliveryAddress', newAddress);
-      showSuccessToast(t('profileMgmt.addressUpdateSuccess')); // Translated
+      showSuccessToast(t('profileMgmt.addressUpdateSuccess'));
     } catch (err) {
       console.error(err);
-      showErrorToast(err.response?.data?.message || t('profileMgmt.addressUpdateFailed')); // Translated fallback
+      showErrorToast(err.response?.data?.message || t('profileMgmt.addressUpdateFailed'));
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
+    <motion.div
+      className="flex flex-col min-h-screen bg-gray-50"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <ToastifyContainer />
-      <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200 p-6">
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.settingsTitle")}</h1> {/* Translated */}
-          <nav className="space-y-1">
-            <button
-              onClick={() => navigate('/profile')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md cursor-pointer"
-            >
-              <span className="mr-3">👤</span> {t("profileMgmt.profileInfo")} {/* Translated */}
-            </button>
-            <button
-              onClick={() => navigate('/accountsettings')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
-            >
-              <span className="mr-3">⚙️</span> {t("profileMgmt.accountSettings")} {/* Translated */}
-            </button>
-            <button
-              onClick={() => navigate('/paymentsettings')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
-            >
-              <span className="mr-3">💳</span> {t("profileMgmt.payments")} {/* Translated */}
-            </button>
-            <button
-              onClick={() => navigate('/dataprotection')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
-            >
-              <span className="mr-3">🛡️</span> {t("profileMgmt.dataProtection")} {/* Translated */}
-            </button>
-            <button
-              onClick={() => navigate('/emailsettings')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
-            >
-              <span className="mr-3">✉️</span> {t("profileMgmt.emails")} {/* Translated */}
-            </button>
-            <button
-              onClick={() => navigate('/aboutclassieds')}
-              className="flex items-center w-full text-left px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
-            >
-              <span className="mr-3">❤️</span> {t("profileMgmt.aboutClassifiedAds")} {/* Translated */}
-            </button>
-          </nav>
-        </div>
 
-        {/* Main Content */}
-        <div className="flex-1 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.profileInfoTitle")}</h2> {/* Translated */}
-          <div className="space-y-6">
-            {/* Profile Name */}
-            <div className="flex items-center justify-between py-4 border-b border-gray-100">
-              <div className="flex items-center gap-6">
-                <label className="text-sm font-medium text-gray-700 w-32">{t("profileMgmt.profileNameLabel")}</label> {/* Translated */}
-                {isEditingName ? (
-                  <>
-                    <input
-                      type="text"
-                      value={tempProfileName}
-                      onChange={(e) => setTempProfileName(e.target.value)}
-                      className="border rounded px-3 py-1 text-sm text-gray-800"
-                    />
-                    <button
-                      onClick={() => setIsEditingName(false)}
-                      className="text-gray-700 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100 text-sm ml-2 cursor-pointer"
-                    >
-                      {t("profileMgmt.cancelButton")} {/* Translated */}
-                    </button>
-                    <button
-                      onClick={handleSaveName}
-                      disabled={savingName}
-                      className="bg-lime-400 text-white px-4 py-1 rounded-full text-sm ml-2 hover:bg-lime-500 flex items-center gap-2 cursor-pointer"
-                    >
-                      {savingName && (
-                        <svg
-                          className="animate-spin h-4 w-4 text-white"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
-                          />
-                        </svg>
-                      )}
-                      {savingName ? t('profileMgmt.saving') : t('profileMgmt.save')} {/* Translated */}
-                    </button>
-                  </>
-                ) : (
-                  <div className="text-gray-900 text-sm">{profile.username || t('profileMgmt.notAvailable')}</div>
-                )}
-              </div>
-            </div>
+      {/* Content Wrapper */}
+      <div className="flex-1 py-10 px-4">
+        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 flex flex-col md:flex-row overflow-hidden">
+          
+          {/* Sidebar */}
+          <div className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-6">
+            <h1 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.settingsTitle")}</h1>
+            <nav className="space-y-1">
+              {sidebarItems.map((item) => (
+                <button
+                  key={item.labelKey}
+                  onClick={() => navigate(item.path)}
+                  className={`flex items-center w-full text-left px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
+                    item.active
+                      ? "text-green-700 bg-green-50"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <span className="mr-3">{item.icon}</span> {t(item.labelKey)}
+                </button>
+              ))}
+            </nav>
+          </div>
 
-            {/* Delivery Address */}
-            <div className="flex items-center justify-between py-4 border-b border-gray-100">
-              <div className="flex items-center gap-6">
-                <label className="text-sm font-medium text-gray-700 w-32">{t("profileMgmt.deliveryAddressLabel")}</label> {/* Translated */}
-                <div className="text-gray-900 text-sm">{profile.deliveryAddress || t('profileMgmt.notAvailable')}</div> {/* Translated N/A */}
+          {/* Main Content */}
+          <div className="flex-1 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t("profileMgmt.profileInfoTitle")}</h2>
+            <div className="space-y-6">
+              
+              {/* Profile Name */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                  <label className="text-sm font-medium text-gray-700 w-32">
+                    {t("profileMgmt.profileNameLabel")}
+                  </label>
+
+                  {isEditingName ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        value={tempProfileName}
+                        onChange={(e) => setTempProfileName(e.target.value)}
+                        className="border rounded px-3 py-1 text-sm text-gray-800"
+                      />
+                      <button
+                        onClick={() => setIsEditingName(false)}
+                        className="text-gray-700 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100 text-sm cursor-pointer"
+                      >
+                        {t("profileMgmt.cancelButton")}
+                      </button>
+                      <button
+                        onClick={handleSaveName}
+                        disabled={savingName}
+                        className="bg-lime-400 text-white px-4 py-1 rounded-full text-sm hover:bg-lime-500 flex items-center gap-2 cursor-pointer"
+                      >
+                        {savingName && (
+                          <svg
+                            className="animate-spin h-4 w-4 text-white"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
+                            />
+                          </svg>
+                        )}
+                        {savingName ? t('profileMgmt.saving') : t('profileMgmt.save')}
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-gray-900 text-sm">
+                        {profile.username || t('profileMgmt.notAvailable')}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* {!isEditingName && (
+                  <button
+                    onClick={() => setIsEditingName(true)}
+                    className="text-green-600 hover:text-green-700 text-sm cursor-pointer mt-2 sm:mt-0"
+                  >
+                    {t("Change")}
+                  </button>
+                )} */}
               </div>
-              <button
-                className="text-green-600 hover:text-green-700 text-sm cursor-pointer"
-                onClick={() => setShowAddressModal(true)}
-              >
-                {t("profileMgmt.editButton")} {/* Translated */}
-              </button>
+
+              {/* Delivery Address */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 border-b border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                  <label className="text-sm font-medium text-gray-700 w-32">{t("profileMgmt.deliveryAddressLabel")}</label>
+                  <div className="text-gray-900 text-sm">{profile.deliveryAddress || t('profileMgmt.notAvailable')}</div>
+                </div>
+                <button
+                  className="text-green-600 hover:text-green-700 text-sm cursor-pointer mt-2 sm:mt-0"
+                  onClick={() => setShowAddressModal(true)}
+                >
+                  {t("profileMgmt.editButton")}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -191,7 +206,10 @@ function ProfileMgmt() {
         onClose={() => setShowAddressModal(false)}
         onSave={handleAddressUpdate}
       />
-    </div>
+
+      {/* Footer */}
+      <Footer />
+    </motion.div>
   );
 }
 
