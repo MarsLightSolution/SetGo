@@ -557,7 +557,7 @@ const handleFileChange = async (e) => {
                       >
                         {message.messageType === "image" ? (
                           <img
-                            src={`http://localhost:8080${message.fileUrl}`}
+                            src={`${import.meta.env.VITE_SERVER}${message.fileUrl}`}
                             alt={message.fileName || "Shared image"}
                             className="max-w-[180px] sm:max-w-[220px] max-h-[220px] object-cover rounded-xl mb-2 shadow-sm hover:shadow-md transition"
                           />
