@@ -26,6 +26,7 @@
     "js-cookie": "^3.0.5",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.518.0",
+    "material": "^0.9.24",
     "rc-slider": "^11.1.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -37,7 +38,8 @@
     "react-router-dom": "^7.6.2",
     "react-toastify": "^11.0.5",
     "socket.io-client": "^4.8.1",
-    "tailwindcss": "^4.1.10"
+    "tailwindcss": "^4.1.10",
+    "ui": "^0.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

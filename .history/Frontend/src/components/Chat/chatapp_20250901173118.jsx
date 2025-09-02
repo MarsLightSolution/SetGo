@@ -24,11 +24,12 @@ export default function ChatApp() {
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
   const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
-  const messagesContainerRef = useRef(null)
+
   const socketRef = useRef(null)
-  const [initialLoad, setInitialLoad] = useState(true)
+
   // Auto-focus conversation after currentUser and conversations are ready
   useEffect(() => {
     if (!currentUser || conversations.length === 0) return
@@ -84,50 +85,13 @@ export default function ChatApp() {
     }
   }, [isConnected, currentUser, activeConversation])
 
-const scrollToBottom = (smooth = false) => {
-  if (!messagesContainerRef.current) return
-  messagesContainerRef.current.scrollTo({
-    top: messagesContainerRef.current.scrollHeight,
-    behavior: smooth ? "smooth" : "auto",
-  })
-}
-
-useEffect(() => {
-  if (messages.length === 0) return
-
-  const container = messagesContainerRef.current
-  if (!container) return
-
-  const images = container.querySelectorAll("img") || []
-  let remaining = images.length
-
-  const doScroll = () => {
-    // 👉 if it's first load OR conversation just changed → jump instantly
-    if (initialLoad || activeConversation) {
-      scrollToBottom(false)
-      setInitialLoad(false)
-    } else {
-      scrollToBottom(true)
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  if (remaining === 0) {
-    doScroll()
-  } else {
-    images.forEach((img) => {
-      if (img.complete) {
-        remaining--
-        if (remaining === 0) doScroll()
-      } else {
-        img.onload = () => {
-          remaining--
-          if (remaining === 0) doScroll()
-        }
-      }
-    })
-  }
-}, [messages, activeConversation]) // ✅ added activeConversation
-
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   // API check
   useEffect(() => {
@@ -407,6 +371,8 @@ const handleFileChange = async (e) => {
     lg:relative lg:translate-x-0
   `}
 >
+
+
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-100 flex flex-col bg-white">
             <div className="flex items-center justify-between">
@@ -527,11 +493,7 @@ const handleFileChange = async (e) => {
                 </div>
               </div>
              {/* Messages area (scrollable) */}
-      <div
-  ref={messagesContainerRef}
-  className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white"
->
-
+      <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
         {messages.map((message) => (
           <div key={message.id}
                     className={`flex animate-in fade-in duration-300 ${
