@@ -3,7 +3,8 @@ import { useState, useRef, useEffect } from "react"
 import io from "socket.io-client"
 import { useLocation } from "react-router-dom"
 import { FaCamera } from "react-icons/fa"
-
+import imageCompression from "browser-image-compression"
+import heic2any from "heic2any"
 export default function ChatApp() {
   const [currentUser, setCurrentUser] = useState(null)
   const [allUsers, setAllUsers] = useState([])
@@ -23,12 +24,11 @@ export default function ChatApp() {
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
-
+  const messagesContainerRef = useRef(null)
   const socketRef = useRef(null)
-
+  const [initialLoad, setInitialLoad] = useState(true)
   // Auto-focus conversation after currentUser and conversations are ready
   useEffect(() => {
     if (!currentUser || conversations.length === 0) return
@@ -84,13 +84,50 @@ export default function ChatApp() {
     }
   }, [isConnected, currentUser, activeConversation])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+const scrollToBottom = (smooth = false) => {
+  if (!messagesContainerRef.current) return
+  messagesContainerRef.current.scrollTo({
+    top: messagesContainerRef.current.scrollHeight,
+    behavior: smooth ? "smooth" : "auto",
+  })
+}
+
+useEffect(() => {
+  if (messages.length === 0) return
+
+  const container = messagesContainerRef.current
+  if (!container) return
+
+  const images = container.querySelectorAll("img") || []
+  let remaining = images.length
+
+  const doScroll = () => {
+    // 👉 if it's first load OR conversation just changed → jump instantly
+    if (initialLoad || activeConversation) {
+      scrollToBottom(false)
+      setInitialLoad(false)
+    } else {
+      scrollToBottom(true)
+    }
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+  if (remaining === 0) {
+    doScroll()
+  } else {
+    images.forEach((img) => {
+      if (img.complete) {
+        remaining--
+        if (remaining === 0) doScroll()
+      } else {
+        img.onload = () => {
+          remaining--
+          if (remaining === 0) doScroll()
+        }
+      }
+    })
+  }
+}, [messages, activeConversation]) // ✅ added activeConversation
+
 
   // API check
   useEffect(() => {
@@ -258,9 +295,6 @@ export default function ChatApp() {
           timestamp: new Date(data.message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           senderName: data.message.senderName,
         }
-
-        setMessages((prev) => [...prev, newMsg])
-
         // Make sure socket exists before sending
         if (socketRef.current && activeConversation) {
           socketRef.current.emit("sendMessage", {
@@ -279,44 +313,80 @@ export default function ChatApp() {
       console.log("Error sending message:", error)
     }
   }
+const handleFileChange = async (e) => {
+  let file = e.target.files[0];
+  if (!file || !activeConversation || !currentUser) return;
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0]
-    if (!file || !activeConversation || !currentUser) return
+  try {
+    // 🟢 HEIC → JPEG conversion (cover all cases)
+    const isHeic =
+      file.type === "image/heic" ||
+      file.type === "image/heif" ||
+      file.name.toLowerCase().endsWith(".heic");
 
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("conversationId", activeConversation._id)
-    formData.append("senderId", currentUser.userId)
+    if (isHeic) {
+      let converted = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.9,
+      });
 
-    try {
-      const response = await fetch(`${API_BASE}/upload`, { method: "POST", body: formData })
-      const data = await response.json()
-      if (data.success) {
-        const newMsg = {
-          id: data.message._id,
-          text: data.message.text,
-          sender: "me",
-          timestamp: new Date(data.message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          senderName: data.message.senderName,
-          fileUrl: data.message.fileUrl,
-          messageType: data.message.messageType,
-        }
-        setMessages((prev) => [...prev, newMsg])
-
-        socketRef.current.emit("sendMessage", {
-          conversationId: activeConversation._id,
-          senderId: currentUser.userId,
-          text: data.message.text,
-          fileUrl: data.message.fileUrl,
-          messageType: data.message.messageType,
-          senderName: data.message.senderName,
-        })
+      // Sometimes heic2any returns an array of Blobs
+      if (Array.isArray(converted)) {
+        converted = converted[0];
       }
-    } catch (error) {
-      console.log("Error uploading file:", error)
+
+      file = new File([converted], file.name.replace(/\.heic$/i, ".jpg"), {
+        type: "image/jpeg",
+        lastModified: Date.now(),
+      });
     }
+
+    // 🟢 Compression (only for images)
+    if (file.type.startsWith("image/")) {
+      file = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      });
+    }
+
+    // 🟢 Prepare form data
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("conversationId", activeConversation._id);
+    formData.append("senderId", currentUser.userId);
+
+    // 🟢 Upload to API
+    const response = await fetch(`${API_BASE}/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      // ✅ Let socket notify others
+      socketRef.current?.emit("sendMessage", {
+        conversationId: activeConversation._id,
+        senderId: currentUser.userId,
+        text: data.message.text,
+        fileUrl: data.message.fileUrl, // should now end in .jpg
+        messageType: data.message.messageType,
+        senderName: data.message.senderName,
+      });
+    } else {
+      throw new Error(data.message || "File upload failed");
+    }
+  } catch (error) {
+    console.error("❌ Error processing/uploading file:", error);
+    alert("Failed to send image. Please try again.");
   }
+};
 
   const handleImageUpload = () => {
     fileInputRef.current?.click()
@@ -337,8 +407,6 @@ export default function ChatApp() {
     lg:relative lg:translate-x-0
   `}
 >
-
-
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-100 flex flex-col bg-white">
             <div className="flex items-center justify-between">
@@ -459,7 +527,11 @@ export default function ChatApp() {
                 </div>
               </div>
              {/* Messages area (scrollable) */}
-      <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
+      <div
+  ref={messagesContainerRef}
+  className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white"
+>
+
         {messages.map((message) => (
           <div key={message.id}
                     className={`flex animate-in fade-in duration-300 ${
