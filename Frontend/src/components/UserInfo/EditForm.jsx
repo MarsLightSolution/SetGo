@@ -23,6 +23,7 @@ const EditForm = () => {
   const navigate = useNavigate();
   const maxDescriptionLength = 1000;
   const fileInputRef = useRef(null);
+  const [loading, setLoading] = useState(false); // <-- Add this
   const [formData, setFormData] = useState({
     offerType: "offer",
     title: "",
@@ -253,6 +254,7 @@ const handleSubmit = async (e) => {
     }
 
     // --- API call ---
+    setLoading(true); // <-- Start loader
     const response = await fetch(`${import.meta.env.VITE_SERVER}/api/products/product/${id}`, {
       method: "PUT",
       credentials: "include",
@@ -266,10 +268,12 @@ const handleSubmit = async (e) => {
     const data = await response.json();
     console.log("✅ Product updated:", data);
     showSuccessToast(t("editForm.adUpdatedSuccess"));
+    setLoading(false); // <-- Stop loader
     navigate('/userinfo');
   } catch (err) {
     console.error("❌ Update error:", err);
     showErrorToast(t("editForm.adUpdateError"));
+    setLoading(false); // <-- Stop loader
   }
 };
 
@@ -456,13 +460,37 @@ const handleSubmit = async (e) => {
           {/* Submit Button */}
           <div className="pt-4 flex justify-end">
             <Button
-              type="submit"
-              variant="contained"
-              color="success"
-              size="medium"
-            >
-              {t("editForm.updateAdButton")} // Use translated button text
-            </Button>
+            type="submit"
+            variant="contained"
+            color="success"
+            size="medium"
+            disabled={loading}
+            className="flex items-center justify-center"
+          >
+            {loading && (
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+            )}
+            {loading ? t("form.submitting") : t("editForm.updateAdButton")}
+          </Button>
           </div>
         </form>
       </div>

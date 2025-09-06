@@ -4,11 +4,7 @@ const { sendEmail } = require("../services/emailService.js");
 const {
   buyerPaymentTemplate,
   sellerPaymentTemplate,
-  adminPaymentTemplate,
   trackingUpdateTemplate,
-  orderRejectedTemplate,
-  itemReceivedTemplate,
-  fundsReleasedTemplate
 } = require("../services/templates.js");
 
 const placeOrder = async (req, res) => {

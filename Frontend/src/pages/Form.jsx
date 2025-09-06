@@ -57,7 +57,7 @@ const Form = () => {
 
   const [errors, setErrors] = useState({});
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [loading, setLoading] = useState(false); // <-- loader state
+  const [loading, setLoading] = useState(false); // <-- Add this
 
   // Get geolocation on load
   useEffect(() => {
@@ -246,6 +246,7 @@ const handleChange = async (e) => {
     });
 
     try {
+      setLoading(true); // <-- Start loader
       const res = await fetch(`${import.meta.env.VITE_SERVER}/api/products/add`, {
         method: "POST",
         body: formDataToSend,
@@ -255,6 +256,7 @@ const handleChange = async (e) => {
 
       if (res.ok) {
         showSuccessToast(t("form.formSubmittedSuccess")); // Translated
+        setLoading(false); // <-- Stop loader
         setFormData((prev) => ({
           offerType: "offer",
           title: "",
@@ -282,6 +284,7 @@ const handleChange = async (e) => {
     } catch (error) {
       console.error("Error submitting ad:", error);
       showErrorToast(t("form.failedToSubmitForm")); // Translated
+      setLoading(false); // <-- Stop loader
     }
   };
 
@@ -551,39 +554,41 @@ return (
           />
         </div>
 
-        {/* Terms */}
-        <div className="pt-6 border-t">
-          <FormControlLabel
-            control={
-              <Checkbox
-                name="termsAccepted"
-                checked={formData.termsAccepted}
-                onChange={handleChange}
-              />
-            }
-            label={t("form.termsAndConditions")}
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            {t("form.termsText1", { termsLink: <a href="#" className="text-blue-600 underline">{t("form.termsOfUse")}</a> })}
-          </p>
-        </div>
-
-        <Button
-          type="submit"
-          variant="contained"
-          color="success"
-          className="mt-6 w-full sm:w-auto"
-          disabled={loading}
-          sx={{
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-        >
-          {t("form.publishAd")}
-        </Button>
-      </form>
-    </div>
-    <Footer />
-  </>
-);}
+          <Button
+            type="submit"
+            variant="contained"
+            color="success"
+            className="mt-8 flex items-center justify-center"
+            disabled={loading} // <-- Disable when loading
+          >
+            {loading && (
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+            )}
+            {loading ? t("form.submitting") : t("form.publishAd")}
+          </Button>
+        </form>
+      </div>
+      <Footer />
+    </>
+  );
+};
 export default Form;
