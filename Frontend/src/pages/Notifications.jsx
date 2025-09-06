@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNotifications } from '../Hooks/useNotifications';
 import { FaBell, FaTrash, FaCheck, FaFilter } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
