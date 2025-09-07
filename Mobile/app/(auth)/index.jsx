@@ -12,12 +12,13 @@ import {
   Alert,
 } from "react-native";
 import { useAuthStore } from "../../Store/authStore";
-
+import { useRouter } from "expo-router";  
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, loading, error } = useAuthStore();
   const {userId, userName,accessToken} = useAuthStore();
+  const router = useRouter();
   console.log("User Info:", { userId, userName, accessToken });
   const handleLogin = async () => {
     if (!email || !password) {
@@ -28,6 +29,7 @@ export default function Login() {
     const success = await login(email, password);
     if (success) {
       Alert.alert("Success", "Login successful!");
+      router.back(); // Navigate back to the previous screen
     } else {
       Alert.alert("Error", error || "Login failed");
     }
