@@ -4,16 +4,15 @@ import SafeScreen from "../Components/SafeScreen";
 import { StatusBar, ActivityIndicator, View, StyleSheet } from "react-native";
 import { useEffect } from "react";
 import { useAuthStore } from "../Store/authStore";
+import { ToastifyContainer } from "../utils/toastify";
 
 export default function RootLayout() {
   const { loadAuth, loading } = useAuthStore();
 
-  // 🔹 Load auth data on app start
   useEffect(() => {
     loadAuth();
   }, []);
 
-  // 🔹 While loading AsyncStorage, show a splash/loader
   if (loading) {
     return (
       <SafeAreaProvider>
@@ -30,11 +29,16 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <SafeScreen>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" options={{ title: "Home" }} />
+          <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
         </Stack>
       </SafeScreen>
-      <StatusBar style="dark" />
+      <StatusBar
+        barStyle="dark-content" 
+        backgroundColor="#f5f3f0"
+      />
+      <ToastifyContainer />
     </SafeAreaProvider>
   );
 }
