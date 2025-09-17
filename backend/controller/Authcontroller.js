@@ -391,4 +391,25 @@ module.exports.resetPassword = async (req, res) => {
     logger.error(`[ResetPassword] Error: ${err.stack}`);
     return res.status(500).json({ error: "Something went wrong. Please try again later." });
   }
+
+};
+module.exports.checkVerificationStatus = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    return res.json({
+      success: true,
+      email: user.email,
+      emailVerified: user.emailVerified,
+    });
+  } catch (err) {
+    console.error("Error checking verification status:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
 };
