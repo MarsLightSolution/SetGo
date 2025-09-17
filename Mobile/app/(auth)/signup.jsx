@@ -1,39 +1,80 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { showErrorToast, showSuccessToast } from "../../utils/toastify";
 
 export default function Signup() {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const router = useRouter();
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
   const handleSignup = async () => {
-    if (!name || !email || !password) {
-      Alert.alert("Error", "Please fill all fields");
+    // ✅ Client-side validation before calling API
+    if (!username || !email || !password) {
+      showErrorToast("⚠️ Please fill all fields.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showErrorToast("📧 Please enter a valid email address.");
+      return;
+    }
+
+    if (password.length < 6) {
+      showErrorToast("🔑 Password must be at least 6 characters.");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await fetch("https://your-api.com/register", {
+
+      const res = await fetch(`${API_URL}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await res.json();
       setLoading(false);
 
       if (res.ok) {
-        Alert.alert("Success", "Account created successfully!");
-        // Navigate to login screen if using expo-router or react-navigation
+        // ✅ Signup success
+        showSuccessToast("🎉 Account created! Check your email for confirmation.");
+        router.push({
+          pathname: "/confirm",
+          params: { email, password },
+        });
       } else {
-        Alert.alert("Signup Failed", data.message || "Something went wrong");
+        // ✅ Handle specific errors from backend
+        if (res.status === 400) {
+          showErrorToast(data.message || "Invalid request. Please check your details.");
+        } else if (res.status === 409) {
+          // 409 Conflict → Email already registered
+          showErrorToast("🚫 Email is already registered. Try logging in.");
+        } else if (res.status === 422) {
+          showErrorToast(data.message || "❌ Validation failed. Please check your input.");
+        } else if (res.status === 500) {
+          showErrorToast("💥 Server error. Please try again later.");
+        } else {
+          showErrorToast(data.message || "Signup failed. Please try again.");
+        }
       }
     } catch (error) {
       setLoading(false);
-      Alert.alert("Error", "Unable to sign up. Please try again.");
-      console.error(error);
+      console.error("Signup error:", error);
+      showErrorToast("🌐 Network error. Please check your connection.");
     }
   };
 
@@ -44,10 +85,10 @@ export default function Signup() {
 
       <TextInput
         style={styles.input}
-        placeholder="Full Name"
+        placeholder="Full username"
         placeholderTextColor="#999"
-        value={name}
-        onChangeText={setName}
+        value={username}
+        onChangeText={setUsername}
       />
 
       <TextInput
@@ -55,6 +96,7 @@ export default function Signup() {
         placeholder="Email"
         placeholderTextColor="#999"
         keyboardType="email-address"
+        autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
       />
@@ -68,12 +110,23 @@ export default function Signup() {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign Up</Text>}
+      <TouchableOpacity
+        style={[styles.button, loading && { opacity: 0.7 }]}
+        onPress={handleSignup}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Sign Up</Text>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.footerText}>
-        Already have an account? <Text style={styles.link}>Login</Text>
+        Already have an account?{" "}
+        <Text style={styles.link} onPress={() => router.push("/login")}>
+          Login
+        </Text>
       </Text>
     </View>
   );
