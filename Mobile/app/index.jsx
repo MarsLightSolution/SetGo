@@ -16,7 +16,12 @@ export default function Index() {
         </>
       ) : (
         <>
-          <Text style={styles.title}>👋 Welcome to the App</Text>
+        <Text style={styles.title}>👋 Welcome to the App</Text>
+          <Link href="/(form)" asChild>
+            <TouchableOpacity style={styles.btn}>
+              <Text style={styles.btnText}>Form</Text>
+            </TouchableOpacity>
+          </Link>
           <Link href="/(auth)" asChild>
             <TouchableOpacity style={styles.btn}>
               <Text style={styles.btnText}>Login</Text>
