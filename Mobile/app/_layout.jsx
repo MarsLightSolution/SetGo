@@ -1,52 +1,109 @@
-import { Stack } from "expo-router";
+import { Tabs } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import SafeScreen from "../Components/SafeScreen";
-import { StatusBar, ActivityIndicator, View, StyleSheet } from "react-native";
-import { useEffect } from "react";
-import { useAuthStore } from "../Store/authStore";
-import { ToastifyContainer } from "../utils/toastify";
+import { StatusBar, StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function RootLayout() {
-  const { loadAuth, loading } = useAuthStore();
-
-  useEffect(() => {
-    loadAuth();
-  }, []);
-
-  if (loading) {
-    return (
-      <SafeAreaProvider>
-        <SafeScreen>
-          <View style={styles.loader}>
-            <ActivityIndicator size="large" color="#007AFF" />
-          </View>
-        </SafeScreen>
-      </SafeAreaProvider>
-    );
-  }
-
   return (
     <SafeAreaProvider>
       <SafeScreen>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarShowLabel: false,
+            tabBarStyle: styles.tabBar,
+          }}
+        >
+          {/* Left Tab */}
+          <Tabs.Screen
+            name="home"
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="home-outline" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="search"
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="search-outline" size={24} color={color} />
+              ),
+            }}
+          />
+
+          {/* Middle bigger Tab */}
+          <Tabs.Screen
+            name="add"
+            options={{
+              tabBarButton: (props) => (
+                <TouchableOpacity
+                  {...props}
+                  style={styles.middleButton}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="add" size={32} color="#fff" />
+                </TouchableOpacity>
+              ),
+            }}
+          />
+
+          {/* Right Tabs */}
+          <Tabs.Screen
+            name="notifications"
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="notifications-outline" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="person-outline" size={24} color={color} />
+              ),
+            }}
+          />
+        </Tabs>
       </SafeScreen>
-      <StatusBar
-        barStyle="dark-content" 
-        backgroundColor="#f5f3f0"
-      />
-      <ToastifyContainer />
+
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f3f0" />
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  loader: {
-    flex: 1,
+  tabBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: -2 },
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  middleButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
+    position: "absolute",
+    top: -20,
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 5,
+    elevation: 5,
   },
 });
