@@ -2,7 +2,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { showSuccessToast, showErrorToast } from "../utils/toastify"; // adjust path
 
-const API_BASE = "http://localhost:8080"; // update if different
+const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 export const useAuthStore = create((set, get) => ({
   userId: null,
