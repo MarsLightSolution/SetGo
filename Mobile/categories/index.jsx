@@ -1,8 +1,8 @@
 import { TouchableOpacity, View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Feather';
-import { useFilters } from '../../context/FilterContext';
-import { CATEGORIES } from '../../constants/Categories';
+import { useFilters } from '../context/FilterContext';
+import { CATEGORIES } from '../constants/Categories';
 
 export default function CategoriesScreen() {
   const router = useRouter();

@@ -13,7 +13,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuthStore } from "../../Store/authStore";
+import { useAuthStore } from "../Store/authStore";
 import { useRouter } from "expo-router";
 import { showErrorToast, showSuccessToast, showWarningToast } from "../../utils/toastify";
 

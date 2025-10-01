@@ -8,10 +8,14 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
-import { CATEGORIES } from '../../constants/Categories';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../Store/authStore';
+import { CATEGORIES } from '../constants/Categories';
 
 export default function PostAdScreen() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -25,6 +29,32 @@ export default function PostAdScreen() {
     Alert.alert('Success', 'Your ad has been published!');
   };
 
+  // IF NOT AUTHENTICATED
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Post Your Ad</Text>
+        </View>
+
+        <View style={styles.authRequired}>
+          <Ionicons name="lock-closed-outline" size={64} color="#D1D5DB" />
+          <Text style={styles.authRequiredTitle}>Login Required</Text>
+          <Text style={styles.authRequiredText}>
+            Please login to post ads and sell your items
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('../auth')}
+          >
+            <Text style={styles.loginButtonText}>Go to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // REST OF YOUR POST AD CODE
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -39,10 +69,10 @@ export default function PostAdScreen() {
               <Text style={styles.photoEmoji}>📷</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.photoBox}>
-              <Icon name="plus-circle" size={32} color="#9CA3AF" />
+              <Ionicons name="add-circle-outline" size={32} color="#9CA3AF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.photoBox}>
-              <Icon name="plus-circle" size={32} color="#9CA3AF" />
+              <Ionicons name="add-circle-outline" size={32} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -77,7 +107,7 @@ export default function PostAdScreen() {
             <Text style={category ? styles.pickerText : styles.pickerPlaceholder}>
               {category || 'Select Category'}
             </Text>
-            <Icon name="chevron-down" size={20} color="#9CA3AF" />
+            <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
 
@@ -118,6 +148,36 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
+  authRequired: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  authRequiredTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  authRequiredText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  loginButton: {
+    backgroundColor: '#4ADE80',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   content: {
     flex: 1,
     padding: 16,
@@ -127,6 +187,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   label: {
     fontSize: 14,
@@ -200,6 +265,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   publishButtonText: {
     color: '#FFFFFF',

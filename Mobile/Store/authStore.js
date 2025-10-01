@@ -1,94 +1,71 @@
-import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { showSuccessToast, showErrorToast } from "../utils/toastify"; // adjust path
+import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL;
-
-export const useAuthStore = create((set, get) => ({
-  userId: null,
-  userName: null,
-  accessToken: null,
-  error: null,
+export const useAuthStore = create((set) => ({
+  user: null,
+  isAuthenticated: false,
   loading: false,
 
-  // 🔹 Load stored data on app start
-  loadAuth: async () => {
+  checkAuth: async () => {
     try {
-      const storedUserId = await AsyncStorage.getItem("userId");
-      const storedUserName = await AsyncStorage.getItem("userName");
-      const storedAccessToken = await AsyncStorage.getItem("accessToken");
-
-      set({
-        userId: storedUserId || null,
-        userName: storedUserName || null,
-        accessToken: storedAccessToken || null,
-        loading: false,
-      });
-    } catch (err) {
-      console.error("Error loading auth:", err);
-      showErrorToast("Failed to load auth data"); // toastify
-      set({ userId: null, userName: null, accessToken: null, loading: false });
+      const token = await AsyncStorage.getItem('token');
+      const user = await AsyncStorage.getItem('user');
+      
+      if (token && user) {
+        set({ 
+          isAuthenticated: true, 
+          user: JSON.parse(user) 
+        });
+      } else {
+        set({ isAuthenticated: false, user: null });
+      }
+    } catch (error) {
+      console.error('Check auth error:', error);
+      set({ isAuthenticated: false, user: null });
     }
   },
 
-  // 🔹 Login API
-login: async (email, password) => {
-  try {
-    set({ loading: true, error: null });
-
-    const res = await fetch(`${API_BASE}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json(); // parse JSON response
-
-    if (!res.ok) {
-      const errorMsg = data?.message || "Login failed";
-      set({ error: errorMsg, loading: false });
-      return { success: false, message: errorMsg }; // return message
-    }
-
-    await AsyncStorage.setItem("userId", data.userId);
-    await AsyncStorage.setItem("userName", data.userName);
-    await AsyncStorage.setItem("accessToken", data.accessToken);
-
-    set({
-      userId: data.userId,
-      userName: data.userName,
-      accessToken: data.accessToken,
-      loading: false,
-    });
-
-    return { success: true, message: "Login successful!" };
-  } catch (err) {
-    console.error("Login error:", err);
-    const msg = err?.message || "Network error";
-    set({ error: msg, loading: false });
-    return { success: false, message: msg };
-  }
-},
-
-  // 🔹 Logout API
-  logout: async () => {
+  login: async (email, password) => {
+    set({ loading: true });
     try {
-      const { accessToken } = get();
-      set({ loading: true });
-
-      await fetch(`${API_BASE}/logout`, {
-        method: "POST",
-        headers: { Authorization: accessToken },
+      const API_URL = process.env.EXPO_PUBLIC_API_URL;
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      await AsyncStorage.multiRemove(["userId", "userName", "accessToken"]);
+      const data = await response.json();
 
-      set({ userId: null, userName: null, accessToken: null, loading: false });
-      showSuccessToast("Logged out successfully!"); // toastify
-    } catch (err) {
-      console.error("Logout error:", err);
-      showErrorToast("Logout failed"); // toastify
+      if (response.ok && data.success) {
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        
+        set({ 
+          isAuthenticated: true, 
+          user: data.user,
+          loading: false 
+        });
+
+        return { success: true, message: 'Login successful!' };
+      } else {
+        set({ loading: false });
+        return { success: false, message: data.message || 'Login failed' };
+      }
+    } catch (error) {
       set({ loading: false });
+      console.error('Login error:', error);
+      return { success: false, message: 'Network error' };
+    }
+  },
+
+  logout: async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      set({ isAuthenticated: false, user: null });
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   },
 }));
