@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
-import { useAuthStore } from "../../Store/authStore";
+import { useAuthStore } from "../Store/authStore";
 import { showErrorToast, showSuccessToast } from "../../utils/toastify";  
 
 

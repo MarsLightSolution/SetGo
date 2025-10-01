@@ -9,12 +9,14 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Feather';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../../config/api';
+import { useAuthStore } from '../Store/authStore';
+import { API_BASE_URL } from '../config/api';
 
 export default function WishlistScreen() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -40,8 +42,10 @@ export default function WishlistScreen() {
   };
 
   useEffect(() => {
-    loadWishlist();
-  }, []);
+    if (isAuthenticated) {
+      loadWishlist();
+    }
+  }, [isAuthenticated]);
 
   const onRefresh = () => {
     setLoading(true);
@@ -58,6 +62,32 @@ export default function WishlistScreen() {
     return 'https://via.placeholder.com/150';
   };
 
+  // IF NOT AUTHENTICATED
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>My Wishlist</Text>
+        </View>
+
+        <View style={styles.authRequired}>
+          <Ionicons name="lock-closed-outline" size={64} color="#D1D5DB" />
+          <Text style={styles.authRequiredTitle}>Login Required</Text>
+          <Text style={styles.authRequiredText}>
+            Please login to view and manage your wishlist
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('../(auth)')}
+          >
+            <Text style={styles.loginButtonText}>Go to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // REST OF YOUR EXISTING WISHLIST CODE
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -65,22 +95,20 @@ export default function WishlistScreen() {
         <Text style={styles.headerSubtitle}>{wishlistItems.length} items saved</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}
       >
         {wishlistItems.length === 0 ? (
           <View style={styles.emptyState}>
-            <Icon name="heart" size={64} color="#D1D5DB" />
+            <Ionicons name="heart-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>No items in wishlist</Text>
             <Text style={styles.emptyText}>
               Start adding items to your wishlist to see them here
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.browseButton}
-              onPress={() => router.push('/')}
+              onPress={() => router.push('/(tabs)')}
             >
               <Text style={styles.browseButtonText}>Browse Products</Text>
             </TouchableOpacity>
@@ -88,12 +116,12 @@ export default function WishlistScreen() {
         ) : (
           wishlistItems.map((item) => (
             <View key={item._id} style={styles.wishlistCard}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cardContent}
                 onPress={() => router.push(`/product/${item._id}`)}
               >
                 <View style={styles.imageContainer}>
-                  <Image 
+                  <Image
                     source={{ uri: getImageUrl(item) }}
                     style={styles.productImage}
                     resizeMode="cover"
@@ -104,17 +132,19 @@ export default function WishlistScreen() {
                     {typeof item.title === 'object' ? item.title.en : item.title}
                   </Text>
                   <Text style={styles.productDescription} numberOfLines={2}>
-                    {typeof item.description === 'object' ? item.description.en : item.description}
+                    {typeof item.description === 'object'
+                      ? item.description.en
+                      : item.description}
                   </Text>
                   <Text style={styles.productPrice}>₼ {item.price}</Text>
                   <Text style={styles.productCondition}>{item.condition || 'Used'}</Text>
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.removeButton}
                 onPress={() => removeFromWishlist(item._id)}
               >
-                <Icon name="trash-2" size={20} color="#EF4444" />
+                <Ionicons name="trash-outline" size={20} color="#EF4444" />
               </TouchableOpacity>
             </View>
           ))
@@ -124,6 +154,7 @@ export default function WishlistScreen() {
   );
 }
 
+// Add these styles to your existing StyleSheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -145,6 +176,36 @@ const styles = StyleSheet.create({
     color: '#DCFCE7',
     fontSize: 14,
     marginTop: 4,
+  },
+  authRequired: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  authRequiredTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  authRequiredText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  loginButton: {
+    backgroundColor: '#4ADE80',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
