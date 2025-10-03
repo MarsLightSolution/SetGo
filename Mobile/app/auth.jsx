@@ -199,15 +199,15 @@ export default function AuthScreen() {
 
               <View style={styles.features}>
                 <View style={styles.featureItem}>
-                  <Ionicons name="heart" size={16} color="#4ADE80" />
+                  <Ionicons name="heart" size={16} color="#008235" />
                   <Text style={styles.featureText}>Save your favorite items</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <Ionicons name="chatbubble" size={16} color="#4ADE80" />
+                  <Ionicons name="chatbubble" size={16} color="#008235" />
                   <Text style={styles.featureText}>Connect with community</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <Ionicons name="create" size={16} color="#4ADE80" />
+                  <Ionicons name="create" size={16} color="#008235" />
                   <Text style={styles.featureText}>Create and share content</Text>
                 </View>
               </View>
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
   },
   tabText: {
     fontSize: 16,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     top: 12,
   },
   button: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

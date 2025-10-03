@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     padding: 16,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loginButton: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   browseButton: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#4ADE80',
+    color: '#008235',
     marginBottom: 4,
   },
   productCondition: {

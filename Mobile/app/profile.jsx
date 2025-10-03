@@ -66,7 +66,7 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <View style={styles.profileSection}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color="#4ADE80" />
+            <Ionicons name="person" size={40} color="#008235" />
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     padding: 16,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   authButton: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingHorizontal: 40,
     paddingVertical: 16,
     borderRadius: 12,

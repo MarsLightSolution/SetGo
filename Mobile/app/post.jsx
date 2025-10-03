@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     padding: 16,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loginButton: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#4ADE80',
+    borderColor: '#008235',
     borderStyle: 'dashed',
   },
   photoBox: {
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   publishButton: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',

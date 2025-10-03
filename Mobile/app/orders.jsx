@@ -189,7 +189,7 @@ export default function OrdersScreen() {
                 </View>
                 <TouchableOpacity style={styles.viewButton}>
                   <Text style={styles.viewButtonText}>View Details</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#4ADE80" />
+                  <Ionicons name="chevron-forward" size={16} color="#008235" />
                 </TouchableOpacity>
               </View>
             ))
@@ -199,7 +199,7 @@ export default function OrdersScreen() {
           <>
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4ADE80" />
+                <ActivityIndicator size="large" color="#008235" />
                 <Text style={styles.loadingText}>Loading transactions...</Text>
               </View>
             ) : transactions.length === 0 ? (
@@ -217,7 +217,7 @@ export default function OrdersScreen() {
                   <View style={[styles.statCard, styles.walletCard]}>
                     <View style={styles.statHeader}>
                       <Text style={styles.statLabel}>Wallet Balance</Text>
-                      <Ionicons name="wallet" size={20} color="#4ADE80" />
+                      <Ionicons name="wallet" size={20} color="#008235" />
                     </View>
                     <Text style={styles.statValue}>₼ {walletBalance.toFixed(2)}</Text>
                   </View>
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     padding: 16,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loginButton: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
   },
   tabText: {
     fontSize: 14,
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   orderPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#4ADE80',
+    color: '#008235',
   },
   orderDate: {
     fontSize: 12,
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   viewButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4ADE80',
+    color: '#008235',
   },
   statsContainer: {
     marginBottom: 16,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   },
   walletCard: {
     borderLeftWidth: 4,
-    borderLeftColor: '#4ADE80',
+    borderLeftColor: '#008235',
   },
   creditCard: {
     borderLeftWidth: 4,
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4ADE80',
+    color: '#008235',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
   txnStatusBadge: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
