@@ -152,7 +152,7 @@ export default function FilterScreen() {
             <Switch
               value={useLocation}
               onValueChange={setUseLocation}
-              trackColor={{ false: '#D1D5DB', true: '#4ADE80' }}
+              trackColor={{ false: '#D1D5DB', true: '#008235' }}
               thumbColor={useLocation ? '#FFFFFF' : '#F3F4F6'}
             />
           </View>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   categoryChipActive: {
     backgroundColor: '#DCFCE7',
-    borderColor: '#4ADE80',
+    borderColor: '#008235',
   },
   categoryChipText: {
     fontSize: 14,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   conditionButtonActive: {
     backgroundColor: '#DCFCE7',
-    borderColor: '#4ADE80',
+    borderColor: '#008235',
   },
   conditionButtonText: {
     fontSize: 14,
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   sliderFill: {
     height: '100%',
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     borderRadius: 2,
   },
   footer: {
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   applyButton: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

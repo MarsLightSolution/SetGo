@@ -262,7 +262,7 @@ export default function HomeScreen() {
               <View style={styles.filterChip}>
                 <Text style={styles.filterChipText}>{filters.category}</Text>
                 <TouchableOpacity onPress={() => updateFilters({ category: '' })}>
-                  <Icon name="x" size={14} color="#4ADE80" />
+                  <Icon name="x" size={14} color="#008235" />
                 </TouchableOpacity>
               </View>
             )}
@@ -273,7 +273,7 @@ export default function HomeScreen() {
                   setSearchText('');
                   updateFilters({ searchQuery: '' });
                 }}>
-                  <Icon name="x" size={14} color="#4ADE80" />
+                  <Icon name="x" size={14} color="#008235" />
                 </TouchableOpacity>
               </View>
             )}
@@ -289,7 +289,7 @@ export default function HomeScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#4ADE80" style={styles.loader} />
+          <ActivityIndicator size="large" color="#008235" style={styles.loader} />
         ) : latestAds.length > 0 ? (
           <>
             <View style={styles.adsGrid}>
@@ -305,7 +305,7 @@ export default function HomeScreen() {
                 onPress={() => fetchProducts(pagination.currentPage - 1)}
                 style={[styles.paginationButton, !pagination.hasPrevPage && styles.paginationButtonDisabled]}
               >
-                <Icon name="chevron-left" size={20} color={pagination.hasPrevPage ? "#4ADE80" : "#D1D5DB"} />
+                <Icon name="chevron-left" size={20} color={pagination.hasPrevPage ? "#008235" : "#D1D5DB"} />
                 <Text style={[styles.paginationText, !pagination.hasPrevPage && styles.paginationTextDisabled]}>
                   Previous
                 </Text>
@@ -323,7 +323,7 @@ export default function HomeScreen() {
                 <Text style={[styles.paginationText, !pagination.hasNextPage && styles.paginationTextDisabled]}>
                   Next
                 </Text>
-                <Icon name="chevron-right" size={20} color={pagination.hasNextPage ? "#4ADE80" : "#D1D5DB"} />
+                <Icon name="chevron-right" size={20} color={pagination.hasNextPage ? "#008235" : "#D1D5DB"} />
               </TouchableOpacity>
             </View>
           </>
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#008235',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     padding: 16,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoText: {
-    color: '#4ADE80',
+    color: '#008235',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   galleryPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#4ADE80',
+    color: '#008235',
   },
   filtersActive: {
     paddingHorizontal: 16,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 12,
-    color: '#4ADE80',
+    color: '#008235',
     fontWeight: '500',
   },
   adsGrid: {
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   adPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4ADE80',
+    color: '#008235',
   },
   conditionBadge: {
     backgroundColor: '#DCFCE7',
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   },
   paginationText: {
     fontSize: 14,
-    color: '#4ADE80',
+    color: '#008235',
     fontWeight: '500',
   },
   paginationTextDisabled: {
