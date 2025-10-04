@@ -14,18 +14,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, isAuthenticated } = useAuthStore();
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-        },
-      },
-    ]);
-  };
+const handleLogout = () => {
+  if (window.confirm("Are you sure you want to logout?")) {
+    logout();
+  }
+};
+
 
   const menuItems = [
     { icon: 'document-text-outline', label: 'My Ads', color: '#DCFCE7', route: '/my-ads' },

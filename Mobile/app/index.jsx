@@ -28,7 +28,6 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
-  
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,

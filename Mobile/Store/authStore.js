@@ -38,8 +38,8 @@ export const useAuthStore = create((set) => ({
       const data = await response.json();
 
       if (response.ok && data.success) {
-        await AsyncStorage.setItem('token', data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        await AsyncStorage.setItem('token', data.accessToken);
+        await AsyncStorage.setItem('user', JSON.stringify(data.userName));
         
         set({ 
           isAuthenticated: true, 
