@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
 import { showErrorToast, showSuccessToast } from '../utils/toastify';
-
 export default function AuthScreen() {
   const router = useRouter();
   const { login } = useAuthStore();
@@ -48,10 +47,10 @@ export default function AuthScreen() {
       console.error('Login error:', err);
     }
   };
-
   const handleSignup = async () => {
+    // ✅ Client-side validation
     if (!username || !email || !password) {
-      showErrorToast('Please fill all fields');
+      showErrorToast("⚠️ Please fill all fields");
       return;
     }
 
@@ -59,17 +58,17 @@ export default function AuthScreen() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!usernameRegex.test(username)) {
-      showErrorToast('Username must be 3-16 characters (letters, numbers, underscore)');
+      showErrorToast("🙅 Username must be 3-16 characters (letters, numbers, underscore)");
       return;
     }
 
     if (!emailRegex.test(email)) {
-      showErrorToast('Please enter a valid email address');
+      showErrorToast("📧 Please enter a valid email address");
       return;
     }
 
     if (password.length < 6) {
-      showErrorToast('Password must be at least 6 characters');
+      showErrorToast("🔑 Password must be at least 6 characters");
       return;
     }
 
@@ -77,8 +76,8 @@ export default function AuthScreen() {
       setLoading(true);
 
       const res = await fetch(`${API_URL}/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
       });
 
@@ -86,18 +85,27 @@ export default function AuthScreen() {
       setLoading(false);
 
       if (res.status === 200 || res.status === 201) {
-        showSuccessToast('Account created! Please check your email for confirmation.');
-        setUsername('');
-        setEmail('');
-        setPassword('');
+        // ✅ Signup success
+        showSuccessToast("🎉 Account created! Please check your email for confirmation.");
+        
+        // reset form
+        setUsername("");
+        setEmail("");
+        setPassword("");
+
+        // either redirect to login page OR toggle flag
         setShowLogin(true);
+        router.push({
+          pathname: "/confirm",
+          params: { email, password },
+        });
       } else {
-        showErrorToast(data?.error || data?.message || 'Signup failed');
+        showErrorToast(data?.error || data?.message || "❌ Signup failed");
       }
     } catch (error) {
       setLoading(false);
-      console.error('Signup error:', error);
-      showErrorToast('Network error. Please check your connection.');
+      console.error("Signup error:", error);
+      showErrorToast("🌐 Network error. Please check your connection.");
     }
   };
 

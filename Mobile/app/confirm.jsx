@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 import { useAuthStore } from "../Store/authStore";
-import { showErrorToast, showSuccessToast } from "../../utils/toastify";  
+import { showErrorToast, showSuccessToast } from "../utils/toastify";  
 
 
 export default function ConfirmPage() {
@@ -35,7 +35,7 @@ export default function ConfirmPage() {
                 router.replace("/"); // go to Home
               } else {
                 showErrorToast(message || "Login failed");
-                router.replace("/(auth)"); // fallback to login
+                router.replace("/auth"); // fallback to login
               }
             } catch (err) {
               showErrorToast("Network error. Please try again");
