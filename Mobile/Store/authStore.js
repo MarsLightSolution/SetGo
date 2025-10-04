@@ -29,7 +29,7 @@ export const useAuthStore = create((set) => ({
     set({ loading: true });
     try {
       const API_URL = process.env.EXPO_PUBLIC_API_URL;
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
