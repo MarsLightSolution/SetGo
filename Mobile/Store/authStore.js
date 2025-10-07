@@ -11,8 +11,9 @@ export const useAuthStore = create((set) => ({
     try {
       const token = await AsyncStorage.getItem('token');
       const userStr = await AsyncStorage.getItem('user');
+      const userId = await AsyncStorage.getItem('userId');
       
-      if (token && userStr) {
+      if (token && userStr && userId) {
         set({ 
           isAuthenticated: true, 
           user: JSON.parse(userStr),
@@ -71,7 +72,7 @@ export const useAuthStore = create((set) => ({
 
   logout: async () => {
     try {
-      await AsyncStorage.multiRemove(['token', 'user']);
+      await AsyncStorage.multiRemove(['token', 'user','userId']);
       set({ isAuthenticated: false, user: null });
     } catch (error) {
       console.error('Logout error:', error);
