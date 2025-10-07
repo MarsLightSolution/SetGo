@@ -22,10 +22,10 @@ const handleLogout = () => {
 
 
   const menuItems = [
-    { icon: 'document-text-outline', label: 'My Ads', color: '#DCFCE7', route: '/my-ads' },
+    { icon: 'document-text-outline', label: 'My Ads', color: '#DCFCE7', route: '/UserInfo/Userinfo' },
     { icon: 'heart-outline', label: 'Favorites', color: '#FECACA', route: '/(tabs)/wishlist' },
-    { icon: 'chatbubble-outline', label: 'Messages', color: '#DBEAFE', route: '/messages' },
-    { icon: 'settings-outline', label: 'Settings', color: '#E9D5FF', route: '/settings' },
+    { icon: 'chatbubble-outline', label: 'Messages', color: '#DBEAFE', route: '/Chat/chat' },
+    { icon: 'settings-outline', label: 'Settings', color: '#E9D5FF', route: '/AccountManagement/Accountsetting' },
     { icon: 'help-circle-outline', label: 'Help & Support', color: '#FED7AA', route: '/help' },
   ];
 
