@@ -7,21 +7,23 @@ export const useAuthStore = create((set) => ({
   loading: false,
 
   checkAuth: async () => {
+    set({ loading: true });
     try {
       const token = await AsyncStorage.getItem('token');
-      const user = await AsyncStorage.getItem('user');
+      const userStr = await AsyncStorage.getItem('user');
       
-      if (token && user) {
+      if (token && userStr) {
         set({ 
           isAuthenticated: true, 
-          user: JSON.parse(user) 
+          user: JSON.parse(userStr),
+          loading: false
         });
       } else {
-        set({ isAuthenticated: false, user: null });
+        set({ isAuthenticated: false, user: null, loading: false });
       }
     } catch (error) {
       console.error('Check auth error:', error);
-      set({ isAuthenticated: false, user: null });
+      set({ isAuthenticated: false, user: null, loading: false });
     }
   },
 
@@ -38,13 +40,19 @@ export const useAuthStore = create((set) => ({
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Create user object to store
+        const user = {
+          userName: data.userName,
+          userId: data.userId,
+          // Add any other user properties you need
+        };
+
         await AsyncStorage.setItem('token', data.accessToken);
-        await AsyncStorage.setItem('user', data.userName);
-        await AsyncStorage.setItem('userId', data.userId);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
         
         set({ 
           isAuthenticated: true, 
-          user: data.user,
+          user: user,
           loading: false 
         });
 
@@ -62,8 +70,7 @@ export const useAuthStore = create((set) => ({
 
   logout: async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+      await AsyncStorage.multiRemove(['token', 'user']);
       set({ isAuthenticated: false, user: null });
     } catch (error) {
       console.error('Logout error:', error);

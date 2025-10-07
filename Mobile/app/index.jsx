@@ -15,13 +15,14 @@ import Icon from 'react-native-vector-icons/Feather';
 import { productService } from '../services/productService';
 import { useFilters } from '../context/FilterContext';
 import { API_BASE_URL } from '../config/api';
-
+import { useAuthStore } from '../Store/authStore';
 //added wishlist by ashu
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../Store/wishSlice';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const checkAuth = useAuthStore((state) => state.checkAuth);
   const { filters, updateFilters } = useFilters();
   const [latestAds, setLatestAds] = useState([]);
   const [galleryAds, setGalleryAds] = useState([]);
@@ -34,6 +35,9 @@ export default function HomeScreen() {
     hasNextPage: false,
     hasPrevPage: false,
   });
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const quickActions = [
     { icon: '🚗', label: 'Vehicles', category: 'Cars & Motorcycles' },
