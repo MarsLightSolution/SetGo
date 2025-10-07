@@ -17,7 +17,6 @@ const {
 } = require("../controller/product.controller.js");
 
 router.post("/add",
-  verifyJWT,
   uploadPictures.fields([
     { name: "pictures", maxCount: 8 }
   ]),
@@ -36,24 +35,21 @@ router.get("/product/:id"
 // router.get("/product/:id", verifyJWT, getProductById);
 
 // Get all ads/products by a specific user
-router.get("/user/:userId/ads", verifyJWT, getProductsByUser);
+router.get("/user/:userId/ads", getProductsByUser);
 
 // Delete product by ID
-router.delete("/product/:id", verifyJWT, deleteProduct);
+router.delete("/product/:id", deleteProduct);
 
 // Update product by ID
 router.put(
   "/product/:id",
-  verifyJWT,
   uploadPictures.fields([{ name: "pictures", maxCount: 8}]),
   updateProduct
 );
 
 
 router.get("/nearby"
-  // ,verifyJWT
   , getNearbyProducts);  
-// Test route
 
 router.route("/try").post((req, res) => {
   res.send("Test passed");
