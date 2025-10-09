@@ -7,21 +7,24 @@ export const useAuthStore = create((set) => ({
   loading: false,
 
   checkAuth: async () => {
+    set({ loading: true });
     try {
       const token = await AsyncStorage.getItem('token');
-      const user = await AsyncStorage.getItem('user');
+      const userStr = await AsyncStorage.getItem('user');
+      const userId = await AsyncStorage.getItem('userId');
       
-      if (token && user) {
+      if (token && userStr && userId) {
         set({ 
           isAuthenticated: true, 
-          user: JSON.parse(user) 
+          user: JSON.parse(userStr),
+          loading: false
         });
       } else {
-        set({ isAuthenticated: false, user: null });
+        set({ isAuthenticated: false, user: null, loading: false });
       }
     } catch (error) {
       console.error('Check auth error:', error);
-      set({ isAuthenticated: false, user: null });
+      set({ isAuthenticated: false, user: null, loading: false });
     }
   },
 
@@ -29,7 +32,7 @@ export const useAuthStore = create((set) => ({
     set({ loading: true });
     try {
       const API_URL = process.env.EXPO_PUBLIC_API_URL;
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -38,12 +41,20 @@ export const useAuthStore = create((set) => ({
       const data = await response.json();
 
       if (response.ok && data.success) {
-        await AsyncStorage.setItem('token', data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        // Create user object to store
+        const user = {
+          userName: data.userName,
+          userId: data.userId,
+          // Add any other user properties you need
+        };
+
+        await AsyncStorage.setItem('token', data.accessToken);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        await AsyncStorage.setItem('userId', data.userId);
         
         set({ 
           isAuthenticated: true, 
-          user: data.user,
+          user: user,
           loading: false 
         });
 
@@ -61,8 +72,7 @@ export const useAuthStore = create((set) => ({
 
   logout: async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+      await AsyncStorage.multiRemove(['token', 'user','userId']);
       set({ isAuthenticated: false, user: null });
     } catch (error) {
       console.error('Logout error:', error);

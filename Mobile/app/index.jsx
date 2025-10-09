@@ -15,22 +15,29 @@ import Icon from 'react-native-vector-icons/Feather';
 import { productService } from '../services/productService';
 import { useFilters } from '../context/FilterContext';
 import { API_BASE_URL } from '../config/api';
+import { useAuthStore } from '../Store/authStore';
+//added wishlist by ashu
+import { useDispatch, useSelector } from 'react-redux';
+import { like, unlike } from '../Store/wishSlice';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const checkAuth = useAuthStore((state) => state.checkAuth);
   const { filters, updateFilters } = useFilters();
   const [latestAds, setLatestAds] = useState([]);
   const [galleryAds, setGalleryAds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
-  
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     hasNextPage: false,
     hasPrevPage: false,
   });
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const quickActions = [
     { icon: '🚗', label: 'Vehicles', category: 'Cars & Motorcycles' },
@@ -115,15 +122,33 @@ export default function HomeScreen() {
     const title = typeof ad.title === 'object' ? ad.title.en : ad.title;
     const description = typeof ad.description === 'object' ? ad.description.en : ad.description;
 
+    //added wishlist by ashu
+     const { wishlist } = useSelector((state) => state.wishlist);
+    const isWishlisted = wishlist.some((item) => item._id === ad._id);
+
+    const dispatch = useDispatch();
+    const toggleWishlist = () => {
+      if (isWishlisted) {
+        dispatch(unlike(ad._id));
+      } else {
+        dispatch(like(ad));
+      }
+    };
+
+
     return (
       <TouchableOpacity
-        style={styles.adCard}
-        onPress={() => router.push(`/product/${ad._id}`)}
-      >
-        <TouchableOpacity style={styles.likeButton}>
-          <Icon name="heart" size={20} color="#D1D5DB" />
-        </TouchableOpacity>
-
+      style={styles.adCard}
+      onPress={() => router.push(`/product/${ad._id}`)}
+    >
+      {/* Heart Button */}
+      <TouchableOpacity style={styles.likeButton} onPress={toggleWishlist}>
+        <Icon
+          name={isWishlisted ? 'heart' : 'heart'}
+          size={20}
+          color={isWishlisted ? '#EF4444' : '#D1D5DB'}
+        />
+      </TouchableOpacity>
         <View style={styles.adImage}>
           <Image 
             source={{ uri: imageUrl }}

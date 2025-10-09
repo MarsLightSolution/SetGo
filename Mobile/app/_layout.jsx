@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '../Store/store';
@@ -10,10 +10,26 @@ import { ActivityIndicator, View } from 'react-native';
 
 function AppContent() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
+  const pathname = usePathname();
 
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Define routes where tabs should be hidden
+  const hideTabsRoutes = [
+    '/AccountManagement/Accountsetting',
+    '/auth',
+    '/filters',
+    '/checkout',
+    '/chat',
+    '/UserInfo/Userinfo',
+    '/Chat/chat'
+  ];
+
+  // Check if current route should hide tabs
+  const shouldHideTabs = hideTabsRoutes.some(route => pathname?.startsWith(route)) || 
+  pathname?.startsWith('/product/');
 
   return (
     <>
@@ -65,8 +81,15 @@ function AppContent() {
             animation: 'slide_from_right'
           }} 
         />
+        <Stack.Screen 
+          name="AccountManagement/Accountsetting" 
+          options={{ 
+            presentation: 'modal',
+            animation: 'slide_from_bottom'
+          }} 
+        />
       </Stack>
-      <BottomTabBar />
+      {!shouldHideTabs && <BottomTabBar />}
     </>
   );
 }
