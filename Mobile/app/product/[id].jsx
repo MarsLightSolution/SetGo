@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,41 +19,59 @@ import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../../Store/wishSlice';
 import { useAuthStore } from '../../Store/authStore';
 import { Ionicons } from '@expo/vector-icons';
-
-// Conditionally import MapView only on native platforms
-// let MapView, Marker;
-// if (Platform.OS !== 'web') {
-//   try {
-//     const Maps = require('react-native-maps');
-//     MapView = Maps.default;
-//     Marker = Maps.Marker;
-//   } catch (error) {
-//     console.log('Maps not available');
-//   }
-// }
+import SkeletonLoader from '../../Components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 
-// Helper function for multilingual fields
 const getLocalizedText = (field, lang = 'en') => {
   if (!field) return '';
   if (typeof field === 'string') return field;
   return field[lang] || field.en || '';
 };
 
+// Memoized Image Component
+const ProductImage = React.memo(({ uri, style, resizeMode }) => (
+  <Image
+    source={{ uri }}
+    style={style}
+    resizeMode={resizeMode}
+    progressiveRenderingEnabled
+    fadeDuration={200}
+  />
+));
+
+// Memoized Related Product Item
+const RelatedProductItem = React.memo(({ item, onPress, displayPostalCode }) => (
+  <TouchableOpacity style={styles.relatedItem} onPress={onPress}>
+    <ProductImage
+      uri={`${API_URL}/${item.pictures?.[0]?.replace(/\\/g, '/') || 'uploads/placeholder.jpg'}`}
+      style={styles.relatedImage}
+      resizeMode="cover"
+    />
+    <View style={styles.relatedInfo}>
+      <Text style={styles.relatedTitle} numberOfLines={2}>
+        {getLocalizedText(item.title)}
+      </Text>
+      <Text style={styles.relatedPrice}>₼ {item.price?.toLocaleString()}</Text>
+      <View style={styles.relatedMeta}>
+        <Ionicons name="location-outline" size={12} color="#6b7280" />
+        <Text style={styles.relatedLocation}>
+          {item.postalCode || displayPostalCode}
+        </Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+));
+
 export default function ProductDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const dispatch = useDispatch();
   
-  // Redux state (wishlist)
   const { wishlist } = useSelector((state) => state.wishlist);
-  
-  // Zustand state (auth)
   const { user, isAuthenticated } = useAuthStore();
   
-  // Local state
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -61,20 +79,30 @@ export default function ProductDetail() {
   const [followLoading, setFollowLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Check if product is wishlisted
-  const isWishlisted = wishlist.some((item) => item._id === product?._id);
+  const isWishlisted = useMemo(
+    () => wishlist.some((item) => item._id === product?._id),
+    [wishlist, product?._id]
+  );
 
-  // Fetch product
+  // Fetch product with optimization
   useEffect(() => {
     if (id) {
       fetchProductById();
     }
   }, [id]);
 
-  const fetchProductById = async () => {
+  const fetchProductById = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/products/product/${id}?lang=en`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch(
+        `${API_URL}/api/products/product/${id}?lang=en`,
+        { signal: controller.signal }
+      );
+      
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         setProduct(null);
@@ -84,21 +112,25 @@ export default function ProductDetail() {
       const result = await res.json();
       setProduct(result.data);
     } catch (error) {
-      console.error('Error fetching product:', error);
+      if (error.name === 'AbortError') {
+        Alert.alert('Error', 'Request timeout. Please try again.');
+      } else {
+        console.error('Error fetching product:', error);
+      }
       setProduct(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   // Fetch related products
-  const fetchRelatedProducts = async (categoryObj) => {
+  const fetchRelatedProducts = useCallback(async (categoryObj) => {
     const categoryName = getLocalizedText(categoryObj);
     if (!categoryName) return;
 
     try {
       const res = await fetch(
-        `${API_URL}/api/products/category/${encodeURIComponent(categoryName)}?lang=en`
+        `${API_URL}/api/products/category/${encodeURIComponent(categoryName)}?lang=en&limit=4`
       );
       const json = await res.json();
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 4);
@@ -106,15 +138,18 @@ export default function ProductDetail() {
     } catch (err) {
       console.error('Failed to fetch related products', err);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     if (product?.category) {
-      fetchRelatedProducts(product.category);
+      setTimeout(() => fetchRelatedProducts(product.category), 100);
     }
-  }, [product, id]);
+  }, [product?.category, fetchRelatedProducts]);
 
-  const ownerId = product?.owner?._id || product?.owner || null;
+  const ownerId = useMemo(
+    () => product?.owner?._id || product?.owner || null,
+    [product?.owner]
+  );
 
   // Check follow status
   useEffect(() => {
@@ -123,7 +158,7 @@ export default function ProductDetail() {
     }
   }, [user, ownerId]);
 
-  const checkFollowStatus = async (followerId, followingId) => {
+  const checkFollowStatus = useCallback(async (followerId, followingId) => {
     try {
       const res = await fetch(`${API_URL}/check/${followerId}/${followingId}`);
       const data = await res.json();
@@ -131,10 +166,10 @@ export default function ProductDetail() {
     } catch (err) {
       console.error('Error checking follow status', err);
     }
-  };
+  }, []);
 
-  // Handlers
-  const handleAddToWatchlist = () => {
+  // Memoized handlers
+  const handleAddToWatchlist = useCallback(() => {
     if (!isAuthenticated) {
       Alert.alert(
         'Login Required', 
@@ -154,9 +189,9 @@ export default function ProductDetail() {
       dispatch(like(product));
       Alert.alert('Success', 'Added to watchlist');
     }
-  };
+  }, [isAuthenticated, isWishlisted, product, dispatch, router]);
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = useCallback(async () => {
     if (!isAuthenticated) {
       Alert.alert(
         'Login Required', 
@@ -175,24 +210,13 @@ export default function ProductDetail() {
       return;
     }
 
-    try {
-      const res = await fetch(`${API_URL}/users/get-users/${user._id}`);
-      const json = await res.json();
-      if (json?.data) {
-        router.push({
-          pathname: '/checkout',
-          params: { productId: product._id }
-        });
-      } else {
-        Alert.alert('Error', 'Failed to load user data');
-      }
-    } catch (err) {
-      console.error('Error fetching user:', err);
-      Alert.alert('Error', 'Error loading user data');
-    }
-  };
+    router.push({
+      pathname: '/checkout',
+      params: { productId: product._id }
+    });
+  }, [isAuthenticated, product, router, user]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (!isAuthenticated) {
       Alert.alert(
         'Login Required', 
@@ -256,9 +280,9 @@ export default function ProductDetail() {
       console.error('Error starting chat:', err);
       Alert.alert('Error', 'An error occurred while starting the conversation');
     }
-  };
+  }, [isAuthenticated, product, user, router]);
 
-  const handleFollowToggle = async () => {
+  const handleFollowToggle = useCallback(async () => {
     if (!isAuthenticated || !ownerId) {
       Alert.alert(
         'Authentication Required', 
@@ -298,9 +322,9 @@ export default function ProductDetail() {
     } finally {
       setFollowLoading(false);
     }
-  };
+  }, [isAuthenticated, ownerId, isFollowing, user, checkFollowStatus, router]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     try {
       const productTitle = getLocalizedText(product.title);
       const productUrl = `${API_URL}/products/product/${id}`;
@@ -312,16 +336,14 @@ export default function ProductDetail() {
     } catch (error) {
       console.error('Error sharing:', error);
     }
-  };
+  }, [product, id]);
+
+  const handleRelatedProductPress = useCallback((itemId) => {
+    router.push(`/product/${itemId}`);
+  }, [router]);
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.centerContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f3f4f6" />
-        <ActivityIndicator size="large" color="#16a34a" />
-        <Text style={styles.loadingText}>Loading product...</Text>
-      </SafeAreaView>
-    );
+    return <SkeletonLoader />;
   }
 
   if (!product) {
@@ -355,7 +377,15 @@ export default function ProductDetail() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={5}
+        windowSize={10}
+      >
         {/* Header with Back and Share */}
         <View style={styles.header}>
           <TouchableOpacity 
@@ -379,26 +409,26 @@ export default function ProductDetail() {
               const index = Math.round(e.nativeEvent.contentOffset.x / width);
               setCurrentImageIndex(index);
             }}
+            removeClippedSubviews={true}
           >
             {product.pictures?.length > 0 ? (
               product.pictures.map((pic, index) => (
-                <Image
+                <ProductImage
                   key={index}
-                  source={{ uri: `${API_URL}/${pic.replace(/\\/g, '/')}` }}
+                  uri={`${API_URL}/${pic.replace(/\\/g, '/')}`}
                   style={styles.productImage}
                   resizeMode="contain"
                 />
               ))
             ) : (
-              <Image
-                source={{ uri: `${API_URL}/uploads/placeholder.jpg` }}
+              <ProductImage
+                uri={`${API_URL}/uploads/placeholder.jpg`}
                 style={styles.productImage}
                 resizeMode="contain"
               />
             )}
           </ScrollView>
           
-          {/* Pagination Dots */}
           {product.pictures?.length > 1 && (
             <View style={styles.pagination}>
               {product.pictures.map((_, index) => (
@@ -442,7 +472,7 @@ export default function ProductDetail() {
           </View>
         </View>
 
-        {/* Action Buttons - Hide if own product */}
+        {/* Action Buttons */}
         {!isOwnProduct && (
           <View style={styles.card}>
             <TouchableOpacity style={styles.primaryButton} onPress={handleSendMessage}>
@@ -478,7 +508,6 @@ export default function ProductDetail() {
           </View>
         )}
 
-        {/* Own Product Notice */}
         {isOwnProduct && (
           <View style={styles.ownProductCard}>
             <Ionicons name="information-circle" size={24} color="#3b82f6" />
@@ -599,32 +628,12 @@ export default function ProductDetail() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>You might also like</Text>
             {relatedProducts.map((item) => (
-              <TouchableOpacity
+              <RelatedProductItem
                 key={item._id}
-                style={styles.relatedItem}
-                onPress={() => router.push(`/product/${item._id}`)}
-              >
-                <Image
-                  source={{
-                    uri: `${API_URL}/${
-                      item.pictures?.[0]?.replace(/\\/g, '/') || 'uploads/placeholder.jpg'
-                    }`,
-                  }}
-                  style={styles.relatedImage}
-                />
-                <View style={styles.relatedInfo}>
-                  <Text style={styles.relatedTitle} numberOfLines={2}>
-                    {getLocalizedText(item.title)}
-                  </Text>
-                  <Text style={styles.relatedPrice}>₼ {item.price?.toLocaleString()}</Text>
-                  <View style={styles.relatedMeta}>
-                    <Ionicons name="location-outline" size={12} color="#6b7280" />
-                    <Text style={styles.relatedLocation}>
-                      {item.postalCode || displayPostalCode}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                item={item}
+                onPress={() => handleRelatedProductPress(item._id)}
+                displayPostalCode={displayPostalCode}
+              />
             ))}
           </View>
         )}
@@ -635,13 +644,12 @@ export default function ProductDetail() {
   );
 }
 
-// Specification Row Component
-const SpecRow = ({ label, value }) => (
+const SpecRow = React.memo(({ label, value }) => (
   <View style={styles.specRow}>
     <Text style={styles.specLabel}>{label}</Text>
     <Text style={styles.specValue}>{value}</Text>
   </View>
-);
+));
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -919,32 +927,21 @@ const styles = StyleSheet.create({
     color: '#4b5563',
     lineHeight: 24,
   },
-  map: {
+  locationDisplay: {
     width: '100%',
-    height: 220,
+    padding: 24,
     borderRadius: 8,
-    marginTop: 8,
-  },
-  mapPlaceholder: {
-    width: '100%',
-    height: 220,
-    borderRadius: 8,
-    marginTop: 8,
     backgroundColor: '#f9fafb',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
-  mapPlaceholderText: {
-    fontSize: 14,
-    color: '#6b7280',
+  locationText: {
+    fontSize: 16,
+    color: '#374151',
     marginTop: 12,
-  },
-  mapCoordinates: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 4,
+    fontWeight: '500',
   },
   relatedItem: {
     flexDirection: 'row',
@@ -979,7 +976,7 @@ const styles = StyleSheet.create({
     color: '#16a34a',
     marginBottom: 4,
   },
-  relatedMeta: {
+    relatedMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

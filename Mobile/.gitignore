@@ -1,39 +1,104 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# OSX
+.DS_Store
 
-# dependencies
+# Xcode
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace
+
+# Android/IntelliJ
+build/
+.idea/
+.gradle/
+local.properties
+*.iml
+*.hprof
+.cxx/
+
+# Gradle files
+.gradle
+gradlew
+gradlew.bat
+gradle-wrapper.jar
+gradle-wrapper.properties
+
+# Android Studio
+.idea
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+
+# Keystore files (keep debug keystore only)
+*.keystore
+!debug.keystore
+
+# node.js
 node_modules/
 .env
+npm-debug.log
+yarn-error.log
+
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
-expo-env.d.ts
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Environment
+.env
+.env.local
+.env.*.local
 
-# Metro
-.metro-health-check*
+# Generated Android resources
+android/app/src/main/res/drawable-*/splashscreen_logo.png
+android/app/src/main/res/mipmap-*/ic_launcher*.webp
+android/app/src/main/res/mipmap-*/ic_launcher*.xml
+android/app/src/main/res/values/colors.xml
+android/app/src/main/res/values/strings.xml
+android/app/src/main/res/values-night/colors.xml
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# Android build files
+android/build.gradle
+android/gradle.properties
+android/settings.gradle
+android/gradlew
+android/gradlew.bat
+android/app/build.gradle
+android/app/proguard-rules.pro
+android/app/debug.keystore
 
-# macOS
-.DS_Store
-*.pem
+# Android manifests (Expo generates these)
+android/app/src/main/AndroidManifest.xml
+android/app/src/debug/AndroidManifest.xml
 
-# local env files
-.env*.local
+# Kotlin/Java files (Expo generates these)
+android/app/src/main/java/**/*.kt
+android/app/src/main/java/**/*.java
 
-# typescript
-*.tsbuildinfo
-
-app-example
+# XML layouts and resources (Expo generates these)
+android/app/src/main/res/**/*.xml
+package-lock.json
