@@ -21,7 +21,13 @@ const app = express();
 // ------------------- CORS -------------------
 const allowedOrigins = [
   "http://localhost:5173",  // dev
-  "http://51.20.123.49",    // prod HTTPS
+  "http://51.20.123.49",
+  "http://172.20.10.2:8081",
+  "http://localhost:8081",
+  "https://tiwari.shop",      // Add this
+  "https://www.tiwari.shop",  // Add this
+  "http://tiwari.shop",       // Add this (for HTTP redirects)
+  "http://www.tiwari.shop"    // Add this
 ];
 
 const corsOptions = {
