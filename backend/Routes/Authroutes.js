@@ -12,5 +12,6 @@ router.post("/resetpassword", Authcontroller.resetPassword);
 router.get('/protected', Authcontroller.verifyJWT,(req, res) => {
     res.json({ message: 'This is a protected route', user: req.user });
   });
+  router.get("/check-status", Authcontroller.checkVerificationStatus);
 
 module.exports = router
