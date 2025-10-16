@@ -39,7 +39,9 @@ const MySearch = lazy(() => import('./pages/MySearch'))
 const EditForm = lazy(() => import('./components/UserInfo/EditForm'))
 const TransactionHistory = lazy(() => import('./pages/TransactionHistory'))
 const Notifications = lazy(() => import('./pages/Notifications'))
-
+const Chatbot = lazy(() => import('./chatbot'))
+const RaiseQuery = lazy(() => import('./RaiseQuery'))
+const MyQueries = lazy(() => import('./MyQueries'))
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -85,6 +87,9 @@ function App() {
             <Route path="/order/:id" element={<OrderDetail />} />
             <Route path="/seller" element={<SellerAdminDashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/chatbot" element={<Chatbot />} />
+        <Route path="/raise-query" element={<RaiseQuery />} />
+        <Route path="/my-queries" element={<MyQueries />} />
             <Route path="/Adminpanel" element={
               <AdminRoute>
                 <AdminOrders />
