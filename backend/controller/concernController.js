@@ -1,7 +1,8 @@
-// controllers/concernController.js
 const Concern = require("../models/concern");
 const Order = require("../models/order");
+const User = require("../models/user"); // ✅ Make sure you have User model to fetch email
 const winston = require("winston");
+const nodemailer = require("nodemailer");
 
 // ========= Winston Logger Setup =========
 const logger = winston.createLogger({
@@ -22,6 +23,30 @@ const logger = winston.createLogger({
   ],
 });
 
+// ========= Mail Transporter (for future use) =========
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.MAIL_USER, // your Gmail address
+    pass: process.env.MAIL_PASS, // app password (not your main password)
+  },
+});
+
+// ========= Helper function for sending mail (for future use) =========
+async function sendMail(to, subject, text) {
+  try {
+    await transporter.sendMail({
+      from: `"SetGo Support" <${process.env.MAIL_USER}>`,
+      to,
+      subject,
+      text,
+    });
+    logger.info(`Email sent successfully to ${to}`);
+  } catch (err) {
+    logger.error(`Failed to send email: ${err.message}`);
+  }
+}
+
 // ========= Raise a new concern =========
 exports.raiseConcern = async (req, res) => {
   const endpoint = "raiseConcern";
@@ -40,28 +65,38 @@ exports.raiseConcern = async (req, res) => {
       images,
     } = req.body;
 
-    // Input Validation
     if (!userId) {
       logger.warn(`${endpoint}: Missing userId`, { body: req.body });
-      return res.status(400).json({ success: false, message: "User ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
     if (issueType === "order_issue" && !orderId) {
       logger.warn(`${endpoint}: Missing orderId for order_issue`, { userId });
-      return res.status(400).json({ success: false, message: "Order ID is required for order issues" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Order ID is required for order issues" });
     }
 
     if (issueType === "payment_issue" && !transactionId) {
-      logger.warn(`${endpoint}: Missing transactionId for payment_issue`, { userId });
-      return res.status(400).json({ success: false, message: "Transaction ID is required for payment issues" });
+      logger.warn(`${endpoint}: Missing transactionId for payment_issue`, {
+        userId,
+      });
+      return res.status(400).json({
+        success: false,
+        message: "Transaction ID is required for payment issues",
+      });
     }
 
     if (images && images.length > 3) {
       logger.warn(`${endpoint}: Too many images`, { imageCount: images.length });
-      return res.status(400).json({ success: false, message: "Maximum 3 images allowed" });
+      return res.status(400).json({
+        success: false,
+        message: "Maximum 3 images allowed",
+      });
     }
 
-    // Create concern
     const concern = await Concern.create({
       userId,
       issueType,
@@ -93,7 +128,10 @@ exports.raiseConcern = async (req, res) => {
       data: concern,
     });
   } catch (error) {
-    logger.error(`${endpoint}: ${error.message}`, { stack: error.stack, body: req.body });
+    logger.error(`${endpoint}: ${error.message}`, {
+      stack: error.stack,
+      body: req.body,
+    });
     res.status(500).json({
       success: false,
       message: "Failed to raise concern. Please provide Valid ID.",
@@ -109,7 +147,9 @@ exports.getUserConcerns = async (req, res) => {
     const { userId } = req.query;
     if (!userId) {
       logger.warn(`${endpoint}: Missing userId`, { query: req.query });
-      return res.status(400).json({ success: false, message: "User ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
     const concerns = await Concern.find({ userId })
@@ -117,7 +157,10 @@ exports.getUserConcerns = async (req, res) => {
       .populate("sellerId", "name email")
       .sort({ createdAt: -1 });
 
-    logger.info(`${endpoint}: Retrieved user concerns`, { userId, count: concerns.length });
+    logger.info(`${endpoint}: Retrieved user concerns`, {
+      userId,
+      count: concerns.length,
+    });
 
     res.status(200).json({
       success: true,
@@ -126,7 +169,8 @@ exports.getUserConcerns = async (req, res) => {
         concernId: c._id,
         issueType: c.issueType,
         status: c.status,
-        message: c.message.substring(0, 80) + (c.message.length > 80 ? "..." : ""),
+        message:
+          c.message.substring(0, 80) + (c.message.length > 80 ? "..." : ""),
         createdAt: c.createdAt,
         lastUpdated: c.updatedAt,
       })),
@@ -150,7 +194,9 @@ exports.getConcernDetails = async (req, res) => {
 
     if (!userId) {
       logger.warn(`${endpoint}: Missing userId`, { params: req.params });
-      return res.status(400).json({ success: false, message: "User ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
     }
 
     const concern = await Concern.findOne({ _id: concernId, userId })
@@ -160,7 +206,9 @@ exports.getConcernDetails = async (req, res) => {
 
     if (!concern) {
       logger.warn(`${endpoint}: Concern not found`, { concernId, userId });
-      return res.status(404).json({ success: false, message: "Concern not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Concern not found" });
     }
 
     logger.info(`${endpoint}: Concern details retrieved`, { concernId, userId });
@@ -183,20 +231,48 @@ exports.addAdminResponse = async (req, res) => {
     const { concernId } = req.params;
     const { message, adminId } = req.body;
 
-    if (!adminId) {
-      logger.warn(`${endpoint}: Missing adminId`, { concernId });
-      return res.status(400).json({ success: false, message: "Admin ID is required" });
+    if (!message) {
+      logger.warn(`${endpoint}: Missing message`, { concernId });
+      return res
+        .status(400)
+        .json({ success: false, message: "Message is required" });
     }
 
-    const concern = await Concern.findById(concernId);
+    if (!adminId) {
+      logger.warn(`${endpoint}: Missing adminId`, { concernId });
+      return res
+        .status(400)
+        .json({ success: false, message: "Admin ID is required" });
+    }
+
+    const concern = await Concern.findById(concernId).populate("userId", "email name");
     if (!concern) {
       logger.warn(`${endpoint}: Concern not found`, { concernId });
-      return res.status(404).json({ success: false, message: "Concern not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Concern not found" });
     }
 
     concern.adminResponses.push({ adminId, message, respondedAt: new Date() });
-    concern.status = "in_progress";
+    
+    // Update status to in_progress if it's currently open
+    if (concern.status === "open") {
+      concern.status = "in_progress";
+    }
+    
     await concern.save();
+
+    // ✉️ UNCOMMENT BELOW TO ENABLE EMAIL NOTIFICATION
+    /*
+    const userEmail = concern.userId.email;
+    if (userEmail) {
+      await sendMail(
+        userEmail,
+        "Admin Response to Your Concern",
+        `Dear ${concern.userId.name || "User"},\n\nAdmin has replied to your concern:\n\n"${message}"\n\nConcern ID: ${concernId}\nIssue Type: ${concern.issueType}\n\nRegards,\nSetGo Support`
+      );
+    }
+    */
 
     logger.info(`${endpoint}: Admin response added`, { concernId, adminId });
 
@@ -231,15 +307,27 @@ exports.updateConcernStatus = async (req, res) => {
       });
     }
 
+    const updateData = { status };
+    
+    // Add timestamp for resolved/closed status
+    if (status === "resolved") {
+      updateData.resolvedAt = new Date();
+    }
+    if (status === "closed") {
+      updateData.closedAt = new Date();
+    }
+
     const concern = await Concern.findByIdAndUpdate(
       concernId,
-      { status, ...(status === "resolved" && { resolvedAt: new Date() }) },
+      updateData,
       { new: true }
     );
 
     if (!concern) {
       logger.warn(`${endpoint}: Concern not found to update`, { concernId });
-      return res.status(404).json({ success: false, message: "Concern not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Concern not found" });
     }
 
     logger.info(`${endpoint}: Concern status updated`, { concernId, status });
@@ -275,7 +363,10 @@ exports.getAllConcerns = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit, 10));
 
-    logger.info(`${endpoint}: Fetched all concerns`, { count: concerns.length, filter });
+    logger.info(`${endpoint}: Fetched all concerns`, {
+      count: concerns.length,
+      filter,
+    });
 
     res.status(200).json({
       success: true,
@@ -287,6 +378,209 @@ exports.getAllConcerns = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch all concerns",
+      error: error.message,
+    });
+  }
+};
+
+// ========= NEW: Close Concern with Admin Message =========
+// This API is triggered when admin clicks close button
+// Popup will contain the admin message which gets sent here
+exports.closeConcernWithMessage = async (req, res) => {
+  const endpoint = "closeConcernWithMessage";
+  try {
+    const { concernId } = req.params;
+    const { adminMessage, adminId } = req.body;
+
+    if (!adminMessage || adminMessage.trim() === "") {
+      logger.warn(`${endpoint}: Missing admin message`, { concernId });
+      return res.status(400).json({
+        success: false,
+        message: "Admin message is required to close the concern",
+      });
+    }
+
+    const concern = await Concern.findById(concernId).populate("userId", "email name");
+    
+    if (!concern) {
+      logger.warn(`${endpoint}: Concern not found`, { concernId });
+      return res
+        .status(404)
+        .json({ success: false, message: "Concern not found" });
+    }
+
+    // Check if already closed
+    if (concern.status === "closed") {
+      logger.warn(`${endpoint}: Concern already closed`, { concernId });
+      return res.status(400).json({
+        success: false,
+        message: "Concern is already closed",
+      });
+    }
+
+    // Add admin response
+    concern.adminResponses.push({
+      adminId: adminId || null,
+      message: adminMessage,
+      respondedAt: new Date(),
+    });
+
+    // Update status to closed
+    concern.status = "closed";
+    concern.closedAt = new Date();
+
+    await concern.save();
+
+    // ✉️ UNCOMMENT BELOW TO ENABLE EMAIL NOTIFICATION
+    /*
+    const userEmail = concern.userId?.email;
+    if (userEmail) {
+      await sendMail(
+        userEmail,
+        "Your Concern Has Been Closed - SetGo Support",
+        `Dear ${concern.userId.name || "User"},\n\nYour concern regarding "${concern.issueType}" has been closed by our support team.\n\n📝 Admin's Final Message:\n"${adminMessage}"\n\n🆔 Concern ID: ${concernId}\n📅 Closed At: ${new Date().toLocaleString()}\n\nIf you have any further questions, please don't hesitate to raise a new concern.\n\nThank you for your patience,\nSetGo Support Team`
+      );
+      logger.info(`${endpoint}: Closure email sent to ${userEmail}`);
+    }
+    */
+
+    logger.info(`${endpoint}: Concern closed successfully`, {
+      concernId,
+      adminId,
+      closedAt: concern.closedAt,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Concern closed successfully",
+      data: {
+        concernId: concern._id,
+        status: concern.status,
+        closedAt: concern.closedAt,
+        adminMessage: adminMessage,
+        userEmail: concern.userId?.email,
+        userName: concern.userId?.name,
+      },
+    });
+  } catch (error) {
+    logger.error(`${endpoint}: ${error.message}`, {
+      stack: error.stack,
+      concernId: req.params.concernId,
+    });
+    res.status(500).json({
+      success: false,
+      message: "Failed to close concern",
+      error: error.message,
+    });
+  }
+};
+
+// ========= Reopen Concern (Optional - if needed) =========
+exports.reopenConcern = async (req, res) => {
+  const endpoint = "reopenConcern";
+  try {
+    const { concernId } = req.params;
+    const { reason } = req.body;
+
+    const concern = await Concern.findById(concernId);
+    
+    if (!concern) {
+      logger.warn(`${endpoint}: Concern not found`, { concernId });
+      return res
+        .status(404)
+        .json({ success: false, message: "Concern not found" });
+    }
+
+    if (concern.status !== "closed") {
+      logger.warn(`${endpoint}: Concern is not closed`, { concernId, currentStatus: concern.status });
+      return res.status(400).json({
+        success: false,
+        message: "Only closed concerns can be reopened",
+      });
+    }
+
+    // Reopen the concern
+    concern.status = "open";
+    concern.closedAt = null;
+    
+    // Add a note about reopening
+    if (reason) {
+      concern.adminResponses.push({
+        adminId: null,
+        message: `Concern reopened. Reason: ${reason}`,
+        respondedAt: new Date(),
+      });
+    }
+
+    await concern.save();
+
+    logger.info(`${endpoint}: Concern reopened`, { concernId });
+
+    res.status(200).json({
+      success: true,
+      message: "Concern reopened successfully",
+      data: concern,
+    });
+  } catch (error) {
+    logger.error(`${endpoint}: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: "Failed to reopen concern",
+      error: error.message,
+    });
+  }
+};
+
+// ========= Get Concern Statistics (Admin Dashboard) =========
+exports.getConcernStatistics = async (req, res) => {
+  const endpoint = "getConcernStatistics";
+  try {
+    const totalConcerns = await Concern.countDocuments();
+    const openConcerns = await Concern.countDocuments({ status: "open" });
+    const inProgressConcerns = await Concern.countDocuments({ status: "in_progress" });
+    const resolvedConcerns = await Concern.countDocuments({ status: "resolved" });
+    const closedConcerns = await Concern.countDocuments({ status: "closed" });
+
+    // Get concerns by issue type
+    const concernsByType = await Concern.aggregate([
+      {
+        $group: {
+          _id: "$issueType",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Get recent concerns (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentConcerns = await Concern.countDocuments({
+      createdAt: { $gte: sevenDaysAgo },
+    });
+
+    logger.info(`${endpoint}: Statistics retrieved successfully`);
+
+    res.status(200).json({
+      success: true,
+      statistics: {
+        total: totalConcerns,
+        byStatus: {
+          open: openConcerns,
+          in_progress: inProgressConcerns,
+          resolved: resolvedConcerns,
+          closed: closedConcerns,
+        },
+        byIssueType: concernsByType,
+        recentConcerns: {
+          last7Days: recentConcerns,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error(`${endpoint}: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch concern statistics",
       error: error.message,
     });
   }

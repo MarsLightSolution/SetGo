@@ -1,19 +1,37 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { closeConcernWithMessage, addAdminResponse, updateConcernStatus } from "./queryApi";
 
 export default function MyQueries() {
   const navigate = useNavigate();
   const userId = localStorage.getItem("userId") || "68b1e2fa927f21500b024dd0";
+  const adminId = localStorage.getItem("adminId") || "60d5ec49f1b2c72b8c8e4f20"; // Store admin ID
 
   const [queries, setQueries] = useState([]);
+  const [filteredQueries, setFilteredQueries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuery, setSelectedQuery] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  
+  // Close Query Modal States
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closeMessage, setCloseMessage] = useState("");
+  const [closingQuery, setClosingQuery] = useState(false);
+
+  // Admin Response Modal States
+  const [showResponseModal, setShowResponseModal] = useState(false);
+  const [responseMessage, setResponseMessage] = useState("");
+  const [sendingResponse, setSendingResponse] = useState(false);
 
   useEffect(() => {
     fetchQueries();
   }, []);
+
+  useEffect(() => {
+    filterQueriesByTab();
+  }, [queries, activeTab]);
 
   const fetchQueries = async () => {
     try {
@@ -43,6 +61,106 @@ export default function MyQueries() {
       }
     } catch (error) {
       console.error("Error fetching query details:", error);
+    }
+  };
+
+  const filterQueriesByTab = () => {
+    if (activeTab === "all") {
+      setFilteredQueries(queries);
+    } else {
+      setFilteredQueries(queries.filter((q) => q.status === activeTab));
+    }
+  };
+
+  const getQueryCountByStatus = (status) => {
+    if (status === "all") return queries.length;
+    return queries.filter((q) => q.status === status).length;
+  };
+
+  // Handle Close Query with Message
+  const handleOpenCloseModal = () => {
+    setShowCloseModal(true);
+    setCloseMessage("");
+  };
+
+  const handleCloseQueryWithMessage = async () => {
+    if (!closeMessage.trim()) {
+      alert("Please enter a closing message for the user.");
+      return;
+    }
+
+    setClosingQuery(true);
+    try {
+      const result = await closeConcernWithMessage(
+        selectedQuery._id,
+        adminId,
+        closeMessage
+      );
+
+      if (result.success) {
+        alert("✅ Query closed successfully! Email sent to user.");
+        setShowCloseModal(false);
+        setCloseMessage("");
+        setShowDetails(false);
+        fetchQueries(); // Refresh the list
+      }
+    } catch (err) {
+      console.error("Error closing query:", err);
+      alert("❌ Failed to close query. Please try again.");
+    } finally {
+      setClosingQuery(false);
+    }
+  };
+
+  // Handle Admin Response (without closing)
+  const handleOpenResponseModal = () => {
+    setShowResponseModal(true);
+    setResponseMessage("");
+  };
+
+  const handleSendAdminResponse = async () => {
+    if (!responseMessage.trim()) {
+      alert("Please enter a response message.");
+      return;
+    }
+
+    setSendingResponse(true);
+    try {
+      const result = await addAdminResponse(
+        selectedQuery._id,
+        adminId,
+        responseMessage
+      );
+
+      if (result.success) {
+        alert("✅ Response sent successfully!");
+        setShowResponseModal(false);
+        setResponseMessage("");
+        fetchQueryDetails(selectedQuery._id); // Refresh details
+        fetchQueries(); // Refresh list
+      }
+    } catch (err) {
+      console.error("Error sending response:", err);
+      alert("❌ Failed to send response. Please try again.");
+    } finally {
+      setSendingResponse(false);
+    }
+  };
+
+  // Handle Status Change
+  const handleStatusChange = async (newStatus) => {
+    if (!selectedQuery) return;
+
+    try {
+      const result = await updateConcernStatus(selectedQuery._id, newStatus);
+      if (result.success) {
+        alert(`✅ Status updated to ${newStatus}`);
+        fetchQueryDetails(selectedQuery._id);
+        fetchQueries();
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+      alert("❌ Failed to update status.");
     }
   };
 
@@ -94,7 +212,7 @@ export default function MyQueries() {
   return (
     <div
       style={{
-        maxWidth: "900px",
+        maxWidth: "1200px",
         margin: "40px auto",
         padding: "20px",
         fontFamily: "Poppins, sans-serif",
@@ -109,7 +227,7 @@ export default function MyQueries() {
           marginBottom: "30px",
         }}
       >
-        <h2 style={{ color: "#0078ff", margin: 0 }}>🎫 My Queries</h2>
+        <h2 style={{ color: "#0078ff", margin: 0 }}>🎫 Support Queries</h2>
         <button
           onClick={() => navigate("/raise-query")}
           style={{
@@ -120,14 +238,67 @@ export default function MyQueries() {
             borderRadius: "8px",
             cursor: "pointer",
             fontWeight: 600,
+            fontSize: "14px",
           }}
         >
           + Raise New Query
         </button>
       </div>
 
+      {/* Tabs for Status Filter */}
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginBottom: "25px",
+          borderBottom: "2px solid #eee",
+          paddingBottom: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        {[
+          { key: "all", label: "All Queries" },
+          { key: "open", label: "Open" },
+          { key: "in_progress", label: "In Progress" },
+          { key: "resolved", label: "Resolved" },
+          { key: "closed", label: "Closed" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              padding: "10px 20px",
+              background: activeTab === tab.key ? "#0078ff" : "#f5f5f5",
+              color: activeTab === tab.key ? "white" : "#666",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: activeTab === tab.key ? 600 : 400,
+              fontSize: "14px",
+              transition: "all 0.3s",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            {tab.label}
+            <span
+              style={{
+                background: activeTab === tab.key ? "rgba(255,255,255,0.3)" : "#ddd",
+                padding: "2px 8px",
+                borderRadius: "12px",
+                fontSize: "12px",
+                fontWeight: "bold",
+              }}
+            >
+              {getQueryCountByStatus(tab.key)}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Queries List */}
-      {queries.length === 0 ? (
+      {filteredQueries.length === 0 ? (
         <div
           style={{
             textAlign: "center",
@@ -136,30 +307,33 @@ export default function MyQueries() {
             borderRadius: "12px",
           }}
         >
-          <h3>📭 No queries yet</h3>
+          <h3>📭 No {activeTab !== "all" ? activeTab : ""} queries found</h3>
           <p style={{ color: "#666" }}>
-            You haven't raised any queries. If you need help, feel free to raise
-            one!
+            {activeTab === "all"
+              ? "You haven't raised any queries yet."
+              : `No queries with status "${activeTab}".`}
           </p>
-          <button
-            onClick={() => navigate("/raise-query")}
-            style={{
-              marginTop: "20px",
-              padding: "12px 24px",
-              background: "#0078ff",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            Raise Your First Query
-          </button>
+          {activeTab === "all" && (
+            <button
+              onClick={() => navigate("/raise-query")}
+              style={{
+                marginTop: "20px",
+                padding: "12px 24px",
+                background: "#0078ff",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              Raise Your First Query
+            </button>
+          )}
         </div>
       ) : (
         <div style={{ display: "grid", gap: "16px" }}>
-          {queries.map((query) => (
+          {filteredQueries.map((query) => (
             <div
               key={query.concernId}
               onClick={() => fetchQueryDetails(query.concernId)}
@@ -195,6 +369,7 @@ export default function MyQueries() {
                       alignItems: "center",
                       gap: "10px",
                       marginBottom: "8px",
+                      flexWrap: "wrap",
                     }}
                   >
                     <span
@@ -219,7 +394,7 @@ export default function MyQueries() {
                         fontWeight: 600,
                       }}
                     >
-                      {getStatusIcon(query.status)} {query.status.toUpperCase()}
+                      {getStatusIcon(query.status)} {query.status.replace("_", " ").toUpperCase()}
                     </span>
                   </div>
                   <p
@@ -259,7 +434,7 @@ export default function MyQueries() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(0,0,0,0.6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -272,9 +447,9 @@ export default function MyQueries() {
             style={{
               background: "#fff",
               borderRadius: "16px",
-              maxWidth: "700px",
+              maxWidth: "800px",
               width: "100%",
-              maxHeight: "80vh",
+              maxHeight: "85vh",
               overflowY: "auto",
               padding: "30px",
             }}
@@ -309,8 +484,7 @@ export default function MyQueries() {
                   <span
                     style={{
                       padding: "4px 12px",
-                      background:
-                        getStatusColor(selectedQuery.status) + "20",
+                      background: getStatusColor(selectedQuery.status) + "20",
                       color: getStatusColor(selectedQuery.status),
                       borderRadius: "20px",
                       fontSize: "12px",
@@ -318,7 +492,7 @@ export default function MyQueries() {
                     }}
                   >
                     {getStatusIcon(selectedQuery.status)}{" "}
-                    {selectedQuery.status.toUpperCase()}
+                    {selectedQuery.status.replace("_", " ").toUpperCase()}
                   </span>
                 </div>
               </div>
@@ -345,30 +519,28 @@ export default function MyQueries() {
                 marginBottom: "20px",
               }}
             >
-              <h4 style={{ marginTop: 0 }}>Your Query:</h4>
-              <p style={{ lineHeight: 1.6, color: "#333" }}>
+              <h4 style={{ marginTop: 0, color: "#333" }}>📝 User's Query:</h4>
+              <p style={{ lineHeight: 1.6, color: "#333", margin: "10px 0" }}>
                 {selectedQuery.message}
               </p>
 
-              {/* Additional Info */}
               {selectedQuery.orderId && (
-                <div style={{ marginTop: "10px" }}>
+                <div style={{ marginTop: "10px", fontSize: "14px" }}>
                   <strong>Order ID:</strong>{" "}
                   {selectedQuery.orderId._id || selectedQuery.orderId}
                 </div>
               )}
               {selectedQuery.transactionId && (
-                <div style={{ marginTop: "10px" }}>
+                <div style={{ marginTop: "10px", fontSize: "14px" }}>
                   <strong>Transaction ID:</strong> {selectedQuery.transactionId}
                 </div>
               )}
               {selectedQuery.walletId && (
-                <div style={{ marginTop: "10px" }}>
+                <div style={{ marginTop: "10px", fontSize: "14px" }}>
                   <strong>Wallet ID:</strong> {selectedQuery.walletId}
                 </div>
               )}
 
-              {/* Images */}
               {selectedQuery.images && selectedQuery.images.length > 0 && (
                 <div style={{ marginTop: "15px" }}>
                   <strong>Attached Images:</strong>
@@ -413,12 +585,10 @@ export default function MyQueries() {
                   <strong>Last Updated:</strong>{" "}
                   {new Date(selectedQuery.updatedAt).toLocaleString("en-IN")}
                 </div>
-                {selectedQuery.estimatedResolutionDate && (
+                {selectedQuery.closedAt && (
                   <div>
-                    <strong>Est. Resolution:</strong>{" "}
-                    {new Date(
-                      selectedQuery.estimatedResolutionDate
-                    ).toLocaleString("en-IN")}
+                    <strong>Closed At:</strong>{" "}
+                    {new Date(selectedQuery.closedAt).toLocaleString("en-IN")}
                   </div>
                 )}
               </div>
@@ -427,8 +597,8 @@ export default function MyQueries() {
             {/* Admin Responses */}
             {selectedQuery.adminResponses &&
               selectedQuery.adminResponses.length > 0 && (
-                <div>
-                  <h4 style={{ marginBottom: "15px" }}>
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ marginBottom: "15px", color: "#333" }}>
                     💬 Support Team Responses:
                   </h4>
                   {selectedQuery.adminResponses.map((response, idx) => (
@@ -451,6 +621,8 @@ export default function MyQueries() {
                           color: "#666",
                           display: "flex",
                           justifyContent: "space-between",
+                          flexWrap: "wrap",
+                          gap: "10px",
                         }}
                       >
                         <span>
@@ -458,9 +630,7 @@ export default function MyQueries() {
                           {response.adminId?.name || "Admin"}
                         </span>
                         <span>
-                          {new Date(response.respondedAt).toLocaleString(
-                            "en-IN"
-                          )}
+                          {new Date(response.respondedAt).toLocaleString("en-IN")}
                         </span>
                       </div>
                     </div>
@@ -478,6 +648,7 @@ export default function MyQueries() {
                   borderRadius: "12px",
                   textAlign: "center",
                   border: "1px solid #ffb74d",
+                  marginBottom: "20px",
                 }}
               >
                 <p style={{ margin: 0, color: "#f57c00" }}>
@@ -486,6 +657,298 @@ export default function MyQueries() {
                 </p>
               </div>
             )}
+
+            {/* Action Buttons */}
+            {selectedQuery.status !== "closed" && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  paddingTop: "20px",
+                  borderTop: "2px solid #eee",
+                }}
+              >
+                {/* Add Response Button */}
+                <button
+                  onClick={handleOpenResponseModal}
+                  style={{
+                    padding: "12px 20px",
+                    background: "#0078ff",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    flex: 1,
+                    minWidth: "150px",
+                  }}
+                >
+                  💬 Add Response
+                </button>
+
+                {/* Update Status Dropdown */}
+                {selectedQuery.status !== "resolved" && (
+                  <select
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    value={selectedQuery.status}
+                    style={{
+                      padding: "12px 16px",
+                      border: "2px solid #ddd",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                      fontSize: "14px",
+                      flex: 1,
+                      minWidth: "150px",
+                    }}
+                  >
+                    <option value="">Change Status</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                )}
+
+                {/* Close Query Button */}
+                <button
+                  onClick={handleOpenCloseModal}
+                  style={{
+                    padding: "12px 20px",
+                    background: "#f44336",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "14px",
+                    flex: 1,
+                    minWidth: "150px",
+                  }}
+                >
+                  🔒 Close Query
+                </button>
+              </div>
+            )}
+
+            {/* Already Closed Message */}
+            {selectedQuery.status === "closed" && (
+              <div
+                style={{
+                  background: "#f5f5f5",
+                  padding: "15px",
+                  borderRadius: "8px",
+                  textAlign: "center",
+                  color: "#666",
+                  marginTop: "20px",
+                }}
+              >
+                ✅ This query has been closed.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Close Query Modal */}
+      {showCloseModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1100,
+            padding: "20px",
+          }}
+          onClick={() => setShowCloseModal(false)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              maxWidth: "600px",
+              width: "100%",
+              padding: "30px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 20px 0", color: "#f44336" }}>
+              🔒 Close Query
+            </h3>
+            <p style={{ color: "#666", marginBottom: "20px" }}>
+              Write a closing message that will be sent to the user via email.
+              This action will close the query permanently.
+            </p>
+            <textarea
+              rows="6"
+              placeholder="Example: Your issue has been resolved. The replacement product has been dispatched with tracking ID: TRK123456. Thank you for your patience!"
+              style={{
+                width: "100%",
+                border: "2px solid #ddd",
+                padding: "15px",
+                borderRadius: "8px",
+                resize: "vertical",
+                fontSize: "14px",
+                fontFamily: "inherit",
+                minHeight: "120px",
+              }}
+              value={closeMessage}
+              onChange={(e) => setCloseMessage(e.target.value)}
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "20px",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => setShowCloseModal(false)}
+                disabled={closingQuery}
+                style={{
+                  padding: "10px 24px",
+                  background: "#f5f5f5",
+                  color: "#666",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: closingQuery ? "not-allowed" : "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCloseQueryWithMessage}
+                disabled={closingQuery || !closeMessage.trim()}
+                style={{
+                  padding: "10px 24px",
+                  background:
+                    closingQuery || !closeMessage.trim() ? "#ccc" : "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor:
+                    closingQuery || !closeMessage.trim()
+                      ? "not-allowed"
+                      : "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                }}
+              >
+                {closingQuery ? "Closing..." : "Close & Send Email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Response Modal */}
+      {showResponseModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1100,
+            padding: "20px",
+          }}
+          onClick={() => setShowResponseModal(false)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              maxWidth: "600px",
+              width: "100%",
+              padding: "30px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 20px 0", color: "#0078ff" }}>
+              💬 Add Admin Response
+            </h3>
+            <p style={{ color: "#666", marginBottom: "20px" }}>
+              Write a response to the user. This will be visible in the query
+              details and an email notification will be sent.
+            </p>
+            <textarea
+              rows="5"
+              placeholder="Example: We have reviewed your case and initiated the replacement process. You will receive your new product within 3-5 business days."
+              style={{
+                width: "100%",
+                border: "2px solid #ddd",
+                padding: "15px",
+                borderRadius: "8px",
+                resize: "vertical",
+                fontSize: "14px",
+                fontFamily: "inherit",
+                minHeight: "100px",
+              }}
+              value={responseMessage}
+              onChange={(e) => setResponseMessage(e.target.value)}
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                marginTop: "20px",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => setShowResponseModal(false)}
+                disabled={sendingResponse}
+                style={{
+                  padding: "10px 24px",
+                  background: "#f5f5f5",
+                  color: "#666",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: sendingResponse ? "not-allowed" : "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendAdminResponse}
+                disabled={sendingResponse || !responseMessage.trim()}
+                style={{
+                  padding: "10px 24px",
+                  background:
+                    sendingResponse || !responseMessage.trim()
+                      ? "#ccc"
+                      : "#0078ff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor:
+                    sendingResponse || !responseMessage.trim()
+                      ? "not-allowed"
+                      : "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                }}
+              >
+                {sendingResponse ? "Sending..." : "Send Response"}
+              </button>
+            </div>
           </div>
         </div>
       )}
