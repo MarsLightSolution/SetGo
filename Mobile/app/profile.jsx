@@ -14,11 +14,24 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, isAuthenticated } = useAuthStore();
 
-const handleLogout = () => {
-  if (window.confirm("Are you sure you want to logout?")) {
-    logout();
-  }
-};
+ const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Logout',
+          style: 'destructive',
+          onPress: () => {
+            logout();
+            router.replace('../auth'); // redirect to login after logout
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
 
   const menuItems = [

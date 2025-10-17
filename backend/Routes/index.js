@@ -16,4 +16,6 @@ router.use('/api/payment', require('./paymentroutes.js'));
 router.use("/",require("./Followerroutes.js"));
 router.use("/Orders",require("./Order.js"));
 router.use("/",require("./Admin.js"));
-module.exports = router;
+router.use("/chatbot", require("./ChatbotRoutes.js"));
+router.use("/concern", require("./concernRoutes.js"));
+ module.exports = router;
