@@ -21,13 +21,15 @@ import io from 'socket.io-client';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 
+// ⚠️ UPDATE THESE URLs TO MATCH YOUR BACKEND
 const API_BASE = `${process.env.EXPO_PUBLIC_API_URL}/api/chat`;
-const SOCKET_URL ="http://51.20.123.49:8080";
+const SOCKET_URL = "http://51.20.123.49:8080";
+const SERVER_BASE = process.env.EXPO_PUBLIC_API_URL || "http://51.20.123.49:8080";
 
-// Theme Colors - White & Green
 const theme = {
   background: '#FFFFFF',
   secondaryBg: '#F7F9F7',
@@ -47,7 +49,6 @@ const theme = {
 };
 
 export default function ChatApp() {
-  
   const [currentUser, setCurrentUser] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -61,10 +62,12 @@ export default function ChatApp() {
   const [isTyping, setIsTyping] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   const flatListRef = useRef(null);
   const socketRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(-width * 0.85)).current;
+  const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
     requestPermissions();
@@ -78,44 +81,97 @@ export default function ChatApp() {
   };
 
   const autoConnect = async () => {
-    const storedUsername = await AsyncStorage.getItem('user');
-    if (storedUsername) {
-      connectUser(storedUsername);
+    try {
+      // Try to get username from either 'userName' or 'user' key
+      let storedUsername = await AsyncStorage.getItem('userName');
+      
+      if (!storedUsername) {
+        const userJson = await AsyncStorage.getItem('user');
+        if (userJson) {
+          try {
+            const userObj = JSON.parse(userJson);
+            storedUsername = userObj.userName;
+          } catch (e) {
+            console.error('Error parsing user JSON:', e);
+          }
+        }
+      }
+      
+      if (storedUsername) {
+        console.log('Auto-connecting with username:', storedUsername);
+        connectUser(storedUsername);
+      }
+    } catch (error) {
+      console.error('Error auto-connecting:', error);
     }
   };
 
   useEffect(() => {
     if (isConnected && currentUser) {
-      socketRef.current = io(SOCKET_URL, { withCredentials: true });
+      socketRef.current = io(SOCKET_URL, { 
+        withCredentials: true,
+        transports: ['websocket', 'polling']
+      });
+
+      socketRef.current.on('connect', () => {
+        console.log('✅ Socket connected');
+        if (activeConversation) {
+          socketRef.current.emit('joinConversation', activeConversation._id);
+        }
+      });
+
+      socketRef.current.on('disconnect', () => {
+        console.log('❌ Socket disconnected');
+      });
 
       socketRef.current.on('newMessage', (msg) => {
+        console.log('📨 New message received:', msg);
+        
         if (msg.conversationId === activeConversation?._id) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: msg._id || Date.now().toString(),
-              text: msg.text,
-              sender: msg.senderId === currentUser.userId ? 'me' : 'other',
-              timestamp: new Date().toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              }),
-              senderName: msg.senderName,
-              fileUrl: msg.fileUrl,
-              messageType: msg.messageType,
-            },
-          ]);
+          setMessages((prev) => {
+            // Prevent duplicate messages
+            const exists = prev.some(m => m.id === msg._id);
+            if (exists) return prev;
+
+            return [
+              ...prev,
+              {
+                id: msg._id || Date.now().toString(),
+                text: msg.text,
+                sender: msg.senderId === currentUser.userId ? 'me' : 'other',
+                timestamp: new Date().toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }),
+                senderName: msg.senderName,
+                fileUrl: msg.fileUrl,
+                messageType: msg.messageType,
+              },
+            ];
+          });
         }
       });
 
       socketRef.current.on('typing', ({ conversationId, userId }) => {
         if (conversationId === activeConversation?._id && userId !== currentUser.userId) {
           setIsTyping(true);
-          setTimeout(() => setIsTyping(false), 2000);
+          
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+          
+          typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+          }, 2000);
         }
       });
 
-      return () => socketRef.current.disconnect();
+      return () => {
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        socketRef.current?.disconnect();
+      };
     }
   }, [isConnected, currentUser, activeConversation]);
 
@@ -136,9 +192,18 @@ export default function ChatApp() {
     }).start();
   }, [sidebarOpen]);
 
+  // Join conversation room when active conversation changes
+  useEffect(() => {
+    if (activeConversation && socketRef.current?.connected) {
+      socketRef.current.emit('joinConversation', activeConversation._id);
+      console.log('📍 Joined conversation:', activeConversation._id);
+    }
+  }, [activeConversation]);
+
   const connectUser = async (username) => {
     if (!username?.trim()) return;
     setIsConnecting(true);
+    setConnectionError('');
 
     try {
       const response = await fetch(`${API_BASE}/connect`, {
@@ -151,16 +216,25 @@ export default function ChatApp() {
       if (data.success) {
         setCurrentUser(data.user);
         setIsConnected(true);
-        await AsyncStorage.multiSet([
-          ['chatUserId', data.user.userId],
-          ['chatUsername', username],
-          ['userName', username],
-        ]);
+        
+        // Store in AsyncStorage matching your format
+        await AsyncStorage.setItem('userId', data.user.userId);
+        await AsyncStorage.setItem('userName', username);
+        
+        // Also store as JSON object for compatibility
+        await AsyncStorage.setItem('user', JSON.stringify({
+          userName: username,
+          userId: data.user.userId
+        }));
+        
         await loadAllUsers();
         await loadConversations(data.user.userId);
+      } else {
+        setConnectionError(data.message || 'Connection failed');
       }
     } catch (error) {
-      setConnectionError('Connection failed');
+      console.error('Connection error:', error);
+      setConnectionError('Connection failed. Check your network.');
     } finally {
       setIsConnecting(false);
     }
@@ -172,7 +246,7 @@ export default function ChatApp() {
       const data = await response.json();
       if (data.success) setAllUsers(data.users);
     } catch (error) {
-      console.error('Failed to load users');
+      console.error('Failed to load users:', error);
     }
   };
 
@@ -182,7 +256,7 @@ export default function ChatApp() {
       const data = await response.json();
       if (data.success) setConversations(data.conversations);
     } catch (error) {
-      console.error('Error loading conversations');
+      console.error('Error loading conversations:', error);
     }
   };
 
@@ -197,12 +271,17 @@ export default function ChatApp() {
       const data = await response.json();
       if (data.success) {
         setActiveConversation(data.conversation);
+        setInitialLoad(true);
         await loadMessages(data.conversation._id);
         setSidebarOpen(false);
-        socketRef.current?.emit('joinConversation', data.conversation._id);
+        
+        // Join the conversation room
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('joinConversation', data.conversation._id);
+        }
       }
     } catch (error) {
-      console.error('Error creating conversation');
+      console.error('Error creating conversation:', error);
     }
   };
 
@@ -226,16 +305,16 @@ export default function ChatApp() {
           fileName: msg.fileName,
         }));
         setMessages(formattedMessages);
-        setInitialLoad(true);
       }
     } catch (error) {
-      console.error('Error loading messages');
+      console.error('Error loading messages:', error);
     }
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeConversation || !currentUser) return;
-    const messageText = newMessage;
+    
+    const messageText = newMessage.trim();
     setNewMessage('');
 
     try {
@@ -250,7 +329,7 @@ export default function ChatApp() {
       });
 
       const data = await response.json();
-      if (data.success && socketRef.current) {
+      if (data.success && socketRef.current?.connected) {
         socketRef.current.emit('sendMessage', {
           conversationId: activeConversation._id,
           senderId: currentUser.userId,
@@ -258,10 +337,12 @@ export default function ChatApp() {
           fileUrl: data.message.fileUrl,
           messageType: data.message.messageType,
           senderName: data.message.senderName,
+          _id: data.message._id,
         });
       }
     } catch (error) {
-      console.error('Error sending message');
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
     }
   };
 
@@ -269,78 +350,84 @@ export default function ChatApp() {
     if (!activeConversation || !currentUser) return;
     
     try {
-      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.7,
+        base64: false,
       });
 
       if (result.canceled || !result.assets[0]) return;
 
+      setIsUploading(true);
       const asset = result.assets[0];
       const uri = asset.uri;
       
-      // Get filename from URI
-      const uriParts = uri.split('/');
-      const filename = uriParts[uriParts.length - 1];
+      // Create proper filename
+      const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
       
-      // Determine file type from URI or default to jpeg
-      let fileType = 'image/jpeg';
-      if (filename.toLowerCase().endsWith('.png')) fileType = 'image/png';
-      else if (filename.toLowerCase().endsWith('.jpg')) fileType = 'image/jpeg';
-      else if (filename.toLowerCase().endsWith('.jpeg')) fileType = 'image/jpeg';
-      else if (filename.toLowerCase().endsWith('.gif')) fileType = 'image/gif';
+      // Determine MIME type
+      let mimeType = 'image/jpeg';
+      const extension = filename.toLowerCase().split('.').pop();
+      if (extension === 'png') mimeType = 'image/png';
+      else if (extension === 'gif') mimeType = 'image/gif';
+      else if (extension === 'webp') mimeType = 'image/webp';
 
-      // Create FormData - React Native style
+      // Create FormData
       const formData = new FormData();
       
-      // Append file with proper structure for React Native
       formData.append('file', {
         uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-        type: fileType,
-        name: filename || 'photo.jpg',
+        type: mimeType,
+        name: filename,
       });
       
       formData.append('conversationId', activeConversation._id);
       formData.append('senderId', currentUser.userId);
 
-      console.log('📤 Uploading file:', { uri, filename, fileType });
+      console.log('📤 Uploading image:', { filename, mimeType });
 
-      // Upload to server
       const response = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       const responseText = await response.text();
-      console.log('📥 Server response:', responseText);
+      console.log('📥 Upload response:', responseText);
 
       let data;
       try {
         data = JSON.parse(responseText);
       } catch (e) {
-        throw new Error('Invalid JSON response from server');
+        throw new Error('Invalid server response');
       }
 
       if (data.success) {
-        console.log('✅ Upload successful:', data);
+        console.log('✅ Upload successful');
         
-        // Emit socket message to notify others
-        socketRef.current?.emit('sendMessage', {
-          conversationId: activeConversation._id,
-          senderId: currentUser.userId,
-          text: data.message.text,
-          fileUrl: data.message.fileUrl,
-          messageType: data.message.messageType,
-          senderName: data.message.senderName,
-        });
+        // Emit via socket
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('sendMessage', {
+            conversationId: activeConversation._id,
+            senderId: currentUser.userId,
+            text: data.message.text,
+            fileUrl: data.message.fileUrl,
+            messageType: data.message.messageType,
+            senderName: data.message.senderName,
+            _id: data.message._id,
+          });
+        }
       } else {
-        throw new Error(data.message || 'File upload failed');
+        throw new Error(data.message || 'Upload failed');
       }
     } catch (error) {
-      console.error('❌ Error uploading image:', error);
-      Alert.alert('Error', error.message || 'Failed to send image. Please try again.');
+      console.error('❌ Image upload error:', error);
+      Alert.alert('Error', 'Failed to send image. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -363,9 +450,9 @@ export default function ChatApp() {
           ? { backgroundColor: theme.messageBubbleMine }
           : { backgroundColor: theme.messageBubbleOther }
       ]}>
-        {item.messageType === 'image' ? (
+        {item.messageType === 'image' && item.fileUrl ? (
           <Image
-            source={{ uri: `${API_BASE.replace('/api/chat', '')}${item.fileUrl}` }}
+            source={{ uri: `${SERVER_BASE}${item.fileUrl}` }}
             style={styles.messageImage}
             resizeMode="cover"
           />
@@ -380,7 +467,7 @@ export default function ChatApp() {
         <Text style={[
           styles.timestamp,
           { color: item.sender === 'me' 
-            ? 'rgba(255,255,255,0.7)' 
+            ? 'rgba(0,0,0,0.5)' 
             : theme.secondaryText 
           }
         ]}>
@@ -447,7 +534,6 @@ export default function ChatApp() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Sidebar Modal */}
       <Modal
         visible={sidebarOpen}
         animationType="none"
@@ -497,13 +583,11 @@ export default function ChatApp() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Main Content */}
       <KeyboardAvoidingView
         style={styles.mainContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* Header */}
         <View style={[styles.header, { 
           backgroundColor: theme.background,
           borderBottomColor: theme.border,
@@ -545,7 +629,6 @@ export default function ChatApp() {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Messages or Empty State */}
         {activeConversation ? (
           <>
             <FlatList
@@ -566,7 +649,6 @@ export default function ChatApp() {
               </View>
             )}
 
-            {/* Input Area */}
             <View style={[styles.inputContainer, { 
               backgroundColor: theme.background,
               borderTopColor: theme.border,
@@ -574,9 +656,14 @@ export default function ChatApp() {
               <TouchableOpacity
                 style={styles.iconButton}
                 onPress={handleImageUpload}
+                disabled={isUploading}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="camera-outline" size={26} color={theme.primary} />
+                {isUploading ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <Ionicons name="camera-outline" size={26} color={theme.primary} />
+                )}
               </TouchableOpacity>
 
               <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg }]}>
