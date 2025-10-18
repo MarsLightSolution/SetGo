@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { CalendarToday, LocationOn, Edit, Delete, Send, ThumbUp } from "@mui/icons-material"; // ADDED ICONS
+import { useParams, useNavigate, Link } from "react-router-dom"; // Added Link
+import { CalendarToday, LocationOn } from "@mui/icons-material";
 import Footer from "../components/common/Footer";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
@@ -19,7 +19,7 @@ import ShareModal from "../components/Popups/ShareModal";
 
 // i18n import
 import { useTranslation } from "react-i18next";
-import i18n from "../i18n";
+import i18n from "../i18n"; // Import i18n instance to get current language
 
 // Fix default icon issue with Leaflet in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -32,18 +32,18 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Helper for multilingual fields
+// Helper for multilingual fields (simplified to use i18n directly)
 const getLocalizedText = (field) => {
   if (!field) return "";
   if (typeof field === "string") return field;
-  return field[i18n.language] || field.en || "";
+  return field[i18n.language] || field.en || ""; // Fallback to English, then empty string
 };
 
 const ProductDetail = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(); // Initialize useTranslation hook
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("userId");
+  const token = localStorage.getItem("userId"); // No longer directly using token from localStorage for API auth
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -55,20 +55,6 @@ const ProductDetail = () => {
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
-
-  // Review states
-  const [reviews, setReviews] = useState([]);
-  const [ratingSummary, setRatingSummary] = useState(null);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [sortBy, setSortBy] = useState("recent");
-  const [ratingFilter, setRatingFilter] = useState(null);
-  const [userReview, setUserReview] = useState(null);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewFormData, setReviewFormData] = useState({ rating: 5, reviewText: "" });
-  const [editingReview, setEditingReview] = useState(null);
-  const [hasOrderedProduct, setHasOrderedProduct] = useState(false);
 
   const nextImage = () => {
     if (!product?.pictures) return;
@@ -84,214 +70,24 @@ const ProductDetail = () => {
         (prevIndex - 1 + product.pictures.length) % product.pictures.length
     );
   };
-
-  // Review functions
-  const fetchRatingSummary = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/reviews/product/${product._id}/rating-summary`,
-        { credentials: "include" }
-      );
-      const data = await res.json();
-      if (data.success) {
-        setRatingSummary(data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching rating summary:", error);
-    }
-  };
-
-  const fetchReviews = async () => {
-    setReviewsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: currentPage,
-        limit: 10,
-        sortBy: sortBy,
-      });
-      if (ratingFilter) params.append("rating", ratingFilter);
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/reviews/product/${product._id}?${params}`,
-        { credentials: "include" }
-      );
-      const data = await res.json();
-      if (data.success) {
-        setReviews(data.data);
-        setTotalPages(data.pagination.totalPages);
-      }
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
-
-  const checkUserReview = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/reviews/user?buyerId=${user._id}`,
-        { credentials: "include" }
-      );
-      const data = await res.json();
-      if (data.success) {
-        const productReview = data.data.find((r) => r.productId._id === product._id);
-        setUserReview(productReview || null);
-      }
-    } catch (error) {
-      console.error("Error checking user review:", error);
-    }
-  };
-
-  const checkIfUserOrderedProduct = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/reviews/pending?buyerId=${user._id}`,
-        { credentials: "include" }
-      );
-      const data = await res.json();
-      if (data.success) {
-        const hasOrder = data.data.some((order) => order.productId._id === product._id);
-        setHasOrderedProduct(hasOrder);
-      }
-    } catch (error) {
-      console.error("Error checking orders:", error);
-    }
-  };
-
-  const handleSubmitReview = async () => {
-    if (!user) {
-      toast.error("Please login to submit a review");
-      return;
-    }
-
-    if (!reviewFormData.rating || reviewFormData.rating < 1 || reviewFormData.rating > 5) {
-      toast.error("Please select a rating between 1 and 5");
-      return;
-    }
-
-    try {
-      const endpoint = editingReview
-        ? `${import.meta.env.VITE_SERVER}/api/reviews/${editingReview._id}`
-        : `${import.meta.env.VITE_SERVER}/api/reviews`;
-
-      const method = editingReview ? "PUT" : "POST";
-
-      const res = await fetch(endpoint, {
-        method: method,
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          ...reviewFormData,
-          buyerId: user._id,
-          productId: product._id,
-          sellerId: product.owner?._id || product.owner,
-          orderId: "temp-order-id",
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success(
-          editingReview ? "Review updated successfully!" : "Review submitted successfully!"
-        );
-        setShowReviewForm(false);
-        setEditingReview(null);
-        setReviewFormData({ rating: 5, reviewText: "" });
-        fetchReviews();
-        fetchRatingSummary();
-        checkUserReview();
-      } else {
-        toast.error(data.message || "Failed to submit review");
-      }
-    } catch (error) {
-      console.error("Error submitting review:", error);
-      toast.error("An error occurred while submitting review");
-    }
-  };
-
-  const handleDeleteReview = async (reviewId) => {
-    if (!confirm("Are you sure you want to delete this review?")) return;
-
-    try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/reviews/${reviewId}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ buyerId: user._id }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Review deleted successfully!");
-        fetchReviews();
-        fetchRatingSummary();
-        setUserReview(null);
-      } else {
-        toast.error(data.message || "Failed to delete review");
-      }
-    } catch (error) {
-      console.error("Error deleting review:", error);
-      toast.error("An error occurred");
-    }
-  };
-
-  const handleMarkHelpful = async (reviewId) => {
-    if (!user) {
-      toast.error("Please login to mark as helpful");
-      return;
-    }
-
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/reviews/${reviewId}/helpful`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ userId: user._id }),
-        }
-      );
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Marked as helpful!");
-        fetchReviews();
-      } else {
-        toast.error(data.message || "Failed to mark as helpful");
-      }
-    } catch (error) {
-      console.error("Error marking helpful:", error);
-      toast.error("An error occurred");
-    }
-  };
-
-  const renderStars = (rating, size = "text-xl") => {
-    return (
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <span key={star} className={size}>
-            {star <= rating ? "⭐" : "☆"}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
   const handleAddToWatchlist = (e) => {
     e.stopPropagation();
 
+    // You might still want to check for a user being logged in,
+    // even if the token isn't explicitly sent as a header.
+    // This assumes your Redux state or another context holds user login status.
     if (!user) {
-      alert(t("productDetail.loginToWatchlist"));
+      // Check if user object exists
+      alert(t("productDetail.loginToWatchlist")); // Translated
       return;
     }
 
     if (isWishlisted) {
       dispatch(unlike(product));
-      toast.info(t("productDetail.removedFromWatchlist"));
+      toast.info(t("productDetail.removedFromWatchlist")); // Translated
     } else {
       dispatch(like(product));
-      toast.success(t("productDetail.addedToWatchlist"));
+      toast.success(t("productDetail.addedToWatchlist")); // Translated
     }
   };
 
@@ -307,27 +103,19 @@ const ProductDetail = () => {
   }, []);
 
   useEffect(() => {
-    if (product?._id) {
-      fetchRatingSummary();
-      fetchReviews();
-      if (user) {
-        checkUserReview();
-        checkIfUserOrderedProduct();
-      }
-    }
-  }, [product?._id, currentPage, sortBy, ratingFilter, user]);
-
-  useEffect(() => {
+    // Pass i18n.language to fetch products in specific language (for dynamic content)
     fetchProductById();
-  }, [id, i18n.language]);
+  }, [id, i18n.language]); // Removed 'token' from dependencies
 
   const fetchProductById = async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/products/product/${id}?lang=${i18n.language}`,
+        `${import.meta.env.VITE_SERVER}/api/products/product/${id}?lang=${
+          i18n.language
+        }`,
         {
-          credentials: "include",
+          credentials: "include", // This is crucial for sending cookies
         }
       );
 
@@ -347,13 +135,18 @@ const ProductDetail = () => {
     }
   };
 
+  // categoryObj will be { en: "...", az: "...", ru: "..." }
   const fetchRelatedProducts = async (categoryObj) => {
-    const categoryName = getLocalizedText(categoryObj);
+    const categoryName = getLocalizedText(categoryObj); // Get category in current display language
     if (!categoryName) return;
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/products/category/${encodeURIComponent(categoryName)}?lang=${i18n.language}`
+        `${
+          import.meta.env.VITE_SERVER
+        }/api/products/category/${encodeURIComponent(categoryName)}?lang=${
+          i18n.language
+        }`
       );
       const json = await res.json();
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
@@ -367,7 +160,7 @@ const ProductDetail = () => {
     if (product?.category) {
       fetchRelatedProducts(product.category);
     }
-  }, [product, id, i18n.language]);
+  }, [product, id, i18n.language]); // Added i18n.language to dependencies
 
   const handleBuyNow = async () => {
     const userId = user?._id;
@@ -389,6 +182,7 @@ const ProductDetail = () => {
       );
       const json = await res.json();
       if (json?.data) {
+        // ✅ instead of dialog, navigate to checkout
         navigate("/checkout", {
           state: {
             product,
@@ -403,10 +197,9 @@ const ProductDetail = () => {
       alert(t("productDetail.errorLoadingUserData"));
     }
   };
-
   const handleSendMessage = async () => {
     if (!user) {
-      alert(t("productDetail.loginToMessage"));
+      alert(t("productDetail.loginToMessage")); // Translated
       return;
     }
 
@@ -417,6 +210,7 @@ const ProductDetail = () => {
     }
 
     try {
+      // Step 1: Get or create conversation from backend
       const res = await fetch(
         `${import.meta.env.VITE_SERVER}/api/chat/conversation/get-or-create`,
         {
@@ -439,6 +233,7 @@ const ProductDetail = () => {
 
       const conversationId = data.conversation._id;
 
+      // Step 2: Send a hardcoded initial message
       const initialMessage = "Hi! I'm interested in your product.";
       await fetch(`${import.meta.env.VITE_SERVER}/api/chat/messages`, {
         method: "POST",
@@ -451,6 +246,7 @@ const ProductDetail = () => {
         }),
       });
 
+      // Step 3: Redirect to chat page with conversationId
       navigate("/chat", {
         state: {
           conversationId,
@@ -462,20 +258,19 @@ const ProductDetail = () => {
       alert(t("productDetail.anErrorOccurred"));
     }
   };
-
   const ownerId = product?.owner?._id || product?.owner || null;
 
   useEffect(() => {
     if (user && ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId]);
+  }, [user, ownerId]); // Removed 'token' from dependencies
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SERVER}/check/${followerId}/${followingId}`,
-        { credentials: "include" }
+        { credentials: "include" } // Ensure credentials are included
       );
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
@@ -486,7 +281,7 @@ const ProductDetail = () => {
 
   const handleFollowToggle = async () => {
     if (!user || !ownerId) {
-      alert(t("productDetail.authRequiredFollow"));
+      alert(t("productDetail.authRequiredFollow")); // Translated
       return;
     }
     setFollowLoading(true);
@@ -500,9 +295,10 @@ const ProductDetail = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          // Removed Authorization header: Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ followerId: user._id }),
-        credentials: "include",
+        credentials: "include", // Ensure credentials are included
       });
 
       const result = await res.json();
@@ -513,15 +309,15 @@ const ProductDetail = () => {
           isFollowing
             ? t("productDetail.unfollowed")
             : t("productDetail.followed")
-        );
+        ); // Translated
       } else {
         const errorMsg =
-          result.message || t("productDetail.followUnfollowFailed");
+          result.message || t("productDetail.followUnfollowFailed"); // Translated fallback
         alert(errorMsg);
       }
     } catch (err) {
       console.error("Follow/Unfollow error:", err);
-      alert(t("productDetail.anErrorOccurred"));
+      alert(t("productDetail.anErrorOccurred")); // Translated
     } finally {
       setFollowLoading(false);
     }
@@ -532,14 +328,15 @@ const ProductDetail = () => {
       <div className="text-center mt-10">
         {t("productDetail.loadingProduct")}
       </div>
-    );
+    ); // Translated
   if (!product)
     return (
       <div className="text-center text-red-500 mt-10">
         {t("productDetail.productNotFound")}
-      </div>
+      </div> // Translated
     );
 
+  // Safely access owner name, prioritizing populated user object, then product.name, then "Unknown Seller"
   const ownerRawName = product.owner?.name || product.name;
   const ownerName =
     typeof ownerRawName === "object"
@@ -547,6 +344,7 @@ const ProductDetail = () => {
       : ownerRawName || t("productDetail.unknownSeller");
   const ownerInitial = ownerName.charAt(0).toUpperCase();
 
+  // Postal code is a direct field on product now
   const displayPostalCode =
     product.postalCode ||
     product.location?.postalCode ||
@@ -576,11 +374,17 @@ const ProductDetail = () => {
                       {product?.pictures?.length > 0 ? (
                         <>
                           <img
-                            src={`${import.meta.env.VITE_SERVER}/${product.pictures[currentImageIndex].replace(/\\/g, "/")}`}
+                            src={`${
+                              import.meta.env.VITE_SERVER
+                            }/${product.pictures[currentImageIndex].replace(
+                              /\\/g,
+                              "/"
+                            )}`}
                             alt={`Product image ${currentImageIndex + 1}`}
                             className="max-h-full max-w-full object-contain"
                           />
 
+                          {/* Left Arrow */}
                           {product.pictures.length > 1 && (
                             <button
                               onClick={prevImage}
@@ -591,6 +395,7 @@ const ProductDetail = () => {
                             </button>
                           )}
 
+                          {/* Right Arrow */}
                           {product.pictures.length > 1 && (
                             <button
                               onClick={nextImage}
@@ -603,13 +408,16 @@ const ProductDetail = () => {
                         </>
                       ) : (
                         <img
-                          src={`${import.meta.env.VITE_SERVER}/uploads/placeholder.jpg`}
+                          src={`${
+                            import.meta.env.VITE_SERVER
+                          }/uploads/placeholder.jpg`}
                           alt="Placeholder"
                           className="max-h-full object-contain"
                         />
                       )}
                     </div>
 
+                    {/* Image Counter */}
                     {product.pictures?.length > 1 && (
                       <div className="text-center text-sm text-gray-500 mt-2">
                         {currentImageIndex + 1} / {product.pictures.length}
@@ -815,341 +623,12 @@ const ProductDetail = () => {
                       {t("productDetail.sendMessageButton")}
                     </button>
                   </div>
-
-                  {/* ==================== REVIEWS SECTION ==================== */}
-                  <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-900">📝 Customer Reviews</h2>
-
-                    {/* Rating Summary */}
-                    {ratingSummary && (
-                      <div className="mb-8 p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
-                        <div className="flex flex-col md:flex-row gap-8">
-                          <div className="text-center md:text-left">
-                            <div className="text-6xl font-bold text-gray-900 mb-2">
-                              {ratingSummary.averageRating}
-                            </div>
-                            {renderStars(Math.round(ratingSummary.averageRating), "text-3xl")}
-                            <p className="text-sm text-gray-600 mt-3 font-medium">
-                              Based on {ratingSummary.totalReviews} reviews
-                            </p>
-                          </div>
-
-                          <div className="flex-1">
-                            {[5, 4, 3, 2, 1].map((star) => (
-                              <div key={star} className="flex items-center gap-3 mb-3">
-                                <span className="text-sm font-medium w-16 text-gray-700">{star} Stars</span>
-                                <div className="flex-1 bg-gray-200 rounded-full h-3">
-                                  <div
-                                    className="bg-gradient-to-r from-yellow-400 to-orange-400 h-3 rounded-full transition-all duration-300"
-                                    style={{
-                                      width: `${
-                                        ratingSummary.distributionPercentage[
-                                          `${["one", "two", "three", "four", "five"][star - 1]}Star`
-                                        ] || 0
-                                      }%`,
-                                    }}
-                                  ></div>
-                                </div>
-                                <span className="text-sm text-gray-600 w-16 text-right font-medium">
-                                  {ratingSummary.distribution[
-                                    `${["one", "two", "three", "four", "five"][star - 1]}Star`
-                                  ] || 0}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Write Review Button - ALWAYS SHOW FOR TESTING */}
-                    {user && (
-                      <button
-                        onClick={() => setShowReviewForm(!showReviewForm)}
-                        className="mb-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
-                      >
-                        <Edit fontSize="small" />
-                        {userReview ? "Edit Your Review" : "Write a Review"}
-                      </button>
-                    )}
-
-                    {!user && (
-                      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-blue-800 font-medium">
-                          Please login to write a review
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Review Form */}
-                    {showReviewForm && (
-                      <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border-2 border-green-300 shadow-lg">
-                        <h3 className="text-xl font-bold mb-6 text-gray-900">
-                          {editingReview ? "✏️ Edit Your Review" : "✍️ Write Your Review"}
-                        </h3>
-
-                        <div className="mb-6">
-                          <label className="block text-sm font-bold text-gray-800 mb-3">
-                            Your Rating *
-                          </label>
-                          <div className="flex gap-2">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                key={star}
-                                type="button"
-                                onClick={() =>
-                                  setReviewFormData({ ...reviewFormData, rating: star })
-                                }
-                                className="text-5xl focus:outline-none hover:scale-125 transition-transform"
-                              >
-                                {star <= reviewFormData.rating ? "⭐" : "☆"}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="block text-sm font-bold text-gray-800 mb-3">
-                            Your Review
-                          </label>
-                          <textarea
-                            value={reviewFormData.reviewText}
-                            onChange={(e) =>
-                              setReviewFormData({ ...reviewFormData, reviewText: e.target.value })
-                            }
-                            className="w-full border-2 border-gray-300 rounded-xl p-4 text-base focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm"
-                            rows={5}
-                            placeholder="Share your experience with this product... (Optional)"
-                          ></textarea>
-                        </div>
-
-                        <div className="flex gap-4">
-                          <button
-                            onClick={handleSubmitReview}
-                            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
-                          >
-                            <Send fontSize="small" />
-                            {editingReview ? "Update Review" : "Submit Review"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowReviewForm(false);
-                              setEditingReview(null);
-                              setReviewFormData({ rating: 5, reviewText: "" });
-                            }}
-                            className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-8 py-3 rounded-xl font-bold shadow-md hover:shadow-lg transition-all"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* User's Own Review */}
-                    {userReview && !showReviewForm && (
-                      <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-300 shadow-lg">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-900 mb-2">Your Review</h3>
-                            {renderStars(userReview.rating, "text-2xl")}
-                          </div>
-                          <div className="flex gap-3">
-                            <button
-                              onClick={() => {
-                                setEditingReview(userReview);
-                                setReviewFormData({
-                                  rating: userReview.rating,
-                                  reviewText: userReview.reviewText,
-                                });
-                                setShowReviewForm(true);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-100 rounded-lg transition"
-                              title="Edit review"
-                            >
-                              <Edit fontSize="small" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteReview(userReview._id)}
-                              className="text-red-600 hover:text-red-800 p-2 hover:bg-red-100 rounded-lg transition"
-                              title="Delete review"
-                            >
-                              <Delete fontSize="small" />
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-gray-800 leading-relaxed mb-3">{userReview.reviewText}</p>
-                        <p className="text-xs text-gray-500">
-                          Posted on {new Date(userReview.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Filter and Sort */}
-                    <div className="flex flex-wrap gap-4 mb-8 p-4 bg-gray-50 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-bold text-gray-700">Sort by:</label>
-                        <select
-                          value={sortBy}
-                          onChange={(e) => {
-                            setSortBy(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="border-2 border-gray-300 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        >
-                          <option value="recent">Most Recent</option>
-                          <option value="highest">Highest Rating</option>
-                          <option value="lowest">Lowest Rating</option>
-                          <option value="helpful">Most Helpful</option>
-                        </select>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-bold text-gray-700">Filter:</label>
-                        <select
-                          value={ratingFilter || ""}
-                          onChange={(e) => {
-                            setRatingFilter(e.target.value ? parseInt(e.target.value) : null);
-                            setCurrentPage(1);
-                          }}
-                          className="border-2 border-gray-300 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        >
-                          <option value="">All Ratings</option>
-                          <option value="5">5 Stars</option>
-                          <option value="4">4 Stars</option>
-                          <option value="3">3 Stars</option>
-                          <option value="2">2 Stars</option>
-                          <option value="1">1 Star</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Reviews List */}
-                    {reviewsLoading ? (
-                      <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-green-600"></div>
-                        <p className="mt-4 text-gray-600 font-medium">Loading reviews...</p>
-                      </div>
-                    ) : reviews.length === 0 ? (
-                      <div className="text-center py-12 bg-gray-50 rounded-xl">
-                        <p className="text-xl text-gray-600 font-medium">No reviews yet</p>
-                        <p className="text-sm text-gray-500 mt-2">Be the first to review this product!</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {reviews.map((review) => (
-                          <div key={review._id} className="border-b-2 border-gray-200 pb-6 last:border-b-0">
-                            <div className="flex items-start gap-4">
-                              <div className="bg-gradient-to-br from-green-400 to-blue-500 rounded-full w-14 h-14 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                                {review.buyerId?.username?.[0]?.toUpperCase() || "U"}
-                              </div>
-
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className="font-bold text-gray-900 text-lg">
-                                    {review.buyerId?.username || "Anonymous"}
-                                  </span>
-                                  {review.isVerifiedPurchase && (
-                                    <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">
-                                      ✓ Verified Purchase
-                                    </span>
-                                  )}
-                                </div>
-
-                                {renderStars(review.rating, "text-xl")}
-
-                                <p className="text-gray-800 mt-3 mb-3 leading-relaxed text-base">
-                                  {review.reviewText || "No written review"}
-                                </p>
-
-                                <div className="flex items-center gap-6 text-sm text-gray-500">
-                                  <span className="font-medium">{new Date(review.createdAt).toLocaleDateString()}</span>
-                                  <button
-                                    onClick={() => handleMarkHelpful(review._id)}
-                                    className="flex items-center gap-2 hover:text-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                                    disabled={review.helpfulBy?.includes(user?._id)}
-                                  >
-                                    <ThumbUp fontSize="small" />
-                                    Helpful ({review.helpfulCount || 0})
-                                  </button>
-                                </div>
-
-                                {review.sellerResponse && (
-                                  <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-l-4 border-green-500">
-                                    <p className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
-                                      <span className="text-green-600 text-lg">↳</span>
-                                      Seller Response:
-                                    </p>
-                                    <p className="text-sm text-gray-700 leading-relaxed">
-                                      {review.sellerResponse.text}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      {new Date(review.sellerResponse.respondedAt).toLocaleDateString()}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                      <div className="flex justify-center items-center gap-3 mt-10">
-                        <button
-                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                          className="px-6 py-3 border-2 border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition font-medium"
-                        >
-                          Previous
-                        </button>
-
-                        <div className="flex gap-2">
-                          {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                            let pageNum;
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <button
-                                key={pageNum}
-                                onClick={() => setCurrentPage(pageNum)}
-                                className={`px-5 py-3 border-2 rounded-lg transition font-bold ${
-                                  currentPage === pageNum
-                                    ? "bg-green-600 text-white border-green-600 shadow-lg"
-                                    : "border-gray-300 hover:bg-gray-50"
-                                }`}
-                              >
-                                {pageNum}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <button
-                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-6 py-3 border-2 border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition font-medium"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  {/* ==================== END REVIEWS SECTION ==================== */}
                 </div>
 
-                {/* Sidebar */}
+                {/* Sidebar (User Info + Actions) */}
                 <div className="md:col-span-1">
                   <div className="sticky top-[170px] w-full sm:max-w-[280px] mx-auto space-y-4">
+                    {/* Seller / Actions Card */}
                     <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
                       <button
                         onClick={handleSendMessage}
@@ -1232,6 +711,7 @@ const ProductDetail = () => {
                       )}
                     </div>
 
+                    {/* Ad ID Section */}
                     <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 text-sm text-gray-700">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">
@@ -1309,13 +789,13 @@ const ProductDetail = () => {
                   </div>
                 </div>
               )}
-              
               {showShareModal && (
-                <ShareModal 
-                  onClose={() => setShowShareModal(false)} 
-                  product={product} 
-                />
-              )}
+  <ShareModal 
+    onClose={() => setShowShareModal(false)} 
+    product={product} 
+  />
+)}
+
             </div>
 
             {/* Right Ad (Desktop only) */}
@@ -1333,5 +813,4 @@ const ProductDetail = () => {
     </>
   );
 };
-
 export default ProductDetail;
