@@ -18,4 +18,5 @@ router.use("/Orders",require("./Order.js"));
 router.use("/",require("./Admin.js"));
 router.use("/chatbot", require("./ChatbotRoutes.js"));
 router.use("/concern", require("./concernRoutes.js"));
+router.use("/reviews", require("./reviewRoutes.js"));
  module.exports = router;
