@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { closeConcernWithMessage, addAdminResponse, updateConcernStatus } from "./queryApi";
 import { 
   Package, 
   CheckCircle, 
@@ -10,65 +12,149 @@ import {
   Calendar,
   Lock,
   Edit3,
-  Image
+  Image,
+  Loader
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 export default function MyQueries() {
-  const [queries] = useState([
-    {
-      concernId: "1",
-      issueType: "order_issue",
-      message: "My order hasn't arrived yet. It's been 10 days since the expected delivery date.",
-      status: "in_progress",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(),
-      orderId: "ORD123456",
-      adminResponses: [
-        {
-          message: "We're tracking your package. It will arrive within 2 business days.",
-          adminId: { name: "Support Team" },
-          respondedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-        }
-      ]
-    },
-    {
-      concernId: "2",
-      issueType: "payment_issue",
-      message: "Payment was deducted but order not confirmed",
-      status: "open",
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(),
-      transactionId: "TXN987654",
-      adminResponses: []
-    },
-    {
-      concernId: "3",
-      issueType: "wallet_issue",
-      message: "Refund not received in wallet after cancellation",
-      status: "resolved",
-      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(),
-      closedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      walletId: "WAL789012",
-      adminResponses: [
-        {
-          message: "Refund has been processed. Amount credited to your wallet.",
-          adminId: { name: "Finance Team" },
-          respondedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-        }
-      ]
-    }
-  ]);
+  // Get userId and adminId from localStorage
+  const userId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "68b1e2fa927f21500b024dd0" : "68b1e2fa927f21500b024dd0";
+  const adminId = typeof window !== 'undefined' ? localStorage.getItem("adminId") || "60d5ec49f1b2c72b8c8e4f20" : "60d5ec49f1b2c72b8c8e4f20";
 
+  const [queries, setQueries] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedQuery, setSelectedQuery] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Close Query Modal States
   const [showCloseModal, setShowCloseModal] = useState(false);
-  const [showResponseModal, setShowResponseModal] = useState(false);
   const [closeMessage, setCloseMessage] = useState("");
+  const [closingQuery, setClosingQuery] = useState(false);
+
+  // Admin Response Modal States
+  const [showResponseModal, setShowResponseModal] = useState(false);
   const [responseMessage, setResponseMessage] = useState("");
-  const navigate = useNavigate();
+  const [sendingResponse, setSendingResponse] = useState(false);
+
+  useEffect(() => {
+    fetchQueries();
+  }, []);
+
+  const fetchQueries = async () => {
+    try {
+      const { data } = await axios.get(
+        `http://localhost:8080/concern/user?userId=${userId}`
+      );
+
+      if (data.success) {
+        setQueries(data.concerns);
+      }
+    } catch (error) {
+      console.error("Error fetching queries:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchQueryDetails = async (concernId) => {
+    try {
+      const { data } = await axios.get(
+        `http://localhost:8080/concern/${concernId}?userId=${userId}`
+      );
+
+      if (data.success) {
+        setSelectedQuery(data.data);
+        setShowDetails(true);
+      }
+    } catch (error) {
+      console.error("Error fetching query details:", error);
+    }
+  };
+
+  const handleOpenCloseModal = () => {
+    setShowCloseModal(true);
+    setCloseMessage("");
+  };
+
+  const handleCloseQueryWithMessage = async () => {
+    if (!closeMessage.trim()) {
+      alert("Please enter a closing message for the user.");
+      return;
+    }
+
+    setClosingQuery(true);
+    try {
+      const result = await closeConcernWithMessage(
+        selectedQuery._id,
+        adminId,
+        closeMessage
+      );
+
+      if (result.success) {
+        alert("✅ Query closed successfully! Email sent to user.");
+        setShowCloseModal(false);
+        setCloseMessage("");
+        setShowDetails(false);
+        fetchQueries();
+      }
+    } catch (err) {
+      console.error("Error closing query:", err);
+      alert("❌ Failed to close query. Please try again.");
+    } finally {
+      setClosingQuery(false);
+    }
+  };
+
+  const handleOpenResponseModal = () => {
+    setShowResponseModal(true);
+    setResponseMessage("");
+  };
+
+  const handleSendAdminResponse = async () => {
+    if (!responseMessage.trim()) {
+      alert("Please enter a response message.");
+      return;
+    }
+
+    setSendingResponse(true);
+    try {
+      const result = await addAdminResponse(
+        selectedQuery._id,
+        adminId,
+        responseMessage
+      );
+
+      if (result.success) {
+        alert("✅ Response sent successfully!");
+        setShowResponseModal(false);
+        setResponseMessage("");
+        fetchQueryDetails(selectedQuery._id);
+        fetchQueries();
+      }
+    } catch (err) {
+      console.error("Error sending response:", err);
+      alert("❌ Failed to send response. Please try again.");
+    } finally {
+      setSendingResponse(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    if (!selectedQuery || !newStatus) return;
+
+    try {
+      const result = await updateConcernStatus(selectedQuery._id, newStatus);
+      if (result.success) {
+        alert(`✅ Status updated to ${newStatus}`);
+        fetchQueryDetails(selectedQuery._id);
+        fetchQueries();
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+      alert("❌ Failed to update status.");
+    }
+  };
 
   const getStatusConfig = (status) => {
     const configs = {
@@ -116,11 +202,21 @@ export default function MyQueries() {
     return status === "all" ? queries.length : queries.filter(q => q.status === status).length;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700">Loading your queries...</h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
-     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-8 px-4 flex justify-center">
-    {/* White container */}
-    <div className="bg-white rounded-3xl shadow-lg w-full max-w-4xl p-6 md:p-8 space-y-6">
-      
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-8 px-4 flex justify-center">
+      <div className="bg-white rounded-3xl shadow-lg w-full max-w-4xl p-6 md:p-8 space-y-6">
+        
         {/* Header */}
         <div className="bg-white rounded-3xl shadow-lg border border-emerald-100 p-6 md:p-8 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -133,13 +229,13 @@ export default function MyQueries() {
                 <p className="text-sm text-gray-600 mt-1">Track and manage your support tickets</p>
               </div>
             </div>
-              <button
-      onClick={() => navigate("/raise-query")}
-      className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 justify-center cursor-pointer"
-    >
-      <Send className="w-4 h-4" />
-      Raise New Query
-    </button>
+            <button
+              onClick={() => window.location.href = "/raise-query"}
+              className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 justify-center cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              Raise New Query
+            </button>
           </div>
         </div>
 
@@ -187,7 +283,10 @@ export default function MyQueries() {
                 ? "You haven't raised any queries yet." 
                 : `No ${activeTab.replace("_", " ")} queries.`}
             </p>
-            <button className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg">
+            <button 
+              onClick={() => window.location.href = "/raise-query"}
+              className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg"
+            >
               Raise Your First Query
             </button>
           </div>
@@ -198,10 +297,7 @@ export default function MyQueries() {
               return (
                 <div
                   key={query.concernId}
-                  onClick={() => {
-                    setSelectedQuery(query);
-                    setShowDetails(true);
-                  }}
+                  onClick={() => fetchQueryDetails(query.concernId)}
                   className="bg-white rounded-2xl shadow-md border border-emerald-100 p-6 cursor-pointer transition-all hover:shadow-xl hover:-translate-y-1 hover:border-emerald-300"
                 >
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -295,7 +391,7 @@ export default function MyQueries() {
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-700">Order ID:</span>
                         <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg font-mono text-xs">
-                          {selectedQuery.orderId}
+                          {selectedQuery.orderId._id || selectedQuery.orderId}
                         </span>
                       </div>
                     )}
@@ -317,6 +413,25 @@ export default function MyQueries() {
                     )}
                   </div>
 
+                  {selectedQuery.images && selectedQuery.images.length > 0 && (
+                    <div className="mt-4">
+                      <span className="font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                        <Image className="w-4 h-4" />
+                        Attached Images:
+                      </span>
+                      <div className="flex gap-3 flex-wrap">
+                        {selectedQuery.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`evidence-${idx}`}
+                            className="w-28 h-28 object-cover rounded-xl border-2 border-emerald-200 shadow-sm hover:shadow-md transition-shadow"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-4 pt-4 border-t border-emerald-200 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-600">
                     <div>
                       <span className="font-semibold">Created:</span> {new Date(selectedQuery.createdAt).toLocaleString("en-IN")}
@@ -324,6 +439,11 @@ export default function MyQueries() {
                     <div>
                       <span className="font-semibold">Updated:</span> {new Date(selectedQuery.updatedAt).toLocaleString("en-IN")}
                     </div>
+                    {selectedQuery.closedAt && (
+                      <div className="col-span-2">
+                        <span className="font-semibold">Closed:</span> {new Date(selectedQuery.closedAt).toLocaleString("en-IN")}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -359,21 +479,35 @@ export default function MyQueries() {
 
                 {/* Action Buttons */}
                 {selectedQuery.status !== "closed" ? (
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => setShowResponseModal(true)}
-                      className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Add Response
-                    </button>
-                    <button
-                      onClick={() => setShowCloseModal(true)}
-                      className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                    >
-                      <Lock className="w-4 h-4" />
-                      Close Query
-                    </button>
+                  <div className="space-y-3 pt-4 border-t border-gray-200">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={handleOpenResponseModal}
+                        className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Add Response
+                      </button>
+                      <button
+                        onClick={handleOpenCloseModal}
+                        className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                      >
+                        <Lock className="w-4 h-4" />
+                        Close Query
+                      </button>
+                    </div>
+                    {selectedQuery.status !== "resolved" && (
+                      <select
+                        onChange={(e) => handleStatusChange(e.target.value)}
+                        value=""
+                        className="w-full px-4 py-3 bg-white border-2 border-emerald-200 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none font-semibold text-gray-700 cursor-pointer"
+                      >
+                        <option value="">Change Status</option>
+                        <option value="open">🔴 Open</option>
+                        <option value="in_progress">🔵 In Progress</option>
+                        <option value="resolved">✅ Resolved</option>
+                      </select>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-gray-100 rounded-2xl p-4 text-center">
@@ -405,15 +539,17 @@ export default function MyQueries() {
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowResponseModal(false)}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
+                  disabled={sendingResponse}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
-                  disabled={!responseMessage.trim()}
+                  onClick={handleSendAdminResponse}
+                  disabled={!responseMessage.trim() || sendingResponse}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Send Response
+                  {sendingResponse ? "Sending..." : "Send Response"}
                 </button>
               </div>
             </div>
@@ -439,24 +575,23 @@ export default function MyQueries() {
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowCloseModal(false)}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
+                  disabled={closingQuery}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
-                  disabled={!closeMessage.trim()}
+                  onClick={handleCloseQueryWithMessage}
+                  disabled={!closeMessage.trim() || closingQuery}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Close & Send Email
+                  {closingQuery ? "Closing..." : "Close & Send Email"}
                 </button>
               </div>
             </div>
           </div>
         )}
-        
-      
       </div>
     </div>
-    
   );
 }
