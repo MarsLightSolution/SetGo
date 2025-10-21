@@ -18,5 +18,6 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    allowedHosts: ['tiwari.shop', 'www.tiwari.shop'], // ✅ add your domain here
   },
 });
