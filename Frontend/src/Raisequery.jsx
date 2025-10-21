@@ -43,20 +43,12 @@ export default function RaiseQuery() {
   };
 
   const handleImageUpload = (e) => {
-  const files = Array.from(e.target.files).slice(0, 3); // max 3 per selection
-  if (files.length === 0) return;
-
-  // Append new files to existing files, max total 3
-  const newFiles = [...formData.images, ...files].slice(0, 3);
-  setFormData({ ...formData, images: newFiles });
-
-  // Create previews for all files
-  const previews = newFiles.map((file) =>
-    file instanceof File ? URL.createObjectURL(file) : file
-  );
-  setImagePreview(previews);
-};
-
+    const files = Array.from(e.target.files).slice(0, 3);
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setImagePreview(previews);
+    const imageUrls = files.map((file) => URL.createObjectURL(file));
+    setFormData({ ...formData, images: imageUrls });
+  };
 
   const removeImage = (idx) => {
     const newPreviews = imagePreview.filter((_, i) => i !== idx);
@@ -127,13 +119,10 @@ export default function RaiseQuery() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4 sm:py-12 flex justify-center">
       <ToastifyContainer />
 
-      {/* White container wrapping everything */}
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl p-6 sm:p-8 lg:p-10">
-        {/* Header Section */}
         <div className="flex items-center gap-4 sm:gap-6 mb-6">
-          <div className="flex-shrink-0 w-5 h-5 sm:w-8 sm:h-8 bg-gradient-to-br from-green-400 via-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
-
-            <HelpCircle className="w-5 h-5 sm:w-5 sm:h-5 text-white" />
+          <div className="flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-400 via-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+            <HelpCircle className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
           <div className="flex-1">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -145,7 +134,6 @@ export default function RaiseQuery() {
           </div>
         </div>
 
-        {/* Success or Form Section */}
         {success ? (
           <div className="text-center max-w-md mx-auto">
             <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mb-6 shadow-lg">
@@ -177,7 +165,6 @@ export default function RaiseQuery() {
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
-            {/* Issue Type Selection */}
             <div className="mb-8">
               <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
                 <span className="mr-2">🎯</span>
@@ -189,7 +176,7 @@ export default function RaiseQuery() {
                 value={formData.issueType}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-4 bg-gradient-to-br from-gray-50 to-blue-50/30 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none text-base font-medium shadow-sm hover:shadow-md cursor-pointer"
+                className="w-full px-4 py-4 bg-gradient-to-br from-gray-50 to-blue-50/30 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none transition-all text-base font-medium shadow-sm hover:shadow-md cursor-pointer"
               >
                 {issueTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -199,7 +186,6 @@ export default function RaiseQuery() {
               </select>
             </div>
 
-            {/* Conditional Fields in Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               {selectedIssue?.requiresOrderId && (
                 <InputField 
@@ -255,7 +241,6 @@ export default function RaiseQuery() {
               )}
             </div>
 
-            {/* Message */}
             <div className="mb-8">
               <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
                 <span className="mr-2">✍️</span>
@@ -270,7 +255,7 @@ export default function RaiseQuery() {
                   required
                   maxLength={500}
                   placeholder="Please provide as much detail as possible to help us resolve your issue quickly. Include any relevant information like dates, amounts, or error messages..."
-                  className="w-full px-4 py-4 bg-gradient-to-br from-gray-50 to-blue-50/30 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none resize-none text-base leading-relaxed shadow-sm hover:shadow-md"
+                  className="w-full px-4 py-4 bg-gradient-to-br from-gray-50 to-blue-50/30 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none transition-all resize-none text-base leading-relaxed shadow-sm hover:shadow-md"
                   rows={6}
                 />
               </div>
@@ -285,7 +270,6 @@ export default function RaiseQuery() {
               </div>
             </div>
 
-            {/* Image Upload */}
             <div className="mb-8">
               <label className="flex items-center text-sm font-semibold text-gray-700 mb-3">
                 <span className="mr-2">📸</span>
@@ -303,14 +287,13 @@ export default function RaiseQuery() {
                   </p>
                   <p className="text-xs text-gray-500">PNG, JPG or JPEG (Max 3 files, 5MB each)</p>
                 </div>
-               <input
-  type="file"
-  accept="image/*"
-  multiple
-  onChange={handleImageUpload}
-  className="hidden"
-/>
-
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
               </label>
 
               {imagePreview.length > 0 && (
@@ -323,7 +306,6 @@ export default function RaiseQuery() {
                           alt={`preview-${idx}`}
                           className="w-full h-32 object-cover"
                         />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all"></div>
                       </div>
                       <button
                         type="button"
@@ -338,7 +320,6 @@ export default function RaiseQuery() {
               )}
             </div>
 
-            {/* Info Box */}
             <div className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-5 h-5 mt-0.5">
@@ -355,31 +336,30 @@ export default function RaiseQuery() {
               </div>
             </div>
 
-           <button
-  type="submit"
-  disabled={loading}
-  className={`mx-auto w-48 py-3 rounded-xl font-semibold text-lg transition-all shadow-lg flex items-center justify-center gap-2 ${
-    loading
-      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-      : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0'
-  }`}
->
-  {loading ? (
-    <>
-      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-      </svg>
-      Submitting Query...
-    </>
-  ) : (
-    <>
-      <Send className="w-5 h-5" />
-      Submit Query
-    </>
-  )}
-</button>
-
+            <button
+              type="submit"
+              disabled={loading}
+              className={`mx-auto w-48 py-3 rounded-xl font-semibold text-lg transition-all shadow-lg flex items-center justify-center gap-2 ${
+                loading
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Submitting Query...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  Submit Query
+                </>
+              )}
+            </button>
           </form>
         )}
       </div>
@@ -402,7 +382,7 @@ function InputField({ label, name, value, onChange, required, placeholder, icon 
         onChange={onChange}
         required={required}
         placeholder={placeholder}
-        className="w-full px-4 py-4 bg-gradient-to-br from-gray-50 to-blue-50/30 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none text-base shadow-sm hover:shadow-md"
+        className="w-full px-4 py-4 bg-gradient-to-br from-gray-50 to-blue-50/30 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none transition-all text-base shadow-sm hover:shadow-md"
       />
     </div>
   );
