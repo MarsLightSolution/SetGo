@@ -91,6 +91,29 @@ const productSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+
+//reviews things
+// Add to your existing Product schema
+averageRating: {
+  type: Number,
+  default: 0,
+  min: 0,
+  max: 5,
+},
+totalReviews: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+ratingDistribution: {
+  oneStar: { type: Number, default: 0 },
+  twoStar: { type: Number, default: 0 },
+  threeStar: { type: Number, default: 0 },
+  fourStar: { type: Number, default: 0 },
+  fiveStar: { type: Number, default: 0 },
+}
+
+
   },
   { timestamps: true }
 );
