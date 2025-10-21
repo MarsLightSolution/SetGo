@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Add this import
+import { useNavigate } from "react-router-dom";
+import { MessageCircle, Send, ShoppingBag, ArrowLeft, Loader2, Package, CreditCard, RotateCcw, Wallet, AlertCircle, Headphones } from "lucide-react";
 
-export default function Chatbot() {
+export default function Chatbot({ onClose }) {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   
@@ -15,13 +16,27 @@ export default function Chatbot() {
   const [menuStack, setMenuStack] = useState([]);
   const [currentMenu, setCurrentMenu] = useState("main");
 
-  // Get userId from localStorage (assuming user is logged in)
-  const userId = localStorage.getItem("userId") ;
+  const userId = typeof window !== 'undefined' ? (window.localStorage?.getItem("userId") || null) : null;
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const MENU_ICONS = {
+    "Where is my order?": <Package className="w-4 h-4" />,
+    "Payment issues": <CreditCard className="w-4 h-4" />,
+    "Return or refund policy": <RotateCcw className="w-4 h-4" />,
+    "Wallet & Escrow help": <Wallet className="w-4 h-4" />,
+    "Report an ad or seller": <AlertCircle className="w-4 h-4" />,
+    "Contact customer support": <Headphones className="w-4 h-4" />,
+    "Show all my orders": <Package className="w-4 h-4" />,
+    "Track a specific order": <Package className="w-4 h-4" />,
+    "Cancel an order": <Package className="w-4 h-4" />,
+    "Payment failed": <CreditCard className="w-4 h-4" />,
+    "Refund not received": <CreditCard className="w-4 h-4" />,
+    "Add funds to wallet": <Wallet className="w-4 h-4" />,
+    "Back": <ArrowLeft className="w-4 h-4" />,
+  };
 
   const MENUS = {
     main: [
@@ -47,10 +62,8 @@ export default function Chatbot() {
   };
 
   const handleQuestion = async (question) => {
-    // Add user message to chat
     setMessages((prev) => [...prev, { sender: "user", text: question }]);
 
-    // Handle menu navigation
     if (question === "Where is my order?") {
       setMenuStack((prev) => [...prev, currentMenu]);
       setCurrentMenu("order");
@@ -82,7 +95,6 @@ export default function Chatbot() {
       return;
     }
 
-    // Handle order input request
     if (question === "Track a specific order") {
       setShowOrderInput(true);
       setMessages((prev) => [...prev, { 
@@ -92,12 +104,11 @@ export default function Chatbot() {
       return;
     }
 
-    // Call backend API for response
     await fetchResponse(question);
   };
 
   const handleOrderSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!orderId.trim()) return;
 
     setMessages((prev) => [
@@ -125,7 +136,6 @@ export default function Chatbot() {
           text: data.answer 
         }]);
 
-        // Handle redirect to raise query page
         if (data.redirectTo === "raiseQuery") {
           setTimeout(() => {
             setMessages((prev) => [...prev, { 
@@ -148,93 +158,85 @@ export default function Chatbot() {
   };
 
   const handleRaiseQuery = () => {
-    navigate("/raise-query"); // Navigate to raise query page
+    navigate("/raise-query");
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleOrderSubmit();
+    }
   };
 
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "500px",
-        height: "600px",
-        margin: "20px auto",
-        borderRadius: "16px",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        fontFamily: "Poppins, sans-serif",
-        background: "#fff",
-        boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          backgroundColor: "#0078ff",
-          color: "#fff",
-          padding: "14px 16px",
-          fontWeight: "600",
-          fontSize: 18,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        🛍️ YourShop Chat Assistant
-      </div>
+   <div className="relative w-full sm:w-[95%] md:w-[90%] lg:w-[85%] xl:w-[80%] mx-auto h-[calc(100vh-120px)] min-h-[500px] max-h-[800px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300">
 
-      {/* Chat Messages */}
-      <div
-        style={{
-          flex: 1,
-          padding: "14px",
-          overflowY: "auto",
-          backgroundColor: "#f9f9f9",
-        }}
-      >
+ 
+       
+
+     
+      
+      
+     {/* Header with green gradient */}
+<div className="relative bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 p-4 sm:p-6 text-white overflow-hidden">
+  {/* Decorative background circles */}
+  <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full -mr-20 -mt-20"></div>
+  <div className="absolute bottom-0 left-0 w-32 h-32 bg-white opacity-5 rounded-full -ml-16 -mb-16"></div>
+  <div className="absolute top-1/2 right-1/4 w-24 h-24 bg-white opacity-5 rounded-full"></div>
+
+ {onClose && (
+  <button
+    onClick={onClose}
+    className="absolute top-3 right-3 bg-white text-gray-700 hover:bg-gray-100 rounded-full p-2 shadow-md transition-all duration-200 hover:scale-105 z-20 cursor-pointer"
+    aria-label="Close Chatbot"
+  >
+    ✕
+  </button>
+)}
+
+
+
+  {/* Header Content */}
+  <div className="relative flex items-center gap-3 justify-start">
+  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+    <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+  </div>
+  <div>
+    <h1 className="text-lg sm:text-xl font-bold text-white">Your Shop Assistant</h1>
+    <p className="text-emerald-50 text-xs sm:text-sm flex items-center gap-1.5">
+      <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse shadow-lg shadow-green-300/50"></div>
+      Online • Ready to help
+    </p>
+  </div>
+</div>
+
+</div>
+
+
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto bg-gradient-to-b from-emerald-50/30 to-white p-3 sm:p-4 space-y-3 sm:space-y-4">
         {messages.map((msg, idx) => (
           <div key={idx}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
-                margin: "8px 0",
-              }}
-            >
-              <div
-                style={{
-                  background: msg.sender === "user" ? "#0078ff" : "#e6e6e6",
-                  color: msg.sender === "user" ? "#fff" : "#000",
-                  padding: "10px 14px",
-                  borderRadius: 14,
-                  maxWidth: "80%",
-                  lineHeight: 1.6,
-                  whiteSpace: "pre-wrap",
-                  fontSize: 14,
-                }}
-              >
-                {msg.text}
+            <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} animate-fadeIn`}>
+              <div className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 shadow-md ${
+                msg.sender === "user" 
+                  ? "bg-gradient-to-br from-emerald-600 to-green-600 text-white rounded-tr-sm" 
+                  : "bg-white text-gray-800 rounded-tl-sm border border-emerald-100"
+              }`}>
+                <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
               </div>
             </div>
 
-            {/* Raise Query Button */}
             {msg.action === "raiseQuery" && (
-              <div style={{ display: "flex", justifyContent: "flex-start", margin: "8px 0" }}>
+              <div className="flex justify-start mt-3 animate-fadeIn">
                 <button
-                  onClick={handleRaiseQuery}
-                  style={{
-                    background: "#ff4444",
-                    color: "white",
-                    border: "none",
-                    padding: "10px 20px",
-                    borderRadius: 20,
-                    cursor: "pointer",
-                    fontWeight: 600,
-                    fontSize: 14,
-                    boxShadow: "0 4px 12px rgba(255,68,68,0.3)",
-                  }}
-                >
-                  🎫 Raise a Query
+  onClick={handleRaiseQuery}
+  className="bg-gradient-to-r from-emerald-600 to-green-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-semibold text-xs sm:text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+>
+ 
+
+                  <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Raise a Query
                 </button>
               </div>
             )}
@@ -242,8 +244,11 @@ export default function Chatbot() {
         ))}
 
         {loading && (
-          <div style={{ color: "#555", fontStyle: "italic", marginTop: 4 }}>
-            <span className="typing-indicator">●●●</span> Typing...
+          <div className="flex justify-start animate-fadeIn">
+            <div className="bg-white text-gray-600 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 shadow-md border border-emerald-100 flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-emerald-600" />
+              <span className="text-xs sm:text-sm">Typing...</span>
+            </div>
           </div>
         )}
         
@@ -251,82 +256,86 @@ export default function Chatbot() {
       </div>
 
       {/* Footer - Input or Menu */}
-      <div
-        style={{
-          padding: "12px",
-          borderTop: "1px solid #eee",
-          background: "#fff",
-        }}
-      >
+      <div className="border-t border-emerald-100 bg-gradient-to-b from-white to-emerald-50/20 p-3 sm:p-4">
         {showOrderInput ? (
-          <form
-            onSubmit={handleOrderSubmit}
-            style={{ display: "flex", gap: "8px", alignItems: "center" }}
-          >
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowOrderInput(false)}
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-emerald-100 hover:bg-emerald-200 transition-colors flex-shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
+            </button>
             <input
               type="text"
-              placeholder="Enter your Order ID..."
+              placeholder="Enter Order ID (e.g., ORD12345)"
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: 8,
-                border: "1px solid #ccc",
-                fontSize: 14,
-                outline: "none",
-              }}
+              onKeyPress={handleKeyPress}
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none text-xs sm:text-sm transition-all"
               autoFocus
             />
             <button
-              type="submit"
-              style={{
-                background: "#0078ff",
-                color: "white",
-                border: "none",
-                padding: "10px 16px",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontWeight: 500,
-              }}
+              type="button"
+              onClick={handleOrderSubmit}
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg flex-shrink-0"
             >
-              Send
+              <Send className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </button>
-          </form>
+          </div>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "8px",
-              justifyContent: "center",
-            }}
-          >
+          <div className="grid grid-cols-2 gap-2">
             {(MENUS[currentMenu] || []).map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => handleQuestion(q)}
-                style={{
-                  background: "#f0f4ff",
-                  border: "1px solid #0078ff",
-                  borderRadius: 12,
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  flex: "1 1 45%",
-                  fontSize: 13,
-                  color: "#0078ff",
-                  fontWeight: 500,
-                  transition: "0.2s",
-                }}
-                onMouseEnter={(e) => (e.target.style.background = "#e5edff")}
-                onMouseLeave={(e) => (e.target.style.background = "#f0f4ff")}
+                className={`p-2.5 sm:p-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-1.5 sm:gap-2 justify-center ${
+                  q === "Back"
+                    ? "col-span-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 shadow-sm"
+                    : "bg-gradient-to-br from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 text-emerald-700 border border-emerald-200 hover:border-emerald-300 hover:shadow-md"
+                }`}
               >
-                {q}
+                {MENU_ICONS[q]}
+                <span className="leading-tight">{q}</span>
               </button>
             ))}
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #a7f3d0;
+          border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #6ee7b7;
+        }
+      `}</style>
     </div>
   );
 }
