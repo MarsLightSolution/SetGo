@@ -548,12 +548,11 @@ export default function ProductDetail() {
 
         {/* Map for Native Platforms */}
         {Platform.OS !== 'web' && 
-         MapView && 
          product.location?.coordinates && 
          product.location.coordinates.length === 2 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Location</Text>
-            <MapView
+            {/* <MapView
               style={styles.map}
               initialRegion={{
                 latitude: product.location.coordinates[1],
@@ -565,15 +564,15 @@ export default function ProductDetail() {
               zoomEnabled={false}
               pitchEnabled={false}
               rotateEnabled={false}
-            >
-              <Marker
+            > */}
+              {/* <Marker
                 coordinate={{
                   latitude: product.location.coordinates[1],
                   longitude: product.location.coordinates[0],
                 }}
                 title={getLocalizedText(product.title)}
-              />
-            </MapView>
+              /> */}
+            {/* </MapView> */}
           </View>
         )}
 
