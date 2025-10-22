@@ -128,10 +128,21 @@ const getUserTransactions = asyncHandler(async (req, res) => {
   );
 });
 
+const getUserWalletBalance = asyncHandler(async(req,res)=>{
+  const { id } = req.params;
 
+  if (!mongoose.Types.ObjectId.isValid(id))
+    throw new ApiError(400, "Invalid user id");
+
+  // ① Fetch user with only the wallet and transactionHistory
+  const user = await User.findById(id, " walletBalance username");
+  if (!user) throw new ApiError(404, "User not found");
+  return res.status(200).json({ walletBalance: user.walletBalance });
+});
 
 module.exports = {
   getUsers,
   getUserById,
-  getUserTransactions
+  getUserTransactions,
+  getUserWalletBalance
 };
