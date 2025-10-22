@@ -39,9 +39,9 @@ const MySearch = lazy(() => import('./pages/MySearch'))
 const EditForm = lazy(() => import('./components/UserInfo/EditForm'))
 const TransactionHistory = lazy(() => import('./pages/TransactionHistory'))
 const Notifications = lazy(() => import('./pages/Notifications'))
-const Chatbot = lazy(() => import('./chatbot'))
-const RaiseQuery = lazy(() => import('./RaiseQuery'))
-const MyQueries = lazy(() => import('./MyQueries'))
+const Chatbot = lazy(() => import('../src/chatbot'))
+const RaiseQuery = lazy(() => import('../src/Raisequery'))
+const MyQueries = lazy(() => import('../src/MyQueries'))
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
