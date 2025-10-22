@@ -25,11 +25,11 @@
     "advertise": "Advertise",
     "mine": "Mine",
     "mineDropdown": {
-      "news": "News",
-      "show": "Show",
+      "news": "Chat",
+      "show": "Profile",
       "settings": "Settings",
       "watchlist": "Watchlist",
-      "users": "Users",
+      "users": "Following",
       "searchRequest": "Search Request"
     },
     "filterListings": "Filter Listings",

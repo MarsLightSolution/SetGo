@@ -75,7 +75,7 @@ function App() {
             <Route path='/watchlist' element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
             <Route path='/product/:id' element={<ProductDetail />} />
             <Route path='products/product/:id' element={<ProductDetail />} />
-            <Route path="/chat" element={<ChatApp />} />
+            <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
             <Route path='/userinfo' element={<UserInfo />} />
             <Route path='/userpage' element={<UserPage />} />
             <Route path='/mysearch' element={<MySearch />} />
@@ -86,7 +86,7 @@ function App() {
             <Route path="/orders" element={<MyOrders />} />
             <Route path="/order/:id" element={<OrderDetail />} />
             <Route path="/seller" element={<SellerAdminDashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard/></ProtectedRoute>} />
             <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/raise-query" element={<RaiseQuery />} />
         <Route path="/my-queries" element={<MyQueries />} />
