@@ -10,42 +10,44 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Modal,
   Alert,
   Dimensions,
   SafeAreaView,
   StatusBar,
   Animated,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import io from 'socket.io-client';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 
-// ⚠️ UPDATE THESE URLs TO MATCH YOUR BACKEND
 const API_BASE = `${process.env.EXPO_PUBLIC_API_URL}/api/chat`;
-const SOCKET_URL = "http://51.20.123.49:8080";
+const SOCKET_URL = "wss://tiwari.shop";
 const SERVER_BASE = process.env.EXPO_PUBLIC_API_URL || "http://51.20.123.49:8080";
 
 const theme = {
   background: '#FFFFFF',
-  secondaryBg: '#F7F9F7',
+  secondaryBg: '#F0F2F5',
+  chatListBg: '#FFFFFF',
   primary: '#25D366',
-  secondary: '#128C7E',
-  text: '#000000',
+  primaryDark: '#128C7E',
+  primaryLight: '#DCF8C6',
+  text: '#111B21',
   secondaryText: '#667781',
+  tertiaryText: '#8696A0',
   border: '#E9EDEF',
-  messageBubbleMine: '#DCF8C6',
+  messageBubbleMine: '#D9FDD3',
   messageBubbleOther: '#FFFFFF',
-  messageTextMine: '#000000',
-  messageTextOther: '#000000',
+  inputBg: '#FFFFFF',
   online: '#25D366',
-  inputBg: '#F0F2F5',
-  shadow: 'rgba(0, 0, 0, 0.08)',
-  overlay: 'rgba(0, 0, 0, 0.4)',
+  offline: '#8696A0',
+  headerBg: '#F0F2F5',
+  shadow: '#00000015',
+  divider: '#E9EDEF',
 };
 
 export default function ChatApp() {
@@ -60,13 +62,13 @@ export default function ChatApp() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   const flatListRef = useRef(null);
   const socketRef = useRef(null);
-  const slideAnim = useRef(new Animated.Value(-width * 0.85)).current;
   const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
@@ -82,7 +84,6 @@ export default function ChatApp() {
 
   const autoConnect = async () => {
     try {
-      // Try to get username from either 'userName' or 'user' key
       let storedUsername = await AsyncStorage.getItem('userName');
       
       if (!storedUsername) {
@@ -129,7 +130,6 @@ export default function ChatApp() {
         
         if (msg.conversationId === activeConversation?._id) {
           setMessages((prev) => {
-            // Prevent duplicate messages
             const exists = prev.some(m => m.id === msg._id);
             if (exists) return prev;
 
@@ -185,20 +185,27 @@ export default function ChatApp() {
   }, [messages]);
 
   useEffect(() => {
-    Animated.timing(slideAnim, {
-      toValue: sidebarOpen ? 0 : -width * 0.85,
-      duration: 280,
-      useNativeDriver: true,
-    }).start();
-  }, [sidebarOpen]);
-
-  // Join conversation room when active conversation changes
-  useEffect(() => {
     if (activeConversation && socketRef.current?.connected) {
       socketRef.current.emit('joinConversation', activeConversation._id);
       console.log('📍 Joined conversation:', activeConversation._id);
     }
   }, [activeConversation]);
+
+  // Keyboard handling for chat scroll
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+    };
+  }, []);
 
   const connectUser = async (username) => {
     if (!username?.trim()) return;
@@ -217,11 +224,8 @@ export default function ChatApp() {
         setCurrentUser(data.user);
         setIsConnected(true);
         
-        // Store in AsyncStorage matching your format
         await AsyncStorage.setItem('userId', data.user.userId);
         await AsyncStorage.setItem('userName', username);
-        
-        // Also store as JSON object for compatibility
         await AsyncStorage.setItem('user', JSON.stringify({
           userName: username,
           userId: data.user.userId
@@ -257,11 +261,14 @@ export default function ChatApp() {
       if (data.success) setConversations(data.conversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
+    } finally {
+      setIsLoadingChats(false);
     }
   };
 
   const startConversation = async (otherUser) => {
     if (!currentUser) return;
+    setIsLoadingMessages(true);
     try {
       const response = await fetch(`${API_BASE}/conversations`, {
         method: 'POST',
@@ -273,15 +280,15 @@ export default function ChatApp() {
         setActiveConversation(data.conversation);
         setInitialLoad(true);
         await loadMessages(data.conversation._id);
-        setSidebarOpen(false);
         
-        // Join the conversation room
         if (socketRef.current?.connected) {
           socketRef.current.emit('joinConversation', data.conversation._id);
         }
       }
     } catch (error) {
       console.error('Error creating conversation:', error);
+    } finally {
+      setIsLoadingMessages(false);
     }
   };
 
@@ -363,17 +370,14 @@ export default function ChatApp() {
       const asset = result.assets[0];
       const uri = asset.uri;
       
-      // Create proper filename
       const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
       
-      // Determine MIME type
       let mimeType = 'image/jpeg';
       const extension = filename.toLowerCase().split('.').pop();
       if (extension === 'png') mimeType = 'image/png';
       else if (extension === 'gif') mimeType = 'image/gif';
       else if (extension === 'webp') mimeType = 'image/webp';
 
-      // Create FormData
       const formData = new FormData();
       
       formData.append('file', {
@@ -385,8 +389,6 @@ export default function ChatApp() {
       formData.append('conversationId', activeConversation._id);
       formData.append('senderId', currentUser.userId);
 
-      console.log('📤 Uploading image:', { filename, mimeType });
-
       const response = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         body: formData,
@@ -396,8 +398,6 @@ export default function ChatApp() {
       });
 
       const responseText = await response.text();
-      console.log('📥 Upload response:', responseText);
-
       let data;
       try {
         data = JSON.parse(responseText);
@@ -406,9 +406,6 @@ export default function ChatApp() {
       }
 
       if (data.success) {
-        console.log('✅ Upload successful');
-        
-        // Emit via socket
         if (socketRef.current?.connected) {
           socketRef.current.emit('sendMessage', {
             conversationId: activeConversation._id,
@@ -437,18 +434,20 @@ export default function ChatApp() {
       item.sender === 'me' ? styles.myMessage : styles.otherMessage
     ]}>
       {item.sender === 'other' && (
-        <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-          <Text style={styles.avatarText}>
-            {item.senderName?.charAt(0)?.toUpperCase() || 'U'}
-          </Text>
+        <View style={styles.avatarContainer}>
+          <View style={[styles.messageAvatar, { backgroundColor: theme.primaryDark }]}>
+            <Text style={styles.avatarText}>
+              {item.senderName?.charAt(0)?.toUpperCase() || 'U'}
+            </Text>
+          </View>
         </View>
       )}
       
       <View style={[
         styles.messageBubble,
         item.sender === 'me' 
-          ? { backgroundColor: theme.messageBubbleMine }
-          : { backgroundColor: theme.messageBubbleOther }
+          ? styles.myMessageBubble
+          : styles.otherMessageBubble
       ]}>
         {item.messageType === 'image' && item.fileUrl ? (
           <Image
@@ -457,19 +456,13 @@ export default function ChatApp() {
             resizeMode="cover"
           />
         ) : (
-          <Text style={[
-            styles.messageText,
-            { color: item.sender === 'me' ? theme.messageTextMine : theme.messageTextOther }
-          ]}>
+          <Text style={[styles.messageText, { color: theme.text }]}>
             {item.text}
           </Text>
         )}
         <Text style={[
           styles.timestamp,
-          { color: item.sender === 'me' 
-            ? 'rgba(0,0,0,0.5)' 
-            : theme.secondaryText 
-          }
+          { color: item.sender === 'me' ? '#667781' : theme.tertiaryText }
         ]}>
           {item.timestamp}
         </Text>
@@ -477,7 +470,7 @@ export default function ChatApp() {
     </View>
   );
 
-  const renderUserItem = ({ item }) => {
+  const renderChatItem = ({ item }) => {
     const hasConversation = conversations.some((conv) =>
       conv.participants.some((p) => p.userId === item.userId)
     );
@@ -485,33 +478,32 @@ export default function ChatApp() {
 
     return (
       <TouchableOpacity
-        style={[styles.userItem, { borderBottomColor: theme.border }]}
+        style={styles.chatItem}
         onPress={() => startConversation(item)}
         activeOpacity={0.7}
       >
-        <View style={[styles.userAvatar, { backgroundColor: theme.primary }]}>
-          <Text style={styles.userAvatarText}>
-            {item.userName?.charAt(0)?.toUpperCase() || 'U'}
-          </Text>
+        <View style={styles.chatAvatarContainer}>
+          <View style={[styles.chatAvatar, { backgroundColor: theme.primaryDark }]}>
+            <Text style={styles.chatAvatarText}>
+              {item.userName?.charAt(0)?.toUpperCase() || 'U'}
+            </Text>
+          </View>
           <View style={[
-            styles.onlineIndicator,
-            { 
-              backgroundColor: item.isOnline ? theme.online : theme.secondaryText,
-              borderColor: theme.background 
-            }
+            styles.statusDot,
+            { backgroundColor: item.isOnline ? theme.online : theme.offline }
           ]} />
         </View>
         
-        <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: theme.text }]}>
+        <View style={styles.chatInfo}>
+          <Text style={styles.chatName} numberOfLines={1}>
             {item.userName}
           </Text>
-          <Text style={[styles.userStatus, { color: theme.secondaryText }]}>
+          <Text style={styles.chatStatus} numberOfLines={1}>
             {item.isOnline ? 'Online' : 'Offline'}
           </Text>
         </View>
-        
-        <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+
+        <Ionicons name="chevron-forward" size={20} color={theme.tertiaryText} />
       </TouchableOpacity>
     );
   };
@@ -519,10 +511,10 @@ export default function ChatApp() {
   if (!isConnected && isConnecting) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.secondaryText }]}>
+          <Text style={[styles.loadingText, { color: theme.text }]}>
             Connecting...
           </Text>
         </View>
@@ -532,177 +524,192 @@ export default function ChatApp() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.headerBg} />
       
-      <Modal
-        visible={sidebarOpen}
-        animationType="none"
-        transparent={true}
-        onRequestClose={() => setSidebarOpen(false)}
-      >
-        <TouchableOpacity 
-          style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}
-          activeOpacity={1}
-          onPress={() => setSidebarOpen(false)}
-        >
-          <Animated.View 
-            style={[
-              styles.sidebar, 
-              { 
-                backgroundColor: theme.background,
-                transform: [{ translateX: slideAnim }],
-                shadowColor: theme.shadow,
-              }
-            ]}
-          >
-            <View style={[styles.sidebarHeader, { borderBottomColor: theme.border }]}>
-              <View>
-                <Text style={[styles.sidebarTitle, { color: theme.primary }]}>
-                  ChatFlow
-                </Text>
-                <Text style={[styles.userLabel, { color: theme.secondaryText }]}>
-                  {currentUser?.userName}
-                </Text>
-              </View>
-              <TouchableOpacity 
-                onPress={() => setSidebarOpen(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={28} color={theme.text} />
-              </TouchableOpacity>
-            </View>
-            
-            <FlatList
-              data={allUsers.filter((user) => user.userId !== currentUser?.userId)}
-              renderItem={renderUserItem}
-              keyExtractor={(item) => item.userId}
-              contentContainerStyle={styles.userList}
-              showsVerticalScrollIndicator={false}
-            />
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
-
       <KeyboardAvoidingView
         style={styles.mainContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={[styles.header, { 
-          backgroundColor: theme.background,
-          borderBottomColor: theme.border,
-          shadowColor: theme.shadow,
-        }]}>
-          <TouchableOpacity 
-            onPress={() => setSidebarOpen(true)}
-            style={styles.menuButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="menu" size={26} color={theme.text} />
-          </TouchableOpacity>
-          
-          {activeConversation ? (
-            <View style={styles.headerUserInfo}>
-              <View style={[styles.headerAvatar, { backgroundColor: theme.primary }]}>
-                <Text style={styles.headerAvatarText}>
-                  {activeConversation.participants
-                    .find((p) => p.userId !== currentUser?.userId)
-                    ?.userName?.charAt(0)
-                    ?.toUpperCase() || 'U'}
-                </Text>
-              </View>
-              <View>
-                <Text style={[styles.headerUserName, { color: theme.text }]}>
-                  {activeConversation.participants
-                    .find((p) => p.userId !== currentUser?.userId)
-                    ?.userName || 'Unknown'}
-                </Text>
-                <Text style={[styles.headerUserStatus, { color: theme.online }]}>
-                  Online
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Messages</Text>
-          )}
-          
-          <View style={{ width: 40 }} />
-        </View>
-
-        {activeConversation ? (
+        {!activeConversation ? (
+          // CHAT LIST VIEW
           <>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              renderItem={renderMessage}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={[styles.messagesList, { backgroundColor: theme.secondaryBg }]}
-              onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-              showsVerticalScrollIndicator={false}
-            />
-
-            {isTyping && (
-              <View style={styles.typingIndicator}>
-                <View style={[styles.typingDot, { backgroundColor: theme.secondaryText }]} />
-                <View style={[styles.typingDot, { backgroundColor: theme.secondaryText, marginLeft: 4 }]} />
-                <View style={[styles.typingDot, { backgroundColor: theme.secondaryText, marginLeft: 4 }]} />
+            <View style={styles.appHeader}>
+              <View style={styles.headerLeft}>
+                <Text style={styles.appTitle}>Messages</Text>
               </View>
-            )}
-
-            <View style={[styles.inputContainer, { 
-              backgroundColor: theme.background,
-              borderTopColor: theme.border,
-            }]}>
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={handleImageUpload}
-                disabled={isUploading}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                {isUploading ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : (
-                  <Ionicons name="camera-outline" size={26} color={theme.primary} />
-                )}
-              </TouchableOpacity>
-
-              <View style={[styles.inputWrapper, { backgroundColor: theme.inputBg }]}>
-                <TextInput
-                  style={[styles.messageInput, { color: theme.text }]}
-                  placeholder="Message"
-                  placeholderTextColor={theme.secondaryText}
-                  value={newMessage}
-                  onChangeText={setNewMessage}
-                  multiline
-                />
+              <View style={styles.headerRight}>
+                <TouchableOpacity style={styles.headerIconButton}>
+                  <Ionicons name="search-outline" size={24} color={theme.text} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerIconButton}>
+                  <Ionicons name="create-outline" size={24} color={theme.text} />
+                </TouchableOpacity>
+                <View style={[styles.userAvatar, { backgroundColor: theme.primary }]}>
+                  <Text style={styles.userAvatarText}>
+                    {currentUser?.userName?.charAt(0)?.toUpperCase() || 'U'}
+                  </Text>
+                </View>
               </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  { backgroundColor: theme.primary },
-                  !newMessage.trim() && styles.sendButtonDisabled
-                ]}
-                onPress={handleSendMessage}
-                disabled={!newMessage.trim()}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="arrow-up" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
             </View>
+
+            <FlatList
+              data={allUsers.filter((user) => user.userId !== currentUser?.userId)}
+              renderItem={renderChatItem}
+              keyExtractor={(item) => item.userId}
+              contentContainerStyle={styles.chatListFull}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                isLoadingChats ? (
+                  <View style={styles.loadingChatsContainer}>
+                    <ActivityIndicator size="large" color={theme.primary} />
+                    <Text style={styles.loadingChatsText}>Loading chats...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.emptyListContainer}>
+                    <Ionicons name="chatbubbles-outline" size={80} color={theme.secondaryText} />
+                    <Text style={styles.emptyListTitle}>No Chats Yet</Text>
+                    <Text style={styles.emptyListText}>Start a conversation to see your chats here</Text>
+                  </View>
+                )
+              }
+            />
           </>
         ) : (
-          <View style={[styles.emptyState, { backgroundColor: theme.secondaryBg }]}>
-            <View style={[styles.emptyStateIcon, { backgroundColor: theme.inputBg }]}>
-              <Ionicons name="chatbubbles-outline" size={60} color={theme.primary} />
+          // CHAT VIEW
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.chatViewContainer}>
+              {/* Message Header */}
+              <View style={styles.messageHeader}>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => {
+                  setActiveConversation(null);
+                  setMessages([]);
+                  setIsLoadingMessages(false);
+                }}
+              >
+                <Ionicons name="arrow-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              
+              <View style={styles.messageHeaderInfo}>
+                <View style={[styles.headerChatAvatar, { backgroundColor: theme.primaryDark }]}>
+                  <Text style={styles.headerChatAvatarText}>
+                    {activeConversation.participants
+                      .find((p) => p.userId !== currentUser?.userId)
+                      ?.userName?.charAt(0)
+                      ?.toUpperCase() || 'U'}
+                  </Text>
+                </View>
+                <View style={styles.headerChatInfo}>
+                  <Text style={styles.messageHeaderName}>
+                    {activeConversation.participants
+                      .find((p) => p.userId !== currentUser?.userId)
+                      ?.userName || 'Unknown'}
+                  </Text>
+                  <Text style={styles.messageHeaderStatus}>
+                    Online
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.headerActions}>
+                <TouchableOpacity style={styles.headerIconButton}>
+                  <Ionicons name="videocam-outline" size={24} color={theme.text} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.headerIconButton}>
+                  <Ionicons name="call-outline" size={24} color={theme.text} />
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text style={[styles.emptyStateTitle, { color: theme.text }]}>
-              No Conversation Selected
-            </Text>
-            <Text style={[styles.emptyStateText, { color: theme.secondaryText }]}>
-              Choose a chat from the menu to start messaging
-            </Text>
-          </View>
+
+            {/* Messages List */}
+            <View style={styles.messagesContainer}>
+              {isLoadingMessages ? (
+                <View style={styles.loadingMessagesContainer}>
+                  <ActivityIndicator size="large" color={theme.primary} />
+                  <Text style={styles.loadingMessagesText}>Loading messages...</Text>
+                </View>
+              ) : (
+                <>
+                  <FlatList
+                    ref={flatListRef}
+                    data={messages}
+                    renderItem={renderMessage}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.messagesList}
+                    onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                    maintainVisibleContentPosition={{
+                      minIndexForVisible: 0,
+                    }}
+                  />
+
+                  {isTyping && (
+                    <View style={styles.typingContainer}>
+                      <View style={styles.typingBubble}>
+                        <View style={styles.typingDot} />
+                        <View style={[styles.typingDot, { marginLeft: 4 }]} />
+                        <View style={[styles.typingDot, { marginLeft: 4 }]} />
+                      </View>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+
+            {/* Input Area */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputRow}>
+                <TouchableOpacity
+                  style={styles.attachButton}
+                  onPress={handleImageUpload}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Ionicons name="add-circle" size={28} color={theme.primary} />
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.messageInput}
+                    placeholder="Type a message"
+                    placeholderTextColor={theme.tertiaryText}
+                    value={newMessage}
+                    onChangeText={setNewMessage}
+                    multiline
+                    maxLength={1000}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        flatListRef.current?.scrollToEnd({ animated: true });
+                      }, 300);
+                    }}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    !newMessage.trim() && styles.sendButtonDisabled
+                  ]}
+                  onPress={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                >
+                  <Ionicons 
+                    name={newMessage.trim() ? "send" : "mic"} 
+                    size={20} 
+                    color="#FFFFFF" 
+                  />
+                </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -719,144 +726,193 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: 20,
     fontSize: 16,
     fontWeight: '500',
-  },
-  modalOverlay: {
-    flex: 1,
-  },
-  sidebar: {
-    width: width * 0.85,
-    height: '100%',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  sidebarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  sidebarTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  userLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  userList: {
-    paddingTop: 8,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  userAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  userAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '600',
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 3,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: 3,
-  },
-  userStatus: {
-    fontSize: 14,
-    fontWeight: '400',
   },
   mainContainer: {
     flex: 1,
   },
-  header: {
+  appHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: theme.headerBg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  appTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: theme.text,
+    letterSpacing: -0.5,
+  },
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 16,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  chatListFull: {
+    flexGrow: 1,
+  },
+  chatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: theme.chatListBg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  chatAvatarContainer: {
+    position: 'relative',
+    marginRight: 14,
+  },
+  chatAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '600',
+  },
+  statusDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: theme.chatListBg,
+  },
+  chatInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  chatName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: theme.text,
+    marginBottom: 3,
+  },
+  chatStatus: {
+    fontSize: 14,
+    color: theme.secondaryText,
+  },
+  chatViewContainer: {
+    flex: 1,
+    backgroundColor: theme.background,
+  },
+  messageArea: {
+    flex: 1,
+    backgroundColor: theme.background,
+  },
+  messageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: theme.headerBg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
   },
-  menuButton: {
-    padding: 4,
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  headerUserInfo: {
+  messageHeaderInfo: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginLeft: 12,
   },
-  headerAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  headerChatAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  headerAvatarText: {
+  headerChatAvatarText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
-  headerUserName: {
+  headerChatInfo: {
+    flex: 1,
+  },
+  messageHeaderName: {
     fontSize: 17,
     fontWeight: '600',
+    color: theme.text,
     marginBottom: 2,
   },
-  headerUserStatus: {
+  messageHeaderStatus: {
     fontSize: 13,
+    color: theme.online,
     fontWeight: '500',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  messagesContainer: {
+    flex: 1,
+    backgroundColor: theme.secondaryBg,
+  },
+  loadingMessagesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingMessagesText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.secondaryText,
+    marginTop: 16,
   },
   messagesList: {
     padding: 16,
-    paddingBottom: 8,
+    paddingBottom: 20,
+    flexGrow: 1,
   },
   messageContainer: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 8,
     alignItems: 'flex-end',
   },
   myMessage: {
@@ -865,114 +921,157 @@ const styles = StyleSheet.create({
   otherMessage: {
     justifyContent: 'flex-start',
   },
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+  avatarContainer: {
     marginRight: 8,
     marginBottom: 2,
   },
+  messageAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   messageBubble: {
     maxWidth: '75%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  myMessageBubble: {
+    backgroundColor: theme.messageBubbleMine,
+    borderTopRightRadius: 2,
+  },
+  otherMessageBubble: {
+    backgroundColor: theme.messageBubbleOther,
+    borderTopLeftRadius: 2,
+    shadowColor: theme.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   messageText: {
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '400',
   },
   messageImage: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-    marginBottom: 6,
+    width: 240,
+    height: 240,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   timestamp: {
     fontSize: 11,
     marginTop: 4,
     fontWeight: '400',
   },
-  typingIndicator: {
+  typingContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  typingBubble: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    alignItems: 'center',
+    backgroundColor: theme.messageBubbleOther,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    shadowColor: theme.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   typingDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: theme.tertiaryText,
   },
   inputContainer: {
+    backgroundColor: theme.inputBg,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  iconButton: {
-    width: 36,
-    height: 36,
+  attachButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginRight: 4,
   },
   inputWrapper: {
     flex: 1,
+    backgroundColor: theme.secondaryBg,
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginHorizontal: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginRight: 8,
     maxHeight: 100,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   messageInput: {
-    fontSize: 16,
+    fontSize: 15,
+    color: theme.text,
     lineHeight: 20,
-    fontWeight: '400',
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: theme.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 0,
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
-  emptyState: {
+  loadingChatsContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingVertical: 100,
   },
-  emptyStateIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  loadingChatsText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.secondaryText,
+    marginTop: 16,
+  },
+  emptyListContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    paddingVertical: 100,
+    paddingHorizontal: 40,
   },
-  emptyStateTitle: {
-    fontSize: 24,
+  emptyListTitle: {
+    fontSize: 22,
     fontWeight: '700',
-    marginBottom: 12,
-    letterSpacing: -0.5,
+    color: theme.text,
+    marginTop: 20,
+    marginBottom: 8,
   },
-  emptyStateText: {
-    fontSize: 16,
+  emptyListText: {
+    fontSize: 15,
+    color: theme.secondaryText,
     textAlign: 'center',
     lineHeight: 22,
-    fontWeight: '400',
   },
 });

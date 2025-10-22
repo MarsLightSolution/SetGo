@@ -78,7 +78,6 @@ login: async (email, password) => {
           user: userData.data || user,
           loading: false,
         });
-
         return { success: true, message: 'Login successful!' };
       } else {
         console.warn('Failed to fetch user details:', userData.message || userData.error);

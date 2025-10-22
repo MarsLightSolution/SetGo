@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * COMPLETE MOBILE SETTINGS APP - MATCHES WEB VERSION
+ * COMPLETE MOBILE SETTINGS APP - IMPROVED UI/UX VERSION
  * 
  * SETUP INSTRUCTIONS:
  * 
@@ -781,14 +781,13 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "100%",
+    height: "85%",
   },
   modal: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    minHeight: "50%",
-    maxHeight: "90%",
-    overflow: "hidden",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.2,
@@ -799,35 +798,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#fff",
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: "#1F2937",
+    flex: 1,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalContent: {
-    padding: 24,
-    maxHeight: 500,
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   modalDesc: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#6B7280",
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: 20,
+    lineHeight: 20,
   },
   modalFooter: {
     flexDirection: "row",
     gap: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    backgroundColor: "#F9FAFB",
+    borderTopColor: "#E5E7EB",
+    backgroundColor: "#fff",
   },
 
   // Info Box
@@ -835,10 +845,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "#EFF6FF",
-    padding: 14,
-    borderRadius: 12,
-    gap: 12,
-    marginBottom: 16,
+    padding: 12,
+    borderRadius: 10,
+    gap: 10,
+    marginBottom: 20,
     borderLeftWidth: 3,
     borderLeftColor: "#3B82F6",
   },
@@ -851,13 +861,13 @@ const styles = StyleSheet.create({
 
   // Input
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: "600",
     color: "#374151",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: "row",
@@ -865,7 +875,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     borderRadius: 12,
     borderWidth: 2,
+    borderColor: "#E5E7EB",
     paddingHorizontal: 14,
+    minHeight: 50,
   },
   inputDisabled: {
     opacity: 0.6,
@@ -901,37 +913,39 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#10B981",
     paddingHorizontal: 14,
-    paddingVertical: 18,
-    fontSize: 28,
+    paddingVertical: 16,
+    fontSize: 24,
     fontWeight: "700",
     color: "#1F2937",
     textAlign: "center",
-    letterSpacing: 12,
+    letterSpacing: 8,
     marginBottom: 16,
   },
 
   resendBtn: {
     alignSelf: "center",
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
   },
   resendText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#10B981",
   },
 
   // Country Code Input
   countryCodeInput: {
-    width: 80,
+    width: 75,
     backgroundColor: "#F9FAFB",
     borderRadius: 12,
     borderWidth: 2,
     borderColor: "#E5E7EB",
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 14,
     fontSize: 15,
     color: "#1F2937",
     textAlign: "center",
+    fontWeight: "600",
   },
 
   // Button
@@ -939,7 +953,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 12,
     gap: 8,
     shadowColor: "#000",
@@ -947,34 +962,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    minHeight: 48,
   },
   buttonPrimary: {
     backgroundColor: "#10B981",
     shadowColor: "#10B981",
+    shadowOpacity: 0.3,
   },
   buttonSecondary: {
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "600",
   },
   buttonTextPrimary: {
     color: "#fff",
   },
   buttonTextSecondary: {
-    color: "#374151",
+    color: "#1F2937",
   },
 
   // Modal Button
   modalButton: {
     flex: 1,
-    minWidth: 120,
   },
 
   // Loading State
@@ -1041,13 +1057,15 @@ const styles = StyleSheet.create({
   addAddressButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center",
+    gap: 10,
     backgroundColor: "#ECFDF5",
     padding: 16,
     borderRadius: 12,
-    marginTop: 12,
+    marginTop: 8,
+    marginBottom: 16,
     borderWidth: 2,
-    borderColor: "#D1FAE5",
+    borderColor: "#10B981",
     borderStyle: "dashed",
   },
   addAddressText: {
@@ -1059,15 +1077,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     padding: 16,
     borderRadius: 12,
-    marginTop: 16,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
   currentAddressLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     color: "#6B7280",
     marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   currentAddressText: {
     fontSize: 14,
@@ -2149,522 +2169,582 @@ export default function EnhancedSettingsApp() {
   // Username Modal
   const renderUsernameModal = () => (
     <Modal visible={modalOpen === "username"} animationType="slide" transparent>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <Pressable style={styles.backdrop} onPress={() => {
-          setModalOpen(null)
-          setTempUsername("")
-        }}>
-          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setTempUsername("")
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Change Username</Text>
-                <TouchableOpacity onPress={() => {
-                  setModalOpen(null)
-                  setTempUsername("")
-                }}>
-                  <Feather name="x" size={24} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Change Username</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setModalOpen(null)
+                      setTempUsername("")
+                    }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
 
-              <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-                <AnimatedInput
-                  label="Username"
-                  value={tempUsername}
-                  onChangeText={(val) => setTempUsername(val)}
-                  icon="user"
-                  placeholder="Enter your username"
-                />
-              </ScrollView>
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <AnimatedInput
+                    label="Username"
+                    value={tempUsername}
+                    onChangeText={(val) => setTempUsername(val)}
+                    icon="user"
+                    placeholder="Enter your username"
+                  />
+                </ScrollView>
 
-              <View style={styles.modalFooter}>
-                <AnimatedButton
-                  title="Cancel"
-                  onPress={() => {
-                    setModalOpen(null)
-                    setTempUsername("")
-                  }}
-                  variant="secondary"
-                  style={styles.modalButton}
-                />
-                <AnimatedButton
-                  title="Save"
-                  onPress={handleUsernameUpdate}
-                  loading={loading}
-                  style={styles.modalButton}
-                />
-              </View>
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => {
+                      setModalOpen(null)
+                      setTempUsername("")
+                    }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Save"
+                    onPress={handleUsernameUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
             </View>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </View>
+      </Pressable>
     </Modal>
   )
 
   // Email Modal
   const renderEmailModal = () => (
     <Modal visible={modalOpen === "email"} animationType="slide" transparent>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <Pressable style={styles.backdrop} onPress={() => {
-          setModalOpen(null)
-          setFormData({ ...formData, newEmail: "", emailPassword: "" })
-        }}>
-          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setFormData({ ...formData, newEmail: "", emailPassword: "" })
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Change Email</Text>
-                <TouchableOpacity onPress={() => {
-                  setModalOpen(null)
-                  setFormData({ ...formData, newEmail: "", emailPassword: "" })
-                }}>
-                  <Feather name="x" size={24} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-                <View style={styles.infoBox}>
-                  <Feather name="info" size={18} color="#3B82F6" />
-                  <Text style={styles.infoText}>
-                    Verification emails will be sent to both addresses
-                  </Text>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Change Email</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, newEmail: "", emailPassword: "" })
+                    }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
-                <AnimatedInput
-                  label="Current Email"
-                  value={formData.currentEmail}
-                  onChangeText={() => {}}
-                  icon="mail"
-                  editable={false}
-                />
-                <AnimatedInput
-                  label="New Email"
-                  value={formData.newEmail}
-                  onChangeText={(val) => setFormData({ ...formData, newEmail: val })}
-                  icon="mail"
-                  placeholder="new@email.com"
-                />
-                <AnimatedInput
-                  label="Password"
-                  value={formData.emailPassword}
-                  onChangeText={(val) => setFormData({ ...formData, emailPassword: val })}
-                  icon="lock"
-                  secureTextEntry
-                  placeholder="Enter your password"
-                />
-              </ScrollView>
 
-              <View style={styles.modalFooter}>
-                <AnimatedButton
-                  title="Cancel"
-                  onPress={() => {
-                    setModalOpen(null)
-                    setFormData({ ...formData, newEmail: "", emailPassword: "" })
-                  }}
-                  variant="secondary"
-                  style={styles.modalButton}
-                />
-                <AnimatedButton
-                  title="Update Email"
-                  onPress={handleEmailUpdate}
-                  loading={loading}
-                  style={styles.modalButton}
-                />
-              </View>
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <View style={styles.infoBox}>
+                    <Feather name="info" size={18} color="#3B82F6" />
+                    <Text style={styles.infoText}>
+                      Verification emails will be sent to both addresses
+                    </Text>
+                  </View>
+                  <AnimatedInput
+                    label="Current Email"
+                    value={formData.currentEmail}
+                    onChangeText={() => {}}
+                    icon="mail"
+                    editable={false}
+                  />
+                  <AnimatedInput
+                    label="New Email"
+                    value={formData.newEmail}
+                    onChangeText={(val) => setFormData({ ...formData, newEmail: val })}
+                    icon="mail"
+                    placeholder="new@email.com"
+                  />
+                  <AnimatedInput
+                    label="Password"
+                    value={formData.emailPassword}
+                    onChangeText={(val) => setFormData({ ...formData, emailPassword: val })}
+                    icon="lock"
+                    secureTextEntry
+                    placeholder="Enter your password"
+                  />
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, newEmail: "", emailPassword: "" })
+                    }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Update Email"
+                    onPress={handleEmailUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
             </View>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </View>
+      </Pressable>
     </Modal>
   )
 
   // Address Modal
   const renderAddressModal = () => (
     <Modal visible={modalOpen === "address"} animationType="slide" transparent>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <Pressable style={styles.backdrop} onPress={() => {
-          setModalOpen(null)
-          setAddressStep(1)
-        }}>
-          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setAddressStep(1)
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {addressStep === 1 ? "Delivery Address" : "Enter Address"}
-                </Text>
-                <TouchableOpacity onPress={() => {
-                  setModalOpen(null)
-                  setAddressStep(1)
-                }}>
-                  <Feather name="x" size={24} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-                {addressStep === 1 ? (
-                  <>
-                    <Text style={styles.modalDesc}>
-                      Manage your saved delivery address here.
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setAddressStep(2)}
-                      style={styles.addAddressButton}
-                      activeOpacity={0.7}
-                    >
-                      <Feather name="plus-circle" size={20} color="#10B981" />
-                      <Text style={styles.addAddressText}>
-                        {formData.deliveryAddress.street ? "Edit address" : "Add address"}
-                      </Text>
-                    </TouchableOpacity>
-                    
-                    {formData.deliveryAddress.street && (
-                      <View style={styles.currentAddressBox}>
-                        <Text style={styles.currentAddressLabel}>Current Address:</Text>
-                        <Text style={styles.currentAddressText}>
-                          {`${formData.deliveryAddress.firstName} ${formData.deliveryAddress.lastName}${formData.deliveryAddress.suffix ? ', ' + formData.deliveryAddress.suffix : ''}, ${formData.deliveryAddress.street} ${formData.deliveryAddress.houseNumber}, ${formData.deliveryAddress.postalCode}, ${formData.deliveryAddress.location}`}
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <AnimatedInput
-                      label="First Name*"
-                      value={formData.deliveryAddress.firstName}
-                      onChangeText={(val) => setFormData({
-                        ...formData,
-                        deliveryAddress: { ...formData.deliveryAddress, firstName: val }
-                      })}
-                      icon="user"
-                      placeholder="First name"
-                    />
-                    <AnimatedInput
-                      label="Last Name*"
-                      value={formData.deliveryAddress.lastName}
-                      onChangeText={(val) => setFormData({
-                        ...formData,
-                        deliveryAddress: { ...formData.deliveryAddress, lastName: val }
-                      })}
-                      icon="user"
-                      placeholder="Last name"
-                    />
-                    <AnimatedInput
-                      label="Address Suffix (Optional)"
-                      value={formData.deliveryAddress.suffix}
-                      onChangeText={(val) => setFormData({
-                        ...formData,
-                        deliveryAddress: { ...formData.deliveryAddress, suffix: val }
-                      })}
-                      icon="tag"
-                      placeholder="Apt, Suite, etc."
-                    />
-                    <View style={{ flexDirection: "row", gap: 12 }}>
-                      <View style={{ flex: 2 }}>
-                        <AnimatedInput
-                          label="Street*"
-                          value={formData.deliveryAddress.street}
-                          onChangeText={(val) => setFormData({
-                            ...formData,
-                            deliveryAddress: { ...formData.deliveryAddress, street: val }
-                          })}
-                          icon="map-pin"
-                          placeholder="Street name"
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <AnimatedInput
-                          label="No.*"
-                          value={formData.deliveryAddress.houseNumber}
-                          onChangeText={(val) => setFormData({
-                            ...formData,
-                            deliveryAddress: { ...formData.deliveryAddress, houseNumber: val }
-                          })}
-                          icon="hash"
-                          placeholder="123"
-                        />
-                      </View>
-                    </View>
-                    <View style={{ flexDirection: "row", gap: 12 }}>
-                      <View style={{ flex: 1 }}>
-                        <AnimatedInput
-                          label="Postal Code*"
-                          value={formData.deliveryAddress.postalCode}
-                          onChangeText={(val) => setFormData({
-                            ...formData,
-                            deliveryAddress: { ...formData.deliveryAddress, postalCode: val }
-                          })}
-                          icon="mail"
-                          placeholder="12345"
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <AnimatedInput
-                          label="Location*"
-                          value={formData.deliveryAddress.location}
-                          onChangeText={(val) => setFormData({
-                            ...formData,
-                            deliveryAddress: { ...formData.deliveryAddress, location: val }
-                          })}
-                          icon="home"
-                          placeholder="City"
-                        />
-                      </View>
-                    </View>
-                  </>
-                )}
-              </ScrollView>
-
-              <View style={styles.modalFooter}>
-                {addressStep === 1 ? (
-                  <AnimatedButton
-                    title="Ready"
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {addressStep === 1 ? "Delivery Address" : "Enter Address"}
+                  </Text>
+                  <TouchableOpacity 
                     onPress={() => {
                       setModalOpen(null)
                       setAddressStep(1)
                     }}
-                    style={{ flex: 1 }}
-                  />
-                ) : (
-                  <>
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {addressStep === 1 ? (
+                    <>
+                      <Text style={styles.modalDesc}>
+                        Manage your saved delivery address here.
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setAddressStep(2)}
+                        style={styles.addAddressButton}
+                        activeOpacity={0.7}
+                      >
+                        <Feather name="plus-circle" size={20} color="#10B981" />
+                        <Text style={styles.addAddressText}>
+                          {formData.deliveryAddress.street ? "Edit address" : "Add address"}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {formData.deliveryAddress.street && (
+                        <View style={styles.currentAddressBox}>
+                          <Text style={styles.currentAddressLabel}>Current Address:</Text>
+                          <Text style={styles.currentAddressText}>
+                            {`${formData.deliveryAddress.firstName} ${formData.deliveryAddress.lastName}${formData.deliveryAddress.suffix ? ', ' + formData.deliveryAddress.suffix : ''}, ${formData.deliveryAddress.street} ${formData.deliveryAddress.houseNumber}, ${formData.deliveryAddress.postalCode}, ${formData.deliveryAddress.location}`}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <AnimatedInput
+                        label="First Name*"
+                        value={formData.deliveryAddress.firstName}
+                        onChangeText={(val) => setFormData({
+                          ...formData,
+                          deliveryAddress: { ...formData.deliveryAddress, firstName: val }
+                        })}
+                        icon="user"
+                        placeholder="First name"
+                      />
+                      <AnimatedInput
+                        label="Last Name*"
+                        value={formData.deliveryAddress.lastName}
+                        onChangeText={(val) => setFormData({
+                          ...formData,
+                          deliveryAddress: { ...formData.deliveryAddress, lastName: val }
+                        })}
+                        icon="user"
+                        placeholder="Last name"
+                      />
+                      <AnimatedInput
+                        label="Address Suffix (Optional)"
+                        value={formData.deliveryAddress.suffix}
+                        onChangeText={(val) => setFormData({
+                          ...formData,
+                          deliveryAddress: { ...formData.deliveryAddress, suffix: val }
+                        })}
+                        icon="tag"
+                        placeholder="Apt, Suite, etc."
+                      />
+                      <View style={{ flexDirection: "row", gap: 12 }}>
+                        <View style={{ flex: 2 }}>
+                          <AnimatedInput
+                            label="Street*"
+                            value={formData.deliveryAddress.street}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, street: val }
+                            })}
+                            icon="map-pin"
+                            placeholder="Street name"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            label="No.*"
+                            value={formData.deliveryAddress.houseNumber}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, houseNumber: val }
+                            })}
+                            icon="hash"
+                            placeholder="123"
+                          />
+                        </View>
+                      </View>
+                      <View style={{ flexDirection: "row", gap: 12 }}>
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            label="Postal Code*"
+                            value={formData.deliveryAddress.postalCode}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, postalCode: val }
+                            })}
+                            icon="mail"
+                            placeholder="12345"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            label="Location*"
+                            value={formData.deliveryAddress.location}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, location: val }
+                            })}
+                            icon="home"
+                            placeholder="City"
+                          />
+                        </View>
+                      </View>
+                    </>
+                  )}
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  {addressStep === 1 ? (
                     <AnimatedButton
-                      title="Cancel"
-                      onPress={() => setAddressStep(1)}
-                      variant="secondary"
-                      style={styles.modalButton}
+                      title="Close"
+                      onPress={() => {
+                        setModalOpen(null)
+                        setAddressStep(1)
+                      }}
+                      style={{ flex: 1 }}
                     />
-                    <AnimatedButton
-                      title="Save"
-                      onPress={handleAddressUpdate}
-                      loading={loading}
-                      style={styles.modalButton}
-                    />
-                  </>
-                )}
-              </View>
+                  ) : (
+                    <>
+                      <AnimatedButton
+                        title="Back"
+                        onPress={() => setAddressStep(1)}
+                        variant="secondary"
+                        style={styles.modalButton}
+                      />
+                      <AnimatedButton
+                        title="Save"
+                        onPress={handleAddressUpdate}
+                        loading={loading}
+                        style={styles.modalButton}
+                      />
+                    </>
+                  )}
+                </View>
+              </KeyboardAvoidingView>
             </View>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </View>
+      </Pressable>
     </Modal>
   )
 
   // Phone Modal
   const renderPhoneModal = () => (
     <Modal visible={modalOpen === "phone"} animationType="slide" transparent>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <Pressable style={styles.backdrop} onPress={() => { setModalOpen(null); setPhoneStep(1); }}>
-          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
+      <Pressable style={styles.backdrop} onPress={() => { setModalOpen(null); setPhoneStep(1); }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{phoneStep === 1 ? "Verify Phone" : "Enter OTP"}</Text>
-                <TouchableOpacity onPress={() => { setModalOpen(null); setPhoneStep(1); }}>
-                  <Feather name="x" size={24} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{phoneStep === 1 ? "Verify Phone" : "Enter OTP"}</Text>
+                  <TouchableOpacity 
+                    onPress={() => { setModalOpen(null); setPhoneStep(1); }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
 
-              <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-                {phoneStep === 1 ? (
-                  <>
-                    <Text style={styles.modalDesc}>We'll send a verification code to your phone</Text>
-                    <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
-                      <TextInput
-                        style={styles.countryCodeInput}
-                        value={formData.countryCode}
-                        onChangeText={(val) => setFormData({ ...formData, countryCode: val })}
-                        placeholder="+91"
-                      />
-                      <View style={{ flex: 1 }}>
-                        <AnimatedInput
-                          value={formData.phoneNumber}
-                          onChangeText={(val) => setFormData({ ...formData, phoneNumber: val })}
-                          icon="smartphone"
-                          placeholder="1234567890"
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {phoneStep === 1 ? (
+                    <>
+                      <Text style={styles.modalDesc}>We'll send a verification code to your phone</Text>
+                      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+                        <TextInput
+                          style={styles.countryCodeInput}
+                          value={formData.countryCode}
+                          onChangeText={(val) => setFormData({ ...formData, countryCode: val })}
+                          placeholder="+91"
                         />
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            value={formData.phoneNumber}
+                            onChangeText={(val) => setFormData({ ...formData, phoneNumber: val })}
+                            icon="smartphone"
+                            placeholder="1234567890"
+                          />
+                        </View>
                       </View>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.modalDesc}>
-                      Enter the 6-digit code sent to {formData.countryCode} {formData.phoneNumber}
-                    </Text>
-                    <TextInput
-                      style={styles.otpInput}
-                      value={formData.otp}
-                      onChangeText={(val) => setFormData({ ...formData, otp: val })}
-                      placeholder="000000"
-                      placeholderTextColor="#D1D5DB"
-                      keyboardType="number-pad"
-                      maxLength={6}
-                    />
-                    <TouchableOpacity style={styles.resendBtn} onPress={handleSendOTP}>
-                      <Text style={styles.resendText}>Resend Code</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </ScrollView>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.modalDesc}>
+                        Enter the 6-digit code sent to {formData.countryCode} {formData.phoneNumber}
+                      </Text>
+                      <TextInput
+                        style={styles.otpInput}
+                        value={formData.otp}
+                        onChangeText={(val) => setFormData({ ...formData, otp: val })}
+                        placeholder="000000"
+                        placeholderTextColor="#D1D5DB"
+                        keyboardType="number-pad"
+                        maxLength={6}
+                      />
+                      <TouchableOpacity style={styles.resendBtn} onPress={handleSendOTP}>
+                        <Text style={styles.resendText}>Resend Code</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </ScrollView>
 
-              <View style={styles.modalFooter}>
-                <AnimatedButton
-                  title="Cancel"
-                  onPress={() => { setModalOpen(null); setPhoneStep(1); }}
-                  variant="secondary"
-                  style={styles.modalButton}
-                />
-                <AnimatedButton
-                  title={phoneStep === 1 ? "Send Code" : "Verify"}
-                  onPress={phoneStep === 1 ? handleSendOTP : handleVerifyOTP}
-                  loading={loading}
-                  style={styles.modalButton}
-                />
-              </View>
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => { setModalOpen(null); setPhoneStep(1); }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title={phoneStep === 1 ? "Send Code" : "Verify"}
+                    onPress={phoneStep === 1 ? handleSendOTP : handleVerifyOTP}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
             </View>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </View>
+      </Pressable>
     </Modal>
   )
 
   // Billing Address Modal
   const renderBillingModal = () => (
     <Modal visible={modalOpen === "billing"} animationType="slide" transparent>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <Pressable style={styles.backdrop} onPress={() => setModalOpen(null)}>
-          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
+      <Pressable style={styles.backdrop} onPress={() => setModalOpen(null)}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Billing Address</Text>
-                <TouchableOpacity onPress={() => setModalOpen(null)}>
-                  <Feather name="x" size={24} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-                <AnimatedInput
-                  label="Billing Address"
-                  value={formData.billingAddress}
-                  onChangeText={(val) => setFormData({ ...formData, billingAddress: val })}
-                  icon="map-pin"
-                  placeholder="Enter complete billing address"
-                />
-                <View style={styles.infoBox}>
-                  <Feather name="info" size={18} color="#3B82F6" />
-                  <Text style={styles.infoText}>
-                    This address will be used for billing and invoicing purposes
-                  </Text>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Billing Address</Text>
+                  <TouchableOpacity 
+                    onPress={() => setModalOpen(null)}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
-              </ScrollView>
 
-              <View style={styles.modalFooter}>
-                <AnimatedButton
-                  title="Cancel"
-                  onPress={() => setModalOpen(null)}
-                  variant="secondary"
-                  style={styles.modalButton}
-                />
-                <AnimatedButton
-                  title="Save Address"
-                  onPress={handleBillingUpdate}
-                  loading={loading}
-                  style={styles.modalButton}
-                />
-              </View>
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <AnimatedInput
+                    label="Billing Address"
+                    value={formData.billingAddress}
+                    onChangeText={(val) => setFormData({ ...formData, billingAddress: val })}
+                    icon="map-pin"
+                    placeholder="Enter complete billing address"
+                  />
+                  <View style={styles.infoBox}>
+                    <Feather name="info" size={18} color="#3B82F6" />
+                    <Text style={styles.infoText}>
+                      This address will be used for billing and invoicing purposes
+                    </Text>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => setModalOpen(null)}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Save Address"
+                    onPress={handleBillingUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
             </View>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </View>
+      </Pressable>
     </Modal>
   )
 
   // Password Modal
   const renderPasswordModal = () => (
     <Modal visible={modalOpen === "password"} animationType="slide" transparent>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <Pressable style={styles.backdrop} onPress={() => {
-          setModalOpen(null)
-          setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
-        }}>
-          <Pressable onPress={(e) => e.stopPropagation()} style={styles.modalContainer}>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.modal}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Change Password</Text>
-                <TouchableOpacity onPress={() => {
-                  setModalOpen(null)
-                  setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
-                }}>
-                  <Feather name="x" size={24} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-                <AnimatedInput
-                  label="Current Password"
-                  value={formData.currentPassword}
-                  onChangeText={(val) => setFormData({ ...formData, currentPassword: val })}
-                  icon="lock"
-                  secureTextEntry
-                  placeholder="Enter current password"
-                />
-                <AnimatedInput
-                  label="New Password"
-                  value={formData.newPassword}
-                  onChangeText={(val) => setFormData({ ...formData, newPassword: val })}
-                  icon="key"
-                  secureTextEntry
-                  placeholder="Enter new password"
-                />
-                <AnimatedInput
-                  label="Confirm New Password"
-                  value={formData.confirmPassword}
-                  onChangeText={(val) => setFormData({ ...formData, confirmPassword: val })}
-                  icon="check-circle"
-                  secureTextEntry
-                  placeholder="Confirm new password"
-                />
-                <View style={styles.infoBox}>
-                  <Feather name="info" size={18} color="#3B82F6" />
-                  <Text style={styles.infoText}>
-                    Password must be at least 8 characters with uppercase, lowercase, and numbers.
-                  </Text>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Change Password</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+                    }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
-              </ScrollView>
 
-              <View style={styles.modalFooter}>
-                <AnimatedButton
-                  title="Cancel"
-                  onPress={() => {
-                    setModalOpen(null)
-                    setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
-                  }}
-                  variant="secondary"
-                  style={styles.modalButton}
-                />
-                <AnimatedButton
-                  title="Update Password"
-                  onPress={handlePasswordUpdate}
-                  loading={loading}
-                  style={styles.modalButton}
-                />
-              </View>
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <AnimatedInput
+                    label="Current Password"
+                    value={formData.currentPassword}
+                    onChangeText={(val) => setFormData({ ...formData, currentPassword: val })}
+                    icon="lock"
+                    secureTextEntry
+                    placeholder="Enter current password"
+                  />
+                  <AnimatedInput
+                    label="New Password"
+                    value={formData.newPassword}
+                    onChangeText={(val) => setFormData({ ...formData, newPassword: val })}
+                    icon="key"
+                    secureTextEntry
+                    placeholder="Enter new password"
+                  />
+                  <AnimatedInput
+                    label="Confirm New Password"
+                    value={formData.confirmPassword}
+                    onChangeText={(val) => setFormData({ ...formData, confirmPassword: val })}
+                    icon="check-circle"
+                    secureTextEntry
+                    placeholder="Confirm new password"
+                  />
+                  <View style={styles.infoBox}>
+                    <Feather name="info" size={18} color="#3B82F6" />
+                    <Text style={styles.infoText}>
+                      Password must be at least 8 characters with uppercase, lowercase, and numbers.
+                    </Text>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+                    }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Update Password"
+                    onPress={handlePasswordUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
             </View>
           </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
+        </View>
+      </Pressable>
     </Modal>
   )
 

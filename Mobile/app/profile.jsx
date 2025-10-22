@@ -77,9 +77,9 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>
-              {user?.username || user?.name || 'User'}
+              {user?.userName || user?.name || 'User'}
             </Text>
-            <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
+            <Text style={styles.profileEmail}>{user?.email || 'tiwariraj1202@gmail.com'}</Text>
             <Text style={styles.profileMember}>Member since 2024</Text>
           </View>
         </View>
