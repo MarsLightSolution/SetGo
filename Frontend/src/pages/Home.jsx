@@ -22,13 +22,16 @@ import { useTranslation } from "react-i18next"
 import i18n from "../i18n"
 
 import { setProducts } from "../slices/productSlices"
-
+ const isAuthenticated = () => {
+    const userId = localStorage.getItem("userId")
+    const accessToken = localStorage.getItem("accessToken")
+    return !!userId && !!accessToken
+  }
 const getLocalizedText = (field) => {
   if (!field) return ""
   if (typeof field === "string") return field
   return field[i18n.language] || field.en || ""
 }
-
 
 
 /* -------------------- AdCard -------------------- */
@@ -53,14 +56,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
 
   const displayDescription = trimText(description || ad.description || "", 25)
   const token = localStorage.getItem("accessToken")
-
-  const isAuthenticated = () => {
-    const userId = localStorage.getItem("userId")
-    const accessToken = localStorage.getItem("accessToken")
-    return !!userId && !!accessToken
-  }
-
-  const handleLikeToggle = (e) => {
+   const handleLikeToggle = (e) => {
     e.stopPropagation()
     if (!isAuthenticated()) {
       alert(t("home.loginToLike"))
@@ -888,7 +884,7 @@ const Home = () => {
       {/* Notification Demo - Remove this in production */}
       <div className="max-w-4xl mx-auto px-4 mb-8">
       </div>
-              <ChatbotButton />
+      {isAuthenticated() ?(<ChatbotButton/>): null}
       <Footer />
     </div>
   )

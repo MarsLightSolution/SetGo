@@ -1,4 +1,4 @@
-const paymentService = require('../services/paymentService');
+cdconst paymentService = require('../services/paymentService');
 const logger = require('../utils/logger'); // Import the logger
 
 // Controller to initiate payment

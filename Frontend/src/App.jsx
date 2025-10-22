@@ -87,7 +87,7 @@ function App() {
             <Route path="/order/:id" element={<OrderDetail />} />
             <Route path="/seller" element={<SellerAdminDashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/chatbot" element={<Chatbot />} />
+            <Route path="/chatbot" element={<Chatbot/>} />
         <Route path="/raise-query" element={<RaiseQuery />} />
         <Route path="/my-queries" element={<MyQueries />} />
             <Route path="/Adminpanel" element={
