@@ -15,6 +15,7 @@ import { Image as ImageIcon } from "lucide-react"; // <-- add lucide-react icon
 import { motion } from "framer-motion"
 import { Image as RefreshCw, ArrowLeft, ArrowRight, Tag, Package } from "lucide-react"
 import { Heart } from "lucide-react"  
+import { ChatbotButton } from "../components/Chat/ChatbotButton"
 
 <Package className="w-6 h-6 text-green-600" />
 import { useTranslation } from "react-i18next"
@@ -887,7 +888,7 @@ const Home = () => {
       {/* Notification Demo - Remove this in production */}
       <div className="max-w-4xl mx-auto px-4 mb-8">
       </div>
-
+              <ChatbotButton />
       <Footer />
     </div>
   )
