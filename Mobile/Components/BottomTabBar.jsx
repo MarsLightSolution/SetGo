@@ -53,7 +53,7 @@ export default function BottomTabBar() {
       {/* Orders */}
       <TouchableOpacity
         style={styles.tab}
-        onPress={() => router.push('/orders')}
+        onPress={() => router.push('/Chat/chat')}
       >
         <Ionicons
           name={isActive('/orders') ? 'receipt' : 'receipt-outline'}

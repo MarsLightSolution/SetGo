@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom"; // Added Link
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { CalendarToday, LocationOn } from "@mui/icons-material";
 import Footer from "../components/common/Footer";
 import leftadImage from "../assets/images/ad01.png";
@@ -19,7 +19,7 @@ import ShareModal from "../components/Popups/ShareModal";
 
 // i18n import
 import { useTranslation } from "react-i18next";
-import i18n from "../i18n"; // Import i18n instance to get current language
+import i18n from "../i18n";
 
 // Fix default icon issue with Leaflet in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -32,18 +32,18 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Helper for multilingual fields (simplified to use i18n directly)
+// Helper for multilingual fields
 const getLocalizedText = (field) => {
   if (!field) return "";
   if (typeof field === "string") return field;
-  return field[i18n.language] || field.en || ""; // Fallback to English, then empty string
+  return field[i18n.language] || field.en || "";
 };
 
 const ProductDetail = () => {
-  const { t } = useTranslation(); // Initialize useTranslation hook
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("userId"); // No longer directly using token from localStorage for API auth
+  const token = localStorage.getItem("userId");
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -55,6 +55,16 @@ const ProductDetail = () => {
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // ============= REVIEW STATES =============
+  const [reviewSummary, setReviewSummary] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filterRating, setFilterRating] = useState(null);
+  const [sortBy, setSortBy] = useState("recent");
+  const reviewsPerPage = 10;
 
   const nextImage = () => {
     if (!product?.pictures) return;
@@ -70,24 +80,21 @@ const ProductDetail = () => {
         (prevIndex - 1 + product.pictures.length) % product.pictures.length
     );
   };
+
   const handleAddToWatchlist = (e) => {
     e.stopPropagation();
 
-    // You might still want to check for a user being logged in,
-    // even if the token isn't explicitly sent as a header.
-    // This assumes your Redux state or another context holds user login status.
     if (!user) {
-      // Check if user object exists
-      alert(t("productDetail.loginToWatchlist")); // Translated
+      alert(t("productDetail.loginToWatchlist"));
       return;
     }
 
     if (isWishlisted) {
       dispatch(unlike(product));
-      toast.info(t("productDetail.removedFromWatchlist")); // Translated
+      toast.info(t("productDetail.removedFromWatchlist"));
     } else {
       dispatch(like(product));
-      toast.success(t("productDetail.addedToWatchlist")); // Translated
+      toast.success(t("productDetail.addedToWatchlist"));
     }
   };
 
@@ -103,9 +110,16 @@ const ProductDetail = () => {
   }, []);
 
   useEffect(() => {
-    // Pass i18n.language to fetch products in specific language (for dynamic content)
     fetchProductById();
-  }, [id, i18n.language]); // Removed 'token' from dependencies
+  }, [id, i18n.language]);
+
+  useEffect(() => {
+    if (product?._id) {
+      console.log("🔍 Fetching reviews for product:", product._id);
+      fetchReviewSummary();
+      fetchReviews();
+    }
+  }, [product?._id, currentPage, filterRating, sortBy]);
 
   const fetchProductById = async () => {
     setLoading(true);
@@ -115,7 +129,7 @@ const ProductDetail = () => {
           i18n.language
         }`,
         {
-          credentials: "include", // This is crucial for sending cookies
+          credentials: "include",
         }
       );
 
@@ -135,9 +149,8 @@ const ProductDetail = () => {
     }
   };
 
-  // categoryObj will be { en: "...", az: "...", ru: "..." }
   const fetchRelatedProducts = async (categoryObj) => {
-    const categoryName = getLocalizedText(categoryObj); // Get category in current display language
+    const categoryName = getLocalizedText(categoryObj);
     if (!categoryName) return;
 
     try {
@@ -160,7 +173,169 @@ const ProductDetail = () => {
     if (product?.category) {
       fetchRelatedProducts(product.category);
     }
-  }, [product, id, i18n.language]); // Added i18n.language to dependencies
+  }, [product, id, i18n.language]);
+
+  // ============= REVIEW FETCH FUNCTIONS =============
+  const fetchReviewSummary = async () => {
+    try {
+      const url = `${import.meta.env.VITE_SERVER}/reviews/product/${id}/summary`;
+      console.log("📊 Fetching review summary from:", url);
+      
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+
+      console.log("📊 Review summary response status:", res.status);
+
+      if (!res.ok) {
+        console.error("❌ Failed to fetch review summary:", res.status);
+        return;
+      }
+
+      const result = await res.json();
+      console.log("📊 Review summary full response:", result);
+      
+      if (result.success && result.data) {
+        // Transform the distribution from controller format to frontend format
+        const transformedSummary = {
+          averageRating: result.data.averageRating || 0,
+          totalReviews: result.data.totalReviews || 0,
+          ratingBreakdown: {
+            5: result.data.distribution?.fiveStar || 0,
+            4: result.data.distribution?.fourStar || 0,
+            3: result.data.distribution?.threeStar || 0,
+            2: result.data.distribution?.twoStar || 0,
+            1: result.data.distribution?.oneStar || 0,
+          }
+        };
+        console.log("📊 Transformed summary:", transformedSummary);
+        setReviewSummary(transformedSummary);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching review summary:", error);
+    }
+  };
+
+  const fetchReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      let url = `${import.meta.env.VITE_SERVER}/reviews/product/${id}?page=${currentPage}&limit=${reviewsPerPage}&sortBy=${sortBy}`;
+      
+      if (filterRating) {
+        url += `&rating=${filterRating}`;
+      }
+
+      console.log("📝 Fetching reviews from:", url);
+
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+
+      console.log("📝 Reviews response status:", res.status);
+
+      if (!res.ok) {
+        console.error("❌ Failed to fetch reviews:", res.status);
+        return;
+      }
+
+      const result = await res.json();
+      console.log("📝 Reviews full response:", result);
+      
+      if (result.success) {
+        // The controller returns reviews directly in 'data', not 'data.reviews'
+        const reviewsData = result.data || [];
+        
+        // Transform reviews to include buyer name
+        const transformedReviews = reviewsData.map(review => ({
+          ...review,
+          buyerName: review.buyerId?.username || review.buyerId?.profileName || "Anonymous",
+          verified: review.isVerifiedPurchase || false,
+          sellerResponse: review.sellerResponse ? {
+            responseText: review.sellerResponse.text,
+            respondedAt: review.sellerResponse.respondedAt
+          } : null
+        }));
+        
+        console.log("📝 Transformed reviews:", transformedReviews);
+        setReviews(transformedReviews);
+        setTotalPages(result.pagination?.totalPages || 1);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching reviews:", error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleMarkHelpful = async (reviewId) => {
+    if (!user?._id) {
+      toast.error("Please login to mark reviews as helpful");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER}/reviews/${reviewId}/helpful`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ userId: user._id }),
+        }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        if (errorData.message?.includes("already marked")) {
+          toast.info("You've already marked this as helpful");
+        } else {
+          throw new Error("Failed to mark review as helpful");
+        }
+        return;
+      }
+
+      toast.success("Review marked as helpful!");
+      fetchReviews();
+    } catch (error) {
+      console.error("Error marking review as helpful:", error);
+      toast.error("Failed to mark review as helpful");
+    }
+  };
+
+  const renderStars = (rating, size = "text-base") => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <span key={`full-${i}`} className={`${size} text-yellow-500`}>
+          ★
+        </span>
+      );
+    }
+
+    if (hasHalfStar) {
+      stars.push(
+        <span key="half" className={`${size} text-yellow-500`}>
+          ⯨
+        </span>
+      );
+    }
+
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <span key={`empty-${i}`} className={`${size} text-gray-300`}>
+          ★
+        </span>
+      );
+    }
+
+    return <div className="flex items-center">{stars}</div>;
+  };
 
   const handleBuyNow = async () => {
     const userId = user?._id;
@@ -182,7 +357,6 @@ const ProductDetail = () => {
       );
       const json = await res.json();
       if (json?.data) {
-        // ✅ instead of dialog, navigate to checkout
         navigate("/checkout", {
           state: {
             product,
@@ -197,9 +371,10 @@ const ProductDetail = () => {
       alert(t("productDetail.errorLoadingUserData"));
     }
   };
+
   const handleSendMessage = async () => {
     if (!user) {
-      alert(t("productDetail.loginToMessage")); // Translated
+      alert(t("productDetail.loginToMessage"));
       return;
     }
 
@@ -210,7 +385,6 @@ const ProductDetail = () => {
     }
 
     try {
-      // Step 1: Get or create conversation from backend
       const res = await fetch(
         `${import.meta.env.VITE_SERVER}/api/chat/conversation/get-or-create`,
         {
@@ -233,7 +407,6 @@ const ProductDetail = () => {
 
       const conversationId = data.conversation._id;
 
-      // Step 2: Send a hardcoded initial message
       const initialMessage = "Hi! I'm interested in your product.";
       await fetch(`${import.meta.env.VITE_SERVER}/api/chat/messages`, {
         method: "POST",
@@ -246,7 +419,6 @@ const ProductDetail = () => {
         }),
       });
 
-      // Step 3: Redirect to chat page with conversationId
       navigate("/chat", {
         state: {
           conversationId,
@@ -258,19 +430,20 @@ const ProductDetail = () => {
       alert(t("productDetail.anErrorOccurred"));
     }
   };
+
   const ownerId = product?.owner?._id || product?.owner || null;
 
   useEffect(() => {
     if (user && ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId]); // Removed 'token' from dependencies
+  }, [user, ownerId]);
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SERVER}/check/${followerId}/${followingId}`,
-        { credentials: "include" } // Ensure credentials are included
+        { credentials: "include" }
       );
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
@@ -281,7 +454,7 @@ const ProductDetail = () => {
 
   const handleFollowToggle = async () => {
     if (!user || !ownerId) {
-      alert(t("productDetail.authRequiredFollow")); // Translated
+      alert(t("productDetail.authRequiredFollow"));
       return;
     }
     setFollowLoading(true);
@@ -295,10 +468,9 @@ const ProductDetail = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Removed Authorization header: Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ followerId: user._id }),
-        credentials: "include", // Ensure credentials are included
+        credentials: "include",
       });
 
       const result = await res.json();
@@ -309,15 +481,15 @@ const ProductDetail = () => {
           isFollowing
             ? t("productDetail.unfollowed")
             : t("productDetail.followed")
-        ); // Translated
+        );
       } else {
         const errorMsg =
-          result.message || t("productDetail.followUnfollowFailed"); // Translated fallback
+          result.message || t("productDetail.followUnfollowFailed");
         alert(errorMsg);
       }
     } catch (err) {
       console.error("Follow/Unfollow error:", err);
-      alert(t("productDetail.anErrorOccurred")); // Translated
+      alert(t("productDetail.anErrorOccurred"));
     } finally {
       setFollowLoading(false);
     }
@@ -328,15 +500,14 @@ const ProductDetail = () => {
       <div className="text-center mt-10">
         {t("productDetail.loadingProduct")}
       </div>
-    ); // Translated
+    );
   if (!product)
     return (
       <div className="text-center text-red-500 mt-10">
         {t("productDetail.productNotFound")}
-      </div> // Translated
+      </div>
     );
 
-  // Safely access owner name, prioritizing populated user object, then product.name, then "Unknown Seller"
   const ownerRawName = product.owner?.name || product.name;
   const ownerName =
     typeof ownerRawName === "object"
@@ -344,7 +515,6 @@ const ProductDetail = () => {
       : ownerRawName || t("productDetail.unknownSeller");
   const ownerInitial = ownerName.charAt(0).toUpperCase();
 
-  // Postal code is a direct field on product now
   const displayPostalCode =
     product.postalCode ||
     product.location?.postalCode ||
@@ -384,43 +554,52 @@ const ProductDetail = () => {
                             className="max-h-full max-w-full object-contain"
                           />
 
-                          {/* Left Arrow */}
                           {product.pictures.length > 1 && (
-                            <button
-                              onClick={prevImage}
-                              className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
-                              aria-label="Previous Image"
-                            >
-                              &#10094;
-                            </button>
+                            <>
+                              <button
+                                onClick={prevImage}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow-lg cursor-pointer"
+                              >
+                                ‹
+                              </button>
+                              <button
+                                onClick={nextImage}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow-lg cursor-pointer"
+                              >
+                                ›
+                              </button>
+                            </>
                           )}
 
-                          {/* Right Arrow */}
-                          {product.pictures.length > 1 && (
-                            <button
-                              onClick={nextImage}
-                              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-2xl transition"
-                              aria-label="Next Image"
-                            >
-                              &#10095;
-                            </button>
-                          )}
+                          <div className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-1 rounded">
+                            {currentImageIndex + 1} / {product.pictures.length}
+                          </div>
                         </>
                       ) : (
-                        <img
-                          src={`${
-                            import.meta.env.VITE_SERVER
-                          }/uploads/placeholder.jpg`}
-                          alt="Placeholder"
-                          className="max-h-full object-contain"
-                        />
+                        <p className="text-gray-500 text-sm">
+                          {t("productDetail.noImageAvailable")}
+                        </p>
                       )}
                     </div>
 
-                    {/* Image Counter */}
                     {product.pictures?.length > 1 && (
-                      <div className="text-center text-sm text-gray-500 mt-2">
-                        {currentImageIndex + 1} / {product.pictures.length}
+                      <div className="flex gap-2 mt-4 overflow-x-auto">
+                        {product.pictures.map((pic, idx) => (
+                          <img
+                            key={idx}
+                            src={`${import.meta.env.VITE_SERVER}/${pic.replace(
+                              /\\/g,
+                              "/"
+                            )}`}
+                            alt={`Thumbnail ${idx + 1}`}
+                            onClick={() => setCurrentImageIndex(idx)}
+                            className={`w-16 h-16 object-cover rounded cursor-pointer border-2 ${
+                              idx === currentImageIndex
+                                ? "border-green-600"
+                                : "border-gray-300"
+                            }`}
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
@@ -521,7 +700,6 @@ const ProductDetail = () => {
                         </div>
                       )}
 
-                    {/* Specs */}
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
                       <div>
                         <div className="font-semibold text-gray-800">
@@ -623,23 +801,244 @@ const ProductDetail = () => {
                       {t("productDetail.sendMessageButton")}
                     </button>
                   </div>
+
+                  {/* ============= CUSTOMER REVIEWS SECTION ============= */}
+                  <div className="bg-white rounded-md shadow p-4 mt-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                      Customer Reviews
+                    </h2>
+
+                    {reviewSummary && reviewSummary.totalReviews > 0 ? (
+                      <>
+                        {/* Average Rating Summary */}
+                        <div className="flex items-center gap-6 mb-6 pb-6 border-b">
+                          <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-900 mb-1">
+                              {reviewSummary.averageRating.toFixed(1)}
+                            </div>
+                            {renderStars(reviewSummary.averageRating, "text-xl")}
+                            <p className="text-sm text-gray-600 mt-1">
+                              {reviewSummary.totalReviews} reviews
+                            </p>
+                          </div>
+
+                          {/* Rating Breakdown */}
+                          <div className="flex-1 space-y-1">
+                            {[5, 4, 3, 2, 1].map((star) => {
+                              const count = reviewSummary.ratingBreakdown?.[star] || 0;
+                              const percentage =
+                                reviewSummary.totalReviews > 0
+                                  ? (count / reviewSummary.totalReviews) * 100
+                                  : 0;
+
+                              return (
+                                <div
+                                  key={star}
+                                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded"
+                                  onClick={() => {
+                                    setFilterRating(
+                                      filterRating === star ? null : star
+                                    );
+                                    setCurrentPage(1);
+                                  }}
+                                >
+                                  <span className="text-gray-700 w-8">
+                                    {star} ★
+                                  </span>
+                                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-yellow-500 h-full rounded-full transition-all"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-gray-600 w-8 text-right">
+                                    {count}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <button
+                            onClick={() => {
+                              setFilterRating(null);
+                              setCurrentPage(1);
+                            }}
+                            className={`px-3 py-1 rounded-full text-sm ${
+                              filterRating === null
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                          >
+                            All
+                          </button>
+                          {[5, 4, 3, 2, 1].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => {
+                                setFilterRating(star);
+                                setCurrentPage(1);
+                              }}
+                              className={`px-3 py-1 rounded-full text-sm ${
+                                filterRating === star
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              }`}
+                            >
+                              {star} ★
+                            </button>
+                          ))}
+
+                          <select
+                            value={sortBy}
+                            onChange={(e) => {
+                              setSortBy(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                            className="ml-auto px-3 py-1 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="recent">Most Recent</option>
+                            <option value="helpful">Most Helpful</option>
+                            <option value="highest">Highest Rating</option>
+                            <option value="lowest">Lowest Rating</option>
+                          </select>
+                        </div>
+
+                        {/* Reviews List */}
+                        {reviewsLoading ? (
+                          <div className="text-center py-8">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-green-600"></div>
+                          </div>
+                        ) : reviews.length > 0 ? (
+                          <div className="space-y-4">
+                            {reviews.map((review) => (
+                              <div
+                                key={review._id}
+                                className="border-b pb-4 last:border-0"
+                              >
+                                <div className="flex items-start gap-3 mb-2">
+                                  <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                    {review.buyerName?.charAt(0).toUpperCase() ||
+                                      "U"}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <h4 className="font-semibold text-gray-900">
+                                        {review.buyerName || "Anonymous"}
+                                      </h4>
+                                      {review.verified && (
+                                        <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                                          ✓ Verified
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      {renderStars(review.rating, "text-sm")}
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(
+                                          review.createdAt
+                                        ).toLocaleDateString(
+                                          i18n.language === "az"
+                                            ? "az-AZ"
+                                            : i18n.language === "ru"
+                                            ? "ru-RU"
+                                            : "en-GB"
+                                        )}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-700 text-sm mb-2">
+                                      {review.reviewText}
+                                    </p>
+
+                                    {review.sellerResponse && (
+                                      <div className="bg-gray-50 rounded p-3 mb-2 border-l-2 border-green-600">
+                                        <p className="text-xs font-semibold text-gray-900 mb-1">
+                                          Seller Response:
+                                        </p>
+                                        <p className="text-xs text-gray-700">
+                                          {review.sellerResponse.responseText}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    <button
+                                      onClick={() =>
+                                        handleMarkHelpful(review._id)
+                                      }
+                                      className="text-xs text-gray-600 hover:text-green-600"
+                                    >
+                                      👍 Helpful ({review.helpfulCount || 0})
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                              <div className="flex justify-center gap-2 mt-4">
+                                <button
+                                  onClick={() =>
+                                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                                  }
+                                  disabled={currentPage === 1}
+                                  className="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                >
+                                  Previous
+                                </button>
+                                <span className="px-3 py-1 text-sm">
+                                  Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    setCurrentPage((prev) =>
+                                      Math.min(totalPages, prev + 1)
+                                    )
+                                  }
+                                  disabled={currentPage === totalPages}
+                                  className="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-center text-gray-500 py-4">
+                            No reviews match your filter.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 mb-2">
+                          No reviews yet for this product.
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Be the first to review!
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Sidebar (User Info + Actions) */}
+                {/* Sidebar */}
                 <div className="md:col-span-1">
                   <div className="sticky top-[170px] w-full sm:max-w-[280px] mx-auto space-y-4">
-                    {/* Seller / Actions Card */}
-                    <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
+                    <div className="bg-white rounded-md shadow p-4 border border-gray-200 space-y-3">
                       <button
                         onClick={handleSendMessage}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-full text-sm cursor-pointer"
                       >
                         Write a message
                       </button>
 
                       <button
                         onClick={handleAddToWatchlist}
-                        className={`w-full text-sm font-medium py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer 
+                        className={`w-full text-sm font-medium py-2 rounded-full cursor-pointer 
           ${
             isWishlisted
               ? "bg-green-600 text-white hover:bg-green-700"
@@ -653,12 +1052,12 @@ const ProductDetail = () => {
 
                       <button
                         onClick={() => setShowShareModal(true)}
-                        className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full cursor-pointer"
                       >
                         {t("productDetail.shareAdButton")}
                       </button>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 pt-2">
                         <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
                           {ownerInitial}
                         </div>
@@ -667,7 +1066,7 @@ const ProductDetail = () => {
                         </p>
                       </div>
 
-                      <div className="text-sm text-gray-600 space-y-1 pl-1">
+                      <div className="text-sm text-gray-600 space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
                             👤
@@ -695,7 +1094,7 @@ const ProductDetail = () => {
                         <button
                           onClick={handleFollowToggle}
                           disabled={followLoading}
-                          className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
+                          className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full 
             ${
               isFollowing
                 ? "text-red-600 border-red-500 hover:bg-red-50"
@@ -711,8 +1110,7 @@ const ProductDetail = () => {
                       )}
                     </div>
 
-                    {/* Ad ID Section */}
-                    <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200 text-sm text-gray-700">
+                    <div className="bg-white rounded-md shadow p-3 border border-gray-200 text-sm text-gray-700">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">
                           {t("productDetail.adIdLabel")}:
@@ -726,18 +1124,18 @@ const ProductDetail = () => {
 
               {/* Related Products */}
               {relatedProducts.length > 0 && (
-                <div className="max-w-6xl mx-auto mt-8 px-4">
-                  <h2 className="text-xl font-semibold mb-6">
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold mb-4">
                     {t("productDetail.mightAlsoInterestYouTitle")}
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {relatedProducts.map((item) => (
                       <div
                         key={item._id}
                         onClick={() =>
                           navigate(`/products/product/${item._id}`)
                         }
-                        className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
+                        className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer"
                       >
                         <img
                           src={`${import.meta.env.VITE_SERVER}/${
@@ -745,15 +1143,15 @@ const ProductDetail = () => {
                             "uploads/placeholder.jpg"
                           }`}
                           alt={getLocalizedText(item.title)}
-                          className="w-32 h-24 object-cover rounded-md"
+                          className="w-24 h-20 object-cover rounded-md"
                         />
                         <div className="flex-1">
-                          <div className="text-sm text-gray-500 flex items-center justify-between">
+                          <div className="text-sm text-gray-500 flex items-center justify-between mb-1">
                             <span>
                               📍{" "}
                               {item.postalCode ||
                                 item.location?.postalCode ||
-                                t("home.unknownLocation")}{" "}
+                                t("home.unknownLocation")}
                             </span>
                             <span className="text-xs text-gray-400">
                               {new Date(item.createdAt).toLocaleDateString(
@@ -765,23 +1163,18 @@ const ProductDetail = () => {
                               )}
                             </span>
                           </div>
-                          <h3 className="font-semibold text-gray-800 mt-1 mb-1 line-clamp-1">
+                          <h3 className="font-semibold text-gray-800 text-sm mb-1 line-clamp-1">
                             {getLocalizedText(item.title)}
                           </h3>
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-                            {getLocalizedText(item.description)}
-                          </p>
-                          <div className="flex gap-4 text-sm font-semibold text-green-700">
-                            <span>
-                              {item.price?.toLocaleString(
-                                i18n.language === "az"
-                                  ? "az-AZ"
-                                  : i18n.language === "ru"
-                                  ? "ru-RU"
-                                  : "en-IN"
-                              )}
-                              ₼{" "}
-                            </span>
+                          <div className="text-sm font-semibold text-green-700">
+                            {item.price?.toLocaleString(
+                              i18n.language === "az"
+                                ? "az-AZ"
+                                : i18n.language === "ru"
+                                ? "ru-RU"
+                                : "en-IN"
+                            )}{" "}
+                            ₼
                           </div>
                         </div>
                       </div>
@@ -789,16 +1182,16 @@ const ProductDetail = () => {
                   </div>
                 </div>
               )}
-              {showShareModal && (
-  <ShareModal 
-    onClose={() => setShowShareModal(false)} 
-    product={product} 
-  />
-)}
 
+              {showShareModal && (
+                <ShareModal
+                  onClose={() => setShowShareModal(false)}
+                  product={product}
+                />
+              )}
             </div>
 
-            {/* Right Ad (Desktop only) */}
+            {/* Right Ad */}
             <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
               <img
                 src={rightadImage}
@@ -813,4 +1206,5 @@ const ProductDetail = () => {
     </>
   );
 };
+
 export default ProductDetail;
