@@ -1,1077 +1,2768 @@
-import React, { useState } from 'react';
-import { User, CreditCard, Shield, Mail, Heart, ChevronRight, Eye, Settings, ChevronLeft, Lock, Phone, MapPin, Bell } from 'lucide-react';
+"use client"
 
-export default function MobileSettingsApp() {
-  const [currentScreen, setCurrentScreen] = useState('menu');
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [showBillingModal, setShowBillingModal] = useState(false);
-  const [phoneStep, setPhoneStep] = useState(1);
-  
-  const [phoneData, setPhoneData] = useState({ countryCode: '+91', phoneNumber: '', otp: '' });
-  const [emailData, setEmailData] = useState({ currentEmail: 'tiwariraj1202@gmail.com', newEmail: '', repeatEmail: '', password: '' });
-  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [addressData, setAddressData] = useState({ firstName: '', lastName: '', addressSuffix: '', street: '', houseNumber: '', postalCode: '', location: '' });
-  const [billingAddress, setBillingAddress] = useState({ firstName: '', lastName: '', addressSuffix: '', street: '', houseNumber: '', postalCode: '', location: '' });
-  
-  const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+/**
+ * COMPLETE MOBILE SETTINGS APP - IMPROVED UI/UX VERSION
+ * 
+ * SETUP INSTRUCTIONS:
+ * 
+ * 1. Set your API URL in .env file:
+ *    EXPO_PUBLIC_API_URL=http://your-api-url.com/api
+ * 
+ * 2. After user login, save the complete user object to AsyncStorage:
+ *    import { saveUserData } from './path-to-this-file'
+ *    await saveUserData(userDataFromLoginResponse)
+ * 
+ * 3. The app will automatically:
+ *    - Load user data from AsyncStorage on mount
+ *    - Make API calls to update data on the server
+ *    - Update AsyncStorage ONLY if API call succeeds
+ *    - Show error message if API fails
+ * 
+ * 4. To clear user data on logout:
+ *    await AsyncStorage.removeItem('userData')
+ */
 
-  const navigateTo = (screen) => setCurrentScreen(screen);
-  const goBack = () => setCurrentScreen('menu');
+import { useState, useEffect, useRef } from "react"
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  StyleSheet,
+  SafeAreaView,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  BackHandler,
+} from "react-native"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import Feather from "@expo/vector-icons/Feather"
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'menu': return <MenuScreen navigateTo={navigateTo} />;
-      case 'profile': return <ProfileScreen goBack={goBack} setShowAddressModal={setShowAddressModal} />;
-      case 'account': return <AccountScreen goBack={goBack} setShowPhoneModal={setShowPhoneModal} setShowEmailModal={setShowEmailModal} setShowPasswordModal={setShowPasswordModal} setShowBillingModal={setShowBillingModal} />;
-      case 'payments': return <PaymentsScreen goBack={goBack} />;
-      case 'data': return <DataProtectionScreen goBack={goBack} />;
-      case 'emails': return <EmailsScreen goBack={goBack} />;
-      case 'classified': return <ClassifiedAdsScreen goBack={goBack} />;
-      default: return <MenuScreen navigateTo={navigateTo} />;
-    }
-  };
+// ==================== API CONFIGURATION ====================
 
-  return (
-    <div className="app-container">
-      <Style />
-      {renderScreen()}
-      
-      {showPhoneModal && <PhoneModal phoneData={phoneData} setPhoneData={setPhoneData} phoneStep={phoneStep} setPhoneStep={setPhoneStep} onClose={() => { setShowPhoneModal(false); setPhoneStep(1); }} />}
-      {showEmailModal && <EmailModal emailData={emailData} setEmailData={setEmailData} showPassword={showPassword} setShowPassword={setShowPassword} onClose={() => setShowEmailModal(false)} />}
-      {showPasswordModal && <PasswordModal passwordData={passwordData} setPasswordData={setPasswordData} showCurrentPassword={showCurrentPassword} setShowCurrentPassword={setShowCurrentPassword} showNewPassword={showNewPassword} setShowNewPassword={setShowNewPassword} showConfirmPassword={showConfirmPassword} setShowConfirmPassword={setShowConfirmPassword} onClose={() => setShowPasswordModal(false)} />}
-      {showAddressModal && <AddressModal title="Edit delivery address" addressData={addressData} setAddressData={setAddressData} onClose={() => setShowAddressModal(false)} />}
-      {showBillingModal && <AddressModal title="Edit billing address" addressData={billingAddress} setAddressData={setBillingAddress} onClose={() => setShowBillingModal(false)} />}
-    </div>
-  );
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://your-api-url.com/api"
+
+// Storage keys
+const STORAGE_KEYS = {
+  USER_DATA: "userData",
 }
 
-const MenuScreen = ({ navigateTo }) => {
-  const menuItems = [
-    { id: 'profile', icon: User, label: 'Profile information', desc: 'Manage your personal details', color: '#8B5CF6', bg: '#F5F3FF' },
-    { id: 'account', icon: Settings, label: 'Account settings', desc: 'Email, password & security', color: '#6B7280', bg: '#F9FAFB' },
-    { id: 'payments', icon: CreditCard, label: 'Payments', desc: 'Payout accounts & billing', color: '#3B82F6', bg: '#EFF6FF' },
-    { id: 'data', icon: Shield, label: 'Data protection', desc: 'Privacy & data settings', color: '#10B981', bg: '#ECFDF5' },
-    { id: 'emails', icon: Mail, label: 'Email preferences', desc: 'Notifications & updates', color: '#F59E0B', bg: '#FFFBEB' },
-    { id: 'classified', icon: Heart, label: 'Classified Ads', desc: 'About this feature', color: '#EF4444', bg: '#FEF2F2' },
-  ];
+// Helper function to get user data from AsyncStorage
+const getUserData = async () => {
+  try {
+    const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA)
+    if (!userData) {
+      console.warn("No user data found in storage")
+      return null
+    }
+    return JSON.parse(userData)
+  } catch (error) {
+    console.error("Error getting user data from storage:", error)
+    return null
+  }
+}
+
+// Helper function to save user data to AsyncStorage (call this after login)
+const saveUserData = async (userData) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData))
+    console.log("User data saved successfully")
+    return true
+  } catch (error) {
+    console.error("Error saving user data:", error)
+    return false
+  }
+}
+
+// Export for use in login component
+export { saveUserData, getUserData }
+
+const apiService = {
+  // Profile APIs
+  getUserProfile: async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile/userdata/${userId}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      
+      try {
+        return JSON.parse(text)
+      } catch (e) {
+        console.error("API returned non-JSON response:", text)
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("getUserProfile error:", error)
+      throw error
+    }
+  },
+
+  // Profile Name Update (matches web version)
+  updateProfileName: async (userId, profileName) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/nameupdate/${userId}/profileName`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileName: profileName }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data // Return the updated user data
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("updateProfileName error:", error)
+      throw error
+    }
+  },
+
+  // Email verification (matches web version)
+  verifyEmail: async (userId, password, newEmail) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/emailverify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userId: userId,
+          password: password,
+          newEmail: newEmail 
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data || data // Return updated user data if available
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("verifyEmail error:", error)
+      throw error
+    }
+  },
+
+  // Delivery Address Update (matches web version)
+  updateDeliveryAddress: async (userId, deliveryAddress) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/deliveryaddress/${userId}/delivery-Address`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryAddress: deliveryAddress }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data // Return the updated user data
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("updateDeliveryAddress error:", error)
+      throw error
+    }
+  },
+
+  // Billing address update (matches web version)
+  updateBillingAddress: async (userId, billingAddress) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/billingaddress/${userId}/billingAddress`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ billingAddress: billingAddress }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data || data // Return updated user data if available
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("updateBillingAddress error:", error)
+      throw error
+    }
+  },
+
+  // Security APIs - Phone
+  sendOTP: async (phoneData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/twilio/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(phoneData),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        return JSON.parse(text)
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("sendOTP error:", error)
+      throw error
+    }
+  },
+
+  verifyOTP: async (otpData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/twilio/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(otpData),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data || data // Return updated user data if available
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("verifyOTP error:", error)
+      throw error
+    }
+  },
+
+  // Security APIs - Password
+  updatePassword: async (userId, passwordData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/updatepassword/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(passwordData),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data || data // Return updated user data if available
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("updatePassword error:", error)
+      throw error
+    }
+  },
+
+  // Notification APIs
+  toggleNewsletter: async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile/newsletter/${userId}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data || data // Return updated user data if available
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("toggleNewsletter error:", error)
+      throw error
+    }
+  },
+
+  toggleMessages: async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile/messageforuser/${userId}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return data.data || data // Return updated user data if available
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("toggleMessages error:", error)
+      throw error
+    }
+  },
+
+  // Get user ads (matches web version)
+  getUserAds: async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/user/${userId}/ads`)
+      const text = await response.text()
+      try {
+        const data = JSON.parse(text)
+        return Array.isArray(data.data) ? data.data : []
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("getUserAds error:", error)
+      return []
+    }
+  },
+
+  // Account Deletion (matches web version)
+  deleteUser: async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/deleteuser/${userId}`, {
+        method: "DELETE",
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const text = await response.text()
+      try {
+        return JSON.parse(text)
+      } catch (e) {
+        throw new Error("Server error: Invalid response format")
+      }
+    } catch (error) {
+      console.error("deleteUser error:", error)
+      throw error
+    }
+  },
+}
+
+// ==================== MENU ITEMS ====================
+const MENU_ITEMS = [
+  {
+    id: "profile",
+    icon: "user",
+    label: "Profile",
+    desc: "Personal details & preferences",
+    color: "#8B5CF6",
+    bg: "#F5F3FF",
+  },
+  {
+    id: "security",
+    icon: "shield",
+    label: "Security",
+    desc: "Password & authentication",
+    color: "#EF4444",
+    bg: "#FEF2F2",
+  },
+  {
+    id: "payments",
+    icon: "credit-card",
+    label: "Payments",
+    desc: "Billing & payout methods",
+    color: "#3B82F6",
+    bg: "#EFF6FF",
+  },
+  {
+    id: "notifications",
+    icon: "bell",
+    label: "Notifications",
+    desc: "Email preferences",
+    color: "#F59E0B",
+    bg: "#FFFBEB",
+  },
+  {
+    id: "privacy",
+    icon: "lock",
+    label: "Privacy",
+    desc: "Data protection settings",
+    color: "#10B981",
+    bg: "#ECFDF5",
+  },
+]
+
+// ==================== STYLES ====================
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
+  screen: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
+
+  // Header
+  menuHeader: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  header: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
+  profileSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  avatarText: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  onlineBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+  },
+
+  // Menu
+  menuScroll: {
+    flex: 1,
+  },
+  menuContent: {
+    padding: 20,
+    paddingTop: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6B7280",
+    letterSpacing: 1.2,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  menuIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  menuDesc: {
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 24,
+  },
+
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEF2F2",
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#EF4444",
+  },
+
+  // Content
+  content: {
+    flex: 1,
+  },
+  contentPadding: {
+    padding: 20,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6B7280",
+    letterSpacing: 1.2,
+    marginBottom: 12,
+    marginTop: 12,
+  },
+  cardGroup: {
+    gap: 12,
+  },
+
+  // Setting Card
+  settingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  settingCardStatic: {
+    opacity: 0.7,
+  },
+  settingIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  settingValue: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+
+  // Activity
+  activityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  activityText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#059669",
+    flex: 1,
+  },
+
+  // Toggle
+  toggleItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  toggleContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  toggleIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toggleTextContainer: {
+    flex: 1,
+  },
+  toggleTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  toggleDesc: {
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  toggleTrack: {
+    width: 52,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#D1D5DB",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  toggleTrackActive: {
+    backgroundColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  toggleThumb: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  // Danger Button
+  dangerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEF2F2",
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: "#FEE2E2",
+  },
+  dangerButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#EF4444",
+  },
+
+  // Modal
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  modalContainer: {
+    width: "100%",
+    height: "85%",
+  },
+  modal: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#fff",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1F2937",
+    flex: 1,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  modalDesc: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    backgroundColor: "#fff",
+  },
+
+  // Info Box
+  infoBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#EFF6FF",
+    padding: 12,
+    borderRadius: 10,
+    gap: 10,
+    marginBottom: 20,
+    borderLeftWidth: 3,
+    borderLeftColor: "#3B82F6",
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1E40AF",
+    lineHeight: 18,
+  },
+
+  // Input
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 14,
+    minHeight: 50,
+  },
+  inputDisabled: {
+    opacity: 0.6,
+    backgroundColor: "#F3F4F6",
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  eyeIcon: {
+    padding: 4,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#1F2937",
+    paddingVertical: 14,
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 6,
+  },
+  errorText: {
+    fontSize: 13,
+    color: "#EF4444",
+  },
+
+  // OTP Input
+  otpInput: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1F2937",
+    textAlign: "center",
+    letterSpacing: 8,
+    marginBottom: 16,
+  },
+
+  resendBtn: {
+    alignSelf: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  resendText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+
+  // Country Code Input
+  countryCodeInput: {
+    width: 75,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#1F2937",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+
+  // Button
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 48,
+  },
+  buttonPrimary: {
+    backgroundColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOpacity: 0.3,
+  },
+  buttonSecondary: {
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  buttonTextPrimary: {
+    color: "#fff",
+  },
+  buttonTextSecondary: {
+    color: "#1F2937",
+  },
+
+  // Modal Button
+  modalButton: {
+    flex: 1,
+  },
+
+  // Loading State
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+
+  // Payment Info Card
+  paymentInfoCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: "#EFF6FF",
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#3B82F6",
+  },
+  paymentInfoTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1E40AF",
+    marginBottom: 4,
+  },
+  paymentInfoDesc: {
+    fontSize: 13,
+    color: "#3B82F6",
+    lineHeight: 18,
+  },
+
+  // Privacy Card
+  privacyCard: {
+    backgroundColor: "#ECFDF5",
+    padding: 20,
+    borderRadius: 16,
+    alignItems: "center",
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+  privacyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#059669",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  privacyDesc: {
+    fontSize: 14,
+    color: "#047857",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
+  // Address Modal Styles
+  addAddressButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#ECFDF5",
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    borderStyle: "dashed",
+  },
+  addAddressText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+  currentAddressBox: {
+    backgroundColor: "#F9FAFB",
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  currentAddressLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  currentAddressText: {
+    fontSize: 14,
+    color: "#1F2937",
+    lineHeight: 20,
+  },
+})
+
+// ==================== ANIMATED COMPONENTS ====================
+
+function AnimatedCard({ children, delay = 0 }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(30)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [])
 
   return (
-    <div className="screen">
-      <div className="header-gradient">
-        <div className="header-content">
-          <button className="icon-button" onClick={() => navigateTo('../app/profile')}>
-            <ChevronLeft size={24} color="#fff" strokeWidth={2.5} />
-          </button>
-          <div className="header-title-wrap">
-            <h1 className="header-title">Settings</h1>
-            <p className="header-subtitle">Manage your preferences</p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="content-scroll">
-        <div className="menu-grid">
-          {menuItems.map((item) => (
-            <button key={item.id} className="menu-card" onClick={() => navigateTo(item.id)}>
-              <div className="menu-card-icon" style={{ backgroundColor: item.bg }}>
-                <item.icon size={24} color={item.color} strokeWidth={2} />
-              </div>
-              <div className="menu-card-content">
-                <h3 className="menu-card-title">{item.label}</h3>
-                <p className="menu-card-desc">{item.desc}</p>
-              </div>
-              <ChevronRight size={20} color="#D1D5DB" strokeWidth={2} />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }],
+      }}
+    >
+      {children}
+    </Animated.View>
+  )
+}
 
-const ProfileScreen = ({ goBack, setShowAddressModal }) => (
-  <div className="screen">
-    <ScreenHeader title="Profile" subtitle="Your personal information" onBack={goBack} />
-    <div className="content-scroll">
-      <div className="info-card">
-        <div className="info-card-header">
-          <User size={20} color="#6B7280" />
-          <span className="info-card-label">Profile name</span>
-        </div>
-        <p className="info-card-value">OscorTech</p>
-      </div>
+function PulseIcon({ size = 6, color = "#10B981" }) {
+  const pulseAnim = useRef(new Animated.Value(1)).current
 
-      <div className="info-card">
-        <div className="info-card-header">
-          <MapPin size={20} color="#6B7280" />
-          <span className="info-card-label">Delivery address</span>
-        </div>
-        <div className="info-card-row">
-          <p className="info-card-value">Not set</p>
-          <button className="btn-link" onClick={() => setShowAddressModal(true)}>Edit</button>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const AccountScreen = ({ goBack, setShowPhoneModal, setShowEmailModal, setShowPasswordModal, setShowBillingModal }) => (
-  <div className="screen">
-    <ScreenHeader title="Account" subtitle="Security & authentication" onBack={goBack} />
-    <div className="content-scroll">
-      <div className="section-label">Security</div>
-      
-      <div className="info-card">
-        <div className="info-card-header">
-          <Phone size={20} color="#6B7280" />
-          <span className="info-card-label">Phone verification</span>
-        </div>
-        <button className="btn-link" onClick={() => setShowPhoneModal(true)}>Add number</button>
-      </div>
-
-      <div className="info-card">
-        <div className="info-card-header">
-          <Mail size={20} color="#6B7280" />
-          <span className="info-card-label">Email address</span>
-        </div>
-        <div className="info-card-row">
-          <p className="info-card-value">tiwariraj1202@gmail.com</p>
-          <button className="btn-link" onClick={() => setShowEmailModal(true)}>Change</button>
-        </div>
-      </div>
-
-      <div className="info-card">
-        <div className="info-card-header">
-          <Lock size={20} color="#6B7280" />
-          <span className="info-card-label">Password</span>
-        </div>
-        <div className="info-card-row">
-          <p className="info-card-value">••••••••</p>
-          <button className="btn-link" onClick={() => setShowPasswordModal(true)}>Change</button>
-        </div>
-      </div>
-
-      <div className="section-label" style={{ marginTop: '24px' }}>Activity</div>
-      <div className="activity-badge">
-        <Bell size={18} color="#10B981" />
-        <span className="activity-text">You have 4 active ads</span>
-      </div>
-
-      <div className="section-label" style={{ marginTop: '24px' }}>Billing</div>
-      <div className="info-card">
-        <div className="info-card-header">
-          <MapPin size={20} color="#6B7280" />
-          <span className="info-card-label">Billing address</span>
-        </div>
-        <div className="info-card-row">
-          <p className="info-card-value">Not set</p>
-          <button className="btn-link" onClick={() => setShowBillingModal(true)}>Edit</button>
-        </div>
-      </div>
-
-      <button className="btn-danger">Delete account</button>
-    </div>
-  </div>
-);
-
-const PaymentsScreen = ({ goBack }) => (
-  <div className="screen">
-    <ScreenHeader title="Payments" subtitle="Payment methods" onBack={goBack} />
-    <div className="content-scroll">
-      <div className="info-card">
-        <div className="info-card-header">
-          <CreditCard size={20} color="#6B7280" />
-          <span className="info-card-label">Payout account</span>
-        </div>
-        <div className="info-card-row">
-          <p className="info-card-value">•••• •••• •••• 1234</p>
-          <button className="btn-link">Change</button>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const DataProtectionScreen = ({ goBack }) => (
-  <div className="screen">
-    <ScreenHeader title="Data Protection" subtitle="Privacy settings" onBack={goBack} />
-    <div className="content-scroll">
-      {['Privacy Settings & Analysis', 'Privacy Policy', 'Data Protection'].map((item, i) => (
-        <button key={i} className="link-card">
-          <Shield size={20} color="#10B981" />
-          <span className="link-text">{item}</span>
-          <ChevronRight size={20} color="#D1D5DB" />
-        </button>
-      ))}
-    </div>
-  </div>
-);
-
-const EmailsScreen = ({ goBack }) => {
-  const [newsletter, setNewsletter] = useState(false);
-  const [messages, setMessages] = useState(true);
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
+  }, [])
 
   return (
-    <div className="screen">
-      <ScreenHeader title="Email Preferences" subtitle="Manage notifications" onBack={goBack} />
-      <div className="content-scroll">
-        <div className="toggle-card">
-          <div className="toggle-content">
-            <h4 className="toggle-title">Newsletter</h4>
-            <p className="toggle-desc">Receive updates, tips, and promotions</p>
-          </div>
-          <label className="switch">
-            <input type="checkbox" checked={newsletter} onChange={(e) => setNewsletter(e.target.checked)} />
-            <span className="slider"></span>
-          </label>
-        </div>
+    <Animated.View
+      style={{
+        width: size * 4,
+        height: size * 4,
+        borderRadius: size * 2,
+        backgroundColor: color,
+        transform: [{ scale: pulseAnim }],
+      }}
+    />
+  )
+}
 
-        <div className="toggle-card">
-          <div className="toggle-content">
-            <h4 className="toggle-title">User messages</h4>
-            <p className="toggle-desc">Get notified when users message you</p>
-          </div>
-          <label className="switch">
-            <input type="checkbox" checked={messages} onChange={(e) => setMessages(e.target.checked)} />
-            <span className="slider"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-  );
-};
+function AnimatedButton({ title, onPress, loading, variant = "primary", style }) {
+  const scaleAnim = useRef(new Animated.Value(1)).current
 
-const ClassifiedAdsScreen = ({ goBack }) => (
-  <div className="screen">
-    <ScreenHeader title="Classified Ads" subtitle="Information" onBack={goBack} />
-    <div className="content-scroll">
-      <div className="info-card">
-        <p className="info-text">Learn about classified ads features and how to use them effectively.</p>
-      </div>
-    </div>
-  </div>
-);
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start()
+  }
 
-const ScreenHeader = ({ title, subtitle, onBack }) => (
-  <div className="screen-header-modern">
-    <button className="icon-button-dark" onClick={onBack}>
-      <ChevronLeft size={22} strokeWidth={2.5} />
-    </button>
-    <div className="screen-header-text">
-      <h2 className="screen-title">{title}</h2>
-      {subtitle && <p className="screen-subtitle">{subtitle}</p>}
-    </div>
-  </div>
-);
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start()
+  }
 
-const PhoneModal = ({ phoneData, setPhoneData, phoneStep, setPhoneStep, onClose }) => (
-  <div className="modal-backdrop" onClick={onClose}>
-    <div className="modal-modern" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header-modern">
-        <h3 className="modal-title-modern">{phoneStep === 1 ? 'Add Phone Number' : 'Verify OTP'}</h3>
-        <button className="modal-close-btn" onClick={onClose}>×</button>
-      </div>
-      <div className="modal-body-modern">
-        {phoneStep === 1 ? (
-          <>
-            <p className="modal-desc">We'll send you a verification code</p>
-            <div className="input-group-horizontal">
-              <select className="select-modern" value={phoneData.countryCode} onChange={(e) => setPhoneData({...phoneData, countryCode: e.target.value})}>
-                <option value="+91">+91</option>
-                <option value="+1">+1</option>
-                <option value="+44">+44</option>
-              </select>
-              <input className="input-modern flex-1" placeholder="Phone number" value={phoneData.phoneNumber} onChange={(e) => setPhoneData({...phoneData, phoneNumber: e.target.value})} />
-            </div>
-          </>
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={loading}
+        style={[
+          styles.button,
+          variant === "primary" ? styles.buttonPrimary : styles.buttonSecondary,
+          loading && styles.buttonDisabled,
+          style,
+        ]}
+        activeOpacity={0.9}
+      >
+        {loading ? (
+          <ActivityIndicator color={variant === "primary" ? "#fff" : "#10B981"} />
         ) : (
-          <>
-            <p className="modal-desc">Code sent to {phoneData.countryCode} {phoneData.phoneNumber}</p>
-            <input className="input-modern otp-input-modern" placeholder="• • • • • •" maxLength="6" value={phoneData.otp} onChange={(e) => setPhoneData({...phoneData, otp: e.target.value})} />
-            <button className="btn-text-link">Resend code</button>
-          </>
+          <Text style={[styles.buttonText, variant === "primary" ? styles.buttonTextPrimary : styles.buttonTextSecondary]}>
+            {title}
+          </Text>
         )}
-      </div>
-      <div className="modal-footer-modern">
-        <button className="btn-secondary-modern" onClick={onClose}>Cancel</button>
-        <button className="btn-primary-modern" onClick={() => phoneStep === 1 ? setPhoneStep(2) : onClose()}>
-          {phoneStep === 1 ? 'Send Code' : 'Verify'}
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-const EmailModal = ({ emailData, setEmailData, showPassword, setShowPassword, onClose }) => (
-  <div className="modal-backdrop" onClick={onClose}>
-    <div className="modal-modern" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header-modern">
-        <h3 className="modal-title-modern">Change Email</h3>
-        <button className="modal-close-btn" onClick={onClose}>×</button>
-      </div>
-      <div className="modal-body-modern">
-        <div className="alert-info">
-          <Shield size={18} color="#3B82F6" />
-          <p className="alert-text">You'll receive confirmation emails at both addresses</p>
-        </div>
-        <div className="input-group">
-          <label className="label-modern">Current email</label>
-          <input className="input-modern input-disabled" value={emailData.currentEmail} disabled />
-        </div>
-        <div className="input-group">
-          <label className="label-modern">New email</label>
-          <input className="input-modern" placeholder="Enter new email" value={emailData.newEmail} onChange={(e) => setEmailData({...emailData, newEmail: e.target.value})} />
-        </div>
-        <div className="input-group">
-          <label className="label-modern">Confirm email</label>
-          <input className="input-modern" placeholder="Confirm new email" value={emailData.repeatEmail} onChange={(e) => setEmailData({...emailData, repeatEmail: e.target.value})} />
-        </div>
-        <div className="input-group">
-          <label className="label-modern">Password</label>
-          <div className="input-with-icon">
-            <input className="input-modern" type={showPassword ? "text" : "password"} placeholder="Enter password" value={emailData.password} onChange={(e) => setEmailData({...emailData, password: e.target.value})} />
-            <button className="input-icon-btn" onClick={() => setShowPassword(!showPassword)}>
-              <Eye size={20} color="#9CA3AF" />
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="modal-footer-modern">
-        <button className="btn-secondary-modern" onClick={onClose}>Cancel</button>
-        <button className="btn-primary-modern">Save Changes</button>
-      </div>
-    </div>
-  </div>
-);
-
-const PasswordModal = ({ passwordData, setPasswordData, showCurrentPassword, setShowCurrentPassword, showNewPassword, setShowNewPassword, showConfirmPassword, setShowConfirmPassword, onClose }) => (
-  <div className="modal-backdrop" onClick={onClose}>
-    <div className="modal-modern" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header-modern">
-        <h3 className="modal-title-modern">Change Password</h3>
-        <button className="modal-close-btn" onClick={onClose}>×</button>
-      </div>
-      <div className="modal-body-modern">
-        <div className="input-group">
-          <label className="label-modern">Current password</label>
-          <div className="input-with-icon">
-            <input className="input-modern" type={showCurrentPassword ? "text" : "password"} placeholder="Enter current password" value={passwordData.currentPassword} onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})} />
-            <button className="input-icon-btn" onClick={() => setShowCurrentPassword(!showCurrentPassword)}>
-              <Eye size={20} color="#9CA3AF" />
-            </button>
-          </div>
-        </div>
-        <div className="input-group">
-          <label className="label-modern">New password</label>
-          <div className="input-with-icon">
-            <input className="input-modern" type={showNewPassword ? "text" : "password"} placeholder="Enter new password" value={passwordData.newPassword} onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})} />
-            <button className="input-icon-btn" onClick={() => setShowNewPassword(!showNewPassword)}>
-              <Eye size={20} color="#9CA3AF" />
-            </button>
-          </div>
-        </div>
-        <div className="input-group">
-          <label className="label-modern">Confirm password</label>
-          <div className="input-with-icon">
-            <input className="input-modern" type={showConfirmPassword ? "text" : "password"} placeholder="Confirm new password" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} />
-            <button className="input-icon-btn" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-              <Eye size={20} color="#9CA3AF" />
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="modal-footer-modern">
-        <button className="btn-secondary-modern" onClick={onClose}>Cancel</button>
-        <button className="btn-primary-modern">Update Password</button>
-      </div>
-    </div>
-  </div>
-);
-
-const AddressModal = ({ title, addressData, setAddressData, onClose }) => (
-  <div className="modal-backdrop" onClick={onClose}>
-    <div className="modal-modern" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header-modern">
-        <h3 className="modal-title-modern">{title}</h3>
-        <button className="modal-close-btn" onClick={onClose}>×</button>
-      </div>
-      <div className="modal-body-modern">
-        <div className="input-group">
-          <input className="input-modern" placeholder="First name *" value={addressData.firstName} onChange={(e) => setAddressData({...addressData, firstName: e.target.value})} />
-        </div>
-        <div className="input-group">
-          <input className="input-modern" placeholder="Last name *" value={addressData.lastName} onChange={(e) => setAddressData({...addressData, lastName: e.target.value})} />
-        </div>
-        <div className="input-group">
-          <input className="input-modern" placeholder="Address suffix" value={addressData.addressSuffix} onChange={(e) => setAddressData({...addressData, addressSuffix: e.target.value})} />
-        </div>
-        <div className="input-group-horizontal">
-          <input className="input-modern flex-1" placeholder="Street *" value={addressData.street} onChange={(e) => setAddressData({...addressData, street: e.target.value})} />
-          <input className="input-modern" style={{width: '120px'}} placeholder="No. *" value={addressData.houseNumber} onChange={(e) => setAddressData({...addressData, houseNumber: e.target.value})} />
-        </div>
-        <div className="input-group-horizontal">
-          <input className="input-modern" style={{width: '140px'}} placeholder="Postal *" value={addressData.postalCode} onChange={(e) => setAddressData({...addressData, postalCode: e.target.value})} />
-          <input className="input-modern flex-1" placeholder="Location *" value={addressData.location} onChange={(e) => setAddressData({...addressData, location: e.target.value})} />
-        </div>
-      </div>
-      <div className="modal-footer-modern">
-        <button className="btn-secondary-modern" onClick={onClose}>Cancel</button>
-        <button className="btn-primary-modern">Save Address</button>
-      </div>
-    </div>
-  </div>
-);
-
-const Style = () => <style>{`
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body, html { width: 100%; height: 100%; overflow: hidden; }
-
-  .app-container {
-    width: 100vw;
-    height: 100vh;
-    background: #F8FAFC;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    overflow: hidden;
-  }
-
-  .screen {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: #F8FAFC;
-  }
-
-  .header-gradient {
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-    padding: 16px 16px 24px;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-  }
-
-  .header-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .icon-button {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .icon-button:active {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(0.95);
-  }
-
-  .header-title-wrap {
-    flex: 1;
-  }
-
-  .header-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #fff;
-    margin: 0;
-    letter-spacing: -0.5px;
-  }
-
-  .header-subtitle {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 2px 0 0;
-  }
-
-  .content-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px 16px 24px;
-  }
-
-  .menu-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .menu-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: #fff;
-    padding: 16px;
-    border-radius: 16px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-
-  .menu-card:active {
-    transform: scale(0.98);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .menu-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .menu-card-content {
-    flex: 1;
-    text-align: left;
-  }
-
-  .menu-card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1F2937;
-    margin: 0 0 2px;
-  }
-
-  .menu-card-desc {
-    font-size: 13px;
-    color: #9CA3AF;
-    margin: 0;
-  }
-
-  .screen-header-modern {
-    background: #fff;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid #F3F4F6;
-  }
-
-  .icon-button-dark {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: #F3F4F6;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .icon-button-dark:active {
-    background: #E5E7EB;
-    transform: scale(0.95);
-  }
-
-  .screen-header-text {
-    flex: 1;
-  }
-
-  .screen-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1F2937;
-    margin: 0;
-  }
-
-  .screen-subtitle {
-    font-size: 13px;
-    color: #9CA3AF;
-    margin: 2px 0 0;
-  }
-
-  .section-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #6B7280;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
-  }
-
-  .info-card {
-    background: #fff;
-    padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-
-  .info-card-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-  }
-
-  .info-card-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #6B7280;
-  }
-
-  .info-card-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .info-card-value {
-    font-size: 16px;
-    font-weight: 500;
-    color: #1F2937;
-    margin: 0;
-  }
-
-  .btn-link {
-    background: none;
-    border: none;
-    color: #10B981;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
-  }
-
-  .btn-link:active {
-    opacity: 0.7;
-  }
-
-  .activity-badge {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: #ECFDF5;
-    padding: 14px 16px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-  }
-
-  .activity-text {
-    font-size: 14px;
-    font-weight: 500;
-    color: #059669;
-  }
-
-  .btn-danger {
-    background: #FEE2E2;
-    color: #DC2626;
-    border: none;
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 20px;
-    width: 100%;
-    transition: all 0.2s;
-  }
-
-  .btn-danger:active {
-    background: #FECACA;
-    transform: scale(0.98);
-  }
-
-  .link-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #fff;
-    padding: 16px;
-    border-radius: 14px;
-    border: none;
-    cursor: pointer;
-    margin-bottom: 10px;
-    width: 100%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: all 0.2s;
-  }
-
-  .link-card:active {
-    transform: scale(0.98);
-  }
-
-  .link-text {
-    flex: 1;
-    text-align: left;
-    font-size: 15px;
-    font-weight: 500;
-    color: #1F2937;
-  }
-
-  .toggle-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: #fff;
-    padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-
-  .toggle-content {
-    flex: 1;
-  }
-
-  .toggle-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1F2937;
-    margin: 0 0 4px;
-  }
-
-  .toggle-desc {
-    font-size: 13px;
-    color: #9CA3AF;
-    margin: 0;
-  }
-
-  .switch {
-    position: relative;
-    width: 52px;
-    height: 32px;
-    flex-shrink: 0;
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #E5E7EB;
-    border-radius: 32px;
-    transition: 0.3s;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 3px;
-    bottom: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: 0.3s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .switch input:checked + .slider {
-    background: #10B981;
-  }
-
-  .switch input:checked + .slider:before {
-    transform: translateX(20px);
-  }
-
-  .info-text {
-    font-size: 15px;
-    color: #6B7280;
-    line-height: 1.6;
-    margin: 0;
-  }
-
-  .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
-
-  .modal-modern {
-    background: #fff;
-    border-radius: 24px 24px 0 0;
-    width: 100%;
-    max-width: 500px;
-    max-height: 85vh;
-    overflow-y: auto;
-    animation: slideUp 0.3s ease-out;
-  }
-
-  .modal-header-modern {
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid #F3F4F6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .modal-title-modern {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1F2937;
-    margin: 0;
-  }
-
-  .modal-close-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: #F3F4F6;
-    border: none;
-    font-size: 28px;
-    color: #6B7280;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .modal-close-btn:active {
-    background: #E5E7EB;
-  }
-
-  .modal-body-modern {
-    padding: 20px;
-  }
-
-  .modal-desc {
-    font-size: 14px;
-    color: #6B7280;
-    margin: 0 0 20px;
-  }
-
-  .alert-info {
-    display: flex;
-    gap: 10px;
-    background: #EFF6FF;
-    border-left: 3px solid #3B82F6;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-  }
-
-  .alert-text {
-    font-size: 13px;
-    color: #1E40AF;
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  .input-group {
-    margin-bottom: 16px;
-  }
-
-  .input-group-horizontal {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .flex-1 {
-    flex: 1;
-  }
-
-  .label-modern {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 8px;
-  }
-
-  .input-modern {
-    width: 100%;
-    padding: 14px 16px;
-    border: 2px solid #E5E7EB;
-    border-radius: 12px;
-    font-size: 15px;
-    transition: all 0.2s;
-    font-family: inherit;
-    background: #fff;
-  }
-
-  .input-modern:focus {
-    outline: none;
-    border-color: #10B981;
-    background: #F0FDF4;
-  }
-
-  .input-modern::placeholder {
-    color: #9CA3AF;
-  }
-
-  .input-disabled {
-    background: #F9FAFB;
-    color: #9CA3AF;
-    cursor: not-allowed;
-  }
-
-  .select-modern {
-    padding: 14px 12px;
-    border: 2px solid #E5E7EB;
-    border-radius: 12px;
-    font-size: 15px;
-    background: #fff;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-
-  .select-modern:focus {
-    outline: none;
-    border-color: #10B981;
-  }
-
-  .input-with-icon {
-    position: relative;
-  }
-
-  .input-icon-btn {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    transition: opacity 0.2s;
-  }
-
-  .input-icon-btn:active {
-    opacity: 0.6;
-  }
-
-  .otp-input-modern {
-    text-align: center;
-    font-size: 24px;
-    letter-spacing: 12px;
-    font-weight: 600;
-  }
-
-  .btn-text-link {
-    background: none;
-    border: none;
-    color: #10B981;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 8px 0;
-    margin-top: 8px;
-    width: 100%;
-  }
-
-  .btn-text-link:active {
-    opacity: 0.7;
-  }
-
-  .modal-footer-modern {
-    padding: 16px 20px 24px;
-    display: flex;
-    gap: 12px;
-  }
-
-  .btn-secondary-modern {
-    flex: 1;
-    padding: 14px;
-    border: 2px solid #E5E7EB;
-    background: #fff;
-    color: #374151;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-secondary-modern:active {
-    background: #F9FAFB;
-    transform: scale(0.98);
-  }
-
-  .btn-primary-modern {
-    flex: 1;
-    padding: 14px;
-    border: none;
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-    color: #fff;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  }
-
-  .btn-primary-modern:active {
-    transform: scale(0.98);
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-  }
-
-  .content-scroll::-webkit-scrollbar {
-    width: 0;
-  }
-
-  .modal-modern::-webkit-scrollbar {
-    width: 0;
-  }
-
-  * {
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  @media (min-width: 769px) {
-    .app-container {
-      max-width: 480px;
-      margin: 0 auto;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
-    }
-
-    .modal-backdrop {
-      align-items: center;
-    }
-
-    .modal-modern {
-      border-radius: 24px;
-      max-height: 90vh;
+      </TouchableOpacity>
+    </Animated.View>
+  )
+}
+
+function AnimatedInput({ label, value, onChangeText, icon, secureTextEntry, error, placeholder, editable = true }) {
+  const [focused, setFocused] = useState(false)
+  const borderAnim = useRef(new Animated.Value(0)).current
+  const [showPassword, setShowPassword] = useState(false)
+
+  const handleFocus = () => {
+    setFocused(true)
+    Animated.timing(borderAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start()
+  }
+
+  const handleBlur = () => {
+    setFocused(false)
+    Animated.timing(borderAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start()
+  }
+
+  const borderColor = borderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: error ? ["#FCA5A5", "#EF4444"] : ["#E5E7EB", "#10B981"],
+  })
+
+  return (
+    <View style={styles.inputGroup}>
+      {label && <Text style={styles.inputLabel}>{label}</Text>}
+      <Animated.View style={[styles.inputContainer, { borderColor }, !editable && styles.inputDisabled]}>
+        {icon && <Feather name={icon} size={20} color={focused ? "#10B981" : "#9CA3AF"} style={styles.inputIcon} />}
+        <TextInput
+          style={styles.textInput}
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          secureTextEntry={secureTextEntry && !showPassword}
+          placeholder={placeholder}
+          placeholderTextColor="#D1D5DB"
+          editable={editable}
+        />
+        {secureTextEntry && (
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+            <Feather name={showPassword ? "eye" : "eye-off"} size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
+      </Animated.View>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Feather name="alert-circle" size={16} color="#EF4444" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+    </View>
+  )
+}
+
+function SettingCard({ icon, label, value, onPress, iconColor, iconBg, isStatic = false }) {
+  const scaleAnim = useRef(new Animated.Value(1)).current
+
+  const handlePressIn = () => {
+    if (!isStatic) {
+      Animated.spring(scaleAnim, {
+        toValue: 0.97,
+        useNativeDriver: true,
+      }).start()
     }
   }
-`}</style>;
+
+  const handlePressOut = () => {
+    if (!isStatic) {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 3,
+        useNativeDriver: true,
+      }).start()
+    }
+  }
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[styles.settingCard, isStatic && styles.settingCardStatic]}
+        onPress={isStatic ? null : onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={isStatic ? 1 : 0.9}
+        disabled={isStatic}
+      >
+        <View style={[styles.settingIcon, { backgroundColor: iconBg }]}>
+          <Feather name={icon} size={22} color={iconColor} />
+        </View>
+        <View style={styles.settingContent}>
+          <Text style={styles.settingLabel}>{label}</Text>
+          {value && <Text style={styles.settingValue}>{value}</Text>}
+        </View>
+        {!isStatic && <Feather name="chevron-right" size={20} color="#D1D5DB" />}
+        {isStatic && <Feather name="lock" size={18} color="#9CA3AF" />}
+      </TouchableOpacity>
+    </Animated.View>
+  )
+}
+
+function AnimatedToggle({ value, onValueChange, loading }) {
+  const translateAnim = useRef(new Animated.Value(value ? 1 : 0)).current
+
+  useEffect(() => {
+    Animated.spring(translateAnim, {
+      toValue: value ? 1 : 0,
+      friction: 5,
+      tension: 100,
+      useNativeDriver: true,
+    }).start()
+  }, [value])
+
+  const thumbTranslate = translateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 26],
+  })
+
+  if (loading) {
+    return <ActivityIndicator color="#10B981" size="small" />
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={() => onValueChange(!value)}
+      style={[styles.toggleTrack, value && styles.toggleTrackActive]}
+      activeOpacity={0.8}
+    >
+      <Animated.View
+        style={[
+          styles.toggleThumb,
+          {
+            transform: [{ translateX: thumbTranslate }],
+          },
+        ]}
+      />
+    </TouchableOpacity>
+  )
+}
+
+// ==================== MAIN APP ====================
+
+export default function EnhancedSettingsApp() {
+  const [currentScreen, setCurrentScreen] = useState("menu")
+  const [modalOpen, setModalOpen] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [phoneStep, setPhoneStep] = useState(1)
+  const [addressStep, setAddressStep] = useState(1) // 1: landing, 2: form
+  const [userData, setUserData] = useState(null)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [userAds, setUserAds] = useState([])
+  const [tempUsername, setTempUsername] = useState("")
+  
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    currentEmail: "",
+    newEmail: "",
+    emailPassword: "",
+    phoneNumber: "",
+    countryCode: "+91",
+    otp: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    deliveryAddress: {
+      firstName: "",
+      lastName: "",
+      suffix: "",
+      street: "",
+      houseNumber: "",
+      postalCode: "",
+      location: "",
+    },
+    billingAddress: "",
+    newsletter: false,
+    messageforuser: false,
+  })
+
+  const [toggleLoading, setToggleLoading] = useState({
+    newsletter: false,
+    messageforuser: false,
+  })
+
+  // Load user data from storage on mount
+  useEffect(() => {
+    initializeApp()
+  }, [])
+
+  // Handle Android back button
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (currentScreen !== "menu") {
+        goBack()
+        return true
+      }
+      return false
+    })
+
+    return () => backHandler.remove()
+  }, [currentScreen])
+
+  const initializeApp = async () => {
+    try {
+      setInitialLoading(true)
+      
+      const storedUserData = await getUserData()
+      
+      if (!storedUserData) {
+        Alert.alert(
+          "No User Data Found",
+          "Please log in first.",
+          [{ text: "OK" }]
+        )
+        setInitialLoading(false)
+        return
+      }
+      
+      setUserData(storedUserData)
+      
+      let parsedDeliveryAddress = {
+        firstName: "",
+        lastName: "",
+        suffix: "",
+        street: "",
+        houseNumber: "",
+        postalCode: "",
+        location: "",
+      }
+      
+      if (storedUserData.deliveryAddress && storedUserData.deliveryAddress !== "NA") {
+        try {
+          parsedDeliveryAddress = typeof storedUserData.deliveryAddress === 'string' 
+            ? JSON.parse(storedUserData.deliveryAddress) 
+            : storedUserData.deliveryAddress
+        } catch (e) {
+          console.log("Could not parse delivery address")
+        }
+      }
+      
+      setFormData({
+        ...formData,
+        username: storedUserData.username || storedUserData.chatDisplayName || "",
+        email: storedUserData.email || "",
+        currentEmail: storedUserData.email || "",
+        phoneNumber: storedUserData.phoneNumber || "",
+        deliveryAddress: parsedDeliveryAddress,
+        billingAddress: storedUserData.billingAddress || "",
+        newsletter: storedUserData.newsletter || false,
+        messageforuser: storedUserData.messageforuser || false,
+      })
+      
+      if (storedUserData._id) {
+        loadUserAds(storedUserData._id)
+      }
+    } catch (error) {
+      console.error("Initialize app error:", error)
+      Alert.alert("Error", "Failed to load user data")
+    } finally {
+      setInitialLoading(false)
+    }
+  }
+
+  const loadUserAds = async (userId) => {
+    try {
+      const ads = await apiService.getUserAds(userId)
+      setUserAds(ads)
+    } catch (error) {
+      console.error("Load ads error:", error)
+      setUserAds([])
+    }
+  }
+
+  const navigateTo = (screen) => setCurrentScreen(screen)
+  const goBack = () => setCurrentScreen("menu")
+
+  // Logout Handler
+  const handleLogout = async () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA)
+              Alert.alert("Success", "Logged out successfully")
+              // Navigate to login screen
+              // navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
+            } catch (error) {
+              Alert.alert("Error", "Failed to logout")
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  // Profile - Username Update (matches web version)
+  const handleUsernameUpdate = async () => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    if (!tempUsername || tempUsername.trim() === "") {
+      Alert.alert("Error", "Please enter a username")
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const updatedUser = await apiService.updateProfileName(userData._id, tempUsername)
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      setFormData({ ...formData, username: tempUsername })
+      
+      Alert.alert("Success", "Username updated successfully!")
+      setModalOpen(null)
+      setTempUsername("")
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to update username")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Profile - Email Update (matches web version)
+  const handleEmailUpdate = async () => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    if (!formData.newEmail || !formData.emailPassword) {
+      Alert.alert("Error", "Please fill all fields")
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const result = await apiService.verifyEmail(userData._id, formData.emailPassword, formData.newEmail)
+      
+      let updatedUser = result
+      if (!result._id) {
+        updatedUser = { ...userData, email: formData.newEmail }
+      }
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      setFormData({ ...formData, email: formData.newEmail, currentEmail: formData.newEmail, newEmail: "", emailPassword: "" })
+      
+      Alert.alert("Success", "Email updated successfully! Please check your inbox for verification.")
+      setModalOpen(null)
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to update email")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Profile - Delivery Address Update (matches web version)
+  const handleAddressUpdate = async () => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    const { firstName, lastName, street, houseNumber, postalCode, location } = formData.deliveryAddress
+    
+    if (!firstName || !lastName || !street || !houseNumber || !postalCode || !location) {
+      Alert.alert("Error", "Please fill all required fields")
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const addressString = `${formData.deliveryAddress.firstName} ${formData.deliveryAddress.lastName}${formData.deliveryAddress.suffix ? ', ' + formData.deliveryAddress.suffix : ''}, ${formData.deliveryAddress.street} ${formData.deliveryAddress.houseNumber}, ${formData.deliveryAddress.postalCode}, ${formData.deliveryAddress.location}`
+      
+      const updatedUser = await apiService.updateDeliveryAddress(userData._id, addressString)
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      setFormData({ ...formData, deliveryAddress: formData.deliveryAddress })
+      
+      Alert.alert("Success", "Delivery address updated successfully!")
+      setModalOpen(null)
+      setAddressStep(1)
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to update address")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Billing Address Update (matches web version)
+  const handleBillingUpdate = async () => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    if (!formData.billingAddress || formData.billingAddress.trim() === "") {
+      Alert.alert("Error", "Please enter billing address")
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const result = await apiService.updateBillingAddress(userData._id, formData.billingAddress)
+      
+      let updatedUser = result
+      if (!result._id) {
+        updatedUser = { ...userData, billingAddress: formData.billingAddress }
+      }
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      
+      Alert.alert("Success", "Billing address updated successfully!")
+      setModalOpen(null)
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to update billing address")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Security - Phone Update
+  const handleSendOTP = async () => {
+    if (!formData.phoneNumber || formData.phoneNumber.length < 10) {
+      Alert.alert("Error", "Please enter a valid phone number")
+      return
+    }
+    
+    setLoading(true)
+    try {
+      await apiService.sendOTP({
+        countryCode: formData.countryCode,
+        phoneNumber: formData.phoneNumber,
+      })
+      setPhoneStep(2)
+      Alert.alert("Success", "OTP sent successfully to your phone")
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to send OTP")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyOTP = async () => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    if (!formData.otp || formData.otp.length !== 6) {
+      Alert.alert("Error", "Please enter 6-digit OTP")
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const result = await apiService.verifyOTP({
+        countryCode: formData.countryCode,
+        phoneNumber: formData.phoneNumber,
+        otp: formData.otp,
+      })
+      
+      let updatedUser = result
+      if (!result._id) {
+        updatedUser = { ...userData, phoneNumber: formData.phoneNumber }
+      }
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      
+      Alert.alert("Success", "Phone number verified successfully!")
+      setModalOpen(null)
+      setPhoneStep(1)
+      setFormData({ ...formData, otp: "" })
+    } catch (error) {
+      Alert.alert("Error", error.message || "Invalid OTP")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Security - Password Update
+  const handlePasswordUpdate = async () => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
+      Alert.alert("Error", "Please fill all fields")
+      return
+    }
+    
+    if (formData.newPassword !== formData.confirmPassword) {
+      Alert.alert("Error", "New passwords do not match")
+      return
+    }
+    
+    if (formData.newPassword.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters")
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const result = await apiService.updatePassword(userData._id, {
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      })
+      
+      if (result._id) {
+        await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(result))
+        setUserData(result)
+      }
+      
+      Alert.alert("Success", "Password updated successfully!")
+      setModalOpen(null)
+      setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+    } catch (error) {
+      Alert.alert("Error", error.message || "Failed to update password")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Notifications - Toggle Newsletter
+  const handleNewsletterToggle = async (value) => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    setToggleLoading({ ...toggleLoading, newsletter: true })
+    try {
+      const result = await apiService.toggleNewsletter(userData._id)
+      
+      let updatedUser = result
+      if (!result._id) {
+        updatedUser = { ...userData, newsletter: value }
+      }
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      setFormData({ ...formData, newsletter: updatedUser.newsletter })
+    } catch (error) {
+      Alert.alert("Error", "Failed to update newsletter preference")
+    } finally {
+      setToggleLoading({ ...toggleLoading, newsletter: false })
+    }
+  }
+
+  // Notifications - Toggle Messages
+  const handleMessagesToggle = async (value) => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    setToggleLoading({ ...toggleLoading, messageforuser: true })
+    try {
+      const result = await apiService.toggleMessages(userData._id)
+      
+      let updatedUser = result
+      if (!result._id) {
+        updatedUser = { ...userData, messageforuser: value }
+      }
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      setFormData({ ...formData, messageforuser: updatedUser.messageforuser })
+    } catch (error) {
+      Alert.alert("Error", "Failed to update messages preference")
+    } finally {
+      setToggleLoading({ ...toggleLoading, messageforuser: false })
+    }
+  }
+
+  // Delete Account
+  const handleDeleteAccount = () => {
+    if (!userData || !userData._id) {
+      Alert.alert("Error", "User data not found. Please log in again.")
+      return
+    }
+    
+    Alert.alert(
+      "Delete Account",
+      "This action cannot be undone. Are you sure you want to delete your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true)
+              await apiService.deleteUser(userData._id)
+              
+              await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA)
+              
+              Alert.alert("Success", "Account deleted successfully", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    // Navigate to login screen
+                    // navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
+                  }
+                }
+              ])
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete account")
+            } finally {
+              setLoading(false)
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  const renderHeader = (title, subtitle, showBack) => (
+    <View style={styles.header}>
+      <View style={styles.headerContent}>
+        {showBack && (
+          <TouchableOpacity onPress={goBack} style={styles.backButton} activeOpacity={0.7}>
+            <Feather name="arrow-left" size={24} color="#fff" />
+          </TouchableOpacity>
+        )}
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>{title}</Text>
+          {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
+        </View>
+      </View>
+    </View>
+  )
+
+  if (initialLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </SafeAreaView>
+    )
+  }
+
+  const renderMenu = () => (
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      
+      <View style={styles.menuHeader}>
+        <View style={styles.profileSection}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {formData.username?.charAt(0)?.toUpperCase() || "U"}
+            </Text>
+            <View style={styles.onlineBadge}>
+              <PulseIcon size={3} color="#10B981" />
+            </View>
+          </View>
+          <View>
+            <Text style={styles.profileName}>{formData.username || "User"}</Text>
+            <Text style={styles.profileEmail}>{formData.email}</Text>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView style={styles.menuScroll} contentContainerStyle={styles.menuContent}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>SETTINGS</Text>
+          <Feather name="settings" size={16} color="#9CA3AF" />
+        </View>
+
+        {MENU_ITEMS.map((item, index) => (
+          <AnimatedCard key={item.id} delay={index * 100}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => navigateTo(item.id)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIcon, { backgroundColor: item.bg }]}>
+                <Feather name={item.icon} size={24} color={item.color} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuLabel}>{item.label}</Text>
+                <Text style={styles.menuDesc}>{item.desc}</Text>
+              </View>
+              <Feather name="chevron-right" size={22} color="#D1D5DB" />
+            </TouchableOpacity>
+          </AnimatedCard>
+        ))}
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7} onPress={handleLogout}>
+          <Feather name="log-out" size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>Sign Out</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  )
+
+  const renderProfile = () => (
+    <View style={styles.screen}>
+      {renderHeader("Profile", "Manage your information", true)}
+      
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+        <AnimatedCard>
+          <Text style={styles.sectionLabel}>PERSONAL INFORMATION</Text>
+          <View style={styles.cardGroup}>
+            <SettingCard
+              icon="user"
+              label="Username"
+              value={formData.username}
+              iconColor="#8B5CF6"
+              iconBg="#F5F3FF"
+              onPress={() => {
+                setTempUsername(formData.username)
+                setModalOpen("username")
+              }}
+            />
+            <SettingCard
+              icon="mail"
+              label="Email Address"
+              value={formData.email}
+              iconColor="#3B82F6"
+              iconBg="#EFF6FF"
+              onPress={() => setModalOpen("email")}
+            />
+          </View>
+        </AnimatedCard>
+
+        <AnimatedCard delay={100}>
+          <Text style={styles.sectionLabel}>ADDRESS</Text>
+          <SettingCard
+            icon="map-pin"
+            label="Delivery Address"
+            value={
+              formData.deliveryAddress.street 
+                ? `${formData.deliveryAddress.street} ${formData.deliveryAddress.houseNumber}, ${formData.deliveryAddress.location}` 
+                : "Not set"
+            }
+            iconColor="#10B981"
+            iconBg="#ECFDF5"
+            onPress={() => setModalOpen("address")}
+          />
+        </AnimatedCard>
+      </ScrollView>
+    </View>
+  )
+
+  const renderSecurity = () => (
+    <View style={styles.screen}>
+      {renderHeader("Security", "Account security", true)}
+      
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+        <AnimatedCard>
+          <Text style={styles.sectionLabel}>AUTHENTICATION</Text>
+          <View style={styles.cardGroup}>
+            <SettingCard
+              icon="smartphone"
+              label="Phone Number"
+              value={formData.phoneNumber || "Add phone number"}
+              iconColor="#8B5CF6"
+              iconBg="#F5F3FF"
+              onPress={() => setModalOpen("phone")}
+            />
+            <SettingCard
+              icon="lock"
+              label="Password"
+              value="••••••••"
+              iconColor="#EF4444"
+              iconBg="#FEF2F2"
+              onPress={() => setModalOpen("password")}
+            />
+          </View>
+        </AnimatedCard>
+
+        <AnimatedCard delay={100}>
+          <Text style={styles.sectionLabel}>BILLING</Text>
+          <SettingCard
+            icon="credit-card"
+            label="Billing Address"
+            value={formData.billingAddress || "Not set"}
+            iconColor="#F59E0B"
+            iconBg="#FFFBEB"
+            onPress={() => setModalOpen("billing")}
+          />
+        </AnimatedCard>
+
+        <AnimatedCard delay={200}>
+          <Text style={styles.sectionLabel}>ACTIVITY</Text>
+          <View style={styles.activityCard}>
+            <Feather name="activity" size={20} color="#10B981" />
+            <Text style={styles.activityText}>
+              {userAds.length > 0 
+                ? `You have ${userAds.length} active ad${userAds.length > 1 ? 's' : ''}` 
+                : "No active ads"}
+            </Text>
+          </View>
+        </AnimatedCard>
+
+        <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
+          <Feather name="trash-2" size={20} color="#EF4444" />
+          <Text style={styles.dangerButtonText}>Delete Account</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  )
+
+  const renderNotifications = () => (
+    <View style={styles.screen}>
+      {renderHeader("Notifications", "Manage preferences", true)}
+      
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+        <AnimatedCard>
+          <View style={styles.toggleItem}>
+            <View style={styles.toggleContent}>
+              <View style={styles.toggleIconContainer}>
+                <Feather name="mail" size={20} color="#10B981" />
+              </View>
+              <View style={styles.toggleTextContainer}>
+                <Text style={styles.toggleTitle}>Newsletter</Text>
+                <Text style={styles.toggleDesc}>Weekly updates and tips</Text>
+              </View>
+            </View>
+            <AnimatedToggle
+              value={formData.newsletter}
+              onValueChange={handleNewsletterToggle}
+              loading={toggleLoading.newsletter}
+            />
+          </View>
+        </AnimatedCard>
+
+        <AnimatedCard delay={100}>
+          <View style={styles.toggleItem}>
+            <View style={styles.toggleContent}>
+              <View style={styles.toggleIconContainer}>
+                <Feather name="message-circle" size={20} color="#10B981" />
+              </View>
+              <View style={styles.toggleTextContainer}>
+                <Text style={styles.toggleTitle}>Messages from Users</Text>
+                <Text style={styles.toggleDesc}>Direct messages from other users</Text>
+              </View>
+            </View>
+            <AnimatedToggle
+              value={formData.messageforuser}
+              onValueChange={handleMessagesToggle}
+              loading={toggleLoading.messageforuser}
+            />
+          </View>
+        </AnimatedCard>
+      </ScrollView>
+    </View>
+  )
+
+  const renderPayments = () => (
+    <View style={styles.screen}>
+      {renderHeader("Payments", "Billing & payment methods", true)}
+      
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+        <AnimatedCard>
+          <Text style={styles.sectionLabel}>PAYMENT METHODS</Text>
+          <SettingCard
+            icon="credit-card"
+            label="Payout Account"
+            value="Contact admin to update"
+            iconColor="#3B82F6"
+            iconBg="#EFF6FF"
+            isStatic={true}
+          />
+        </AnimatedCard>
+
+        <AnimatedCard delay={100}>
+          <Text style={styles.sectionLabel}>BILLING ADDRESS</Text>
+          <SettingCard
+            icon="map-pin"
+            label="Billing Address"
+            value="Contact admin to update"
+            iconColor="#F59E0B"
+            iconBg="#FFFBEB"
+            isStatic={true}
+          />
+        </AnimatedCard>
+
+        <AnimatedCard delay={200}>
+          <View style={styles.paymentInfoCard}>
+            <Feather name="info" size={20} color="#3B82F6" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.paymentInfoTitle}>Admin Access Required</Text>
+              <Text style={styles.paymentInfoDesc}>
+                Please contact your administrator to update payment and billing information
+              </Text>
+            </View>
+          </View>
+        </AnimatedCard>
+      </ScrollView>
+    </View>
+  )
+
+  const renderPrivacy = () => (
+    <View style={styles.screen}>
+      {renderHeader("Privacy", "Data protection & privacy", true)}
+      
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+        <AnimatedCard>
+          <Text style={styles.sectionLabel}>PRIVACY & SECURITY</Text>
+          <View style={styles.cardGroup}>
+            {[
+              { icon: "settings", label: "Privacy Settings", desc: "Manage your privacy" },
+              { icon: "file-text", label: "Privacy Policy", desc: "Read our policy" },
+              { icon: "shield", label: "Data Protection", desc: "How we protect you" },
+            ].map((item, index) => (
+              <SettingCard
+                key={index}
+                icon={item.icon}
+                label={item.label}
+                value={item.desc}
+                iconColor="#10B981"
+                iconBg="#ECFDF5"
+                onPress={() => Alert.alert(item.label, `${item.label} information will be displayed here`)}
+              />
+            ))}
+          </View>
+        </AnimatedCard>
+
+        <AnimatedCard delay={100}>
+          <View style={styles.privacyCard}>
+            <Feather name="lock" size={24} color="#10B981" />
+            <Text style={styles.privacyTitle}>Your Data is Safe</Text>
+            <Text style={styles.privacyDesc}>
+              We use industry-standard encryption to protect your personal information
+            </Text>
+          </View>
+        </AnimatedCard>
+      </ScrollView>
+    </View>
+  )
+
+  // Username Modal
+  const renderUsernameModal = () => (
+    <Modal visible={modalOpen === "username"} animationType="slide" transparent>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setTempUsername("")
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modal}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Change Username</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setModalOpen(null)
+                      setTempUsername("")
+                    }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <AnimatedInput
+                    label="Username"
+                    value={tempUsername}
+                    onChangeText={(val) => setTempUsername(val)}
+                    icon="user"
+                    placeholder="Enter your username"
+                  />
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => {
+                      setModalOpen(null)
+                      setTempUsername("")
+                    }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Save"
+                    onPress={handleUsernameUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  )
+
+  // Email Modal
+  const renderEmailModal = () => (
+    <Modal visible={modalOpen === "email"} animationType="slide" transparent>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setFormData({ ...formData, newEmail: "", emailPassword: "" })
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modal}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Change Email</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, newEmail: "", emailPassword: "" })
+                    }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <View style={styles.infoBox}>
+                    <Feather name="info" size={18} color="#3B82F6" />
+                    <Text style={styles.infoText}>
+                      Verification emails will be sent to both addresses
+                    </Text>
+                  </View>
+                  <AnimatedInput
+                    label="Current Email"
+                    value={formData.currentEmail}
+                    onChangeText={() => {}}
+                    icon="mail"
+                    editable={false}
+                  />
+                  <AnimatedInput
+                    label="New Email"
+                    value={formData.newEmail}
+                    onChangeText={(val) => setFormData({ ...formData, newEmail: val })}
+                    icon="mail"
+                    placeholder="new@email.com"
+                  />
+                  <AnimatedInput
+                    label="Password"
+                    value={formData.emailPassword}
+                    onChangeText={(val) => setFormData({ ...formData, emailPassword: val })}
+                    icon="lock"
+                    secureTextEntry
+                    placeholder="Enter your password"
+                  />
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, newEmail: "", emailPassword: "" })
+                    }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Update Email"
+                    onPress={handleEmailUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  )
+
+  // Address Modal
+  const renderAddressModal = () => (
+    <Modal visible={modalOpen === "address"} animationType="slide" transparent>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setAddressStep(1)
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modal}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {addressStep === 1 ? "Delivery Address" : "Enter Address"}
+                  </Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setModalOpen(null)
+                      setAddressStep(1)
+                    }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {addressStep === 1 ? (
+                    <>
+                      <Text style={styles.modalDesc}>
+                        Manage your saved delivery address here.
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => setAddressStep(2)}
+                        style={styles.addAddressButton}
+                        activeOpacity={0.7}
+                      >
+                        <Feather name="plus-circle" size={20} color="#10B981" />
+                        <Text style={styles.addAddressText}>
+                          {formData.deliveryAddress.street ? "Edit address" : "Add address"}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {formData.deliveryAddress.street && (
+                        <View style={styles.currentAddressBox}>
+                          <Text style={styles.currentAddressLabel}>Current Address:</Text>
+                          <Text style={styles.currentAddressText}>
+                            {`${formData.deliveryAddress.firstName} ${formData.deliveryAddress.lastName}${formData.deliveryAddress.suffix ? ', ' + formData.deliveryAddress.suffix : ''}, ${formData.deliveryAddress.street} ${formData.deliveryAddress.houseNumber}, ${formData.deliveryAddress.postalCode}, ${formData.deliveryAddress.location}`}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <AnimatedInput
+                        label="First Name*"
+                        value={formData.deliveryAddress.firstName}
+                        onChangeText={(val) => setFormData({
+                          ...formData,
+                          deliveryAddress: { ...formData.deliveryAddress, firstName: val }
+                        })}
+                        icon="user"
+                        placeholder="First name"
+                      />
+                      <AnimatedInput
+                        label="Last Name*"
+                        value={formData.deliveryAddress.lastName}
+                        onChangeText={(val) => setFormData({
+                          ...formData,
+                          deliveryAddress: { ...formData.deliveryAddress, lastName: val }
+                        })}
+                        icon="user"
+                        placeholder="Last name"
+                      />
+                      <AnimatedInput
+                        label="Address Suffix (Optional)"
+                        value={formData.deliveryAddress.suffix}
+                        onChangeText={(val) => setFormData({
+                          ...formData,
+                          deliveryAddress: { ...formData.deliveryAddress, suffix: val }
+                        })}
+                        icon="tag"
+                        placeholder="Apt, Suite, etc."
+                      />
+                      <View style={{ flexDirection: "row", gap: 12 }}>
+                        <View style={{ flex: 2 }}>
+                          <AnimatedInput
+                            label="Street*"
+                            value={formData.deliveryAddress.street}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, street: val }
+                            })}
+                            icon="map-pin"
+                            placeholder="Street name"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            label="No.*"
+                            value={formData.deliveryAddress.houseNumber}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, houseNumber: val }
+                            })}
+                            icon="hash"
+                            placeholder="123"
+                          />
+                        </View>
+                      </View>
+                      <View style={{ flexDirection: "row", gap: 12 }}>
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            label="Postal Code*"
+                            value={formData.deliveryAddress.postalCode}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, postalCode: val }
+                            })}
+                            icon="mail"
+                            placeholder="12345"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            label="Location*"
+                            value={formData.deliveryAddress.location}
+                            onChangeText={(val) => setFormData({
+                              ...formData,
+                              deliveryAddress: { ...formData.deliveryAddress, location: val }
+                            })}
+                            icon="home"
+                            placeholder="City"
+                          />
+                        </View>
+                      </View>
+                    </>
+                  )}
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  {addressStep === 1 ? (
+                    <AnimatedButton
+                      title="Close"
+                      onPress={() => {
+                        setModalOpen(null)
+                        setAddressStep(1)
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                  ) : (
+                    <>
+                      <AnimatedButton
+                        title="Back"
+                        onPress={() => setAddressStep(1)}
+                        variant="secondary"
+                        style={styles.modalButton}
+                      />
+                      <AnimatedButton
+                        title="Save"
+                        onPress={handleAddressUpdate}
+                        loading={loading}
+                        style={styles.modalButton}
+                      />
+                    </>
+                  )}
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  )
+
+  // Phone Modal
+  const renderPhoneModal = () => (
+    <Modal visible={modalOpen === "phone"} animationType="slide" transparent>
+      <Pressable style={styles.backdrop} onPress={() => { setModalOpen(null); setPhoneStep(1); }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modal}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{phoneStep === 1 ? "Verify Phone" : "Enter OTP"}</Text>
+                  <TouchableOpacity 
+                    onPress={() => { setModalOpen(null); setPhoneStep(1); }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {phoneStep === 1 ? (
+                    <>
+                      <Text style={styles.modalDesc}>We'll send a verification code to your phone</Text>
+                      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+                        <TextInput
+                          style={styles.countryCodeInput}
+                          value={formData.countryCode}
+                          onChangeText={(val) => setFormData({ ...formData, countryCode: val })}
+                          placeholder="+91"
+                        />
+                        <View style={{ flex: 1 }}>
+                          <AnimatedInput
+                            value={formData.phoneNumber}
+                            onChangeText={(val) => setFormData({ ...formData, phoneNumber: val })}
+                            icon="smartphone"
+                            placeholder="1234567890"
+                          />
+                        </View>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.modalDesc}>
+                        Enter the 6-digit code sent to {formData.countryCode} {formData.phoneNumber}
+                      </Text>
+                      <TextInput
+                        style={styles.otpInput}
+                        value={formData.otp}
+                        onChangeText={(val) => setFormData({ ...formData, otp: val })}
+                        placeholder="000000"
+                        placeholderTextColor="#D1D5DB"
+                        keyboardType="number-pad"
+                        maxLength={6}
+                      />
+                      <TouchableOpacity style={styles.resendBtn} onPress={handleSendOTP}>
+                        <Text style={styles.resendText}>Resend Code</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => { setModalOpen(null); setPhoneStep(1); }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title={phoneStep === 1 ? "Send Code" : "Verify"}
+                    onPress={phoneStep === 1 ? handleSendOTP : handleVerifyOTP}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  )
+
+  // Billing Address Modal
+  const renderBillingModal = () => (
+    <Modal visible={modalOpen === "billing"} animationType="slide" transparent>
+      <Pressable style={styles.backdrop} onPress={() => setModalOpen(null)}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modal}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Billing Address</Text>
+                  <TouchableOpacity 
+                    onPress={() => setModalOpen(null)}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <AnimatedInput
+                    label="Billing Address"
+                    value={formData.billingAddress}
+                    onChangeText={(val) => setFormData({ ...formData, billingAddress: val })}
+                    icon="map-pin"
+                    placeholder="Enter complete billing address"
+                  />
+                  <View style={styles.infoBox}>
+                    <Feather name="info" size={18} color="#3B82F6" />
+                    <Text style={styles.infoText}>
+                      This address will be used for billing and invoicing purposes
+                    </Text>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => setModalOpen(null)}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Save Address"
+                    onPress={handleBillingUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  )
+
+  // Password Modal
+  const renderPasswordModal = () => (
+    <Modal visible={modalOpen === "password"} animationType="slide" transparent>
+      <Pressable style={styles.backdrop} onPress={() => {
+        setModalOpen(null)
+        setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+      }}>
+        <View style={styles.modalContainer}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modal}>
+              <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Change Password</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+                    }}
+                    style={styles.modalCloseButton}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView 
+                  style={styles.modalContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <AnimatedInput
+                    label="Current Password"
+                    value={formData.currentPassword}
+                    onChangeText={(val) => setFormData({ ...formData, currentPassword: val })}
+                    icon="lock"
+                    secureTextEntry
+                    placeholder="Enter current password"
+                  />
+                  <AnimatedInput
+                    label="New Password"
+                    value={formData.newPassword}
+                    onChangeText={(val) => setFormData({ ...formData, newPassword: val })}
+                    icon="key"
+                    secureTextEntry
+                    placeholder="Enter new password"
+                  />
+                  <AnimatedInput
+                    label="Confirm New Password"
+                    value={formData.confirmPassword}
+                    onChangeText={(val) => setFormData({ ...formData, confirmPassword: val })}
+                    icon="check-circle"
+                    secureTextEntry
+                    placeholder="Confirm new password"
+                  />
+                  <View style={styles.infoBox}>
+                    <Feather name="info" size={18} color="#3B82F6" />
+                    <Text style={styles.infoText}>
+                      Password must be at least 8 characters with uppercase, lowercase, and numbers.
+                    </Text>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalFooter}>
+                  <AnimatedButton
+                    title="Cancel"
+                    onPress={() => {
+                      setModalOpen(null)
+                      setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+                    }}
+                    variant="secondary"
+                    style={styles.modalButton}
+                  />
+                  <AnimatedButton
+                    title="Update Password"
+                    onPress={handlePasswordUpdate}
+                    loading={loading}
+                    style={styles.modalButton}
+                  />
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  )
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {currentScreen === "menu" && renderMenu()}
+      {currentScreen === "profile" && renderProfile()}
+      {currentScreen === "security" && renderSecurity()}
+      {currentScreen === "notifications" && renderNotifications()}
+      {currentScreen === "payments" && renderPayments()}
+      {currentScreen === "privacy" && renderPrivacy()}
+      
+      {renderUsernameModal()}
+      {renderEmailModal()}
+      {renderAddressModal()}
+      {renderPhoneModal()}
+      {renderPasswordModal()}
+      {renderBillingModal()}
+    </SafeAreaView>
+  )
+}

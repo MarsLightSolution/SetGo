@@ -17,8 +17,8 @@ const orderSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
-    transactionId:{
-      type:String,
+    transactionId: {
+      type: String,
       required: true,
     },
     total: {
@@ -27,12 +27,12 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "shipped", "delivered", "cancelled","released"], // ✅ Added cancelled
+      enum: ["pending", "paid", "shipped", "delivered", "cancelled", "released"],
       default: "pending",
     },
     trackingId: {
       type: String,
-      default: null, // only set when seller provides tracking
+      default: null,
     },
 
     // ✅ Checkout / Shipping Details
@@ -57,9 +57,30 @@ const orderSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
+    }, // ← Close checkoutDetails here!
+
+    // ========= REVIEW FIELDS (OUTSIDE checkoutDetails) =========
+    deliveryConfirmedByBuyer: {
+      type: Boolean,
+      default: false,
     },
+    deliveryConfirmedAt: {
+      type: Date,
+      default: null,
+    },
+    reviewSubmitted: {
+      type: Boolean,
+      default: false,
+    },
+    reviewId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Review",
+      default: null,
+    },
+    // ========= END REVIEW FIELDS =========
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Order", orderSchema);
+module.exports =
+  mongoose.models.Order || mongoose.model("Order", orderSchema);
