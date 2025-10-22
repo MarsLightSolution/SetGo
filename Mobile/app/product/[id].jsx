@@ -13,6 +13,7 @@ import {
   StatusBar,
   SafeAreaView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,6 +21,7 @@ import { like, unlike } from '../../Store/wishSlice';
 import { useAuthStore } from '../../Store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import SkeletonLoader from '../../Components/SkeletonLoader';
+import PaymentDialog from '../../Components/PaymentDialog';
 
 const { width } = Dimensions.get('window');
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
@@ -70,14 +72,17 @@ export default function ProductDetail() {
   const dispatch = useDispatch();
   
   const { wishlist } = useSelector((state) => state.wishlist);
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, updateUser } = useAuthStore();
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [error, setError] = useState(null);
   
   const isWishlisted = useMemo(
     () => wishlist.some((item) => item._id === product?._id),
@@ -91,8 +96,10 @@ export default function ProductDetail() {
     }
   }, [id]);
 
-  const fetchProductById = useCallback(async () => {
-    setLoading(true);
+  const fetchProductById = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    setError(null);
+    
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -105,23 +112,39 @@ export default function ProductDetail() {
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        setProduct(null);
-        return;
+        throw new Error(`Failed to fetch product: ${res.status}`);
       }
 
       const result = await res.json();
+      
+      if (result.success === false || !result.data) {
+        throw new Error(result.message || 'Product not found');
+      }
+      
       setProduct(result.data);
+      setError(null);
     } catch (error) {
+      console.error('Error fetching product:', error);
+      
       if (error.name === 'AbortError') {
+        setError('Request timeout. Please check your connection.');
         Alert.alert('Error', 'Request timeout. Please try again.');
       } else {
-        console.error('Error fetching product:', error);
+        setError(error.message || 'Failed to load product');
+        Alert.alert('Error', error.message || 'Failed to load product');
       }
       setProduct(null);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
+      setRefreshing(false);
     }
   }, [id]);
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchProductById(false);
+  }, [fetchProductById]);
 
   // Fetch related products
   const fetchRelatedProducts = useCallback(async (categoryObj) => {
@@ -168,6 +191,28 @@ export default function ProductDetail() {
     }
   }, []);
 
+  // Refresh user data (wallet balance, etc.)
+  const refreshUserData = useCallback(async () => {
+    if (!user?._id) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/user/${user._id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          // Update user in store with new wallet balance
+          updateUser?.(data.user);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh user data:', err);
+    }
+  }, [user?._id, updateUser]);
+
   // Memoized handlers
   const handleAddToWatchlist = useCallback(() => {
     if (!isAuthenticated) {
@@ -191,7 +236,8 @@ export default function ProductDetail() {
     }
   }, [isAuthenticated, isWishlisted, product, dispatch, router]);
 
-  const handleBuyNow = useCallback(async () => {
+  // Enhanced handleBuyNow with validation
+  const handleBuyNow = useCallback(() => {
     if (!isAuthenticated) {
       Alert.alert(
         'Login Required', 
@@ -204,17 +250,61 @@ export default function ProductDetail() {
       return;
     }
 
-    const productOwnerId = product?.owner?._id || product?.owner;
-    if (!productOwnerId) {
-      Alert.alert('Error', 'Owner information is missing');
+    // Validate product data
+    if (!product) {
+      Alert.alert('Error', 'Product information is not available');
       return;
     }
 
-    router.push({
-      pathname: '/checkout',
-      params: { productId: product._id }
-    });
-  }, [isAuthenticated, product, router, user]);
+    const productOwnerId = product?.owner?._id || product?.owner;
+    if (!productOwnerId) {
+      Alert.alert('Error', 'Seller information is missing. Please try again later.');
+      return;
+    }
+
+    // Check if user is trying to buy their own product
+    if (user._id === productOwnerId) {
+      Alert.alert('Notice', 'You cannot buy your own product');
+      return;
+    }
+
+    // Validate product price
+    if (!product.price || product.price <= 0) {
+      Alert.alert('Error', 'Invalid product price');
+      return;
+    }
+
+    // Open payment dialog
+    setShowPaymentDialog(true);
+  }, [isAuthenticated, product, user, router]);
+
+  // Enhanced payment success handler
+  const handlePaymentSuccess = useCallback(async (amount) => {
+    console.log('Payment successful for amount:', amount);
+    
+    // Show success message
+    Alert.alert(
+      '🎉 Payment Successful!', 
+      `Your payment of ₼${amount.toLocaleString()} has been processed successfully!\n\nYour order is being prepared.`,
+      [
+        { 
+          text: 'OK',
+          onPress: () => {
+            // Refresh user data to get updated wallet balance
+            refreshUserData();
+          }
+        }
+      ]
+    );
+
+    // Close payment dialog
+    setShowPaymentDialog(false);
+    
+    // Refresh product data
+    setTimeout(() => {
+      fetchProductById(false);
+    }, 500);
+  }, [refreshUserData, fetchProductById]);
 
   const handleSendMessage = useCallback(async () => {
     if (!isAuthenticated) {
@@ -351,12 +441,21 @@ export default function ProductDetail() {
       <SafeAreaView style={styles.centerContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#f3f4f6" />
         <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
-        <Text style={styles.errorText}>Product not found</Text>
+        <Text style={styles.errorText}>
+          {error || 'Product not found'}
+        </Text>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => router.back()}
         >
           <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.backButton, styles.retryButton]} 
+          onPress={() => fetchProductById()}
+        >
+          <Ionicons name="refresh-outline" size={18} color="#fff" />
+          <Text style={styles.backButtonText}>Retry</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -385,6 +484,14 @@ export default function ProductDetail() {
         updateCellsBatchingPeriod={50}
         initialNumToRender={5}
         windowSize={10}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#16a34a']}
+            tintColor="#16a34a"
+          />
+        }
       >
         {/* Header with Back and Share */}
         <View style={styles.header}>
@@ -500,9 +607,14 @@ export default function ProductDetail() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.halfButton} onPress={handleBuyNow}>
-                <Ionicons name="cart-outline" size={20} color="#374151" />
-                <Text style={styles.halfButtonText}>Buy Now</Text>
+              <TouchableOpacity 
+                style={[styles.halfButton, styles.buyNowButton]} 
+                onPress={handleBuyNow}
+              >
+                <Ionicons name="cart-outline" size={20} color="#fff" />
+                <Text style={[styles.halfButtonText, styles.buyNowButtonText]}>
+                  Buy Now
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -640,6 +752,17 @@ export default function ProductDetail() {
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      {/* Payment Dialog Modal */}
+      {showPaymentDialog && (
+        <PaymentDialog
+          isVisible={showPaymentDialog}
+          product={product}
+          user={user}
+          onClose={() => setShowPaymentDialog(false)}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -667,12 +790,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     padding: 20,
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
   errorText: {
     fontSize: 18,
     color: '#ef4444',
@@ -680,12 +797,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 20,
     fontWeight: '600',
+    paddingHorizontal: 20,
   },
   backButton: {
     backgroundColor: '#16a34a',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
   },
   backButtonText: {
     color: '#fff',
@@ -818,12 +943,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a',
     borderColor: '#16a34a',
   },
+  buyNowButton: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
   halfButtonText: {
     color: '#374151',
     fontSize: 14,
     fontWeight: '600',
   },
   halfButtonTextActive: {
+    color: '#fff',
+  },
+  buyNowButtonText: {
     color: '#fff',
   },
   ownProductCard: {
@@ -976,7 +1108,7 @@ const styles = StyleSheet.create({
     color: '#16a34a',
     marginBottom: 4,
   },
-    relatedMeta: {
+  relatedMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
