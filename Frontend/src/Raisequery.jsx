@@ -88,7 +88,7 @@ export default function RaiseQuery() {
     setLoading(true);
 
     try {
-      const { data } = await axios.post("http://localhost:8080/concern/raise", {
+      const { data } = await axios.post(`${import.meta.env.VITE_SERVER}/concern/raise`, {
         userId,
         ...formData,
       });

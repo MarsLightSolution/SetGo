@@ -459,65 +459,65 @@ const Home = () => {
     navigate(`products/product/${productId}`)
   }
 
-  const companyWebsites = [
-    {
-      name: { en: "Flipkart", az: "Flipkart", ru: "Flipkart" },
-      description: {
-        en: "Shop electronics, fashion, more",
-        az: "Elektronika, moda və daha çox alış-veriş edin",
-        ru: "Покупайте электронику, моду и многое другое",
-      },
-      image: "/images/flipkart.svg",
-    },
-    {
-      name: { en: "Amazon", az: "Amazon", ru: "Amazon" },
-      description: {
-        en: "Online shopping destination",
-        az: "Onlayn alış-veriş ünvanı",
-        ru: "Место для онлайн-покупок",
-      },
-      image: "/images/amazon.png",
-    },
-    {
-      name: { en: "Myntra", az: "Myntra", ru: "Myntra" },
-      description: {
-        en: "Fashion & lifestyle store",
-        az: "Moda və həyat tərzi mağazası",
-        ru: "Магазин моды и стиля жизни",
-      },
-      image: "/images/myntra.jpg",
-    },
-    {
-      name: { en: "Snapdeal", az: "Snapdeal", ru: "Snapdeal" },
-      description: {
-        en: "Deals and discounts online",
-        az: "Onlayn sövdələşmələr və endirimlər",
-        ru: "Сделки и скидки онлайн",
-      },
-      image: "/images/snapdeal.png",
-    },
-    {
-      name: { en: "Ajio", az: "Ajio", ru: "Ajio" },
-      description: {
-        en: "Trendy clothes and accessories",
-        az: "Dəbli geyimlər və aksesuarlar",
-        ru: "Модная одежда и аксессуары",
-      },
-      image: "/images/ajio.jpg",
-    },
-    {
-      name: { en: "Reliance Digital", az: "Reliance Digital", ru: "Reliance Digital" },
-      description: { en: "Electronics & gadgets", az: "Elektronika və cihazlar", ru: "Электроника и гадgets" },
-      image: "/images/reliance.png",
-    },
-  ]
+  // const companyWebsites = [
+  //   {
+  //     name: { en: "Flipkart", az: "Flipkart", ru: "Flipkart" },
+  //     description: {
+  //       en: "Shop electronics, fashion, more",
+  //       az: "Elektronika, moda və daha çox alış-veriş edin",
+  //       ru: "Покупайте электронику, моду и многое другое",
+  //     },
+  //     image: "/images/flipkart.svg",
+  //   },
+  //   {
+  //     name: { en: "Amazon", az: "Amazon", ru: "Amazon" },
+  //     description: {
+  //       en: "Online shopping destination",
+  //       az: "Onlayn alış-veriş ünvanı",
+  //       ru: "Место для онлайн-покупок",
+  //     },
+  //     image: "/images/amazon.png",
+  //   },
+  //   {
+  //     name: { en: "Myntra", az: "Myntra", ru: "Myntra" },
+  //     description: {
+  //       en: "Fashion & lifestyle store",
+  //       az: "Moda və həyat tərzi mağazası",
+  //       ru: "Магазин моды и стиля жизни",
+  //     },
+  //     image: "/images/myntra.jpg",
+  //   },
+  //   {
+  //     name: { en: "Snapdeal", az: "Snapdeal", ru: "Snapdeal" },
+  //     description: {
+  //       en: "Deals and discounts online",
+  //       az: "Onlayn sövdələşmələr və endirimlər",
+  //       ru: "Сделки и скидки онлайн",
+  //     },
+  //     image: "/images/snapdeal.png",
+  //   },
+  //   {
+  //     name: { en: "Ajio", az: "Ajio", ru: "Ajio" },
+  //     description: {
+  //       en: "Trendy clothes and accessories",
+  //       az: "Dəbli geyimlər və aksesuarlar",
+  //       ru: "Модная одежда и аксессуары",
+  //     },
+  //     image: "/images/ajio.jpg",
+  //   },
+  //   {
+  //     name: { en: "Reliance Digital", az: "Reliance Digital", ru: "Reliance Digital" },
+  //     description: { en: "Electronics & gadgets", az: "Elektronika və cihazlar", ru: "Электроника и гадgets" },
+  //     image: "/images/reliance.png",
+  //   },
+  // ]
 
-  const companyRef = useRef(null)
-  const scrollCompanySlider = (direction) => {
-    if (!companyRef.current) return
-    const scrollAmount = direction === "left" ? -300 : 300
-    companyRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" })
-  }
+  // const companyRef = useRef(null)
+  // const scrollCompanySlider = (direction) => {
+  //   if (!companyRef.current) return
+  //   const scrollAmount = direction === "left" ? -300 : 300
+  //   companyRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" })
+  // }
 
   const galleryRef = useRef(null)
   const scrollGallery = (direction) => {
@@ -823,7 +823,7 @@ const Home = () => {
             />
 
             {/* Company Websites */}
-            <div className="bg-white p-4 mt-3 rounded shadow">
+            {/* <div className="bg-white p-4 mt-3 rounded shadow">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">{t("home.companyWebsites")}</h2>
                 <div className="flex gap-2">
@@ -842,9 +842,9 @@ const Home = () => {
                     &#8594;
                   </button>
                 </div>
-              </div>
+              </div> */}
 
-              <div ref={companyRef} className="flex gap-4 overflow-x-auto scroll-smooth hide-scrollbar pb-2">
+              {/* <div ref={companyRef} className="flex gap-4 overflow-x-auto scroll-smooth hide-scrollbar pb-2">
                 {companyWebsites.map((site, index) => (
                   <div key={index} className="w-[22%] bg-white border rounded shadow-sm flex-shrink-0 relative">
                     <div className="w-full h-[140px] bg-white flex justify-center items-center">
@@ -866,8 +866,8 @@ const Home = () => {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
           </div>
 
           {/* Right Ad */}

@@ -48,11 +48,14 @@ const Footer = () => {
     {/* Bottom Info */}
     <div className="border-t border-gray-200 mt-10 pt-6 text-center text-xs text-gray-500 space-y-2 px-4">
       <p>
-        Copyright © 2005-2025 <span className="font-medium">Marktplaats B.V.</span> All rights reserved.
-        Designated trademarks belong to their respective owners.
+        “SatGo is not responsible for the content of user-generated listings or third-party
+advertisements displayed on the platform. All responsibility for the accuracy, legality,
+quality, and safety of the listed products or services lies with the seller. SatGo’s role is
+limited to providing the platform and payment services as an intermediary, and we do
+not guarantee or endorse any user content.”
       </p>
       <p>
-        The classifieds services are operated by <span className="font-medium">kleinanzeigen.de GmbH</span>.
+        The classifieds services are operated by <span className="font-medium">SatGo</span>.
       </p>
     </div>
   </div>

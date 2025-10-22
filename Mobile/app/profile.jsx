@@ -52,7 +52,7 @@ export default function ProfileScreen() {
 
         <View style={styles.authRequired}>
           <Ionicons name="person-circle-outline" size={80} color="#D1D5DB" />
-          <Text style={styles.authRequiredTitle}>Welcome to SATGOO</Text>
+          <Text style={styles.authRequiredTitle}>Welcome to SATGO</Text>
           <Text style={styles.authRequiredText}>
             Login or create an account to access your profile and start selling
           </Text>

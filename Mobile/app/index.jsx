@@ -198,7 +198,7 @@ export default function HomeScreen() {
             <View style={styles.logoCircle}>
               <Text style={styles.logoText}>S</Text>
             </View>
-            <Text style={styles.logoName}>SATGOO</Text>
+            <Text style={styles.logoName}>SATGO</Text>
           </View>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton}>

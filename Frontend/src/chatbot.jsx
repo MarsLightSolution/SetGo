@@ -124,7 +124,7 @@ export default function Chatbot({ onClose }) {
   const fetchResponse = async (question, orderIdParam = null) => {
     setLoading(true);
     try {
-      const { data } = await axios.post("http://localhost:8080/chatbot/ask", {
+      const { data } = await axios.post(`${import.meta.env.VITE_SERVER}/chatbot/ask`, {
         question,
         orderId: orderIdParam,
         userId

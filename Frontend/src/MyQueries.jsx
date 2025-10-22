@@ -44,7 +44,7 @@ export default function MyQueries() {
   const fetchQueries = async () => {
     try {
       const { data } = await axios.get(
-        `http://localhost:8080/concern/user?userId=${userId}`
+        `${import.meta.env.VITE_SERVER}/concern/user?userId=${userId}`
       );
 
       if (data.success) {
@@ -60,7 +60,7 @@ export default function MyQueries() {
   const fetchQueryDetails = async (concernId) => {
     try {
       const { data } = await axios.get(
-        `http://localhost:8080/concern/${concernId}?userId=${userId}`
+        `${import.meta.env.VITE_SERVER}/concern/${concernId}?userId=${userId}`
       );
 
       if (data.success) {

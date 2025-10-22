@@ -52,7 +52,11 @@ export default function ChatApp() {
   // Socket setup
   useEffect(() => {
     if (isConnected && currentUser) {
-      socketRef.current = io(SOCKET_URL, { withCredentials: true })
+         socketRef.current = io(SOCKET_URL, {
+  path: "/socket.io/",
+  transports: ["websocket"],
+  withCredentials: true,
+})
 
       socketRef.current.on("newMessage", (msg) => {
         if (msg.conversationId === activeConversation?._id) {
