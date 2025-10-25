@@ -224,7 +224,7 @@ const PaymentDialog = ({
   const handleOrderCreation = useCallback(async () => {
     try {
       const orderPayload = {
-        buyerId: user._id,
+        buyerId: user.userId,
         sellerId: productOwnerId,
         productId: product._id,
         total: price,
@@ -299,7 +299,7 @@ const PaymentDialog = ({
     setError(null);
     
     const payload = {
-      senderId: user._id,
+      senderId: user.userId,
       receiverId: ownerId,
       type: 'transfer',
       amount: price,
@@ -312,7 +312,7 @@ const PaymentDialog = ({
     console.log('💰 Wallet transfer payload:', payload);
 
     try {
-      const res = await fetch(`${API_URL}/transaction/transferFund`, {
+      const res = await fetch(`${API_URL}/api/transaction/transferFund`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

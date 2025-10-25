@@ -24,7 +24,7 @@ import SkeletonLoader from '../../Components/SkeletonLoader';
 import PaymentDialog from '../../Components/PaymentDialog';
 
 const { width } = Dimensions.get('window');
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 
 const getLocalizedText = (field, lang = 'en') => {
   if (!field) return '';
