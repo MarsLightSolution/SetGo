@@ -14,25 +14,24 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, isAuthenticated } = useAuthStore();
 
- const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Logout',
-          style: 'destructive',
-          onPress: () => {
-            logout();
-            router.replace('../auth'); // redirect to login after logout
-          },
+const handleLogout = () => {
+  Alert.alert(
+    'Logout',
+    'Are you sure you want to logout?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes, Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await logout(); // ✅ Clears tokens from secure storage on BOTH platforms
+          router.replace('../auth');
         },
-      ],
-      { cancelable: true }
-    );
-  };
-
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   const menuItems = [
     { icon: 'document-text-outline', label: 'My Ads', color: '#DCFCE7', route: '/UserInfo/Userinfo' },
