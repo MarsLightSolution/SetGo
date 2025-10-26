@@ -16,13 +16,11 @@ import {
   StatusBar,
   Animated,
   Keyboard,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import io from 'socket.io-client';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-
 const { width, height } = Dimensions.get('window');
 
 const API_BASE = `${process.env.EXPO_PUBLIC_API_URL}/api/chat`;
@@ -43,11 +41,80 @@ const theme = {
   messageBubbleMine: '#D9FDD3',
   messageBubbleOther: '#FFFFFF',
   inputBg: '#FFFFFF',
-  online: '#25D366',
-  offline: '#8696A0',
   headerBg: '#F0F2F5',
   shadow: '#00000015',
   divider: '#E9EDEF',
+};
+
+// Separate Message Component to use hooks properly
+const MessageItem = ({ item }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim }}>
+      <View style={[
+        styles.messageContainer,
+        item.sender === 'me' ? styles.myMessage : styles.otherMessage
+      ]}>
+        {item.sender === 'other' && (
+          <View style={styles.avatarContainer}>
+            <View style={[styles.messageAvatar, { backgroundColor: theme.primaryDark }]}>
+              <Text style={styles.avatarText}>
+                {item.senderName?.charAt(0)?.toUpperCase() || 'U'}
+              </Text>
+            </View>
+          </View>
+        )}
+        
+        <View style={[
+          styles.messageBubble,
+          item.sender === 'me' 
+            ? styles.myMessageBubble
+            : styles.otherMessageBubble
+        ]}>
+          {item.messageType === 'image' ? (
+            item.isUploading ? (
+              <View style={styles.imageUploadingContainer}>
+                <Image
+                  source={{ uri: item.localUri }}
+                  style={[styles.messageImage, styles.imageUploading]}
+                  resizeMode="cover"
+                />
+                <View style={styles.imageUploadingOverlay}>
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                  <Text style={styles.imageUploadingText}>Sending...</Text>
+                </View>
+              </View>
+            ) : item.fileUrl ? (
+              <Image
+                source={{ uri: `${SERVER_BASE}${item.fileUrl}` }}
+                style={styles.messageImage}
+                resizeMode="cover"
+              />
+            ) : null
+          ) : (
+            <Text style={[styles.messageText, { color: theme.text }]}>
+              {item.text}
+            </Text>
+          )}
+          <Text style={[
+            styles.timestamp,
+            { color: item.sender === 'me' ? '#667781' : theme.tertiaryText }
+          ]}>
+            {item.timestamp}
+          </Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
 };
 
 export default function ChatApp() {
@@ -66,10 +133,24 @@ export default function ChatApp() {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState({});
 
   const flatListRef = useRef(null);
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  // Save unread counts to AsyncStorage whenever they change
+  useEffect(() => {
+    const saveUnreadCounts = async () => {
+      try {
+        await AsyncStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
+        console.log('💾 Saved unread counts to storage');
+      } catch (e) {
+        console.error('Error saving unread counts:', e);
+      }
+    };
+    saveUnreadCounts();
+  }, [unreadCounts]);
 
   useEffect(() => {
     requestPermissions();
@@ -116,6 +197,13 @@ export default function ChatApp() {
 
       socketRef.current.on('connect', () => {
         console.log('✅ Socket connected');
+        
+        // Join all conversations to receive messages
+        conversations.forEach(conv => {
+          socketRef.current.emit('joinConversation', conv._id);
+          console.log('🔔 Joined conversation:', conv._id);
+        });
+        
         if (activeConversation) {
           socketRef.current.emit('joinConversation', activeConversation._id);
         }
@@ -127,8 +215,14 @@ export default function ChatApp() {
 
       socketRef.current.on('newMessage', (msg) => {
         console.log('📨 New message received:', msg);
+        console.log('🔍 Sender:', msg.senderId, 'Current User:', currentUser.userId);
+        console.log('🔍 Active Conv:', activeConversation?._id, 'Message Conv:', msg.conversationId);
+        
+        // Check if this is our own message
+        const isOwnMessage = msg.senderId === currentUser.userId;
         
         if (msg.conversationId === activeConversation?._id) {
+          // Message for currently open chat - add to messages list
           setMessages((prev) => {
             const exists = prev.some(m => m.id === msg._id);
             if (exists) return prev;
@@ -138,7 +232,7 @@ export default function ChatApp() {
               {
                 id: msg._id || Date.now().toString(),
                 text: msg.text,
-                sender: msg.senderId === currentUser.userId ? 'me' : 'other',
+                sender: isOwnMessage ? 'me' : 'other',
                 timestamp: new Date().toLocaleTimeString([], { 
                   hour: '2-digit', 
                   minute: '2-digit' 
@@ -148,6 +242,18 @@ export default function ChatApp() {
                 messageType: msg.messageType,
               },
             ];
+          });
+        } else if (!isOwnMessage) {
+          // Message for a different conversation from someone else - increment unread
+          console.log('✉️ Adding unread count for conversation:', msg.conversationId);
+          setUnreadCounts(prev => {
+            const newCount = (prev[msg.conversationId] || 0) + 1;
+            const newCounts = {
+              ...prev,
+              [msg.conversationId]: newCount
+            };
+            console.log('📊 Updated unread counts:', newCounts);
+            return newCounts;
           });
         }
       });
@@ -173,7 +279,7 @@ export default function ChatApp() {
         socketRef.current?.disconnect();
       };
     }
-  }, [isConnected, currentUser, activeConversation]);
+  }, [isConnected, currentUser, activeConversation, conversations]);
 
   useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
@@ -258,7 +364,22 @@ export default function ChatApp() {
     try {
       const response = await fetch(`${API_BASE}/conversations/${userId}`);
       const data = await response.json();
-      if (data.success) setConversations(data.conversations);
+      if (data.success) {
+        setConversations(data.conversations);
+        console.log('📋 Loaded conversations:', data.conversations);
+        
+        // Load unread counts from AsyncStorage
+        try {
+          const storedUnread = await AsyncStorage.getItem('unreadCounts');
+          if (storedUnread) {
+            const parsed = JSON.parse(storedUnread);
+            console.log('📬 Loaded unread counts from storage:', parsed);
+            setUnreadCounts(parsed);
+          }
+        } catch (e) {
+          console.error('Error loading unread counts:', e);
+        }
+      }
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
@@ -280,6 +401,14 @@ export default function ChatApp() {
         setActiveConversation(data.conversation);
         setInitialLoad(true);
         await loadMessages(data.conversation._id);
+        
+        // Clear unread count for this conversation
+        console.log('🧹 Clearing unread count for:', data.conversation._id);
+        setUnreadCounts(prev => {
+          const newCounts = { ...prev };
+          newCounts[data.conversation._id] = 0;
+          return newCounts;
+        });
         
         if (socketRef.current?.connected) {
           socketRef.current.emit('joinConversation', data.conversation._id);
@@ -366,9 +495,31 @@ export default function ChatApp() {
 
       if (result.canceled || !result.assets[0]) return;
 
-      setIsUploading(true);
       const asset = result.assets[0];
       const uri = asset.uri;
+      
+      // Create temporary message with loading state
+      const tempMessageId = `temp_${Date.now()}`;
+      const tempMessage = {
+        id: tempMessageId,
+        text: 'Sending image...',
+        sender: 'me',
+        timestamp: new Date().toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        messageType: 'image',
+        isUploading: true,
+        localUri: uri,
+      };
+      
+      setMessages((prev) => [...prev, tempMessage]);
+      setIsUploading(true);
+      
+      // Scroll to show the uploading image
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
       
       const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
       
@@ -406,6 +557,10 @@ export default function ChatApp() {
       }
 
       if (data.success) {
+        // Remove temp message
+        setMessages((prev) => prev.filter(msg => msg.id !== tempMessageId));
+        
+        // Emit via socket - the real message will come back via socket listener
         if (socketRef.current?.connected) {
           socketRef.current.emit('sendMessage', {
             conversationId: activeConversation._id,
@@ -418,6 +573,8 @@ export default function ChatApp() {
           });
         }
       } else {
+        // Remove temp message on error
+        setMessages((prev) => prev.filter(msg => msg.id !== tempMessageId));
         throw new Error(data.message || 'Upload failed');
       }
     } catch (error) {
@@ -428,47 +585,9 @@ export default function ChatApp() {
     }
   };
 
-  const renderMessage = ({ item }) => (
-    <View style={[
-      styles.messageContainer,
-      item.sender === 'me' ? styles.myMessage : styles.otherMessage
-    ]}>
-      {item.sender === 'other' && (
-        <View style={styles.avatarContainer}>
-          <View style={[styles.messageAvatar, { backgroundColor: theme.primaryDark }]}>
-            <Text style={styles.avatarText}>
-              {item.senderName?.charAt(0)?.toUpperCase() || 'U'}
-            </Text>
-          </View>
-        </View>
-      )}
-      
-      <View style={[
-        styles.messageBubble,
-        item.sender === 'me' 
-          ? styles.myMessageBubble
-          : styles.otherMessageBubble
-      ]}>
-        {item.messageType === 'image' && item.fileUrl ? (
-          <Image
-            source={{ uri: `${SERVER_BASE}${item.fileUrl}` }}
-            style={styles.messageImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text style={[styles.messageText, { color: theme.text }]}>
-            {item.text}
-          </Text>
-        )}
-        <Text style={[
-          styles.timestamp,
-          { color: item.sender === 'me' ? '#667781' : theme.tertiaryText }
-        ]}>
-          {item.timestamp}
-        </Text>
-      </View>
-    </View>
-  );
+  const renderMessage = ({ item }) => {
+    return <MessageItem item={item} />;
+  };
 
   const renderChatItem = ({ item }) => {
     const hasConversation = conversations.some((conv) =>
@@ -476,9 +595,17 @@ export default function ChatApp() {
     );
     if (!hasConversation) return null;
 
+    // Find the conversation for this user
+    const conversation = conversations.find((conv) =>
+      conv.participants.some((p) => p.userId === item.userId)
+    );
+    
+    const unreadCount = conversation ? Math.max(0, unreadCounts[conversation._id] || 0) : 0;
+    const hasUnread = unreadCount > 0;
+
     return (
       <TouchableOpacity
-        style={styles.chatItem}
+        style={[styles.chatItem, hasUnread && styles.chatItemUnread]}
         onPress={() => startConversation(item)}
         activeOpacity={0.7}
       >
@@ -488,22 +615,21 @@ export default function ChatApp() {
               {item.userName?.charAt(0)?.toUpperCase() || 'U'}
             </Text>
           </View>
-          <View style={[
-            styles.statusDot,
-            { backgroundColor: item.isOnline ? theme.online : theme.offline }
-          ]} />
         </View>
         
         <View style={styles.chatInfo}>
-          <Text style={styles.chatName} numberOfLines={1}>
+          <Text style={[styles.chatName, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
             {item.userName}
-          </Text>
-          <Text style={styles.chatStatus} numberOfLines={1}>
-            {item.isOnline ? 'Online' : 'Offline'}
           </Text>
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color={theme.tertiaryText} />
+        {hasUnread ? (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+          </View>
+        ) : (
+          <Ionicons name="chevron-forward" size={20} color={theme.tertiaryText} />
+        )}
       </TouchableOpacity>
     );
   };
@@ -577,10 +703,9 @@ export default function ChatApp() {
           </>
         ) : (
           // CHAT VIEW
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.chatViewContainer}>
-              {/* Message Header */}
-              <View style={styles.messageHeader}>
+          <View style={styles.chatViewContainer}>
+            {/* Message Header */}
+            <View style={styles.messageHeader}>
               <TouchableOpacity 
                 style={styles.backButton}
                 onPress={() => {
@@ -606,9 +731,6 @@ export default function ChatApp() {
                     {activeConversation.participants
                       .find((p) => p.userId !== currentUser?.userId)
                       ?.userName || 'Unknown'}
-                  </Text>
-                  <Text style={styles.messageHeaderStatus}>
-                    Online
                   </Text>
                 </View>
               </View>
@@ -641,10 +763,11 @@ export default function ChatApp() {
                     onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="interactive"
+                    keyboardDismissMode="on-drag"
                     maintainVisibleContentPosition={{
                       minIndexForVisible: 0,
                     }}
+                    onScrollBeginDrag={() => Keyboard.dismiss()}
                   />
 
                   {isTyping && (
@@ -664,7 +787,7 @@ export default function ChatApp() {
             <View style={styles.inputContainer}>
               <View style={styles.inputRow}>
                 <TouchableOpacity
-                  style={styles.attachButton}
+                  style={[styles.attachButton, isUploading && styles.attachButtonDisabled]}
                   onPress={handleImageUpload}
                   disabled={isUploading}
                 >
@@ -706,10 +829,9 @@ export default function ChatApp() {
                     color="#FFFFFF" 
                   />
                 </TouchableOpacity>
-                </View>
               </View>
             </View>
-          </TouchableWithoutFeedback>
+          </View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -790,6 +912,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
   },
+  chatItemUnread: {
+    backgroundColor: '#F0FFF4',
+  },
   chatAvatarContainer: {
     position: 'relative',
     marginRight: 14,
@@ -806,29 +931,33 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '600',
   },
-  statusDot: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: theme.chatListBg,
-  },
   chatInfo: {
     flex: 1,
     marginRight: 8,
+    justifyContent: 'center',
   },
   chatName: {
     fontSize: 17,
     fontWeight: '600',
     color: theme.text,
-    marginBottom: 3,
   },
-  chatStatus: {
-    fontSize: 14,
-    color: theme.secondaryText,
+  chatNameUnread: {
+    fontWeight: '700',
+    color: theme.text,
+  },
+  unreadBadge: {
+    backgroundColor: theme.primary,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   chatViewContainer: {
     flex: 1,
@@ -874,17 +1003,12 @@ const styles = StyleSheet.create({
   },
   headerChatInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
   messageHeaderName: {
     fontSize: 17,
     fontWeight: '600',
     color: theme.text,
-    marginBottom: 2,
-  },
-  messageHeaderStatus: {
-    fontSize: 13,
-    color: theme.online,
-    fontWeight: '500',
   },
   headerActions: {
     flexDirection: 'row',
@@ -967,6 +1091,32 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 4,
   },
+  imageUploadingContainer: {
+    position: 'relative',
+    width: 240,
+    height: 240,
+    marginBottom: 4,
+  },
+  imageUploading: {
+    opacity: 0.5,
+  },
+  imageUploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 8,
+  },
+  imageUploadingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+  },
   timestamp: {
     fontSize: 11,
     marginTop: 4,
@@ -1013,6 +1163,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 4,
+  },
+  attachButtonDisabled: {
+    opacity: 0.5,
   },
   inputWrapper: {
     flex: 1,

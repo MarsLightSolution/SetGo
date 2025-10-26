@@ -338,7 +338,7 @@ const apiService = {
   // Get user ads (matches web version)
   getUserAds: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/products/user/${userId}/ads`)
+      const response = await fetch(`${API_BASE_URL}/api/products/user/${userId}/ads`)
       const text = await response.text()
       try {
         const data = JSON.parse(text)
@@ -781,18 +781,18 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "100%",
-    height: "85%",
+    marginBottom: 0,
   },
   modal: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    height: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 10,
+    paddingBottom: 34,
   },
   modalHeader: {
     flexDirection: "row",
@@ -820,9 +820,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalContent: {
-    flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 20,
+    paddingBottom: 24,
   },
   modalDesc: {
     fontSize: 14,
@@ -834,7 +834,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
     backgroundColor: "#fff",
@@ -924,8 +925,9 @@ const styles = StyleSheet.create({
 
   resendBtn: {
     alignSelf: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 4,
   },
   resendText: {
     fontSize: 14,
@@ -1920,11 +1922,6 @@ export default function EnhancedSettingsApp() {
         ))}
 
         <View style={styles.divider} />
-
-        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.7} onPress={handleLogout}>
-          <Feather name="log-out" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Sign Out</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   )
@@ -2169,17 +2166,17 @@ export default function EnhancedSettingsApp() {
   // Username Modal
   const renderUsernameModal = () => (
     <Modal visible={modalOpen === "username"} animationType="slide" transparent>
-      <Pressable style={styles.backdrop} onPress={() => {
-        setModalOpen(null)
-        setTempUsername("")
-      }}>
-        <View style={styles.modalContainer}>
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modal}>
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-              >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <Pressable style={styles.backdrop} onPress={() => {
+          setModalOpen(null)
+          setTempUsername("")
+        }}>
+          <View style={styles.modalContainer}>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modal}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Change Username</Text>
                   <TouchableOpacity 
@@ -2194,11 +2191,7 @@ export default function EnhancedSettingsApp() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView 
-                  style={styles.modalContent}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                >
+                <View style={styles.modalContent}>
                   <AnimatedInput
                     label="Username"
                     value={tempUsername}
@@ -2206,7 +2199,7 @@ export default function EnhancedSettingsApp() {
                     icon="user"
                     placeholder="Enter your username"
                   />
-                </ScrollView>
+                </View>
 
                 <View style={styles.modalFooter}>
                   <AnimatedButton
@@ -2225,28 +2218,28 @@ export default function EnhancedSettingsApp() {
                     style={styles.modalButton}
                   />
                 </View>
-              </KeyboardAvoidingView>
-            </View>
-          </Pressable>
-        </View>
-      </Pressable>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 
   // Email Modal
   const renderEmailModal = () => (
     <Modal visible={modalOpen === "email"} animationType="slide" transparent>
-      <Pressable style={styles.backdrop} onPress={() => {
-        setModalOpen(null)
-        setFormData({ ...formData, newEmail: "", emailPassword: "" })
-      }}>
-        <View style={styles.modalContainer}>
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modal}>
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-              >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <Pressable style={styles.backdrop} onPress={() => {
+          setModalOpen(null)
+          setFormData({ ...formData, newEmail: "", emailPassword: "" })
+        }}>
+          <View style={styles.modalContainer}>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modal}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Change Email</Text>
                   <TouchableOpacity 
@@ -2265,6 +2258,7 @@ export default function EnhancedSettingsApp() {
                   style={styles.modalContent}
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
+                  bounces={false}
                 >
                   <View style={styles.infoBox}>
                     <Feather name="info" size={18} color="#3B82F6" />
@@ -2313,28 +2307,28 @@ export default function EnhancedSettingsApp() {
                     style={styles.modalButton}
                   />
                 </View>
-              </KeyboardAvoidingView>
-            </View>
-          </Pressable>
-        </View>
-      </Pressable>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 
   // Address Modal
   const renderAddressModal = () => (
     <Modal visible={modalOpen === "address"} animationType="slide" transparent>
-      <Pressable style={styles.backdrop} onPress={() => {
-        setModalOpen(null)
-        setAddressStep(1)
-      }}>
-        <View style={styles.modalContainer}>
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modal}>
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-              >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <Pressable style={styles.backdrop} onPress={() => {
+          setModalOpen(null)
+          setAddressStep(1)
+        }}>
+          <View style={styles.modalContainer}>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modal}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>
                     {addressStep === 1 ? "Delivery Address" : "Enter Address"}
@@ -2355,6 +2349,7 @@ export default function EnhancedSettingsApp() {
                   style={styles.modalContent}
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
+                  bounces={false}
                 >
                   {addressStep === 1 ? (
                     <>
@@ -2496,25 +2491,25 @@ export default function EnhancedSettingsApp() {
                     </>
                   )}
                 </View>
-              </KeyboardAvoidingView>
-            </View>
-          </Pressable>
-        </View>
-      </Pressable>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 
   // Phone Modal
   const renderPhoneModal = () => (
     <Modal visible={modalOpen === "phone"} animationType="slide" transparent>
-      <Pressable style={styles.backdrop} onPress={() => { setModalOpen(null); setPhoneStep(1); }}>
-        <View style={styles.modalContainer}>
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modal}>
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-              >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <Pressable style={styles.backdrop} onPress={() => { setModalOpen(null); setPhoneStep(1); }}>
+          <View style={styles.modalContainer}>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modal}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{phoneStep === 1 ? "Verify Phone" : "Enter OTP"}</Text>
                   <TouchableOpacity 
@@ -2526,11 +2521,7 @@ export default function EnhancedSettingsApp() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView 
-                  style={styles.modalContent}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                >
+                <View style={styles.modalContent}>
                   {phoneStep === 1 ? (
                     <>
                       <Text style={styles.modalDesc}>We'll send a verification code to your phone</Text>
@@ -2570,7 +2561,7 @@ export default function EnhancedSettingsApp() {
                       </TouchableOpacity>
                     </>
                   )}
-                </ScrollView>
+                </View>
 
                 <View style={styles.modalFooter}>
                   <AnimatedButton
@@ -2586,25 +2577,25 @@ export default function EnhancedSettingsApp() {
                     style={styles.modalButton}
                   />
                 </View>
-              </KeyboardAvoidingView>
-            </View>
-          </Pressable>
-        </View>
-      </Pressable>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 
   // Billing Address Modal
   const renderBillingModal = () => (
     <Modal visible={modalOpen === "billing"} animationType="slide" transparent>
-      <Pressable style={styles.backdrop} onPress={() => setModalOpen(null)}>
-        <View style={styles.modalContainer}>
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modal}>
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-              >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setModalOpen(null)}>
+          <View style={styles.modalContainer}>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modal}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Billing Address</Text>
                   <TouchableOpacity 
@@ -2616,11 +2607,7 @@ export default function EnhancedSettingsApp() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView 
-                  style={styles.modalContent}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                >
+                <View style={styles.modalContent}>
                   <AnimatedInput
                     label="Billing Address"
                     value={formData.billingAddress}
@@ -2634,7 +2621,7 @@ export default function EnhancedSettingsApp() {
                       This address will be used for billing and invoicing purposes
                     </Text>
                   </View>
-                </ScrollView>
+                </View>
 
                 <View style={styles.modalFooter}>
                   <AnimatedButton
@@ -2650,28 +2637,28 @@ export default function EnhancedSettingsApp() {
                     style={styles.modalButton}
                   />
                 </View>
-              </KeyboardAvoidingView>
-            </View>
-          </Pressable>
-        </View>
-      </Pressable>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 
   // Password Modal
   const renderPasswordModal = () => (
     <Modal visible={modalOpen === "password"} animationType="slide" transparent>
-      <Pressable style={styles.backdrop} onPress={() => {
-        setModalOpen(null)
-        setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
-      }}>
-        <View style={styles.modalContainer}>
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modal}>
-              <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-              >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <Pressable style={styles.backdrop} onPress={() => {
+          setModalOpen(null)
+          setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+        }}>
+          <View style={styles.modalContainer}>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modal}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Change Password</Text>
                   <TouchableOpacity 
@@ -2690,6 +2677,7 @@ export default function EnhancedSettingsApp() {
                   style={styles.modalContent}
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
+                  bounces={false}
                 >
                   <AnimatedInput
                     label="Current Password"
@@ -2740,11 +2728,11 @@ export default function EnhancedSettingsApp() {
                     style={styles.modalButton}
                   />
                 </View>
-              </KeyboardAvoidingView>
-            </View>
-          </Pressable>
-        </View>
-      </Pressable>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 
