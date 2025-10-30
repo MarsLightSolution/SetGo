@@ -118,7 +118,7 @@ const Navbar = () => {
       <img src={logo} alt="logo" className="h-10 w-10" />
       {/* Always show full text */}
       <span className="text-xl sm:text-2xl font-semibold text-[#2e4a2f]">
-        SATGOO
+        SATGO
       </span>
     </div>
 
