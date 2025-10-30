@@ -13,6 +13,7 @@ require("dotenv").config();
 
 const addProduct = asyncHandler(async (req, res) => {
   const {
+    user,
     title,
     category,
     price,
@@ -35,13 +36,16 @@ const addProduct = asyncHandler(async (req, res) => {
 
   logger.info(`[AddProduct] Request body received`, { body: req.body });
 
+  console.log(req.body);
+  
   if (!termsAccepted) {
     logger.warn(`[AddProduct] Terms not accepted`);
     throw new ApiError(400, "You must accept the terms and conditions.");
   }
 
-  if (!req.user?._id) throw new ApiError(401, "User authentication required.");
-
+  // if (!req.user?._id) throw new ApiError(401, "User authentication required.");
+  // console.log(req.files);
+  
   const picturesRaw = Array.isArray(req.files?.pictures)
     ? req.files.pictures
     : req.files?.pictures
@@ -155,10 +159,10 @@ const addProduct = asyncHandler(async (req, res) => {
     subscribe: subscribe === "true" || subscribe === true,
     isBuy: isBuy === "true" || isBuy === true,
     isSell: isSell === "true" || isSell === true,
-    owner: req.user?._id || null,
+    owner: user || null,
   });
 
-  const userId = req.user._id;
+  const userId = req.user;
   const pushObject = {};
 
   if (product.isBuy) {
