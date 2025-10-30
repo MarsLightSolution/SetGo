@@ -22,6 +22,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.18.2",
     "express-json": "^1.0.0",
+    "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.0",
     "firebase": "^11.9.1",
     "install": "^0.13.0",

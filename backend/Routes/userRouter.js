@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const {getUsers,getUserById,getUserTransactions,getUserWalletBalance} = require('../controller/userController');
 const verifyJWT = require("../middlewares/auth.middlewares.js");
-var express = require('express');
 var app = express();
 
 // set up rate limiter: maximum of five requests per minute
