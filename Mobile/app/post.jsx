@@ -14,24 +14,23 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/Feather";
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 import {
   showSuccessToast,
   showErrorToast,
 } from "../hooks/tostify.js";
+import { useAuthStore } from '../Store/authStore';
 
 const Form = () => {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
   const maxDescriptionLength = 1000;
 
   // State declarations
-  const [userId, setUserId] = useState("");
-  const [username, setUsername] = useState("");
-  const [authToken, setAuthToken] = useState(""); // For JWT token if you use it
   const [formData, setFormData] = useState({
     offerType: "offer",
     title: "",
@@ -56,59 +55,16 @@ const Form = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load userId, username, and auth token from AsyncStorage
+  // Set username from auth store when authenticated
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        console.log("=== Loading User Data from AsyncStorage ===");
-        
-        // Get userId
-        const storedUserId = await AsyncStorage.getItem("userId");
-        if (storedUserId) {
-          console.log("Found userId:", storedUserId);
-          setUserId(storedUserId);
-        } else {
-          console.warn("No userId found in AsyncStorage");
-        }
-
-        // Get auth token (if you're using JWT)
-        const storedToken = await AsyncStorage.getItem("authToken");
-        if (storedToken) {
-          console.log("Found auth token");
-          setAuthToken(storedToken);
-        }
-
-        // Get user object (if stored as JSON)
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) {
-          const userObj = JSON.parse(storedUser);
-          console.log("Found user object:", userObj);
-          
-          if (userObj && userObj.userName) {
-            setUsername(userObj.userName);
-            setFormData((prev) => ({ ...prev, name: userObj.userName }));
-          }
-          
-          // If userId is in the user object
-          if (userObj && userObj._id && !storedUserId) {
-            console.log("Using userId from user object:", userObj._id);
-            setUserId(userObj._id);
-          }
-        }
-
-        // Alternative: If username is stored separately
-        const storedUsername = await AsyncStorage.getItem("userName");
-        if (storedUsername && !username) {
-          setUsername(storedUsername);
-          setFormData((prev) => ({ ...prev, name: storedUsername }));
-        }
-      } catch (error) {
-        console.error("Error loading user data:", error);
-        showErrorToast("Failed to load user data");
-      }
-    };
-    loadUserData();
-  }, []);
+    if (isAuthenticated && user) {
+      console.log("User authenticated:", user);
+      setFormData((prev) => ({ 
+        ...prev, 
+        name: user.userName || user.username || ""
+      }));
+    }
+  }, [isAuthenticated, user]);
 
   // Request permissions and get geolocation
   useEffect(() => {
@@ -135,8 +91,10 @@ const Form = () => {
       }
     };
 
-    getLocation();
-  }, []);
+    if (isAuthenticated) {
+      getLocation();
+    }
+  }, [isAuthenticated]);
 
   // Request media library permissions
   useEffect(() => {
@@ -291,10 +249,17 @@ const Form = () => {
   const handleSubmit = async () => {
     console.log("Submit button clicked");
     
-    // Check if userId is available
+    // Check if user is authenticated
+    if (!isAuthenticated || !user) {
+      showErrorToast("Please login to post an ad");
+      router.push('../auth');
+      return;
+    }
+
+    const userId = user._id || user.id;
     if (!userId) {
-      showErrorToast("User not authenticated. Please login again");
-      console.error("No userId available. User needs to login");
+      showErrorToast("User ID not found. Please login again");
+      router.push('../auth');
       return;
     }
 
@@ -400,26 +365,13 @@ const Form = () => {
       console.log("URL:", `${API_URL}/api/products/add`);
       console.log("Number of images being sent:", formData.pictures.length);
       
-      // Prepare headers
-      const headers = {};
-      
-      // Option 1: Send userId in Authorization header (if using token-based auth)
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-        console.log("Using Authorization header with token");
-      }
-      
-      // Option 2: Send userId as custom header (alternative approach)
-      // headers['X-User-Id'] = userId;
-      // console.log("Using X-User-Id header:", userId);
-
-      // Important: Don't set Content-Type header
-      // React Native will set it with proper boundary
       const response = await fetch(`${API_URL}/api/products/add`, {
         method: "POST",
-        headers: headers,
+        headers: {
+          // Don't set Content-Type - let React Native handle it with proper boundary
+        },
         body: submitData,
-        credentials:"include",
+        credentials: "include",
       });
 
       console.log("Response status:", response.status);
@@ -444,7 +396,7 @@ const Form = () => {
             location: "",
             streetNo: "",
             showFullAddress: false,
-            name: username,
+            name: user.userName || user.username || "",
             termsAccepted: false,
             subscribe: false,
             pictures: [],
@@ -471,6 +423,42 @@ const Form = () => {
     }
   };
 
+  // IF NOT AUTHENTICATED - Show login prompt
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Icon name="arrow-left" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Post an Ad</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <View style={styles.authRequired}>
+          <Ionicons name="newspaper-outline" size={80} color="#D1D5DB" />
+          <Text style={styles.authRequiredTitle}>Login Required</Text>
+          <Text style={styles.authRequiredText}>
+            You need to login or create an account to post an ad
+          </Text>
+          <TouchableOpacity
+            style={styles.authButton}
+            onPress={() => router.push('../auth')}
+          >
+            <Text style={styles.authButtonText}>Login / Sign Up</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // IF AUTHENTICATED - Show the form
   return (
     <ScrollView 
       style={styles.container} 
@@ -488,11 +476,11 @@ const Form = () => {
 
       <View style={styles.formContainer}>
         {/* User Info Debug (Remove in production) */}
-        {__DEV__ && userId && (
+        {__DEV__ && user && (
           <View style={[styles.section, { backgroundColor: '#E8F5E9' }]}>
             <Text style={styles.debugText}>Debug Info:</Text>
-            <Text style={styles.debugText}>User ID: {userId}</Text>
-            <Text style={styles.debugText}>Username: {username}</Text>
+            <Text style={styles.debugText}>User ID: {user._id || user.id}</Text>
+            <Text style={styles.debugText}>Username: {user.userName || user.username}</Text>
           </View>
         )}
 
@@ -776,7 +764,7 @@ const Form = () => {
             <Text style={styles.label}>Name</Text>
             <TextInput
               style={[styles.input, styles.disabledInput]}
-              value={username}
+              value={user.userName || user.username || ""}
               editable={false}
             />
             <Text style={styles.helperText}>
@@ -1100,6 +1088,58 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  // Authentication Required Styles
+  authRequired: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  authRequiredTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  authRequiredText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  authButton: {
+    backgroundColor: "#008235",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: "100%",
+    maxWidth: 300,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  authButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  backButton: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: "100%",
+    maxWidth: 300,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+  },
+  backButtonText: {
+    color: "#6B7280",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
 

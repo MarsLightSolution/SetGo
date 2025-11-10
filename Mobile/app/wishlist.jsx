@@ -82,7 +82,7 @@ export default function WishlistScreen() {
             </Text>
             <TouchableOpacity
               style={styles.browseButton}
-              onPress={() => router.push("/(tabs)")}
+              onPress={() => router.push("../(index)")}
             >
               <Text style={styles.browseButtonText}>Browse Products</Text>
             </TouchableOpacity>
