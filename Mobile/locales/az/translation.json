@@ -1,0 +1,17 @@
+{
+  "welcome": "SetGo-ya xoş gəlmisiniz",
+  "home": "Əsas səhifə",
+  "categories": "Kateqoriyalar",
+  "profile": "Profil",
+  "cart": "Səbət",
+  "search": "Axtar",
+  "settings": "Parametrlər",
+  "language": "Dil",
+  "selectLanguage": "Dil seçin",
+  "logout": "Çıxış",
+  "login": "Giriş",
+  "register": "Qeydiyyat",
+  "products": "Məhsullar",
+  "addToCart": "Səbətə əlavə et",
+  "checkout": "Ödəniş"
+}

@@ -1,0 +1,17 @@
+{
+  "welcome": "Добро пожаловать в SetGo",
+  "home": "Главная",
+  "categories": "Категории",
+  "profile": "Профиль",
+  "cart": "Корзина",
+  "search": "Поиск",
+  "settings": "Настройки",
+  "language": "Язык",
+  "selectLanguage": "Выберите язык",
+  "logout": "Выход",
+  "login": "Вход",
+  "register": "Регистрация",
+  "products": "Товары",
+  "addToCart": "Добавить в корзину",
+  "checkout": "Оформить заказ"
+}

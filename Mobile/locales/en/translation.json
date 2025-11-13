@@ -1,0 +1,17 @@
+{
+  "welcome": "Welcome to SetGo",
+  "home": "Home",
+  "categories": "Categories",
+  "profile": "Profile",
+  "cart": "Cart",
+  "search": "Search",
+  "settings": "Settings",
+  "language": "Language",
+  "selectLanguage": "Select Language",
+  "logout": "Logout",
+  "login": "Login",
+  "register": "Register",
+  "products": "Products",
+  "addToCart": "Add to Cart",
+  "checkout": "Checkout"
+}
