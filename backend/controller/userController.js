@@ -137,7 +137,11 @@ const getUserWalletBalance = asyncHandler(async(req,res)=>{
   // ① Fetch user with only the wallet and transactionHistory
   const user = await User.findById(id, " walletBalance username");
   if (!user) throw new ApiError(404, "User not found");
-  return res.status(200).json({ walletBalance: user.walletBalance });
+  res.json(
+    new ApiResponse(200, {
+      walletBalance: user.walletBalance,
+    })
+  );
 });
 
 module.exports = {

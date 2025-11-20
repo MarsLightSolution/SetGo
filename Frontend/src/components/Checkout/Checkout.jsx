@@ -16,7 +16,7 @@ const CheckoutPage = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const product = state?.product;
   const user = state?.user;
 
@@ -70,7 +70,7 @@ const CheckoutPage = () => {
     }
 
     const userId = user?._id;
-    
+
     if (!userId) {
       alert("⚠️ Please log in to continue.");
       navigate("/login");
@@ -81,16 +81,16 @@ const CheckoutPage = () => {
     // ✅ SECURITY: Backend will authenticate user via session/JWT
     setIsLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER}/users/get-users/${userId}/getWalletBalance`, {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/users/${userId}/wallet`, {
         credentials: "include", // ✅ SECURITY: Include cookies for authentication
       });
-      
+
       if (!res.ok) {
         throw new Error("Failed to fetch user data");
       }
 
       const json = await res.json();
-      
+
       if (json?.data) {
         // Merge form data with fetched user data
         const dialogData = {
@@ -101,7 +101,7 @@ const CheckoutPage = () => {
           city: form.city,
           postalCode: form.postalCode,
         };
-        
+
         setDialogUser(dialogData);
         setShowPaymentDialog(true);
       } else {
@@ -197,8 +197,8 @@ const CheckoutPage = () => {
 
               {/* Description */}
               <p className="text-gray-600 leading-relaxed text-m mb-4">
-                {product.description?.en 
-                  ? product.description.en.length > 100 
+                {product.description?.en
+                  ? product.description.en.length > 100
                     ? product.description.en.substring(0, 100) + "..."
                     : product.description.en
                   : "No description available"}
@@ -344,11 +344,10 @@ const CheckoutPage = () => {
               <button
                 onClick={handleCheckout}
                 disabled={isLoading}
-                className={`w-3/4 mx-auto block mt-6 ${
-                  isLoading 
-                    ? "bg-gray-400 cursor-not-allowed" 
+                className={`w-3/4 mx-auto block mt-6 ${isLoading
+                    ? "bg-gray-400 cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700"
-                } text-white py-3 px-4 font-semibold rounded-lg shadow-md transition transform hover:scale-[1.02] disabled:transform-none disabled:hover:scale-100`}
+                  } text-white py-3 px-4 font-semibold rounded-lg shadow-md transition transform hover:scale-[1.02] disabled:transform-none disabled:hover:scale-100`}
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -394,11 +393,12 @@ const CheckoutPage = () => {
 
       {/* Payment Dialog */}
       {/* ✅ SECURITY: Only pass product._id, backend fetches owner from database */}
-      {showPaymentDialog && dialogUser && (
+      {showPaymentDialog && dialogUser && product && (
         <PaymentDialog
-          onClose={() => setShowPaymentDialog(false)}
           product={product}
           user={dialogUser}
+          owner={product.owner || product.userId || product.sellerId}
+          onClose={() => setShowPaymentDialog(false)}
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}
