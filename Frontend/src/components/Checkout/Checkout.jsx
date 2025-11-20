@@ -15,11 +15,12 @@ const CheckoutPage = () => {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   
   const product = state?.product;
   const user = state?.user;
-  const ownerId =import.meta.env.VITE_OWNER_ID;
-  const productOwnerId = product?.owner;
+
+  // Validate product exists
   if (!product) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
@@ -39,64 +40,83 @@ const CheckoutPage = () => {
   const [form, setForm] = useState({
     fullName: user?.name || "",
     email: user?.email || "",
-    address: "",
-    city: "",
-    postalCode: "",
+    address: user?.address || "",
+    city: user?.city || "",
+    postalCode: user?.postalCode || "",
   });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-const handleCheckout = async () => {
-  if (!form.fullName || !form.email || !form.address || !form.city || !form.postalCode) {
-    alert("⚠️ Please fill in all the fields before proceeding.");
-    return;
-  }
-
-  const userId = user?._id;
-  // const ownerId =`${import.meta.env.ownerId}`;
-  console.log(ownerId); 
-  if (!userId) {
-    alert("⚠️ Please log in to continue.");
-    return;
-  }
-  if (!ownerId) {
-    alert("⚠️ Seller information missing.");
-    return;
-  }
-
-  // Fetch user data
-  try {
-    const res = await fetch(`${import.meta.env.VITE_SERVER}/users/get-users/${userId}`, {
-      credentials: "include",
-    });
-    const json = await res.json();
-    if (json?.data) {
-      // Merge form data with user data
-      const dialogData = {
-        ...json.data,
-        fullName: form.fullName,
-        email: form.email,
-        address: form.address,
-        city: form.city,
-        postalCode: form.postalCode,
-      };
-      setDialogUser(dialogData);
-      setShowPaymentDialog(true);
-    } else {
-      alert("❌ Failed to load user data.");
+  const handleCheckout = async () => {
+    // Validate form fields
+    if (!form.fullName || !form.email || !form.address || !form.city || !form.postalCode) {
+      alert("⚠️ Please fill in all the fields before proceeding.");
+      return;
     }
-  } catch (err) {
-    console.error("Error fetching user:", err);
-    alert("❌ Error loading user data.");
-  }
-};
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      alert("⚠️ Please enter a valid email address.");
+      return;
+    }
 
-  const tax = product.price * 0;
+    // Postal code validation (6 digits)
+    if (form.postalCode.length !== 6) {
+      alert("⚠️ Postal code must be 6 digits.");
+      return;
+    }
+
+    const userId = user?._id;
+    
+    if (!userId) {
+      alert("⚠️ Please log in to continue.");
+      navigate("/login");
+      return;
+    }
+
+    // Fetch latest user data (including wallet balance)
+    // ✅ SECURITY: Backend will authenticate user via session/JWT
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/users/get-users/${userId}/getWalletBalance`, {
+        credentials: "include", // ✅ SECURITY: Include cookies for authentication
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+
+      const json = await res.json();
+      
+      if (json?.data) {
+        // Merge form data with fetched user data
+        const dialogData = {
+          ...json.data,
+          fullName: form.fullName,
+          email: form.email,
+          address: form.address,
+          city: form.city,
+          postalCode: form.postalCode,
+        };
+        
+        setDialogUser(dialogData);
+        setShowPaymentDialog(true);
+      } else {
+        alert("❌ Failed to load user data. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      alert("❌ Error loading user data. Please check your connection.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const tax = product.price * 0; // 0% tax
   const total = product.price + tax;
-  
 
   const prevImage = () => {
     setCurrentImageIndex(
@@ -108,6 +128,11 @@ const handleCheckout = async () => {
     setCurrentImageIndex(
       currentImageIndex === product.pictures.length - 1 ? 0 : currentImageIndex + 1
     );
+  };
+
+  const handlePaymentSuccess = (amount) => {
+    console.log("✅ Payment successful:", amount);
+    // You can add additional success handling here
   };
 
   return (
@@ -167,7 +192,7 @@ const handleCheckout = async () => {
 
               {/* Title */}
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {product.title?.en}
+                {product.title?.en || product.name?.en || "Product"}
               </h2>
 
               {/* Description */}
@@ -176,25 +201,31 @@ const handleCheckout = async () => {
                   ? product.description.en.length > 100 
                     ? product.description.en.substring(0, 100) + "..."
                     : product.description.en
-                  : ""}
+                  : "No description available"}
               </p>
 
               {/* Details */}
               <div className="space-y-1 text-gray-700 text-m mb-4">
-                <p>
-                  <span className="font-semibold">Condition:</span>{" "}
-                  <span className="text-gray-800">{product.condition}</span>
-                </p>
-                <p>
-                  <span className="font-semibold">Seller:</span>{" "}
-                  <span className="text-gray-800">{product.name?.en}</span>
-                </p>
-                <p className="text-gray-500 text-s">{product.street}</p>
+                {product.condition && (
+                  <p>
+                    <span className="font-semibold">Condition:</span>{" "}
+                    <span className="text-gray-800">{product.condition}</span>
+                  </p>
+                )}
+                {product.name?.en && (
+                  <p>
+                    <span className="font-semibold">Seller:</span>{" "}
+                    <span className="text-gray-800">{product.name.en}</span>
+                  </p>
+                )}
+                {product.street && (
+                  <p className="text-gray-500 text-s">{product.street}</p>
+                )}
               </div>
 
               {/* Price + Share */}
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-bold text-green-600">₼ {product.price}</p>
+              <div className="mt-auto flex items-center justify-between">
+                <p className="text-2xl font-bold text-green-600">₼ {product.price.toFixed(2)}</p>
 
                 <button
                   onClick={() => setShowShareModal(true)}
@@ -226,51 +257,72 @@ const handleCheckout = async () => {
               </h3>
 
               <div className="space-y-4">
-                <input
-                  type="text"
-                  name="fullName"
-                  placeholder="Full Name"
-                  value={form.fullName}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
-                />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email"
-                  value={form.email}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
-                />
-                <input
-                  type="text"
-                  name="address"
-                  placeholder="Address"
-                  value={form.address}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
-                />
-                <input
-                  type="text"
-                  name="city"
-                  placeholder="City"
-                  value={form.city}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
-                />
-                <input
-                  type="text"
-                  name="postalCode"
-                  placeholder="Postal Code"
-                  value={form.postalCode}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-                    handleChange({ target: { name: "postalCode", value } });
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
-                />
+                <div>
+                  <input
+                    type="text"
+                    name="fullName"
+                    placeholder="Full Name *"
+                    value={form.fullName}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email *"
+                    value={form.email}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    name="address"
+                    placeholder="Street Address *"
+                    value={form.address}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    name="city"
+                    placeholder="City *"
+                    value={form.city}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    name="postalCode"
+                    placeholder="Postal Code (6 digits) *"
+                    value={form.postalCode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      handleChange({ target: { name: "postalCode", value } });
+                    }}
+                    maxLength={6}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
+                    required
+                  />
+                </div>
               </div>
 
+              {/* Order Summary */}
               <div className="mt-6 border-t border-gray-300 pt-4 text-sm space-y-3 text-gray-700">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Product Price:</span>
@@ -282,21 +334,54 @@ const handleCheckout = async () => {
                   <span className="text-gray-600">Tax (0%):</span>
                   <span className="font-medium text-gray-800">₼ {tax.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-lg mt-3 text-green-600">
+                <div className="flex justify-between font-bold text-lg mt-3 text-green-600 border-t pt-3">
                   <span>Total:</span>
                   <span>₼ {total.toFixed(2)}</span>
                 </div>
               </div>
 
+              {/* Place Order Button */}
               <button
                 onClick={handleCheckout}
-                className="w-3/4 mx-auto block mt-6 bg-green-600 hover:bg-green-700 text-white py-2 px-4 font-semibold rounded-lg shadow-md transition transform hover:scale-[1.02]"
+                disabled={isLoading}
+                className={`w-3/4 mx-auto block mt-6 ${
+                  isLoading 
+                    ? "bg-gray-400 cursor-not-allowed" 
+                    : "bg-green-600 hover:bg-green-700"
+                } text-white py-3 px-4 font-semibold rounded-lg shadow-md transition transform hover:scale-[1.02] disabled:transform-none disabled:hover:scale-100`}
               >
-                Place Order
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Loading...
+                  </span>
+                ) : (
+                  "Place Order"
+                )}
               </button>
+
+              <p className="text-xs text-center text-gray-500 mt-3">
+                * All fields are required
+              </p>
             </div>
           </div>
 
+          {/* Right Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[90px] h-fit z-30">
             <img
               src={rightadImage}
@@ -307,17 +392,18 @@ const handleCheckout = async () => {
         </div>
       </div>
 
+      {/* Payment Dialog */}
+      {/* ✅ SECURITY: Only pass product._id, backend fetches owner from database */}
       {showPaymentDialog && dialogUser && (
         <PaymentDialog
           onClose={() => setShowPaymentDialog(false)}
           product={product}
           user={dialogUser}
-          owner={ownerId}
-          productOwner={productOwnerId}
-          onPaymentSuccess={() => console.log("✅ Payment success")}
+          onPaymentSuccess={handlePaymentSuccess}
         />
       )}
 
+      {/* Share Modal */}
       {showShareModal && (
         <ShareModal product={product} onClose={() => setShowShareModal(false)} />
       )}
