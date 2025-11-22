@@ -12,7 +12,7 @@ router.use('/', require('./Profileroutes.js'));
 router.use("/api/products" ,productRoutes);
 router.use('/api/chat',require('./chat.js'));
 router.use("/api/transaction",transaction);
-router.use('/api/payment', require('./paymentroutes.js'));
+router.use('/api/payments', require('./payment-proxy.routes'));
 router.use("/",require("./Followerroutes.js"));
 router.use("/Orders",require("./Order.js"));
 router.use("/",require("./Admin.js"));
