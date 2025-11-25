@@ -143,11 +143,11 @@ const orderSchema = new mongoose.Schema(
     // ========= ADDITIONAL TRACKING =========
     
     // ⭐ NEW: For debugging and auditing
-    paymentMetadata: {
-      type: mongoose.Schema.Mixed,
-      default: {},
-      comment: "Additional payment data (optional)"
-    },
+    // paymentMetadata: {
+    //   type: mongoose.Schema.Mixed,
+    //   default: {},
+    //   comment: "Additional payment data (optional)"
+    // },
 
     // ⭐ NEW: Cancellation tracking
     cancelledAt: {
