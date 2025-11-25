@@ -22,14 +22,16 @@ function AppContent() {
     '/auth',
     '/filters',
     '/checkout',
-    '/chat',
+    '/Chat/chat',
     '/UserInfo/Userinfo',
-    '/Chat/chat'
+    '/UserInfo/EditForm',
+    '/confirm',
   ];
 
   // Check if current route should hide tabs
   const shouldHideTabs = hideTabsRoutes.some(route => pathname?.startsWith(route)) || 
-  pathname?.startsWith('/product/');
+    pathname?.startsWith('/product/') ||
+    pathname?.startsWith('/order/');
 
   return (
     <>
@@ -39,7 +41,7 @@ function AppContent() {
           animation: 'none'
         }}
       >
-        {/* Main screens */}
+        {/* Main tab screens */}
         <Stack.Screen name="index" />
         <Stack.Screen name="wishlist" />
         <Stack.Screen name="post" />
@@ -50,7 +52,17 @@ function AppContent() {
         <Stack.Screen 
           name="product/[id]" 
           options={{ 
-            animation: 'slide_from_right'
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+        
+        {/* Order detail screen */}
+        <Stack.Screen 
+          name="order/[orderId]" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
           }} 
         />
         
@@ -62,6 +74,15 @@ function AppContent() {
             animation: 'slide_from_bottom'
           }} 
         />
+        
+        <Stack.Screen 
+          name="confirm" 
+          options={{ 
+            presentation: 'modal',
+            animation: 'slide_from_bottom'
+          }} 
+        />
+        
         <Stack.Screen 
           name="filters" 
           options={{ 
@@ -69,23 +90,62 @@ function AppContent() {
             animation: 'slide_from_bottom'
           }} 
         />
+        
         <Stack.Screen 
           name="checkout" 
           options={{ 
-            animation: 'slide_from_right'
+            animation: 'slide_from_right',
+            presentation: 'card'
           }} 
         />
+        
         <Stack.Screen 
-          name="chat" 
+          name="Chat/chat" 
           options={{ 
-            animation: 'slide_from_right'
+            animation: 'slide_from_right',
+            presentation: 'card'
           }} 
         />
+        
         <Stack.Screen 
           name="AccountManagement/Accountsetting" 
           options={{ 
             presentation: 'modal',
             animation: 'slide_from_bottom'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="UserInfo/Userinfo" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="UserInfo/EditForm" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+
+        {/* Dashboard screens */}
+        <Stack.Screen 
+          name="Dashboard/Dashboard" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+
+        {/* Categories screen */}
+        <Stack.Screen 
+          name="categories/index" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
           }} 
         />
       </Stack>
