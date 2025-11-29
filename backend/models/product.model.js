@@ -90,28 +90,38 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    }, shop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shop",
+      default: null,
+      index: true,
+    },
+    listingType: {
+      type: String,
+      enum: ["individual", "shop"],
+      default: "individual",
     },
 
-//reviews things
-// Add to your existing Product schema
-averageRating: {
-  type: Number,
-  default: 0,
-  min: 0,
-  max: 5,
-},
-totalReviews: {
-  type: Number,
-  default: 0,
-  min: 0,
-},
-ratingDistribution: {
-  oneStar: { type: Number, default: 0 },
-  twoStar: { type: Number, default: 0 },
-  threeStar: { type: Number, default: 0 },
-  fourStar: { type: Number, default: 0 },
-  fiveStar: { type: Number, default: 0 },
-}
+    //reviews things
+    // Add to your existing Product schema
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    ratingDistribution: {
+      oneStar: { type: Number, default: 0 },
+      twoStar: { type: Number, default: 0 },
+      threeStar: { type: Number, default: 0 },
+      fourStar: { type: Number, default: 0 },
+      fiveStar: { type: Number, default: 0 },
+    }
 
 
   },

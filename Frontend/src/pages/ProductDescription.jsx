@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom"; // Added Link
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { CalendarToday, LocationOn } from "@mui/icons-material";
+import {
+  Store as StoreIcon,
+  Verified as VerifiedIcon,
+  Inventory as InventoryIcon,
+  ChevronRight as ChevronRightIcon,
+} from "@mui/icons-material";
 import Footer from "../components/common/Footer";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
@@ -19,7 +25,7 @@ import ShareModal from "../components/Popups/ShareModal";
 
 // i18n import
 import { useTranslation } from "react-i18next";
-import i18n from "../i18n"; // Import i18n instance to get current language
+import i18n from "../i18n";
 
 // Fix default icon issue with Leaflet in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -32,18 +38,18 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Helper for multilingual fields (simplified to use i18n directly)
+// Helper for multilingual fields
 const getLocalizedText = (field) => {
   if (!field) return "";
   if (typeof field === "string") return field;
-  return field[i18n.language] || field.en || ""; // Fallback to English, then empty string
+  return field[i18n.language] || field.en || "";
 };
 
 const ProductDetail = () => {
-  const { t } = useTranslation(); // Initialize useTranslation hook
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("userId"); // No longer directly using token from localStorage for API auth
+  const token = localStorage.getItem("userId");
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -70,24 +76,21 @@ const ProductDetail = () => {
         (prevIndex - 1 + product.pictures.length) % product.pictures.length
     );
   };
+
   const handleAddToWatchlist = (e) => {
     e.stopPropagation();
 
-    // You might still want to check for a user being logged in,
-    // even if the token isn't explicitly sent as a header.
-    // This assumes your Redux state or another context holds user login status.
     if (!user) {
-      // Check if user object exists
-      alert(t("productDetail.loginToWatchlist")); // Translated
+      alert(t("productDetail.loginToWatchlist"));
       return;
     }
 
     if (isWishlisted) {
       dispatch(unlike(product));
-      toast.info(t("productDetail.removedFromWatchlist")); // Translated
+      toast.info(t("productDetail.removedFromWatchlist"));
     } else {
       dispatch(like(product));
-      toast.success(t("productDetail.addedToWatchlist")); // Translated
+      toast.success(t("productDetail.addedToWatchlist"));
     }
   };
 
@@ -103,9 +106,8 @@ const ProductDetail = () => {
   }, []);
 
   useEffect(() => {
-    // Pass i18n.language to fetch products in specific language (for dynamic content)
     fetchProductById();
-  }, [id, i18n.language]); // Removed 'token' from dependencies
+  }, [id, i18n.language]);
 
   const fetchProductById = async () => {
     setLoading(true);
@@ -115,7 +117,7 @@ const ProductDetail = () => {
           i18n.language
         }`,
         {
-          credentials: "include", // This is crucial for sending cookies
+          credentials: "include",
         }
       );
 
@@ -135,9 +137,8 @@ const ProductDetail = () => {
     }
   };
 
-  // categoryObj will be { en: "...", az: "...", ru: "..." }
   const fetchRelatedProducts = async (categoryObj) => {
-    const categoryName = getLocalizedText(categoryObj); // Get category in current display language
+    const categoryName = getLocalizedText(categoryObj);
     if (!categoryName) return;
 
     try {
@@ -160,7 +161,7 @@ const ProductDetail = () => {
     if (product?.category) {
       fetchRelatedProducts(product.category);
     }
-  }, [product, id, i18n.language]); // Added i18n.language to dependencies
+  }, [product, id, i18n.language]);
 
   const handleBuyNow = async () => {
     const userId = user?._id;
@@ -182,7 +183,6 @@ const ProductDetail = () => {
       );
       const json = await res.json();
       if (json?.data) {
-        // ✅ instead of dialog, navigate to checkout
         navigate("/checkout", {
           state: {
             product,
@@ -197,9 +197,10 @@ const ProductDetail = () => {
       alert(t("productDetail.errorLoadingUserData"));
     }
   };
+
   const handleSendMessage = async () => {
     if (!user) {
-      alert(t("productDetail.loginToMessage")); // Translated
+      alert(t("productDetail.loginToMessage"));
       return;
     }
 
@@ -210,7 +211,6 @@ const ProductDetail = () => {
     }
 
     try {
-      // Step 1: Get or create conversation from backend
       const res = await fetch(
         `${import.meta.env.VITE_SERVER}/api/chat/conversation/get-or-create`,
         {
@@ -233,7 +233,6 @@ const ProductDetail = () => {
 
       const conversationId = data.conversation._id;
 
-      // Step 2: Send a hardcoded initial message
       const initialMessage = "Hi! I'm interested in your product.";
       await fetch(`${import.meta.env.VITE_SERVER}/api/chat/messages`, {
         method: "POST",
@@ -246,7 +245,6 @@ const ProductDetail = () => {
         }),
       });
 
-      // Step 3: Redirect to chat page with conversationId
       navigate("/chat", {
         state: {
           conversationId,
@@ -258,19 +256,20 @@ const ProductDetail = () => {
       alert(t("productDetail.anErrorOccurred"));
     }
   };
+
   const ownerId = product?.owner?._id || product?.owner || null;
 
   useEffect(() => {
     if (user && ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId]); // Removed 'token' from dependencies
+  }, [user, ownerId]);
 
   const checkFollowStatus = async (followerId, followingId) => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SERVER}/check/${followerId}/${followingId}`,
-        { credentials: "include" } // Ensure credentials are included
+        { credentials: "include" }
       );
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
@@ -281,7 +280,7 @@ const ProductDetail = () => {
 
   const handleFollowToggle = async () => {
     if (!user || !ownerId) {
-      alert(t("productDetail.authRequiredFollow")); // Translated
+      alert(t("productDetail.authRequiredFollow"));
       return;
     }
     setFollowLoading(true);
@@ -295,10 +294,9 @@ const ProductDetail = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Removed Authorization header: Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ followerId: user._id }),
-        credentials: "include", // Ensure credentials are included
+        credentials: "include",
       });
 
       const result = await res.json();
@@ -309,15 +307,15 @@ const ProductDetail = () => {
           isFollowing
             ? t("productDetail.unfollowed")
             : t("productDetail.followed")
-        ); // Translated
+        );
       } else {
         const errorMsg =
-          result.message || t("productDetail.followUnfollowFailed"); // Translated fallback
+          result.message || t("productDetail.followUnfollowFailed");
         alert(errorMsg);
       }
     } catch (err) {
       console.error("Follow/Unfollow error:", err);
-      alert(t("productDetail.anErrorOccurred")); // Translated
+      alert(t("productDetail.anErrorOccurred"));
     } finally {
       setFollowLoading(false);
     }
@@ -328,15 +326,14 @@ const ProductDetail = () => {
       <div className="text-center mt-10">
         {t("productDetail.loadingProduct")}
       </div>
-    ); // Translated
+    );
   if (!product)
     return (
       <div className="text-center text-red-500 mt-10">
         {t("productDetail.productNotFound")}
-      </div> // Translated
+      </div>
     );
 
-  // Safely access owner name, prioritizing populated user object, then product.name, then "Unknown Seller"
   const ownerRawName = product.owner?.name || product.name;
   const ownerName =
     typeof ownerRawName === "object"
@@ -344,7 +341,6 @@ const ProductDetail = () => {
       : ownerRawName || t("productDetail.unknownSeller");
   const ownerInitial = ownerName.charAt(0).toUpperCase();
 
-  // Postal code is a direct field on product now
   const displayPostalCode =
     product.postalCode ||
     product.location?.postalCode ||
@@ -384,7 +380,6 @@ const ProductDetail = () => {
                             className="max-h-full max-w-full object-contain"
                           />
 
-                          {/* Left Arrow */}
                           {product.pictures.length > 1 && (
                             <button
                               onClick={prevImage}
@@ -395,7 +390,6 @@ const ProductDetail = () => {
                             </button>
                           )}
 
-                          {/* Right Arrow */}
                           {product.pictures.length > 1 && (
                             <button
                               onClick={nextImage}
@@ -417,13 +411,66 @@ const ProductDetail = () => {
                       )}
                     </div>
 
-                    {/* Image Counter */}
                     {product.pictures?.length > 1 && (
                       <div className="text-center text-sm text-gray-500 mt-2">
                         {currentImageIndex + 1} / {product.pictures.length}
                       </div>
                     )}
                   </div>
+
+                  {/* ✅ SHOP BANNER - Show if product belongs to a shop */}
+                  {product.shop && product.listingType === "shop" && (
+                    <Link
+                      to={`/shop/${product.shop.slug || product.shop._id}`}
+                      className="block"
+                    >
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {/* Shop Logo */}
+                            <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center overflow-hidden border-2 border-white shadow">
+                              {product.shop.logo ? (
+                                <img
+                                  src={`${import.meta.env.VITE_SERVER}${product.shop.logo}`}
+                                  alt="Shop logo"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <StoreIcon className="text-white" />
+                              )}
+                            </div>
+
+                            {/* Shop Info */}
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-gray-800">
+                                  {getLocalizedText(product.shop.shopName)}
+                                </span>
+                                {product.shop.isVerified && (
+                                  <VerifiedIcon
+                                    sx={{ color: "#1976d2", fontSize: 16 }}
+                                  />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <span className="text-green-600 font-medium">
+                                  {t("productDetail.soldByShop") || "Sold by this shop"}
+                                </span>
+                                <span>•</span>
+                                <span>{product.shop.category}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Visit Shop Arrow */}
+                          <div className="flex items-center gap-1 text-green-600 font-medium text-sm">
+                            <span>{t("productDetail.visitShop") || "Visit Shop"}</span>
+                            <ChevronRightIcon fontSize="small" />
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )}
 
                   {/* DETAILS CONTAINER */}
                   <div className="bg-white rounded-md shadow p-4">
@@ -468,6 +515,15 @@ const ProductDetail = () => {
                         />
                         {product.views || 0}
                       </div>
+                      {/* Show listing type badge */}
+                      {product.listingType === "shop" && (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <StoreIcon fontSize="small" />
+                          <span className="text-xs font-medium">
+                            {t("productDetail.shopListing") || "Shop Listing"}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -658,56 +714,99 @@ const ProductDetail = () => {
                         {t("productDetail.shareAdButton")}
                       </button>
 
-                      <div className="flex items-center gap-2">
-                        <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
-                          {ownerInitial}
-                        </div>
-                        <p className="font-semibold text-sm text-gray-900">
-                          {ownerName}
-                        </p>
-                      </div>
-
-                      <div className="text-sm text-gray-600 space-y-1 pl-1">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
-                            👤
-                          </span>
-                          <p>{t("productDetail.privateUser")}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
-                            📅
-                          </span>
-                          <p>
-                            {t("productDetail.activeSince")}{" "}
-                            {new Date(product.createdAt).toLocaleDateString(
-                              i18n.language === "az"
-                                ? "az-AZ"
-                                : i18n.language === "ru"
-                                ? "ru-RU"
-                                : "en-GB"
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      {user?._id !== ownerId && (
-                        <button
-                          onClick={handleFollowToggle}
-                          disabled={followLoading}
-                          className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
-            ${
-              isFollowing
-                ? "text-red-600 border-red-500 hover:bg-red-50"
-                : "text-green-700 border-green-600 hover:bg-green-50"
-            }`}
+                      {/* ✅ SHOP INFO IN SIDEBAR - Show if product is from shop */}
+                      {product.shop && product.listingType === "shop" ? (
+                        <Link
+                          to={`/shop/${product.shop.slug || product.shop._id}`}
+                          className="block"
                         >
-                          {followLoading
-                            ? t("productDetail.loading")
-                            : isFollowing
-                            ? t("productDetail.unfollowButton")
-                            : t("productDetail.followButton")}
-                        </button>
+                          <div className="bg-green-50 rounded-lg p-3 hover:bg-green-100 transition-colors cursor-pointer">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center overflow-hidden">
+                                {product.shop.logo ? (
+                                  <img
+                                    src={`${import.meta.env.VITE_SERVER}${product.shop.logo}`}
+                                    alt="Shop"
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <StoreIcon className="text-white text-lg" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <p className="font-semibold text-sm text-gray-900 truncate">
+                                    {getLocalizedText(product.shop.shopName)}
+                                  </p>
+                                  {product.shop.isVerified && (
+                                    <VerifiedIcon
+                                      sx={{ color: "#1976d2", fontSize: 14 }}
+                                    />
+                                  )}
+                                </div>
+                                <p className="text-xs text-green-600">
+                                  {t("productDetail.viewShopProducts") || "View all shop products"}
+                                </p>
+                              </div>
+                              <ChevronRightIcon className="text-gray-400" fontSize="small" />
+                            </div>
+                          </div>
+                        </Link>
+                      ) : (
+                        <>
+                          {/* Individual seller info */}
+                          <div className="flex items-center gap-2">
+                            <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white text-sm font-bold">
+                              {ownerInitial}
+                            </div>
+                            <p className="font-semibold text-sm text-gray-900">
+                              {ownerName}
+                            </p>
+                          </div>
+
+                          <div className="text-sm text-gray-600 space-y-1 pl-1">
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
+                                👤
+                              </span>
+                              <p>{t("productDetail.privateUser")}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
+                                📅
+                              </span>
+                              <p>
+                                {t("productDetail.activeSince")}{" "}
+                                {new Date(product.createdAt).toLocaleDateString(
+                                  i18n.language === "az"
+                                    ? "az-AZ"
+                                    : i18n.language === "ru"
+                                    ? "ru-RU"
+                                    : "en-GB"
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          {user?._id !== ownerId && (
+                            <button
+                              onClick={handleFollowToggle}
+                              disabled={followLoading}
+                              className={`w-full border text-sm font-medium cursor-pointer py-2 rounded-full flex justify-center items-center gap-2 
+                ${
+                  isFollowing
+                    ? "text-red-600 border-red-500 hover:bg-red-50"
+                    : "text-green-700 border-green-600 hover:bg-green-50"
+                }`}
+                            >
+                              {followLoading
+                                ? t("productDetail.loading")
+                                : isFollowing
+                                ? t("productDetail.unfollowButton")
+                                : t("productDetail.followButton")}
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -789,13 +888,13 @@ const ProductDetail = () => {
                   </div>
                 </div>
               )}
-              {showShareModal && (
-  <ShareModal 
-    onClose={() => setShowShareModal(false)} 
-    product={product} 
-  />
-)}
 
+              {showShareModal && (
+                <ShareModal
+                  onClose={() => setShowShareModal(false)}
+                  product={product}
+                />
+              )}
             </div>
 
             {/* Right Ad (Desktop only) */}
@@ -813,4 +912,5 @@ const ProductDetail = () => {
     </>
   );
 };
+
 export default ProductDetail;

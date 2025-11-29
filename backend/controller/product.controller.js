@@ -4,6 +4,7 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const Product = require("../models/product.model");
 const User = require("../models/user");
+const Shop = require("../models/Shop"); // ✅ NEW: Import Shop model
 const mongoose = require("mongoose");
 const logger = require("../utils/logger");
 const fs = require("fs");
@@ -32,6 +33,8 @@ const addProduct = asyncHandler(async (req, res) => {
     latitude,
     longitude,
     inputLanguage,
+    shop,           // ✅ NEW: Shop ID (optional)
+    listingType,    // ✅ NEW: "individual" or "shop"
   } = req.body;
 
   logger.info(`[AddProduct] Request body received`, { body: req.body });
@@ -138,13 +141,29 @@ const addProduct = asyncHandler(async (req, res) => {
     productName[lang] = await translateText(name, lang);
   }
 
+  // ✅ NEW: Validate shop if provided
+  let validShopId = null;
+  if (shop && listingType === "shop") {
+    // Verify shop exists and belongs to user
+    const shopDoc = await Shop.findById(shop);
+    if (!shopDoc) {
+      logger.warn(`[AddProduct] Shop not found: ${shop}`);
+      throw new ApiError(400, "Shop not found.");
+    }
+    // Verify ownership (optional - uncomment if you want strict ownership check)
+    // if (user && shopDoc.owner.toString() !== user.toString()) {
+    //   logger.warn(`[AddProduct] User does not own this shop`);
+    //   throw new ApiError(403, "You can only add products to your own shop.");
+    // }
+    validShopId = shop;
+  }
+
   const product = await Product.create({
     title: productTitle,
     category: productCategory,
     price: Number(price),
     description: productDescription,
-    condition:condition|| "",
-    // description: { en: description, de: translatedDescription },
+    condition: condition || "",
     pictures,
     location: {
       type: "Point",
@@ -160,7 +179,17 @@ const addProduct = asyncHandler(async (req, res) => {
     isBuy: isBuy === "true" || isBuy === true,
     isSell: isSell === "true" || isSell === true,
     owner: user || null,
+    shop: validShopId,                                // ✅ NEW: Add shop reference
+    listingType: validShopId ? "shop" : "individual", // ✅ NEW: Set listing type
   });
+
+  // ✅ NEW: Update shop's totalProducts count
+  if (validShopId) {
+    await Shop.findByIdAndUpdate(validShopId, {
+      $inc: { totalProducts: 1 }
+    });
+    logger.info(`[AddProduct] Updated shop totalProducts`, { shopId: validShopId });
+  }
 
   const userId = req.user;
   const pushObject = {};
@@ -208,7 +237,9 @@ const getProducts = asyncHandler(async (req, res) => {
     longitude,
     radiusInKm,
     search,
-    postalCode, // ✅ Added postal code from query
+    postalCode,
+    shopId,         // ✅ NEW: Filter by shop
+    listingType,    // ✅ NEW: Filter by listing type ("individual" or "shop")
   } = req.query;
 
   const validLangs = ["en", "az", "ru"];
@@ -231,7 +262,9 @@ const getProducts = asyncHandler(async (req, res) => {
     longitude,
     radiusInKm,
     search,
-    postalCode, // log postal code
+    postalCode,
+    shopId,
+    listingType,
   });
 
   const pipeline = [];
@@ -278,6 +311,16 @@ const getProducts = asyncHandler(async (req, res) => {
     }
   }
 
+  // ✅ NEW: Filter by shop
+  if (shopId && mongoose.Types.ObjectId.isValid(shopId)) {
+    matchStage.shop = new mongoose.Types.ObjectId(shopId);
+  }
+
+  // ✅ NEW: Filter by listing type
+  if (listingType && ["individual", "shop"].includes(listingType)) {
+    matchStage.listingType = listingType;
+  }
+
   // ✅ Geolocation or city filtering
   if (latitude && longitude && radiusInKm) {
     const lat = parseFloat(latitude);
@@ -300,6 +343,26 @@ const getProducts = asyncHandler(async (req, res) => {
 
   pipeline.push({ $match: matchStage });
 
+  // ✅ NEW: Lookup shop details
+  pipeline.push({
+    $lookup: {
+      from: "shops",
+      localField: "shop",
+      foreignField: "_id",
+      as: "shopDetails",
+      pipeline: [
+        { $project: { shopName: 1, slug: 1, logo: 1, isVerified: 1 } }
+      ]
+    }
+  });
+
+  pipeline.push({
+    $unwind: {
+      path: "$shopDetails",
+      preserveNullAndEmptyArrays: true
+    }
+  });
+
   // ✅ Sort by latest creation date
   pipeline.push({ $sort: { createdAt: -1 } });
 
@@ -321,6 +384,9 @@ const getProducts = asyncHandler(async (req, res) => {
       isSell: 1,
       createdAt: 1,
       updatedAt: 1,
+      shop: 1,              // ✅ NEW
+      listingType: 1,       // ✅ NEW
+      shopDetails: 1,       // ✅ NEW: Include shop info
     },
   });
 
@@ -364,7 +430,13 @@ const getProductById = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid product ID");
   }
 
-  const product = await Product.findById(id);
+  // ✅ NEW: Populate shop details
+  const product = await Product.findById(id)
+    .populate({
+      path: "shop",
+      select: "shopName slug logo isVerified category"
+    });
+
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
@@ -391,6 +463,17 @@ const markProductAsSold = asyncHandler(async (req, res) => {
   product.isSell = !product.isSell;
   await product.save();
 
+  // ✅ NEW: Update shop totalProducts if product belongs to a shop
+  if (product.shop) {
+    // If marked as sold (isSell = true), decrement count
+    // If marked as available (isSell = false), increment count
+    const increment = product.isSell ? -1 : 1;
+    await Shop.findByIdAndUpdate(product.shop, {
+      $inc: { totalProducts: increment }
+    });
+    logger.info(`[MarkProductAsSold] Updated shop totalProducts by ${increment}`, { shopId: product.shop });
+  }
+
   logger.info(`[MarkProductAsSold] Product toggled to ${product.isSell ? "sold" : "available"}`, { productId });
 
   res.status(200).json(
@@ -411,15 +494,22 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
 
   logger.info(`[getProductsByCategory] Fetching for category: ${category}`);
 
+  // ✅ NEW: Populate shop details
   const products = await Product.find({
     category: new RegExp(`^${category.trim()}$`, "i"),
     isSell: false,
-  }).sort({ createdAt: -1 });
+  })
+    .populate({
+      path: "shop",
+      select: "shopName slug logo isVerified"
+    })
+    .sort({ createdAt: -1 });
 
   res
     .status(200)
     .json(new ApiResponse(200, products, "Fetched products by category"));
 });
+
 const getProductsByUser = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
@@ -427,9 +517,13 @@ const getProductsByUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid user ID");
   }
 
-  const userProducts = await Product.find({ owner: userId }).sort({
-    createdAt: -1,
-  });
+  // ✅ NEW: Populate shop details
+  const userProducts = await Product.find({ owner: userId })
+    .populate({
+      path: "shop",
+      select: "shopName slug logo isVerified"
+    })
+    .sort({ createdAt: -1 });
 
   res
     .status(200)
@@ -448,6 +542,14 @@ const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(id);
   if (!product) {
     throw new ApiError(404, "Product not found");
+  }
+
+  // ✅ NEW: Update shop totalProducts if product belongs to a shop (and not already sold)
+  if (product.shop && !product.isSell) {
+    await Shop.findByIdAndUpdate(product.shop, {
+      $inc: { totalProducts: -1 }
+    });
+    logger.info(`[DeleteProduct] Decremented shop totalProducts`, { shopId: product.shop });
   }
 
   // Delete associated images from filesystem
@@ -494,6 +596,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     latitude,
     longitude,
     termsAccepted,
+    shop,           // ✅ NEW: Allow updating shop
+    listingType,    // ✅ NEW: Allow updating listing type
   } = req.body;
 
   // ✅ Multilingual fields (merge or update en)
@@ -573,6 +677,29 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.isSell = isSell === "true" || isSell === true;
   }
 
+  // ✅ NEW: Handle shop change
+  if (shop !== undefined) {
+    const oldShopId = product.shop ? product.shop.toString() : null;
+    const newShopId = shop || null;
+
+    // If shop changed and product is not sold, update product counts
+    if (oldShopId !== newShopId && !product.isSell) {
+      // Decrement old shop's count
+      if (oldShopId) {
+        await Shop.findByIdAndUpdate(oldShopId, { $inc: { totalProducts: -1 } });
+        logger.info(`[UpdateProduct] Decremented old shop totalProducts`, { shopId: oldShopId });
+      }
+      // Increment new shop's count
+      if (newShopId) {
+        await Shop.findByIdAndUpdate(newShopId, { $inc: { totalProducts: 1 } });
+        logger.info(`[UpdateProduct] Incremented new shop totalProducts`, { shopId: newShopId });
+      }
+    }
+
+    product.shop = newShopId;
+    product.listingType = newShopId ? "shop" : "individual";
+  }
+
   // ✅ Save
   try {
     product = await product.save();
@@ -650,16 +777,45 @@ const getNearbyProducts = asyncHandler(async (req, res) => {
   const sortStage = latitude && longitude ? { distance: 1 } : { createdAt: -1 };
   pipeline.push({ $sort: sortStage });
 
+  // ✅ NEW: Lookup shop details
+  pipeline.push({
+    $lookup: {
+      from: "shops",
+      localField: "shop",
+      foreignField: "_id",
+      as: "shopDetails",
+      pipeline: [
+        { $project: { shopName: 1, slug: 1, logo: 1, isVerified: 1 } }
+      ]
+    }
+  });
+
+  pipeline.push({
+    $unwind: {
+      path: "$shopDetails",
+      preserveNullAndEmptyArrays: true
+    }
+  });
 
   // 5. Execute aggregation with pagination
   const aggregate = Product.aggregate(pipeline);
-  const options = { /* ... your pagination options ... */ };
+  const options = {
+    page: Number(page),
+    limit: Number(limit),
+    customLabels: {
+      docs: "products",
+      totalDocs: "totalProducts",
+      page: "currentPage",
+      totalPages: "totalPages",
+    },
+  };
   const result = await Product.aggregatePaginate(aggregate, options);
 
   res
     .status(200)
     .json(new ApiResponse(200, result, "Products fetched successfully."));
 });
+
 const getPriorityProducts = asyncHandler(async (req, res) => {
   const {
     page = 1,
@@ -706,6 +862,26 @@ const getPriorityProducts = asyncHandler(async (req, res) => {
 
   pipeline.push({ $match: matchStage });
 
+  // ✅ NEW: Lookup shop details
+  pipeline.push({
+    $lookup: {
+      from: "shops",
+      localField: "shop",
+      foreignField: "_id",
+      as: "shopDetails",
+      pipeline: [
+        { $project: { shopName: 1, slug: 1, logo: 1, isVerified: 1 } }
+      ]
+    }
+  });
+
+  pipeline.push({
+    $unwind: {
+      path: "$shopDetails",
+      preserveNullAndEmptyArrays: true
+    }
+  });
+
   // Sort
   pipeline.push({ $sort: { createdAt: -1 } });
 
@@ -724,6 +900,9 @@ const getPriorityProducts = asyncHandler(async (req, res) => {
       owner: 1,
       priority: 1,
       createdAt: 1,
+      shop: 1,              // ✅ NEW
+      listingType: 1,       // ✅ NEW
+      shopDetails: 1,       // ✅ NEW
     },
   });
 
@@ -774,7 +953,76 @@ const updateProductPriority = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, product, `Product priority toggled to ${product.priority}`));
 });
 
-// module.exports = { addProduct, getProducts, getProductById, markProductAsSold, getNearbyProducts };
+// ✅ NEW: Get products by shop ID
+const getProductsByShop = asyncHandler(async (req, res) => {
+  const { shopId } = req.params;
+  const {
+    page = 1,
+    limit = 12,
+    lang = "en",
+    category,
+    condition,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+  } = req.query;
+
+  if (!mongoose.Types.ObjectId.isValid(shopId)) {
+    throw new ApiError(400, "Invalid shop ID");
+  }
+
+  const validLangs = ["en", "az", "ru"];
+  const selectedLang = validLangs.includes(lang) ? lang : "en";
+
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const matchStage = {
+    shop: new mongoose.Types.ObjectId(shopId),
+    isSell: false,
+  };
+
+  if (category) {
+    matchStage[`category.${selectedLang}`] = new RegExp(`^${escapeRegex(category)}$`, "i");
+  }
+  if (condition) {
+    matchStage.condition = condition;
+  }
+
+  const pipeline = [
+    { $match: matchStage },
+    { $sort: { [sortBy]: sortOrder === "desc" ? -1 : 1 } },
+    {
+      $project: {
+        _id: 1,
+        title: { $ifNull: [`$title.${selectedLang}`, "$title.en"] },
+        category: { $ifNull: [`$category.${selectedLang}`, "$category.en"] },
+        description: { $ifNull: [`$description.${selectedLang}`, "$description.en"] },
+        price: 1,
+        condition: 1,
+        pictures: 1,
+        createdAt: 1,
+      },
+    },
+  ];
+
+  const aggregate = Product.aggregate(pipeline);
+  const result = await Product.aggregatePaginate(aggregate, {
+    page: Number(page),
+    limit: Number(limit),
+    customLabels: {
+      docs: "products",
+      totalDocs: "totalProducts",
+      page: "currentPage",
+      totalPages: "totalPages",
+      hasPrevPage: "hasPrevPage",
+      hasNextPage: "hasNextPage",
+    },
+  });
+
+  res.status(200).json(
+    new ApiResponse(200, result, "Fetched shop products successfully.")
+  );
+});
+
 module.exports = {
   addProduct,
   getProducts,
@@ -786,5 +1034,6 @@ module.exports = {
   getProductsByCategory,
   getNearbyProducts,
   getPriorityProducts,
-  updateProductPriority
+  updateProductPriority,
+  getProductsByShop,  // ✅ NEW
 };

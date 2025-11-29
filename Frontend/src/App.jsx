@@ -12,6 +12,11 @@ import SellerAdminDashboard from './components/Admin/SellerAdmin'
 import AdminOrders from './components/Admin/Adminpanel'
 import AdminRoute from './components/Admin/AdminRoute' 
 import Dashboard from './components/common/Dashboard'
+import CreateShop from "./pages/CreateShop";
+import MyShop from "./pages/MyShop";
+import AllShops from "./pages/AllShops";
+import ShopProfile from "./pages/ShopProfile";
+import EditShop from "./pages/EditShop";
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
 const Register = lazy(() => import('./pages/Register'))
@@ -88,8 +93,13 @@ function App() {
             <Route path="/seller" element={<SellerAdminDashboard />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard/></ProtectedRoute>} />
             <Route path="/chatbot" element={<Chatbot />} />
-        <Route path="/raise-query" element={<RaiseQuery />} />
-        <Route path="/my-queries" element={<MyQueries />} />
+            <Route path="/raise-query" element={<RaiseQuery />} />
+            <Route path="/my-queries" element={<MyQueries />} />
+            <Route path="/create-shop" element={<CreateShop />} />
+            <Route path="/my-shop" element={<MyShop />} />
+            <Route path="/shops" element={<AllShops />} />
+            <Route path="/shop/:identifier" element={<ShopProfile />} />
+            <Route path="/edit-shop/:id" element={<EditShop />} />
             <Route path="/Adminpanel" element={
               <AdminRoute>
                 <AdminOrders />

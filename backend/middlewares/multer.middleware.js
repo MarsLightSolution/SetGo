@@ -1,9 +1,20 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
+
+// Ensure upload directories exist
+const ensureDir = (dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+};
 
 // ---------- Product Uploads (./uploads) ----------
 const productStorage = multer.diskStorage({
-  destination: "./uploads",
+  destination: (req, file, cb) => {
+    ensureDir("./uploads");
+    cb(null, "./uploads");
+  },
   filename: (_, file, cb) => {
     const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
@@ -25,7 +36,10 @@ const uploadPictures = multer({
 
 // ---------- Chat Uploads (./uploads/chat) ----------
 const chatStorage = multer.diskStorage({
-  destination: "./uploads/chat",
+  destination: (req, file, cb) => {
+    ensureDir("./uploads/chat");
+    cb(null, "./uploads/chat");
+  },
   filename: (_, file, cb) => {
     const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
@@ -34,10 +48,44 @@ const chatStorage = multer.diskStorage({
 
 const uploadChatFiles = multer({
   storage: chatStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per file (adjust as needed)
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB per file
 });
 
+// ---------- Shop Uploads (./uploads/shop) - NEW ----------
+const shopStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    ensureDir("./uploads/shop");
+    cb(null, "./uploads/shop");
+  },
+  filename: (_, file, cb) => {
+    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  },
+});
+
+const shopUpload = multer({
+  storage: shopStorage,
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // 5MB per file
+  },
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only .jpg, .jpeg, .png, and .webp images are allowed"), false);
+    }
+  },
+});
+
+// Shop images: logo and banner
+const uploadShopImages = shopUpload.fields([
+  { name: "logo", maxCount: 1 },
+  { name: "banner", maxCount: 1 },
+]);
+
 module.exports = {
-  uploadPictures,   // for product routes
-  uploadChatFiles,  // for chat routes
+  uploadPictures,     // for product routes
+  uploadChatFiles,    // for chat routes
+  uploadShopImages,   // for shop routes (NEW)
 };

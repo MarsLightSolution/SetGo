@@ -6,6 +6,15 @@ const userSchema = new mongoose.Schema({
     required: false,
     trim: true
   },
+  shop: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Shop",
+    default: null,
+  },
+  hasShop: {
+    type: Boolean,
+    default: false,
+  },
   deliveryAddress: {
     type: String,
     required: false,
@@ -40,9 +49,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  Role:{
-  type: String,
-  default: "user"
+  Role: {
+    type: String,
+    default: "user"
   },
   walletBalance: {
     type: Number,
