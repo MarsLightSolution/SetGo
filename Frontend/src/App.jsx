@@ -98,7 +98,7 @@ function App() {
             <Route path="/create-shop" element={<CreateShop />} />
             <Route path="/my-shop" element={<MyShop />} />
             <Route path="/shops" element={<AllShops />} />
-            <Route path="/shop/:identifier" element={<ShopProfile />} />
+            <Route path="/shop/:id" element={<ShopProfile />} />
             <Route path="/edit-shop/:id" element={<EditShop />} />
             <Route path="/Adminpanel" element={
               <AdminRoute>

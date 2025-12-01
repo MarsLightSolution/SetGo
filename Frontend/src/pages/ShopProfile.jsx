@@ -11,11 +11,8 @@ import {
   CircularProgress,
   Chip,
   Avatar,
-  Tabs,
-  Tab,
   Pagination,
   IconButton,
-  Divider,
 } from "@mui/material";
 import {
   Store as StoreIcon,
@@ -25,8 +22,6 @@ import {
   Schedule as ScheduleIcon,
   Verified as VerifiedIcon,
   Inventory as InventoryIcon,
-  People as PeopleIcon,
-  RemoveRedEye as ViewsIcon,
   Instagram as InstagramIcon,
   Facebook as FacebookIcon,
   Language as WebsiteIcon,
@@ -45,7 +40,7 @@ import {
 import Footer from "../components/common/Footer";
 
 const ShopProfile = () => {
-  const { identifier } = useParams(); // Can be shop ID or slug
+  const { id } = useParams();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
@@ -57,11 +52,11 @@ const ShopProfile = () => {
   const [followerCount, setFollowerCount] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [activeTab, setActiveTab] = useState(0);
 
-  // Get localized text
+  // Get localized text - handles multilingual objects
   const getLocalizedText = (field) => {
     if (!field) return "";
+    if (typeof field === "string") return field;
     const lang = i18n.language || "en";
     return field[lang] || field.en || "";
   };
@@ -72,22 +67,26 @@ const ShopProfile = () => {
       setLoading(true);
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_SERVER}/api/shops/shop/${identifier}`,
+          `${import.meta.env.VITE_SERVER}/api/shops/${id}`,
           { method: "GET", credentials: "include" }
         );
 
+        console.log("ShopProfile fetch response status:", res.status);
+
         if (!res.ok) {
+          console.log("Shop not found, redirecting...");
           navigate("/shops");
           return;
         }
 
         const data = await res.json();
+        console.log("ShopProfile data:", data);
 
         if (data.success && data.data) {
           setShop(data.data);
           setProducts(data.data.products || []);
           setFollowerCount(data.data.followerCount || 0);
-          
+
           // Check if current user is following
           const userId = localStorage.getItem("userId");
           if (userId && data.data.followers?.includes(userId)) {
@@ -104,13 +103,15 @@ const ShopProfile = () => {
       }
     };
 
-    fetchShop();
-  }, [identifier, navigate]);
+    if (id) {
+      fetchShop();
+    }
+  }, [id, navigate]);
 
   // Fetch shop products with pagination
   const fetchProducts = async (pageNum = 1) => {
     if (!shop?._id) return;
-    
+
     setProductsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -172,7 +173,7 @@ const ShopProfile = () => {
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: getLocalizedText(shop.shopName),
+        title: getLocalizedText(shop?.shopName),
         url: window.location.href,
       });
     } else {
@@ -198,8 +199,16 @@ const ShopProfile = () => {
   }
 
   if (!shop) {
-    return null;
+    return (
+      <Box className="min-h-screen flex items-center justify-center">
+        <Typography>Shop not found</Typography>
+      </Box>
+    );
   }
+
+  // Get display values
+  const shopName = getLocalizedText(shop.shopName);
+  const shopDescription = getLocalizedText(shop.description);
 
   return (
     <>
@@ -224,7 +233,11 @@ const ShopProfile = () => {
               <Box className="flex flex-col sm:flex-row gap-4">
                 {/* Logo */}
                 <Avatar
-                  src={shop.logo ? `${import.meta.env.VITE_SERVER}${shop.logo}` : undefined}
+                  src={
+                    shop.logo
+                      ? `${import.meta.env.VITE_SERVER}${shop.logo}`
+                      : undefined
+                  }
                   sx={{
                     width: { xs: 80, sm: 100 },
                     height: { xs: 80, sm: 100 },
@@ -240,7 +253,7 @@ const ShopProfile = () => {
                 <Box className="flex-1">
                   <Box className="flex items-center gap-2 flex-wrap">
                     <Typography variant="h5" className="font-bold text-gray-800">
-                      {getLocalizedText(shop.shopName)}
+                      {shopName}
                     </Typography>
                     {shop.isVerified && (
                       <VerifiedIcon sx={{ color: "#1976d2", fontSize: 24 }} />
@@ -253,7 +266,8 @@ const ShopProfile = () => {
                   </Box>
 
                   <Typography variant="body2" className="text-gray-500 mt-1">
-                    {shop.category} • {t("shop.memberSince") || "Member since"}{" "}
+                    {shop.category} •{" "}
+                    {t("shop.memberSince") || "Member since"}{" "}
                     {new Date(shop.createdAt).toLocaleDateString()}
                   </Typography>
 
@@ -291,10 +305,14 @@ const ShopProfile = () => {
                   <Button
                     variant={isFollowing ? "outlined" : "contained"}
                     color="success"
-                    startIcon={isFollowing ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                    startIcon={
+                      isFollowing ? <FavoriteIcon /> : <FavoriteBorderIcon />
+                    }
                     onClick={handleFollow}
                   >
-                    {isFollowing ? t("shop.following") || "Following" : t("shop.follow") || "Follow"}
+                    {isFollowing
+                      ? t("shop.following") || "Following"
+                      : t("shop.follow") || "Follow"}
                   </Button>
                   <IconButton onClick={handleShare}>
                     <ShareIcon />
@@ -303,9 +321,9 @@ const ShopProfile = () => {
               </Box>
 
               {/* Description */}
-              {getLocalizedText(shop.description) && (
+              {shopDescription && (
                 <Typography variant="body2" className="text-gray-600 mt-4">
-                  {getLocalizedText(shop.description)}
+                  {shopDescription}
                 </Typography>
               )}
 
@@ -315,7 +333,9 @@ const ShopProfile = () => {
                   <Box className="flex items-center gap-1">
                     <LocationIcon fontSize="small" />
                     <Typography variant="body2">
-                      {[shop.address.street, shop.address.city].filter(Boolean).join(", ")}
+                      {[shop.address.street, shop.address.city]
+                        .filter(Boolean)
+                        .join(", ")}
                     </Typography>
                   </Box>
                 )}
@@ -328,7 +348,9 @@ const ShopProfile = () => {
                 {shop.settings?.workingHours && (
                   <Box className="flex items-center gap-1">
                     <ScheduleIcon fontSize="small" />
-                    <Typography variant="body2">{shop.settings.workingHours}</Typography>
+                    <Typography variant="body2">
+                      {shop.settings.workingHours}
+                    </Typography>
                   </Box>
                 )}
               </Box>
@@ -338,7 +360,10 @@ const ShopProfile = () => {
                 {shop.socialLinks?.instagram && (
                   <IconButton
                     size="small"
-                    href={`https://instagram.com/${shop.socialLinks.instagram.replace("@", "")}`}
+                    href={`https://instagram.com/${shop.socialLinks.instagram.replace(
+                      "@",
+                      ""
+                    )}`}
                     target="_blank"
                   >
                     <InstagramIcon sx={{ color: "#E1306C" }} />
@@ -347,7 +372,11 @@ const ShopProfile = () => {
                 {shop.socialLinks?.facebook && (
                   <IconButton
                     size="small"
-                    href={shop.socialLinks.facebook.startsWith("http") ? shop.socialLinks.facebook : `https://facebook.com/${shop.socialLinks.facebook}`}
+                    href={
+                      shop.socialLinks.facebook.startsWith("http")
+                        ? shop.socialLinks.facebook
+                        : `https://facebook.com/${shop.socialLinks.facebook}`
+                    }
                     target="_blank"
                   >
                     <FacebookIcon sx={{ color: "#1877F2" }} />
@@ -356,7 +385,10 @@ const ShopProfile = () => {
                 {shop.socialLinks?.telegram && (
                   <IconButton
                     size="small"
-                    href={`https://t.me/${shop.socialLinks.telegram.replace("@", "")}`}
+                    href={`https://t.me/${shop.socialLinks.telegram.replace(
+                      "@",
+                      ""
+                    )}`}
                     target="_blank"
                   >
                     <TelegramIcon sx={{ color: "#0088CC" }} />
@@ -365,7 +397,10 @@ const ShopProfile = () => {
                 {shop.socialLinks?.whatsapp && (
                   <IconButton
                     size="small"
-                    href={`https://wa.me/${shop.socialLinks.whatsapp.replace(/[^0-9]/g, "")}`}
+                    href={`https://wa.me/${shop.socialLinks.whatsapp.replace(
+                      /[^0-9]/g,
+                      ""
+                    )}`}
                     target="_blank"
                   >
                     <WhatsAppIcon sx={{ color: "#25D366" }} />
@@ -374,7 +409,11 @@ const ShopProfile = () => {
                 {shop.socialLinks?.website && (
                   <IconButton
                     size="small"
-                    href={shop.socialLinks.website.startsWith("http") ? shop.socialLinks.website : `https://${shop.socialLinks.website}`}
+                    href={
+                      shop.socialLinks.website.startsWith("http")
+                        ? shop.socialLinks.website
+                        : `https://${shop.socialLinks.website}`
+                    }
                     target="_blank"
                   >
                     <WebsiteIcon sx={{ color: "#666" }} />
@@ -409,7 +448,7 @@ const ShopProfile = () => {
                   <Grid item xs={6} sm={4} md={3} key={product._id}>
                     <Card
                       className="h-full cursor-pointer hover:shadow-lg transition-shadow"
-                      onClick={() => navigate(`/product/${product._id}`)}
+                      onClick={() => navigate(`/products/product/${product._id}`)}
                     >
                       <CardMedia
                         component="img"
@@ -419,7 +458,7 @@ const ShopProfile = () => {
                             ? `${import.meta.env.VITE_SERVER}/${product.pictures[0]}`
                             : "/placeholder.png"
                         }
-                        alt={product.title}
+                        alt={getLocalizedText(product.title)}
                         className="h-40 object-cover"
                       />
                       <CardContent className="p-3">
@@ -427,7 +466,7 @@ const ShopProfile = () => {
                           variant="body2"
                           className="font-medium text-gray-800 line-clamp-2"
                         >
-                          {product.title}
+                          {getLocalizedText(product.title)}
                         </Typography>
                         <Typography
                           variant="h6"

@@ -252,17 +252,23 @@ const getAllShops = async (req, res) => {
 
 // =====================================================
 // GET SHOP BY ID OR SLUG (Public view)
-// GET /api/shops/:identifier
+// GET /api/shops/:id
 // =====================================================
 const getShopById = async (req, res) => {
   try {
-    const { identifier } = req.params;
+    const { id } = req.params;
 
-    // Check if identifier is ObjectId or slug
-    const isObjectId = mongoose.Types.ObjectId.isValid(identifier);
+    // Check if id is a valid 24-character hex ObjectId
+    // mongoose.Types.ObjectId.isValid() returns true for any 12-char string, so we need stricter check
+    const isObjectId = mongoose.Types.ObjectId.isValid(id) && /^[a-fA-F0-9]{24}$/.test(id);
+    
     const query = isObjectId
-      ? { _id: identifier }
-      : { slug: identifier.toLowerCase() };
+      ? { _id: id }
+      : { slug: id.toLowerCase() };
+    
+    console.log("Looking for shop with:", id);
+    console.log("Is ObjectId:", isObjectId);
+    console.log("Query:", query);
 
     const shop = await Shop.findOne({ ...query, status: { $ne: "closed" } })
       .populate("owner", "username profileName email phoneNumber")

@@ -22,15 +22,19 @@ const { uploadShopImages } = require("../middlewares/multer.middleware");
 // =====================================================
 // SHOP ROUTES
 // =====================================================
+// IMPORTANT: Order matters! Specific routes BEFORE dynamic :id routes
 
-// Public routes (no auth required)
-router.get("/", getAllShops);                    // GET /api/shops
-router.get("/shop/:identifier", getShopById);    // GET /api/shops/shop/:id or :slug
-router.get("/:id/products", getShopProducts);    // GET /api/shops/:id/products
-
-// Protected routes (auth required)
+// Protected routes with specific paths (MUST come first)
 router.get("/my-shop", verifyToken, getMyShop);  // GET /api/shops/my-shop
 
+// Public routes
+router.get("/", getAllShops);                    // GET /api/shops
+
+// Dynamic routes (MUST come after specific routes)
+router.get("/:id", getShopById);                 // GET /api/shops/:id (accepts ID or slug)
+router.get("/:id/products", getShopProducts);    // GET /api/shops/:id/products
+
+// Protected routes with dynamic :id
 router.post(
   "/",
   verifyToken,

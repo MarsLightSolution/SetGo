@@ -363,6 +363,7 @@ const ShopsSection = ({ shops, loading, onRefresh }) => {
           </div>
         ) : shops.length > 0 ? (
           shops.map((shop) => (
+            
             <ShopCard key={shop._id} shop={shop} />
           ))
         ) : (

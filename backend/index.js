@@ -27,7 +27,8 @@ const allowedOrigins = [
   "https://tiwari.shop",      // Add this
   "https://www.tiwari.shop",  // Add this
   "http://tiwari.shop",       // Add this (for HTTP redirects)
-  "http://www.tiwari.shop"    // Add this
+  "http://www.tiwari.shop",
+  "http://10.175.186.234:8080"    // Add this
 ];
 
 const corsOptions = {

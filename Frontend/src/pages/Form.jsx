@@ -42,6 +42,7 @@ const Form = () => {
   const [postToShop, setPostToShop] = useState(true); // Default to posting to shop if user has one
 
   const [formData, setFormData] = useState({
+    user:localStorage.getItem("userId") || "",
     title: "",
     category: "",
     condition: "",
@@ -336,6 +337,7 @@ const Form = () => {
 
         // Reset form but keep shop-related data
         setFormData((prev) => ({
+          user:localStorage.getItem("userID") || "",
           title: "",
           category: "",
           condition: "",
