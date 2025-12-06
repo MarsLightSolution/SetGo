@@ -26,6 +26,8 @@ function AppContent() {
     '/UserInfo/Userinfo',
     '/UserInfo/EditForm',
     '/confirm',
+    '/Chat/chatbot',
+    '/Chat/raiseQuery'
   ];
 
   // Check if current route should hide tabs

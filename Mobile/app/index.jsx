@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Feather';
@@ -35,8 +36,31 @@ export default function HomeScreen() {
     hasNextPage: false,
     hasPrevPage: false,
   });
+  
+  //added for chatbot by ashu------
+  const [chatVisible, setChatVisible] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  //added animation for chatbot button by ashu------
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
   const quickActions = [
@@ -123,7 +147,7 @@ export default function HomeScreen() {
     const description = typeof ad.description === 'object' ? ad.description.en : ad.description;
 
     //added wishlist by ashu
-     const { wishlist } = useSelector((state) => state.wishlist);
+    const { wishlist } = useSelector((state) => state.wishlist);
     const isWishlisted = wishlist.some((item) => item._id === ad._id);
 
     const dispatch = useDispatch();
@@ -135,20 +159,19 @@ export default function HomeScreen() {
       }
     };
 
-
     return (
       <TouchableOpacity
-      style={styles.adCard}
-      onPress={() => router.push(`/product/${ad._id}`)}
-    >
-      {/* Heart Button */}
-      <TouchableOpacity style={styles.likeButton} onPress={toggleWishlist}>
-        <Icon
-          name={isWishlisted ? 'heart' : 'heart'}
-          size={20}
-          color={isWishlisted ? '#EF4444' : '#D1D5DB'}
-        />
-      </TouchableOpacity>
+        style={styles.adCard}
+        onPress={() => router.push(`/product/${ad._id}`)}
+      >
+        {/* Heart Button */}
+        <TouchableOpacity style={styles.likeButton} onPress={toggleWishlist}>
+          <Icon
+            name={isWishlisted ? 'heart' : 'heart'}
+            size={20}
+            color={isWishlisted ? '#EF4444' : '#D1D5DB'}
+          />
+        </TouchableOpacity>
         <View style={styles.adImage}>
           <Image 
             source={{ uri: imageUrl }}
@@ -184,186 +207,215 @@ export default function HomeScreen() {
     );
   };
 
+  //added chatbot navigation handler by ashu------
+  const handleChatbotPress = () => {
+    router.push('Chat/chatbot');
+  };
+
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View style={styles.logo}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>S</Text>
+    <View style={styles.mainContainer}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.logo}>
+              <View style={styles.logoCircle}>
+                <Text style={styles.logoText}>S</Text>
+              </View>
+              <Text style={styles.logoName}>SATGOO</Text>
             </View>
-            <Text style={styles.logoName}>SATGOO</Text>
-          </View>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton}>
-              <Icon name="bell" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={() => router.push('/filters')}
-            >
-              <Icon name="filter" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Icon name="search" size={20} color="#9CA3AF" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for products, services..."
-            placeholderTextColor="#9CA3AF"
-            value={searchText}
-            onChangeText={setSearchText}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => {
-              setSearchText('');
-              updateFilters({ searchQuery: '' });
-            }}>
-              <Icon name="x" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        {quickActions.map((action, index) => (
-          <TouchableOpacity 
-            key={index} 
-            style={styles.quickActionItem}
-            onPress={() => handleQuickAction(action.category)}
-          >
-            <View style={styles.quickActionIcon}>
-              <Text style={styles.quickActionEmoji}>{action.icon}</Text>
-            </View>
-            <Text style={styles.quickActionLabel}>{action.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Gallery Section */}
-      {galleryAds.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured Products</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {galleryAds.map((ad) => (
+            <View style={styles.headerIcons}>
+              <TouchableOpacity style={styles.iconButton}>
+                <Icon name="bell" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
               <TouchableOpacity 
-                key={ad._id} 
-                style={styles.galleryCard}
-                onPress={() => router.push(`/product/${ad._id}`)}
+                style={styles.iconButton}
+                onPress={() => router.push('/filters')}
               >
-                <Image 
-                  source={{ uri: getImageUrl(ad) }}
-                  style={styles.galleryImage}
-                  resizeMode="cover"
-                />
-                <Text style={styles.galleryTitle} numberOfLines={1}>
-                  {typeof ad.title === 'object' ? ad.title.en : ad.title}
-                </Text>
-                <Text style={styles.galleryPrice}>₼ {ad.price}</Text>
+                <Icon name="filter" size={24} color="#FFFFFF" />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+            </View>
+          </View>
 
-      {/* Active Filters */}
-      {(filters.category || filters.searchQuery || filters.condition) && (
-        <View style={styles.filtersActive}>
-          <Text style={styles.filtersTitle}>Active Filters:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {filters.category && (
-              <View style={styles.filterChip}>
-                <Text style={styles.filterChipText}>{filters.category}</Text>
-                <TouchableOpacity onPress={() => updateFilters({ category: '' })}>
-                  <Icon name="x" size={14} color="#008235" />
-                </TouchableOpacity>
-              </View>
+          {/* Search Bar */}
+          <View style={styles.searchBar}>
+            <Icon name="search" size={20} color="#9CA3AF" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for products, services..."
+              placeholderTextColor="#9CA3AF"
+              value={searchText}
+              onChangeText={setSearchText}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {searchText.length > 0 && (
+              <TouchableOpacity onPress={() => {
+                setSearchText('');
+                updateFilters({ searchQuery: '' });
+              }}>
+                <Icon name="x" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
             )}
-            {filters.searchQuery && (
-              <View style={styles.filterChip}>
-                <Text style={styles.filterChipText}>"{filters.searchQuery}"</Text>
-                <TouchableOpacity onPress={() => {
-                  setSearchText('');
-                  updateFilters({ searchQuery: '' });
-                }}>
-                  <Icon name="x" size={14} color="#008235" />
-                </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          {quickActions.map((action, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={styles.quickActionItem}
+              onPress={() => handleQuickAction(action.category)}
+            >
+              <View style={styles.quickActionIcon}>
+                <Text style={styles.quickActionEmoji}>{action.icon}</Text>
               </View>
-            )}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Latest Ads */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Latest Ads</Text>
-          <Text style={styles.sectionCount}>({latestAds.length} items)</Text>
+              <Text style={styles.quickActionLabel}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#008235" style={styles.loader} />
-        ) : latestAds.length > 0 ? (
-          <>
-            <View style={styles.adsGrid}>
-              {latestAds.map((ad) => (
-                <AdCard key={ad._id} ad={ad} />
+        {/* Gallery Section */}
+        {galleryAds.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Featured Products</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {galleryAds.map((ad) => (
+                <TouchableOpacity 
+                  key={ad._id} 
+                  style={styles.galleryCard}
+                  onPress={() => router.push(`/product/${ad._id}`)}
+                >
+                  <Image 
+                    source={{ uri: getImageUrl(ad) }}
+                    style={styles.galleryImage}
+                    resizeMode="cover"
+                  />
+                  <Text style={styles.galleryTitle} numberOfLines={1}>
+                    {typeof ad.title === 'object' ? ad.title.en : ad.title}
+                  </Text>
+                  <Text style={styles.galleryPrice}>₼ {ad.price}</Text>
+                </TouchableOpacity>
               ))}
-            </View>
-
-            {/* Pagination */}
-            <View style={styles.pagination}>
-              <TouchableOpacity
-                disabled={!pagination.hasPrevPage}
-                onPress={() => fetchProducts(pagination.currentPage - 1)}
-                style={[styles.paginationButton, !pagination.hasPrevPage && styles.paginationButtonDisabled]}
-              >
-                <Icon name="chevron-left" size={20} color={pagination.hasPrevPage ? "#008235" : "#D1D5DB"} />
-                <Text style={[styles.paginationText, !pagination.hasPrevPage && styles.paginationTextDisabled]}>
-                  Previous
-                </Text>
-              </TouchableOpacity>
-
-              <Text style={styles.paginationInfo}>
-                Page {pagination.currentPage} of {pagination.totalPages}
-              </Text>
-
-              <TouchableOpacity
-                disabled={!pagination.hasNextPage}
-                onPress={() => fetchProducts(pagination.currentPage + 1)}
-                style={[styles.paginationButton, !pagination.hasNextPage && styles.paginationButtonDisabled]}
-              >
-                <Text style={[styles.paginationText, !pagination.hasNextPage && styles.paginationTextDisabled]}>
-                  Next
-                </Text>
-                <Icon name="chevron-right" size={20} color={pagination.hasNextPage ? "#008235" : "#D1D5DB"} />
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : (
-          <View style={styles.emptyState}>
-            <Icon name="inbox" size={48} color="#D1D5DB" />
-            <Text style={styles.emptyText}>No products found</Text>
+            </ScrollView>
           </View>
         )}
-      </View>
-    </ScrollView>
+
+        {/* Active Filters */}
+        {(filters.category || filters.searchQuery || filters.condition) && (
+          <View style={styles.filtersActive}>
+            <Text style={styles.filtersTitle}>Active Filters:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {filters.category && (
+                <View style={styles.filterChip}>
+                  <Text style={styles.filterChipText}>{filters.category}</Text>
+                  <TouchableOpacity onPress={() => updateFilters({ category: '' })}>
+                    <Icon name="x" size={14} color="#008235" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {filters.searchQuery && (
+                <View style={styles.filterChip}>
+                  <Text style={styles.filterChipText}>"{filters.searchQuery}"</Text>
+                  <TouchableOpacity onPress={() => {
+                    setSearchText('');
+                    updateFilters({ searchQuery: '' });
+                  }}>
+                    <Icon name="x" size={14} color="#008235" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Latest Ads */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Latest Ads</Text>
+            <Text style={styles.sectionCount}>({latestAds.length} items)</Text>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator size="large" color="#008235" style={styles.loader} />
+          ) : latestAds.length > 0 ? (
+            <>
+              <View style={styles.adsGrid}>
+                {latestAds.map((ad) => (
+                  <AdCard key={ad._id} ad={ad} />
+                ))}
+              </View>
+
+              {/* Pagination */}
+              <View style={styles.pagination}>
+                <TouchableOpacity
+                  disabled={!pagination.hasPrevPage}
+                  onPress={() => fetchProducts(pagination.currentPage - 1)}
+                  style={[styles.paginationButton, !pagination.hasPrevPage && styles.paginationButtonDisabled]}
+                >
+                  <Icon name="chevron-left" size={20} color={pagination.hasPrevPage ? "#008235" : "#D1D5DB"} />
+                  <Text style={[styles.paginationText, !pagination.hasPrevPage && styles.paginationTextDisabled]}>
+                    Previous
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={styles.paginationInfo}>
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                </Text>
+
+                <TouchableOpacity
+                  disabled={!pagination.hasNextPage}
+                  onPress={() => fetchProducts(pagination.currentPage + 1)}
+                  style={[styles.paginationButton, !pagination.hasNextPage && styles.paginationButtonDisabled]}
+                >
+                  <Text style={[styles.paginationText, !pagination.hasNextPage && styles.paginationTextDisabled]}>
+                    Next
+                  </Text>
+                  <Icon name="chevron-right" size={20} color={pagination.hasNextPage ? "#008235" : "#D1D5DB"} />
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <View style={styles.emptyState}>
+              <Icon name="inbox" size={48} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No products found</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* ============= FLOATING CHATBOT BUTTON - ADDED BY ASHU (FIXED OVERLAY) ============= */}
+      <TouchableOpacity
+        style={styles.floatingChatButton}
+        onPress={handleChatbotPress}
+        activeOpacity={0.8}
+      >
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <View style={styles.chatButtonGradient}>
+            <Icon name="message-circle" size={28} color="#FFFFFF" />
+            <View style={styles.chatBadge}>
+              <View style={styles.chatBadgeDot} />
+            </View>
+          </View>
+        </Animated.View>
+      </TouchableOpacity>
+      {/* ============= END FLOATING CHATBOT BUTTON ============= */}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  //added mainContainer for fixed button by ashu------
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
@@ -651,4 +703,47 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
+  
+  // ============= CHATBOT BUTTON STYLES - ADDED BY ASHU =============
+  floatingChatButton: {
+    position: 'absolute',
+    right: 40,
+    bottom: 90,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  chatButtonGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#008235',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  chatBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#008235',
+  },
+  chatBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  // ============= END CHATBOT BUTTON STYLES =============
 });
