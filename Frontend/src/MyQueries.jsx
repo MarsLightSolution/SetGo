@@ -12,9 +12,28 @@ import {
   Calendar,
   Lock,
   Edit3,
-  Image,
-  Loader
+  Image as ImageIcon,
+  Loader,
+  ZoomIn
 } from "lucide-react";
+
+// ✅ Backend Base URL - Change this to your actual backend URL
+const BACKEND_URL = "http://localhost:8080";
+
+// ✅ Helper function to get full image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  
+  // If already a full URL, return as is
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+    return imagePath;
+  }
+  
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = imagePath.startsWith("/") ? imagePath.slice(1) : imagePath;
+  
+  return `${BACKEND_URL}/${cleanPath}`;
+};
 
 export default function MyQueries() {
   // Get userId and adminId from localStorage
@@ -26,6 +45,10 @@ export default function MyQueries() {
   const [selectedQuery, setSelectedQuery] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Image Lightbox States
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [showImageLightbox, setShowImageLightbox] = useState(false);
   
   // Close Query Modal States
   const [showCloseModal, setShowCloseModal] = useState(false);
@@ -44,7 +67,7 @@ export default function MyQueries() {
   const fetchQueries = async () => {
     try {
       const { data } = await axios.get(
-        `http://localhost:8080/concern/user?userId=${userId}`
+        `${BACKEND_URL}/concern/user?userId=${userId}`
       );
 
       if (data.success) {
@@ -60,7 +83,7 @@ export default function MyQueries() {
   const fetchQueryDetails = async (concernId) => {
     try {
       const { data } = await axios.get(
-        `http://localhost:8080/concern/${concernId}?userId=${userId}`
+        `${BACKEND_URL}/concern/${concernId}?userId=${userId}`
       );
 
       if (data.success) {
@@ -154,6 +177,18 @@ export default function MyQueries() {
       console.error("Error updating status:", err);
       alert("❌ Failed to update status.");
     }
+  };
+
+  // Image handling functions
+  const handleImageClick = (imagePath) => {
+    const fullUrl = getImageUrl(imagePath);
+    setSelectedImage(fullUrl);
+    setShowImageLightbox(true);
+  };
+
+  const handleCloseLightbox = () => {
+    setShowImageLightbox(false);
+    setSelectedImage(null);
   };
 
   const getStatusConfig = (status) => {
@@ -310,6 +345,12 @@ export default function MyQueries() {
                           {statusConfig.icon}
                           {statusConfig.label}
                         </span>
+                        {query.images && query.images.length > 0 && (
+                          <span className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold flex items-center gap-1.5 border border-blue-200">
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            {query.images.length} Image{query.images.length > 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                       <p className="text-gray-700 mb-3 line-clamp-2">{query.message}</p>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -366,6 +407,12 @@ export default function MyQueries() {
                         {getStatusConfig(selectedQuery.status).icon}
                         {getStatusConfig(selectedQuery.status).label}
                       </span>
+                      {selectedQuery.images && selectedQuery.images.length > 0 && (
+                        <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs font-semibold border border-white/30 flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5" />
+                          {selectedQuery.images.length} Attachment{selectedQuery.images.length > 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button
@@ -413,21 +460,51 @@ export default function MyQueries() {
                     )}
                   </div>
 
+                  {/* ✅ FIXED: Enhanced Image Display Section with proper URL handling */}
                   {selectedQuery.images && selectedQuery.images.length > 0 && (
-                    <div className="mt-4">
-                      <span className="font-semibold text-gray-700 flex items-center gap-2 mb-2">
-                        <Image className="w-4 h-4" />
-                        Attached Images:
-                      </span>
-                      <div className="flex gap-3 flex-wrap">
-                        {selectedQuery.images.map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`evidence-${idx}`}
-                            className="w-28 h-28 object-cover rounded-xl border-2 border-emerald-200 shadow-sm hover:shadow-md transition-shadow"
-                          />
-                        ))}
+                    <div className="mt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <ImageIcon className="w-5 h-5 text-emerald-600" />
+                        <span className="font-bold text-gray-900">
+                          Attached Images ({selectedQuery.images.length})
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {selectedQuery.images.map((img, idx) => {
+                          const imageUrl = getImageUrl(img);
+                          return (
+                            <div 
+                              key={idx}
+                              className="group relative aspect-square rounded-xl overflow-hidden border-2 border-emerald-200 shadow-md hover:shadow-xl transition-all cursor-pointer bg-gray-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleImageClick(img);
+                              }}
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={`Query attachment ${idx + 1}`}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                onError={(e) => {
+                                  console.error(`Failed to load image: ${imageUrl}`);
+                                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBOb3QgRm91bmQ8L3RleHQ+PC9zdmc+';
+                                }}
+                              />
+                              {/* Overlay on Hover */}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div className="flex gap-2">
+                                  <div className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center">
+                                    <ZoomIn className="w-5 h-5 text-emerald-600" />
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Image Number Badge */}
+                              <div className="absolute top-2 left-2 bg-emerald-600 text-white px-2 py-1 rounded-lg text-xs font-bold shadow-lg">
+                                {idx + 1}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -515,6 +592,45 @@ export default function MyQueries() {
                     <p className="text-gray-600 font-medium">This query has been closed</p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ Image Lightbox Modal - Download removed */}
+        {showImageLightbox && selectedImage && (
+          <div 
+            className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+            onClick={handleCloseLightbox}
+          >
+            <div className="relative max-w-6xl w-full h-full flex items-center justify-center">
+              {/* Close Button */}
+              <button
+                onClick={handleCloseLightbox}
+                className="absolute top-4 right-4 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all z-10 group"
+              >
+                <X className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+              </button>
+
+              {/* Enlarged Image */}
+              <div 
+                className="relative max-h-[90vh] max-w-[90vw]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={selectedImage}
+                  alt="Enlarged view"
+                  className="max-h-[90vh] max-w-full w-auto h-auto object-contain rounded-2xl shadow-2xl"
+                  onError={(e) => {
+                    console.error(`Failed to load enlarged image: ${selectedImage}`);
+                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzFmMjkzNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZmZmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBOb3QgRm91bmQ8L3RleHQ+PC9zdmc+';
+                  }}
+                />
+              </div>
+
+              {/* Hint Text */}
+              <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm px-6 py-3 rounded-full">
+                <p className="text-white text-sm font-medium">Click outside to close</p>
               </div>
             </div>
           </div>

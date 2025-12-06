@@ -81,7 +81,7 @@ exports.getChatResponse = async (req, res) => {
         }
 
         try {
-          const { data } = await axios.get(`${BASE_URL}/Orders/buyer/${userId}`);
+          const { data } = await axios.get(`${BASE_URL}/Orders/user/${userId}`);
 
           if (!data.success || !Array.isArray(data.data))
             throw new Error("Unexpected format from orders API");

@@ -9,7 +9,7 @@ const logger = winston.createLogger({
   level: process.env.NODE_ENV === "production" ? "info" : "debug",
   format: winston.format.combine(
     winston.format.timestamp(),
-    winston.format.json()
+    winston.format.json() 
   ),
   transports: [
     new winston.transports.File({ filename: "logs/error.log", level: "error" }),
@@ -89,13 +89,28 @@ exports.raiseConcern = async (req, res) => {
       });
     }
 
-    if (images && images.length > 3) {
-      logger.warn(`${endpoint}: Too many images`, { imageCount: images.length });
-      return res.status(400).json({
-        success: false,
-        message: "Maximum 3 images allowed",
-      });
-    }
+    // ✅ ADD THIS - Process uploaded images from multer
+const imagesRaw = Array.isArray(req.files?.images)
+  ? req.files.images
+  : req.files?.images
+  ? [req.files.images]
+  : [];
+
+if (imagesRaw.length > 3) {
+  logger.warn(`${endpoint}: Too many images`, { imageCount: imagesRaw.length });
+  return res.status(400).json({
+    success: false,
+    message: "Maximum 3 images allowed",
+  });
+}
+
+// Convert file paths to proper format
+const processedImages = imagesRaw.map(f => f.path.replace(/\\/g, "/"));
+
+logger.info(`${endpoint}: Images processed`, {
+  count: processedImages.length,
+  paths: processedImages,
+});
 
     const concern = await Concern.create({
       userId,
@@ -106,7 +121,7 @@ exports.raiseConcern = async (req, res) => {
       sellerId: sellerId || null,
       adId: adId || null,
       message,
-      images: images || [],
+      images: processedImages,  // ✅ CORRECT - Use the processed images from multer
       metadata: {
         userAgent: req.headers["user-agent"] || "unknown",
         ipAddress: req.ip || "N/A",
@@ -117,6 +132,7 @@ exports.raiseConcern = async (req, res) => {
       concernId: concern._id,
       userId,
       issueType,
+      imageCount: processedImages.length,
       duration: Date.now() - startTime + "ms",
     });
 

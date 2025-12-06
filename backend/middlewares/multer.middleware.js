@@ -83,9 +83,36 @@ const uploadShopImages = shopUpload.fields([
   { name: "logo", maxCount: 1 },
   { name: "banner", maxCount: 1 },
 ]);
+// ---------- Concern Uploads (./uploads/concerns) - NEW ----------
+const concernStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    ensureDir("./uploads/concerns");
+    cb(null, "./uploads/concerns");
+  },
+  filename: (_, file, cb) => {
+    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  },
+});
+
+const uploadConcernImages = multer({
+  storage: concernStorage,
+  limits: { 
+    fileSize: 2 * 1024 * 1024, // 2MB per file
+  },
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only .jpg, .jpeg, .png, and .webp images are allowed"), false);
+    }
+  },
+});
 
 module.exports = {
   uploadPictures,     // for product routes
   uploadChatFiles,    // for chat routes
-  uploadShopImages,   // for shop routes (NEW)
+  uploadShopImages, 
+  uploadConcernImages,  // for shop routes (NEW)
 };

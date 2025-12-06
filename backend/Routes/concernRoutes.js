@@ -9,11 +9,21 @@ const {
   updateConcernStatus,
   getAllConcerns
 } = require("../controller/concernController.js");
+const { uploadConcernImages } = require("../middlewares/multer.middleware.js"); 
 
+
+// Add uploadConcernImages
 // ✅ All routes are now PUBLIC (no verifyToken middleware)
 
 // User routes
-router.post("/raise", raiseConcern);
+
+
+// AFTER (with multer):
+router.post(
+  "/raise",
+  uploadConcernImages.fields([{ name: "images", maxCount: 3 }]),
+  concernController.raiseConcern
+);
 router.get("/user", getUserConcerns);
 router.get("/all", getAllConcerns); // Admin view all concerns
 router.get("/:concernId", getConcernDetails);
