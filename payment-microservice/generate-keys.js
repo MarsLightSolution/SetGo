@@ -5,7 +5,7 @@ const path = require('path');
 // Create keys directory if it doesn't exist
 const keysDir = path.join(__dirname, 'keys');
 if (!fs.existsSync(keysDir)) {
-  fs.mkdirSync(keysDir);
+  fs.mkdirSync(keysDir, { mode: 0o700 });
   console.log('✓ Created keys directory');
 }
 
