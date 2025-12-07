@@ -13,7 +13,7 @@ if (!fs.existsSync(keysDir)) {
 console.log('Generating RSA key pair (2048-bit)...');
 
 const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-  modulusLength: 2048,
+  modulusLength: 3072,
   publicKeyEncoding: {
     type: 'spki',
     format: 'pem'
