@@ -44,11 +44,11 @@ const StatusIndicator = ({ status }) => {
   return null;
 };
 
-const PaymentDialog = ({ 
-  product, 
-  user, 
-  onClose, 
-  onPaymentSuccess 
+const PaymentDialog = ({
+  product,
+  user,
+  onClose,
+  onPaymentSuccess
 }) => {
   if (!product || !user) return null;
 
@@ -59,7 +59,7 @@ const PaymentDialog = ({
   const [errorMessage, setErrorMessage] = useState("");
   const [authToken, setAuthToken] = useState(null);
   const [userId, setUserId] = useState(null);
-  
+
   const navigate = useNavigate();
   const price = product.price ?? 0;
 
@@ -68,15 +68,15 @@ const PaymentDialog = ({
     const accessToken = localStorage.getItem("accessToken");
     const storedUserId = localStorage.getItem("userId");
 
-    if (!accessToken || !storedUserId) {
-      setErrorMessage("Authentication required. Please log in again.");
-      setStatus("FAILURE");
-      // Optionally redirect to login
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-      return;
-    }
+    // if (!accessToken || !storedUserId) {
+    //   setErrorMessage("Authentication required. Please log in again.");
+    //   setStatus("FAILURE");
+    //   // Optionally redirect to login
+    //   setTimeout(() => {
+    //     navigate("/login");
+    //   }, 2000);
+    //   return;
+    // }
 
     setAuthToken(accessToken);
     setUserId(storedUserId);
@@ -89,15 +89,15 @@ const PaymentDialog = ({
   // Calculate actual wallet amount to use
   const walletAmountToUse = useMemo(() => {
     if (!useWallet) return 0;
-    
+
     if (customAmount === "") {
       // Use maximum possible (either full balance or price, whichever is lower)
       return Math.min(walletBalance, price);
     }
-    
+
     const amount = parseFloat(customAmount);
     if (isNaN(amount) || amount <= 0) return 0;
-    
+
     // Ensure amount doesn't exceed wallet balance or price
     return Math.min(amount, walletBalance, price);
   }, [useWallet, customAmount, walletBalance, price]);
@@ -114,7 +114,7 @@ const PaymentDialog = ({
     return `Pay ₼ ${price}`;
   }, [status, price]);
 
-  const isPayDisabled = status === "LOADING" || !authToken || !userId;
+  const isPayDisabled = status === "LOADING";
 
   const handlePay = async () => {
     if (status === "FAILURE") {
@@ -130,7 +130,7 @@ const PaymentDialog = ({
   // Handler for custom amount input
   const handleCustomAmountChange = (e) => {
     const value = e.target.value;
-    
+
     // Allow empty string or valid numbers
     if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
       setCustomAmount(value);
@@ -156,14 +156,14 @@ const PaymentDialog = ({
    */
   const processPayment = async () => {
     // Check authentication before processing
-    if (!authToken || !userId) {
-      setStatus("FAILURE");
-      setErrorMessage("Authentication required. Please log in again.");
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-      return;
-    }
+    // if (!authToken || !userId) {
+    //   setStatus("FAILURE");
+    //   setErrorMessage("Authentication required. Please log in again.");
+    //   setTimeout(() => {
+    //     navigate("/login");
+    //   }, 2000);
+    //   return;
+    // }
 
     setStatus("LOADING");
     setErrorMessage("");
@@ -186,18 +186,20 @@ const PaymentDialog = ({
       },
     };
 
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/payment/create`,
-        {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${authToken}`, // ✅ SECURITY: JWT token from localStorage
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+   try {
+    const res = await fetch(
+      `${import.meta.env.VITE_SERVER}/api/payments/initiate`,
+      {
+        method: "POST",
+        credentials: 'include',
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+      // console.log(res);
+      
 
       const data = await res.json().catch(() => ({}));
 
@@ -218,7 +220,7 @@ const PaymentDialog = ({
         if (data.completed) {
           console.log("Payment completed successfully");
           setStatus("SUCCESS");
-          
+
           // Notify parent component
           onPaymentSuccess?.(price);
 
@@ -230,7 +232,7 @@ const PaymentDialog = ({
               onClose();
             }
           }, 1800);
-        } 
+        }
         // If payment requires redirect (online payment or wallet + online)
         else if (data.url) {
           // Store minimal info in localStorage before redirect
@@ -282,15 +284,14 @@ const PaymentDialog = ({
           </div>
           <div className="flex justify-between items-center py-2 border-t">
             <span className="text-gray-600">Wallet Balance</span>
-            <span 
-              className={`font-semibold ${
-                walletBalance > 0 ? "text-green-600" : "text-red-500"
-              }`}
+            <span
+              className={`font-semibold ${walletBalance > 0 ? "text-green-600" : "text-red-500"
+                }`}
             >
               ₼ {walletBalance}
             </span>
           </div>
-          
+
           {/* Payment Breakdown */}
           {useWallet && walletAmountToUse > 0 && (
             <>
@@ -350,7 +351,7 @@ const PaymentDialog = ({
                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
-                
+
                 {/* Quick Select Buttons */}
                 <div className="flex gap-2 mt-3">
                   <button
@@ -455,13 +456,12 @@ const PaymentDialog = ({
           <button
             disabled={isPayDisabled}
             onClick={handlePay}
-            className={`w-full ${
-              isPayDisabled
+            className={`w-full ${isPayDisabled
                 ? "bg-gray-300 cursor-not-allowed"
                 : status === "FAILURE"
-                ? "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800"
-                : "bg-lime-500 hover:bg-lime-600 active:bg-lime-700"
-            } text-white font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg transform active:scale-[0.98]`}
+                  ? "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800"
+                  : "bg-lime-500 hover:bg-lime-600 active:bg-lime-700"
+              } text-white font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg transform active:scale-[0.98]`}
           >
             {payLabel}
           </button>
@@ -476,7 +476,7 @@ const PaymentDialog = ({
         </div>
 
         {/* Add required CSS for animations */}
-        <style jsx>{`
+        <style>{`
           @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }

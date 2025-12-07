@@ -16,8 +16,9 @@ const PAYMENT_SERVICE_SECRET = process.env.PAYMENT_SERVICE_SECRET;
  */
 exports.initiatePayment = async (req, res) => {
   try {
-    const buyerId = req.user.id; // From JWT token
+    // const buyerId = req.user.id; // From JWT token
     const { 
+      buyerId:userId,
       productId, 
       amount: onlineAmount, 
       walletDeduction = 0,
