@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,9 @@ import { useAuthStore } from '../Store/authStore';
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../Store/wishSlice';
 
+//added chatbot by ashu------
+import { Animated } from 'react-native';
+
 export default function HomeScreen() {
   const router = useRouter();
   const checkAuth = useAuthStore((state) => state.checkAuth);
@@ -36,11 +39,6 @@ export default function HomeScreen() {
     hasNextPage: false,
     hasPrevPage: false,
   });
-  
-  //added for chatbot by ashu------
-  const [chatVisible, setChatVisible] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  
   useEffect(() => {
     checkAuth();
   }, []);
@@ -207,40 +205,34 @@ export default function HomeScreen() {
     );
   };
 
-  //added chatbot navigation handler by ashu------
-  const handleChatbotPress = () => {
-    router.push('Chat/chatbot');
-  };
-
   return (
-    <View style={styles.mainContainer}>
-      <ScrollView 
-        style={styles.container}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View style={styles.logo}>
-              <View style={styles.logoCircle}>
-                <Text style={styles.logoText}>S</Text>
-              </View>
-              <Text style={styles.logoName}>SATGOO</Text>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View style={styles.logo}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>S</Text>
             </View>
-            <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Icon name="bell" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={() => router.push('/filters')}
-              >
-                <Icon name="filter" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.logoName}>SATGOO</Text>
           </View>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity style={styles.iconButton}>
+              <Icon name="bell" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => router.push('/filters')}
+            >
+              <Icon name="filter" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
           {/* Search Bar */}
           <View style={styles.searchBar}>

@@ -141,7 +141,7 @@ export default function AuthScreen() {
             >
               <Ionicons name="leaf" size={32} color="#FFFFFF" />
             </LinearGradient>
-            <Text style={styles.logoText}>SATGOO</Text>
+            <Text style={styles.logoText}>SATGO</Text>
           </View>
         </View>
 

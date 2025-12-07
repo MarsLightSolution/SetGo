@@ -7,6 +7,7 @@ import { useAuthStore } from '../Store/authStore';
 import BottomTabBar from '../Components/BottomTabBar';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import Toast from 'react-native-toast-message';  // ✅ FIXED IMPORT
 
 function AppContent() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
@@ -26,24 +27,23 @@ function AppContent() {
     '/UserInfo/Userinfo',
     '/UserInfo/EditForm',
     '/confirm',
-    '/Chat/chatbot',
-    '/Chat/raiseQuery'
   ];
 
-  // Check if current route should hide tabs
-  const shouldHideTabs = hideTabsRoutes.some(route => pathname?.startsWith(route)) || 
-    pathname?.startsWith('/product/') ||
-    pathname?.startsWith('/order/');
+// Check if current route should hide tabs
+const shouldHideTabs =
+  hideTabsRoutes.some(route => pathname?.startsWith(route)) ||
+  pathname?.startsWith('/product/') ||
+  pathname?.startsWith('/order/');
 
-  return (
-    <>
-      <Stack 
-        screenOptions={{ 
-          headerShown: false,
-          animation: 'none'
-        }}
-      >
-        {/* Main tab screens */}
+return (
+  <>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'none'
+      }}
+    >
+
         <Stack.Screen name="index" />
         <Stack.Screen name="wishlist" />
         <Stack.Screen name="post" />

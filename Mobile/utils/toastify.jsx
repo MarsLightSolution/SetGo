@@ -1,6 +1,5 @@
-import React from "react";
-import { StyleSheet } from "react-native";
 import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
+import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
@@ -22,6 +21,8 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
+
+/* ---------------------- CUSTOM TOAST COMPONENTS ---------------------- */
 
 const SuccessToast = (props) => (
   <BaseToast
@@ -62,12 +63,16 @@ const InfoToast = (props) => (
   />
 );
 
+/* ---------------------- BASE CONFIG ---------------------- */
+
 const baseConfig = {
   position: "top",
   visibilityTime: 3000,
   autoHide: true,
   topOffset: 50,
 };
+
+/* ---------------------- EXPORT FUNCTIONS ---------------------- */
 
 export const showSuccessToast = (message) => {
   Toast.show({ type: "success", text1: "Success", text2: message, ...baseConfig });
@@ -84,6 +89,8 @@ export const showWarningToast = (message) => {
 export const showInfoToast = (message) => {
   Toast.show({ type: "info", text1: "Info", text2: message, ...baseConfig });
 };
+
+/* ---------------------- TOAST CONTAINER ---------------------- */
 
 export const ToastifyContainer = () => (
   <Toast

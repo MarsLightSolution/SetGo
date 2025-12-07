@@ -1,89 +1,78 @@
 // services/api.js
 import axios from 'axios';
+import Constants from 'expo-constants';
 import axiosRetry from 'axios-retry';
-import { API_URL } from '../config/api';
+import * as SecureStore from 'expo-secure-store';
 
-// Create axios instance with proper configuration
+// 1️⃣ Read API URL from app.json > expo.extra.apiUrl
+const extra = (Constants.expoConfig || Constants.manifest || {}).extra || {};
+export const API_URL = extra.apiUrl || "http://51.20.123.49/api";
+
+// 2️⃣ Create Axios Instance
 const api = axios.create({
   baseURL: API_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
-  // Enable cookies only if your backend requires it
-  withCredentials: false,
+  withCredentials: false, // Change only if your backend needs cookies
 });
 
-// Configure retry logic
+// 3️⃣ Axios Retry
 axiosRetry(api, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
   retryCondition: (error) => {
-    // Retry on network errors or 5xx server errors
-    return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
-           (error.response?.status >= 500 && error.response?.status <= 599);
+    // Retry on network + 5xx server errors
+    return (
+      axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+      (error.response?.status >= 500 && error.response?.status <= 599)
+    );
   },
   shouldResetTimeout: true,
-  onRetry: (retryCount, error, requestConfig) => {
-    console.log(`Retry attempt ${retryCount} for ${requestConfig.url}`);
+  onRetry: (count, error, config) => {
+    console.log(`Retry ${count} → ${config?.url}`);
   },
 });
 
-// Request interceptor for adding auth token
+// 4️⃣ Request Interceptor (Add Token)
 api.interceptors.request.use(
   async (config) => {
     try {
-      // Add auth token if available
-      const token = await getAuthToken();
+      const token = await SecureStore.getItemAsync('authToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-    } catch (error) {
-      console.error('Error getting auth token:', error);
+    } catch (err) {
+      console.error("Auth token error:", err);
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for handling errors
+// 5️⃣ Response Interceptor (Error Logging)
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   (error) => {
     if (error.response) {
-      // Server responded with error status
-      console.error('API Error Response:', {
+      console.error("API Error:", {
         status: error.response.status,
         data: error.response.data,
         url: error.config?.url,
       });
     } else if (error.request) {
-      // Request made but no response received
-      console.error('API No Response:', {
-        url: error.config?.url,
+      console.error("API No Response:", {
         message: error.message,
+        url: error.config?.url,
       });
     } else {
-      // Error in request setup
-      console.error('API Request Error:', error.message);
+      console.error("API Request Setup Error:", error.message);
     }
     return Promise.reject(error);
   }
 );
 
-// Helper function to get auth token
-async function getAuthToken() {
-  try {
-    // Import SecureStore dynamically to avoid circular dependencies
-    const { default: * as SecureStore } = await import('expo-secure-store');
-    return await SecureStore.getItemAsync('authToken');
-  } catch (error) {
-    console.error('Error accessing SecureStore:', error);
-    return null;
-  }
-}
-
+// 6️⃣ Export final axios instance
 export default api;
