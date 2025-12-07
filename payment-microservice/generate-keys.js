@@ -5,7 +5,7 @@ const path = require('path');
 // Create keys directory if it doesn't exist
 const keysDir = path.join(__dirname, 'keys');
 if (!fs.existsSync(keysDir)) {
-  fs.mkdirSync(keysDir);
+  fs.mkdirSync(keysDir, { mode: 0o700 });
   console.log('✓ Created keys directory');
 }
 
@@ -13,7 +13,7 @@ if (!fs.existsSync(keysDir)) {
 console.log('Generating RSA key pair (2048-bit)...');
 
 const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-  modulusLength: 2048,
+  modulusLength: 3072,
   publicKeyEncoding: {
     type: 'spki',
     format: 'pem'
@@ -25,10 +25,19 @@ const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
 });
 
 // Write keys to files
-fs.writeFileSync(path.join(keysDir, 'private.pem'), privateKey);
-fs.writeFileSync(path.join(keysDir, 'public.pem'), publicKey);
-
-console.log('✓ RSA keys generated successfully!');
-console.log('  - private.pem (keep this secret!)');
-console.log('  - public.pem');
-console.log('\n⚠️  Remember to add keys/ to .gitignore!');
+fs.writeFile(path.join(keysDir, 'private.pem'), privateKey, (err) => {
+  if (err) {
+    console.error('Failed to write private.pem:', err);
+    process.exit(1);
+  }
+  fs.writeFile(path.join(keysDir, 'public.pem'), publicKey, (err) => {
+    if (err) {
+      console.error('Failed to write public.pem:', err);
+      process.exit(1);
+    }
+    console.log('✓ RSA keys generated successfully!');
+    console.log('  - private.pem (keep this secret!)');
+    console.log('  - public.pem');
+    console.log('\n⚠️  Remember to add keys/ to .gitignore!');
+  });
+});
