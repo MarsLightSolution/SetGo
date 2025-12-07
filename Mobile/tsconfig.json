@@ -7,13 +7,13 @@
         "./*"
       ]
     },
-    "types": ["expo-env"]
+    "types": [
+      "expo-env"
+    ]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-, "app/index.jsx"  ]
+    "app/index.jsx"
+  ]
 }
- 
