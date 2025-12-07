@@ -62,6 +62,16 @@ const ProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
 
+  // ============= REVIEW STATES =============
+  const [reviewSummary, setReviewSummary] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filterRating, setFilterRating] = useState(null);
+  const [sortBy, setSortBy] = useState("recent");
+  const reviewsPerPage = 10;
+
   const nextImage = () => {
     if (!product?.pictures) return;
     setCurrentImageIndex(
@@ -108,6 +118,14 @@ const ProductDetail = () => {
   useEffect(() => {
     fetchProductById();
   }, [id, i18n.language]);
+
+  useEffect(() => {
+    if (product?._id) {
+      console.log("🔍 Fetching reviews for product:", product._id);
+      fetchReviewSummary();
+      fetchReviews();
+    }
+  }, [product?._id, currentPage, filterRating, sortBy]);
 
   const fetchProductById = async () => {
     setLoading(true);
@@ -162,6 +180,168 @@ const ProductDetail = () => {
       fetchRelatedProducts(product.category);
     }
   }, [product, id, i18n.language]);
+
+  // ============= REVIEW FETCH FUNCTIONS =============
+  const fetchReviewSummary = async () => {
+    try {
+      const url = `${import.meta.env.VITE_SERVER}/reviews/product/${id}/summary`;
+      console.log("📊 Fetching review summary from:", url);
+      
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+
+      console.log("📊 Review summary response status:", res.status);
+
+      if (!res.ok) {
+        console.error("❌ Failed to fetch review summary:", res.status);
+        return;
+      }
+
+      const result = await res.json();
+      console.log("📊 Review summary full response:", result);
+      
+      if (result.success && result.data) {
+        // Transform the distribution from controller format to frontend format
+        const transformedSummary = {
+          averageRating: result.data.averageRating || 0,
+          totalReviews: result.data.totalReviews || 0,
+          ratingBreakdown: {
+            5: result.data.distribution?.fiveStar || 0,
+            4: result.data.distribution?.fourStar || 0,
+            3: result.data.distribution?.threeStar || 0,
+            2: result.data.distribution?.twoStar || 0,
+            1: result.data.distribution?.oneStar || 0,
+          }
+        };
+        console.log("📊 Transformed summary:", transformedSummary);
+        setReviewSummary(transformedSummary);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching review summary:", error);
+    }
+  };
+
+  const fetchReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      let url = `${import.meta.env.VITE_SERVER}/reviews/product/${id}?page=${currentPage}&limit=${reviewsPerPage}&sortBy=${sortBy}`;
+      
+      if (filterRating) {
+        url += `&rating=${filterRating}`;
+      }
+
+      console.log("📝 Fetching reviews from:", url);
+
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+
+      console.log("📝 Reviews response status:", res.status);
+
+      if (!res.ok) {
+        console.error("❌ Failed to fetch reviews:", res.status);
+        return;
+      }
+
+      const result = await res.json();
+      console.log("📝 Reviews full response:", result);
+      
+      if (result.success) {
+        // The controller returns reviews directly in 'data', not 'data.reviews'
+        const reviewsData = result.data || [];
+        
+        // Transform reviews to include buyer name
+        const transformedReviews = reviewsData.map(review => ({
+          ...review,
+          buyerName: review.buyerId?.username || review.buyerId?.profileName || "Anonymous",
+          verified: review.isVerifiedPurchase || false,
+          sellerResponse: review.sellerResponse ? {
+            responseText: review.sellerResponse.text,
+            respondedAt: review.sellerResponse.respondedAt
+          } : null
+        }));
+        
+        console.log("📝 Transformed reviews:", transformedReviews);
+        setReviews(transformedReviews);
+        setTotalPages(result.pagination?.totalPages || 1);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching reviews:", error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleMarkHelpful = async (reviewId) => {
+    if (!user?._id) {
+      toast.error("Please login to mark reviews as helpful");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER}/reviews/${reviewId}/helpful`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ userId: user._id }),
+        }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        if (errorData.message?.includes("already marked")) {
+          toast.info("You've already marked this as helpful");
+        } else {
+          throw new Error("Failed to mark review as helpful");
+        }
+        return;
+      }
+
+      toast.success("Review marked as helpful!");
+      fetchReviews();
+    } catch (error) {
+      console.error("Error marking review as helpful:", error);
+      toast.error("Failed to mark review as helpful");
+    }
+  };
+
+  const renderStars = (rating, size = "text-base") => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <span key={`full-${i}`} className={`${size} text-yellow-500`}>
+          ★
+        </span>
+      );
+    }
+
+    if (hasHalfStar) {
+      stars.push(
+        <span key="half" className={`${size} text-yellow-500`}>
+          ⯨
+        </span>
+      );
+    }
+
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <span key={`empty-${i}`} className={`${size} text-gray-300`}>
+          ★
+        </span>
+      );
+    }
+
+    return <div className="flex items-center">{stars}</div>;
+  };
 
   const handleBuyNow = async () => {
     const userId = user?._id;
@@ -412,8 +592,23 @@ const ProductDetail = () => {
                     </div>
 
                     {product.pictures?.length > 1 && (
-                      <div className="text-center text-sm text-gray-500 mt-2">
-                        {currentImageIndex + 1} / {product.pictures.length}
+                      <div className="flex gap-2 mt-4 overflow-x-auto">
+                        {product.pictures.map((pic, idx) => (
+                          <img
+                            key={idx}
+                            src={`${import.meta.env.VITE_SERVER}/${pic.replace(
+                              /\\/g,
+                              "/"
+                            )}`}
+                            alt={`Thumbnail ${idx + 1}`}
+                            onClick={() => setCurrentImageIndex(idx)}
+                            className={`w-16 h-16 object-cover rounded cursor-pointer border-2 ${
+                              idx === currentImageIndex
+                                ? "border-green-600"
+                                : "border-gray-300"
+                            }`}
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
@@ -679,16 +874,237 @@ const ProductDetail = () => {
                       {t("productDetail.sendMessageButton")}
                     </button>
                   </div>
+
+                  {/* ============= CUSTOMER REVIEWS SECTION ============= */}
+                  <div className="bg-white rounded-md shadow p-4 mt-6">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                      Customer Reviews
+                    </h2>
+
+                    {reviewSummary && reviewSummary.totalReviews > 0 ? (
+                      <>
+                        {/* Average Rating Summary */}
+                        <div className="flex items-center gap-6 mb-6 pb-6 border-b">
+                          <div className="text-center">
+                            <div className="text-4xl font-bold text-gray-900 mb-1">
+                              {reviewSummary.averageRating.toFixed(1)}
+                            </div>
+                            {renderStars(reviewSummary.averageRating, "text-xl")}
+                            <p className="text-sm text-gray-600 mt-1">
+                              {reviewSummary.totalReviews} reviews
+                            </p>
+                          </div>
+
+                          {/* Rating Breakdown */}
+                          <div className="flex-1 space-y-1">
+                            {[5, 4, 3, 2, 1].map((star) => {
+                              const count = reviewSummary.ratingBreakdown?.[star] || 0;
+                              const percentage =
+                                reviewSummary.totalReviews > 0
+                                  ? (count / reviewSummary.totalReviews) * 100
+                                  : 0;
+
+                              return (
+                                <div
+                                  key={star}
+                                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded"
+                                  onClick={() => {
+                                    setFilterRating(
+                                      filterRating === star ? null : star
+                                    );
+                                    setCurrentPage(1);
+                                  }}
+                                >
+                                  <span className="text-gray-700 w-8">
+                                    {star} ★
+                                  </span>
+                                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-yellow-500 h-full rounded-full transition-all"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-gray-600 w-8 text-right">
+                                    {count}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Filters */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <button
+                            onClick={() => {
+                              setFilterRating(null);
+                              setCurrentPage(1);
+                            }}
+                            className={`px-3 py-1 rounded-full text-sm ${
+                              filterRating === null
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
+                          >
+                            All
+                          </button>
+                          {[5, 4, 3, 2, 1].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => {
+                                setFilterRating(star);
+                                setCurrentPage(1);
+                              }}
+                              className={`px-3 py-1 rounded-full text-sm ${
+                                filterRating === star
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                              }`}
+                            >
+                              {star} ★
+                            </button>
+                          ))}
+
+                          <select
+                            value={sortBy}
+                            onChange={(e) => {
+                              setSortBy(e.target.value);
+                              setCurrentPage(1);
+                            }}
+                            className="ml-auto px-3 py-1 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="recent">Most Recent</option>
+                            <option value="helpful">Most Helpful</option>
+                            <option value="highest">Highest Rating</option>
+                            <option value="lowest">Lowest Rating</option>
+                          </select>
+                        </div>
+
+                        {/* Reviews List */}
+                        {reviewsLoading ? (
+                          <div className="text-center py-8">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-green-600"></div>
+                          </div>
+                        ) : reviews.length > 0 ? (
+                          <div className="space-y-4">
+                            {reviews.map((review) => (
+                              <div
+                                key={review._id}
+                                className="border-b pb-4 last:border-0"
+                              >
+                                <div className="flex items-start gap-3 mb-2">
+                                  <div className="bg-gray-400 rounded-full w-10 h-10 flex items-center justify-center text-white font-bold flex-shrink-0">
+                                    {review.buyerName?.charAt(0).toUpperCase() ||
+                                      "U"}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <h4 className="font-semibold text-gray-900">
+                                        {review.buyerName || "Anonymous"}
+                                      </h4>
+                                      {review.verified && (
+                                        <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                                          ✓ Verified
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      {renderStars(review.rating, "text-sm")}
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(
+                                          review.createdAt
+                                        ).toLocaleDateString(
+                                          i18n.language === "az"
+                                            ? "az-AZ"
+                                            : i18n.language === "ru"
+                                            ? "ru-RU"
+                                            : "en-GB"
+                                        )}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-700 text-sm mb-2">
+                                      {review.reviewText}
+                                    </p>
+
+                                    {review.sellerResponse && (
+                                      <div className="bg-gray-50 rounded p-3 mb-2 border-l-2 border-green-600">
+                                        <p className="text-xs font-semibold text-gray-900 mb-1">
+                                          Seller Response:
+                                        </p>
+                                        <p className="text-xs text-gray-700">
+                                          {review.sellerResponse.responseText}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    <button
+                                      onClick={() =>
+                                        handleMarkHelpful(review._id)
+                                      }
+                                      className="text-xs text-gray-600 hover:text-green-600"
+                                    >
+                                      👍 Helpful ({review.helpfulCount || 0})
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                              <div className="flex justify-center gap-2 mt-4">
+                                <button
+                                  onClick={() =>
+                                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                                  }
+                                  disabled={currentPage === 1}
+                                  className="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                >
+                                  Previous
+                                </button>
+                                <span className="px-3 py-1 text-sm">
+                                  Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    setCurrentPage((prev) =>
+                                      Math.min(totalPages, prev + 1)
+                                    )
+                                  }
+                                  disabled={currentPage === totalPages}
+                                  className="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-center text-gray-500 py-4">
+                            No reviews match your filter.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 mb-2">
+                          No reviews yet for this product.
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Be the first to review!
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Sidebar (User Info + Actions) */}
+                {/* Sidebar */}
                 <div className="md:col-span-1">
                   <div className="sticky top-[170px] w-full sm:max-w-[280px] mx-auto space-y-4">
-                    {/* Seller / Actions Card */}
-                    <div className="bg-white rounded-xl shadow-md p-5 border border-gray-200 space-y-4">
+                    <div className="bg-white rounded-md shadow p-4 border border-gray-200 space-y-3">
                       <button
                         onClick={handleSendMessage}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-full flex items-center justify-center gap-2 text-sm cursor-pointer"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-full text-sm cursor-pointer"
                       >
                         Write a message
                       </button>

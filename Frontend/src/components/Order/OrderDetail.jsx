@@ -208,7 +208,7 @@ const OrderDetail = () => {
           reviewSubmitted: false,
           reviewId: null,
         }));
-        alert("Review deleted successfully");
+        alert("Review deleted successfully!");
       }
     } catch (err) {
       console.error("Failed to delete review:", err);
@@ -232,315 +232,286 @@ const OrderDetail = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const renderStars = (rating, interactive = false) => {
+    const stars = [];
+    const displayRating = interactive ? hoveredStar || rating : rating;
+
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Star
+          key={i}
+          className={`h-5 w-5 cursor-pointer transition-all duration-200 ${
+            i <= displayRating
+              ? "fill-lime-500 text-lime-500 drop-shadow"
+              : "text-gray-300 hover:text-lime-300"
+          } ${interactive ? "hover:scale-110" : ""}`}
+          onClick={() =>
+            interactive &&
+            setReviewFormData({ ...reviewFormData, rating: i })
+          }
+          onMouseEnter={() => interactive && setHoveredStar(i)}
+          onMouseLeave={() => interactive && setHoveredStar(0)}
+        />
+      );
+    }
+    return <div className="flex gap-1">{stars}</div>;
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "delivered":
+        return "bg-lime-400 text-gray-900";
+      case "shipped":
+        return "bg-blue-500 text-white";
+      case "processing":
+        return "bg-amber-500 text-white";
+      case "pending":
+        return "bg-gray-500 text-white";
+      case "cancelled":
+        return "bg-red-500 text-white";
+      default:
+        return "bg-gray-500 text-white";
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
-  const renderStars = (rating, interactive = false) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      const isFilled = i <= (interactive ? hoveredStar || reviewFormData.rating : rating);
-      stars.push(
-        <div
-          key={i}
-          className={`relative ${interactive ? "cursor-pointer" : ""}`}
-          onMouseEnter={() => interactive && setHoveredStar(i)}
-          onMouseLeave={() => interactive && setHoveredStar(0)}
-          onClick={() =>
-            interactive && setReviewFormData({ ...reviewFormData, rating: i })
-          }
-        >
-          <Star
-            className={`w-8 h-8 transition-all duration-200 ${
-              isFilled
-                ? "fill-yellow-400 text-yellow-400 scale-110"
-                : "text-gray-300"
-            } ${interactive ? "hover:scale-125" : ""}`}
-            style={{
-              filter: isFilled ? "drop-shadow(0 0 4px rgba(250, 204, 21, 0.5))" : "none",
-            }}
-          />
-        </div>
-      );
-    }
-    return <div className="flex gap-2">{stars}</div>;
-  };
-
-  const renderSmallStars = (rating) => {
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-4 h-4 ${
-              star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  if (loading)
-    return (
-      <div className="flex justify-center items-center min-h-screen text-gray-600">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-
-  if (!order)
-    return (
-      <div className="flex justify-center items-center min-h-screen text-gray-600">
-        <div className="text-center">
-          <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <p className="text-xl">Order not found</p>
-        </div>
-      </div>
-    );
-
-  const status = order.status?.toLowerCase();
   const canReview =
-    status === "delivered" &&
-    order.deliveryConfirmedByBuyer &&
-    !order.reviewSubmitted;
-  const hasReview = order.reviewSubmitted && review;
+    order &&
+    (order.status === "delivered" || order.deliveryConfirmedByBuyer) &&
+    !order.reviewSubmitted &&
+    !review;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-lime-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-lime-500 mb-3"></div>
+          <p className="text-sm font-semibold text-gray-700">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-lime-50 flex items-center justify-center">
+        <div className="text-center bg-white rounded-lg shadow-lg p-6">
+          <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-gray-800 mb-1">Order Not Found</h2>
+          <p className="text-sm text-gray-600">Order doesn't exist.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div className="min-h-screen bg-lime-50 py-4 px-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white rounded-lg shadow-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-bold">Order Details</h1>
-                <p className="mt-1 text-blue-100 text-sm">
-                  Order #{order._id?.slice(-8).toUpperCase()}
-                  <span className="mx-2">•</span>
-                  {formatDate(order.createdAt)}
-                </p>
-              </div>
-              <span
-                className={`px-4 py-2 rounded-lg font-semibold text-white shadow-lg ${
-                  status === "paid"
-                    ? "bg-yellow-500"
-                    : status === "shipped"
-                    ? "bg-blue-500"
-                    : status === "delivered"
-                    ? "bg-green-500"
-                    : status === "cancelled"
-                    ? "bg-red-500"
-                    : "bg-gray-500"
-                }`}
-              >
-                {order.status?.toUpperCase()}
-              </span>
-            </div>
+          <div className="bg-lime-400 p-4 text-gray-900">
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Order Invoice
+            </h1>
+            <p className="text-gray-800 text-xs mt-1">
+              Order ID: <span className="font-mono font-semibold">{order._id}</span>
+            </p>
           </div>
 
-          {/* Main Content */}
-          <div className="p-6 space-y-6">
-            {/* Item Info */}
-            <div className="flex gap-6 items-center bg-gray-50 p-4 rounded-xl">
-              <div className="w-32 h-32 bg-white rounded-xl flex items-center justify-center shadow-md">
-                <Package className="h-12 w-12 text-gray-400" />
-              </div>
-              <div className="flex-1 space-y-2">
-                <h3 className="font-bold text-gray-900 text-xl">
-                  {order.productId?.title?.[lang] ||
-                    order.productId?.title?.en ||
-                    "N/A"}
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  {order.productId?.description?.[lang] ||
-                    order.productId?.description?.en ||
-                    "No description"}
-                </p>
-                <p className="text-xs text-gray-500 font-mono">
-                  ID: {order.productId?._id || "N/A"}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-600">
-                  ₼ {order.productId?.price || 0}
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t-2 border-gray-200"></div>
-
-            {/* Delivery Status */}
-            <div className="bg-blue-50 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <Truck className="h-6 w-6 text-blue-600 mt-1 flex-shrink-0" />
-                <div className="flex-1">
-                  {status === "paid" && (
-                    <p className="text-gray-800 font-medium">
-                      Order confirmed. We will notify you once shipping starts.
-                    </p>
-                  )}
-                  {status === "shipped" && (
-                    <div className="space-y-3">
-                      <p className="text-blue-800 font-semibold flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        Your order is on the way
-                        {order.trackingId && (
-                          <span className="text-sm text-gray-600">
-                            (Tracking: {order.trackingId})
-                          </span>
-                        )}
-                      </p>
-                      <div className="bg-white border-2 border-blue-300 rounded-lg p-4 flex items-center gap-4">
-                        <p className="text-gray-800 flex-1 font-medium">
-                          Have you received your order?
-                        </p>
-                        <button
-                          onClick={handleNotifyClick}
-                          disabled={notifyClicked}
-                          className={`px-6 py-2 rounded-lg font-semibold transition-all ${
-                            notifyClicked
-                              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                              : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105"
-                          }`}
-                        >
-                          {notifyClicked ? "✓ Confirmed" : "Confirm Delivery"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {status === "delivered" && (
-                    <div className="space-y-2">
-                      <p className="text-green-700 font-semibold flex items-center gap-2">
-                        <Check className="h-5 w-5" />
-                        Order delivered successfully!
-                      </p>
-                      {order.deliveryConfirmedAt && (
-                        <p className="text-sm text-gray-600">
-                          Delivered on {formatDate(order.deliveryConfirmedAt)}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  {status === "cancelled" && (
-                    <p className="text-red-600 font-semibold">
-                      This order has been cancelled. Please contact support for
-                      refund information.
-                    </p>
-                  )}
+          <div className="p-4 space-y-4">
+            {/* Product Info */}
+            <div className="bg-lime-50 rounded-lg p-4 shadow border border-lime-200">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <img
+                    src={order.productId?.images?.[0] || "/placeholder.jpg"}
+                    alt={order.productId?.productName?.[lang] || "Product"}
+                    className="w-24 h-24 object-cover rounded-lg shadow border border-lime-300"
+                  />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h2 className="text-base font-bold text-gray-800">
+                    {order.productId?.title?.[lang] || "N/A"}
+                  </h2>
+                  <p className="text-gray-600 text-xs line-clamp-2">
+                    {order.productId?.description?.[lang] || "No description"}
+                  </p>
+                  <div className="flex flex-wrap gap-2 items-center mt-2">
+                    <span className="text-xl font-bold text-lime-600">
+                      ₼ {order.productId?.price || 0}
+                    </span>
+                    <span
+                      className={`px-3 py-1 rounded-full font-bold text-xs shadow ${getStatusColor(
+                        order.status
+                      )}`}
+                    >
+                      {order.status?.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Review Section - Only for DELIVERED orders */}
-            {status === "delivered" && order.deliveryConfirmedByBuyer && (
-              <>
-                <div className="border-t-2 border-gray-200"></div>
+            {/* Order Timeline */}
+            <div className="bg-white rounded-lg p-3 shadow border border-gray-200">
+              <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-2">
+                <Clock className="h-4 w-4 text-lime-500" />
+                Order Timeline
+              </h2>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-lime-500"></div>
+                  <span className="text-gray-700">
+                    <span className="font-semibold">Ordered:</span> {formatDate(order.createdAt)}
+                  </span>
+                </div>
+                {order.deliveryConfirmedAt && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span className="text-gray-700">
+                      <span className="font-semibold">Delivered:</span>{" "}
+                      {formatDate(order.deliveryConfirmedAt)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border-2 border-yellow-200 shadow-lg">
-                  <h2 className="text-gray-800 font-bold text-xl flex items-center gap-2 mb-4">
-                    <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
-                    Product Review
-                  </h2>
+            {/* Delivery Confirmation */}
+            {order.status !== "cancelled" && !notifyClicked && (
+              <div className="bg-lime-100 rounded-lg p-4 shadow border border-lime-300">
+                <div className="text-center space-y-3">
+                  <Truck className="h-10 w-10 text-lime-600 mx-auto" />
+                  <h3 className="text-sm font-bold text-gray-800">
+                    Have you received your order?
+                  </h3>
+                  <button
+                    onClick={handleNotifyClick}
+                    className="px-6 py-2 bg-lime-400 text-gray-900 rounded-lg hover:bg-lime-500 transition-all font-bold text-sm shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
+                  >
+                    Confirm Delivery
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Review Section */}
+            {notifyClicked && (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-lime-400 rounded-lg p-3 shadow">
+                    <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <Star className="h-5 w-5 fill-gray-900" />
+                      Product Review
+                    </h2>
+                    {review && (
+                      <span className="bg-white text-lime-600 px-3 py-1 rounded-full font-bold text-xs">
+                        Submitted
+                      </span>
+                    )}
+                  </div>
 
                   {/* Existing Review Display */}
-                  {hasReview && !showReviewForm && (
-                    <div className="bg-white rounded-xl p-5 shadow-md space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            {renderSmallStars(review.rating)}
-                            <span className="text-sm font-semibold text-gray-700">
-                              Your Rating: {review.rating}/5
-                            </span>
-                          </div>
-                          {review.reviewText && (
-                            <p className="text-gray-700 leading-relaxed">
-                              {review.reviewText}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-3 mt-3">
-                            {review.isVerifiedPurchase && (
-                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">
-                                <Check className="h-3 w-3" />
-                                Verified Purchase
+                  {review && !showReviewForm && (
+                    <div className="space-y-3">
+                      <div className="bg-lime-50 rounded-lg p-4 shadow border border-lime-200">
+                        <div className="flex gap-3">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2">
+                              {renderStars(review.rating)}
+                              <span className="text-sm font-bold text-lime-600 bg-lime-100 px-2 py-1 rounded-full">
+                                {review.rating}/5
                               </span>
+                            </div>
+                            {review.reviewText && (
+                              <p className="text-gray-700 text-sm leading-relaxed">
+                                "{review.reviewText}"
+                              </p>
                             )}
-                            <span className="text-xs text-gray-500">
-                              {formatDate(review.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 ml-4">
-                          <button
-                            onClick={handleEditReview}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all hover:scale-110"
-                            title="Edit Review"
-                          >
-                            <Edit2 className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={handleDeleteReview}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all hover:scale-110"
-                            title="Delete Review"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Seller Response */}
-                      {review.sellerResponse && (
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-l-4 border-blue-500">
-                          <div className="flex items-start gap-2">
-                            <MessageSquare className="h-5 w-5 text-blue-600 mt-1" />
-                            <div className="flex-1">
-                              <p className="text-sm font-semibold text-blue-900 mb-1">
-                                Seller Response:
-                              </p>
-                              <p className="text-sm text-gray-700">
-                                {review.sellerResponse.text}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-2">
-                                {formatDate(review.sellerResponse.respondedAt)}
-                              </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {review.isVerifiedPurchase && (
+                                <span className="inline-flex items-center gap-1 text-xs font-bold text-lime-700 bg-lime-100 px-2 py-1 rounded-full">
+                                  <Check className="h-3 w-3" />
+                                  Verified
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-600">
+                                {formatDate(review.createdAt)}
+                              </span>
                             </div>
                           </div>
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={handleEditReview}
+                              className="p-2 text-lime-600 bg-lime-50 hover:bg-lime-100 rounded-lg transition-all"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={handleDeleteReview}
+                              className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
-                      )}
+
+                        {/* Seller Response */}
+                        {review.sellerResponse && (
+                          <div className="bg-lime-50 p-3 rounded-lg border-l-4 border-lime-500 mt-3">
+                            <div className="flex items-start gap-2">
+                              <MessageSquare className="h-4 w-4 text-lime-600 mt-1" />
+                              <div className="flex-1">
+                                <p className="text-xs font-bold text-lime-900 mb-1">
+                                  Seller Response:
+                                </p>
+                                <p className="text-xs text-gray-700">
+                                  {review.sellerResponse.text}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {formatDate(review.sellerResponse.respondedAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Review Form */}
                   {(canReview || showReviewForm) && (
-                    <div className="bg-white rounded-xl p-5 shadow-md space-y-5">
+                    <div className="bg-lime-50 rounded-lg p-4 shadow border border-lime-200 space-y-3">
                       <div>
-                        <label className="block text-base font-semibold text-gray-800 mb-3">
-                          How would you rate this product?
+                        <label className="block text-sm font-bold text-gray-800 mb-2">
+                          Rate this product
                         </label>
-                        <div className="flex flex-col items-center gap-3 py-4">
+                        <div className="flex flex-col items-center gap-2 py-3 bg-white rounded-lg">
                           {renderStars(reviewFormData.rating, true)}
-                          <span className="text-lg font-bold text-gray-700">
+                          <span className="text-sm font-bold text-gray-800 bg-lime-100 px-3 py-1 rounded-full">
                             {reviewFormData.rating > 0
                               ? `${reviewFormData.rating} Star${
                                   reviewFormData.rating > 1 ? "s" : ""
                                 }`
-                              : "Click to rate"}
+                              : "Click to Rate"}
                           </span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-base font-semibold text-gray-800 mb-2">
-                          Share your experience (optional)
+                        <label className="block text-sm font-bold text-gray-800 mb-2">
+                          Your feedback (optional)
                         </label>
                         <textarea
                           value={reviewFormData.reviewText}
@@ -550,30 +521,30 @@ const OrderDetail = () => {
                               reviewText: e.target.value,
                             })
                           }
-                          placeholder="Tell others what you think about this product..."
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent resize-none transition-all"
-                          rows="4"
+                          placeholder="Share your experience..."
+                          className="w-full px-3 py-2 border border-lime-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-300 resize-none text-sm"
+                          rows="3"
                         />
                       </div>
 
-                      <div className="flex gap-3">
+                      <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={handleSubmitReview}
                           disabled={reviewLoading || reviewFormData.rating === 0}
-                          className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg hover:from-yellow-500 hover:to-orange-600 transition-all disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed font-bold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                          className="flex-1 px-4 py-2 bg-lime-400 text-gray-900 rounded-lg hover:bg-lime-500 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed font-bold text-sm shadow"
                         >
                           {reviewLoading
                             ? "Submitting..."
                             : isEditingReview
-                            ? "Update Review"
+                            ? "Update"
                             : "Submit Review"}
                         </button>
                         {isEditingReview && (
                           <button
                             type="button"
                             onClick={handleCancelEdit}
-                            className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-all font-semibold"
+                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-all font-bold text-sm"
                           >
                             Cancel
                           </button>
@@ -586,75 +557,78 @@ const OrderDetail = () => {
                   {canReview && !showReviewForm && (
                     <button
                       onClick={() => setShowReviewForm(true)}
-                      className="w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl hover:from-yellow-500 hover:to-orange-600 transition-all font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-3"
+                      className="w-full py-3 bg-lime-400 text-gray-900 rounded-lg hover:bg-lime-500 transition-all font-bold text-sm shadow flex items-center justify-center gap-2"
                     >
-                      <Star className="h-6 w-6 fill-white" />
-                      Share Your Experience
+                      <Star className="h-5 w-5 fill-gray-900" />
+                      Rate This Product
                     </button>
                   )}
                 </div>
               </>
             )}
 
-            <div className="border-t-2 border-gray-200"></div>
+            <div className="border-t border-gray-200"></div>
 
             {/* Delivery Address */}
-            <div className="bg-gray-50 rounded-xl p-5">
-              <h2 className="text-gray-800 font-bold text-lg flex items-center gap-2 mb-3">
-                <MapPin className="h-5 w-5 text-red-500" /> Delivery Address
+            <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
+              <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-2">
+                <MapPin className="h-4 w-4 text-red-500" /> Delivery Address
               </h2>
-              <div className="space-y-1 text-gray-700">
-                <p className="font-semibold text-base">
+              <div className="space-y-1 text-xs text-gray-700">
+                <p className="font-bold text-gray-900">
                   {order.checkoutDetails?.name || "N/A"}
                 </p>
-                <p className="text-sm">{order.checkoutDetails?.address || "N/A"}</p>
-                <p className="text-sm">
+                <p>{order.checkoutDetails?.address || "N/A"}</p>
+                <p>
                   {order.checkoutDetails?.city || "N/A"},{" "}
                   {order.checkoutDetails?.pincode || "N/A"}
                 </p>
-                <p className="text-sm flex items-center gap-1 mt-2">
-                  <Mail className="h-4 w-4" />
+                <p className="flex items-center gap-1 mt-1">
+                  <Mail className="h-3 w-3 text-gray-600" />
                   {order.checkoutDetails?.email || "N/A"}
                 </p>
               </div>
             </div>
 
-            <div className="border-t-2 border-gray-200"></div>
+            <div className="border-t border-gray-200"></div>
 
             {/* Payment Summary */}
-            <div className="bg-gray-50 rounded-xl p-5">
-              <h2 className="text-gray-800 font-bold text-lg flex items-center gap-2 mb-3">
-                <CreditCard className="h-5 w-5 text-blue-600" /> Payment Summary
+            <div className="bg-lime-50 rounded-lg p-4 shadow border border-lime-200">
+              <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-2">
+                <CreditCard className="h-4 w-4 text-lime-600" /> Payment Summary
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-gray-700">
                   <span>Item Total</span>
-                  <span className="font-semibold">₼ {order.productId?.price || 0}</span>
+                  <span className="font-bold">₼ {order.productId?.price || 0}</span>
                 </div>
                 <div className="flex justify-between text-gray-700">
                   <span>Delivery Charges</span>
-                  <span className="text-green-600 font-semibold">FREE</span>
+                  <span className="text-lime-600 font-bold">FREE</span>
                 </div>
-                <div className="border-t-2 border-gray-300 my-2"></div>
-                <div className="flex justify-between text-lg font-bold text-gray-900">
+                <div className="border-t border-lime-300 my-1"></div>
+                <div className="flex justify-between text-sm font-bold text-gray-900 bg-white rounded-lg p-2">
                   <span>Total Amount</span>
-                  <span className="text-green-600">₼ {order.total || 0}</span>
+                  <span className="text-lime-600">₼ {order.total || 0}</span>
                 </div>
               </div>
             </div>
 
-            <div className="border-t-2 border-gray-200"></div>
+            <div className="border-t border-gray-200"></div>
 
             {/* Seller Info */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5">
-              <h2 className="text-gray-800 font-bold text-lg flex items-center gap-2 mb-3">
-                <User className="h-5 w-5 text-purple-600" /> Seller Information
+            <div className="bg-lime-100 rounded-lg p-4 shadow border border-lime-300">
+              <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-2">
+                <User className="h-4 w-4 text-lime-600" /> Seller Information
               </h2>
-              <div className="space-y-1 text-gray-700">
-                <p className="font-semibold text-base">
+              <div className="space-y-1 text-xs text-gray-700">
+                <p className="font-bold text-gray-900">
                   {order.sellerId?.username || "N/A"}
                 </p>
-                <p className="text-sm">{order.sellerId?.email || "N/A"}</p>
+                <p className="flex items-center gap-1">
+                  <Mail className="h-3 w-3 text-gray-600" />
+                  {order.sellerId?.email || "N/A"}
+                </p>
               </div>
             </div>
           </div>

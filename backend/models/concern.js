@@ -50,10 +50,11 @@ const concernSchema = new mongoose.Schema(
       required: true,
       maxlength: 500,
     },
-    images: {
-      type: [String],  // ✅ Fixed - Simple array of strings
-      default: []
-    },
+    images: [
+      {
+        type: String,
+      }
+    ],
     status: {
       type: String,
       enum: ["open", "in_progress", "resolved", "closed"],
