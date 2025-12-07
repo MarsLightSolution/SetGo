@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState , useRef } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Feather';
@@ -39,6 +38,10 @@ export default function HomeScreen() {
     hasNextPage: false,
     hasPrevPage: false,
   });
+  //added for chatbot by ashu------
+  const [chatVisible, setChatVisible] = useState(false);
+const scaleAnim = useRef(new Animated.Value(1)).current;
+  
   useEffect(() => {
     checkAuth();
   }, []);
@@ -145,7 +148,7 @@ export default function HomeScreen() {
     const description = typeof ad.description === 'object' ? ad.description.en : ad.description;
 
     //added wishlist by ashu
-    const { wishlist } = useSelector((state) => state.wishlist);
+     const { wishlist } = useSelector((state) => state.wishlist);
     const isWishlisted = wishlist.some((item) => item._id === ad._id);
 
     const dispatch = useDispatch();
@@ -157,19 +160,20 @@ export default function HomeScreen() {
       }
     };
 
+
     return (
       <TouchableOpacity
-        style={styles.adCard}
-        onPress={() => router.push(`/product/${ad._id}`)}
-      >
-        {/* Heart Button */}
-        <TouchableOpacity style={styles.likeButton} onPress={toggleWishlist}>
-          <Icon
-            name={isWishlisted ? 'heart' : 'heart'}
-            size={20}
-            color={isWishlisted ? '#EF4444' : '#D1D5DB'}
-          />
-        </TouchableOpacity>
+      style={styles.adCard}
+      onPress={() => router.push(`/product/${ad._id}`)}
+    >
+      {/* Heart Button */}
+      <TouchableOpacity style={styles.likeButton} onPress={toggleWishlist}>
+        <Icon
+          name={isWishlisted ? 'heart' : 'heart'}
+          size={20}
+          color={isWishlisted ? '#EF4444' : '#D1D5DB'}
+        />
+      </TouchableOpacity>
         <View style={styles.adImage}>
           <Image 
             source={{ uri: imageUrl }}
@@ -205,34 +209,42 @@ export default function HomeScreen() {
     );
   };
 
+  //added chatbot navigation handler by ashu------
+  const handleChatbotPress = () => {
+    // Try the correct route based on your file structure
+    // If file is at: app/chat/chatbot.jsx -> route is '/chat/chatbot'
+    router.push('Chat/chatbot');
+  };
+
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View style={styles.logo}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>S</Text>
+    <View style={styles.mainContainer}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.logo}>
+              <View style={styles.logoCircle}>
+                <Text style={styles.logoText}>S</Text>
+              </View>
+              <Text style={styles.logoName}>SATGO</Text>
             </View>
-            <Text style={styles.logoName}>SATGOO</Text>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity style={styles.iconButton}>
+                <Icon name="bell" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => router.push('/filters')}
+              >
+                <Icon name="filter" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton}>
-              <Icon name="bell" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={() => router.push('/filters')}
-            >
-              <Icon name="filter" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
 
           {/* Search Bar */}
           <View style={styles.searchBar}>
