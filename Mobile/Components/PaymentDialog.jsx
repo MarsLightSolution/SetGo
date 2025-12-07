@@ -1,35 +1,99 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Alert,
-  Modal,
-  Linking,
-  Platform,
-  Dimensions,
   Animated,
+  Dimensions,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
-import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api';
 const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080';
 
-// ✅ SIMPLIFIED: Helper function to get text from multilingual object
+// ✅ Helper function to get text from multilingual object
 const getTextValue = (textObj, fallback = '') => {
   if (!textObj) return fallback;
   if (typeof textObj === 'string') return textObj;
   if (typeof textObj === 'object') {
-    // Just return English or first available value
     return textObj.en || textObj.az || textObj.ru || Object.values(textObj)[0] || fallback;
   }
+  return fallback;
+};
+
+const parseNumber = (v) => {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const formatNumber = (v) => {
+  const n = parseNumber(v);
+  return (n ?? 0).toLocaleString();
+};
+
+// ✅ NORMALIZED API RESPONSE HANDLER
+// Handles all response formats: { data: {...} }, { success, data: {...} }, or flat response
+const normalizeResponse = (response) => {
+  if (!response) return { success: false, data: null };
+  
+  // If response has nested data object, flatten it
+  if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+    return {
+      success: response.success !== false,
+      ...response.data,  // Spread all nested data properties to top level
+      _raw: response,    // Keep raw response for debugging
+    };
+  }
+  
+  // If response.data is a primitive (number, string), treat it as the main value
+  if (response.data !== undefined && typeof response.data !== 'object') {
+    return {
+      success: response.success !== false,
+      value: response.data,
+      _raw: response,
+    };
+  }
+  
+  // Response is already flat
+  return {
+    success: response.success !== false,
+    ...response,
+    _raw: response,
+  };
+};
+
+// ✅ Extract wallet balance from any response format
+const extractWalletBalance = (response, fallback = 0) => {
+  if (!response) return fallback;
+  
+  // Try all possible paths
+  const paths = [
+    response?.data?.walletBalance,
+    response?.data?.data?.walletBalance,
+    response?.walletBalance,
+    response?.balance,
+    response?.data?.balance,
+    response?.data,  // In case data itself is the balance number
+  ];
+  
+  for (const value of paths) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  
   return fallback;
 };
 
@@ -64,15 +128,13 @@ const PaymentDialog = ({
   const ownerId = product?.owner?._id || product?.owner || null;
   const productOwnerId = product?.owner?._id || product?.owner || null;
   
-  // ✅ SIMPLIFIED: Get product title (handles both string and object)
+  // Get product title (handles both string and object)
   const productTitle = useMemo(() => {
     return getTextValue(product?.title, 'Unnamed Product');
   }, [product?.title]);
 
-  // Fetch wallet balance with credentials
+  // ✅ FIXED: Fetch wallet balance with normalized response handling
   const fetchWalletBalance = useCallback(async (retryCount = 0) => {
-    // if (!user?._id || !isVisible) return;
-    
     setLoadingWallet(true);
     setError(null);
     
@@ -89,7 +151,7 @@ const PaymentDialog = ({
         signal: controller.signal,
       });
       
-      console.log('📍 Wallet API URL:', `${API_URL}/user/${user._id}/wallet`);
+      console.log('📍 Wallet API URL:', `${API_URL}/users/${user.userId}/wallet`);
       clearTimeout(timeoutId);
 
       if (!res.ok) {
@@ -98,18 +160,15 @@ const PaymentDialog = ({
         throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
       }
       
-      const data = await res.json();
-      console.log('💰 Wallet response:', data);
+      const rawData = await res.json();
+      console.log('💰 Raw wallet response:', rawData);
       
-      if (data.success && typeof data.walletBalance === 'number') {
-        setWalletBalance(data.walletBalance);
-        console.log('✅ Wallet balance fetched:', data.walletBalance);
-      } else if (typeof data.walletBalance === 'number') {
-        setWalletBalance(data.walletBalance);
-      } else {
-        console.warn('⚠️ Invalid wallet response, using fallback');
-        setWalletBalance(user?.walletBalance ?? 0);
-      }
+      // ✅ Use helper to extract wallet balance from any response format
+      const balance = extractWalletBalance(rawData, user?.walletBalance ?? 0);
+      console.log('✅ Extracted wallet balance:', balance);
+      
+      setWalletBalance(balance);
+      
     } catch (err) {
       console.error('❌ Wallet fetch error:', err);
       
@@ -129,11 +188,11 @@ const PaymentDialog = ({
     } finally {
       setLoadingWallet(false);
     }
-  }, [user?._id, user?.walletBalance, isVisible]);
+  }, [user?.userId, user?.walletBalance, isVisible]);
 
   useEffect(() => {
     if (isVisible) {
-      console.log('💳 Fetching wallet balance for user:', user?._id);
+      console.log('💳 Fetching wallet balance for user:', user?.userId);
       fetchWalletBalance();
     }
   }, [isVisible, fetchWalletBalance]);
@@ -221,6 +280,7 @@ const PaymentDialog = ({
     });
   }, [status, onClose, fadeAnim]);
 
+  // ✅ FIXED: Order creation with normalized response
   const handleOrderCreation = useCallback(async () => {
     try {
       const orderPayload = {
@@ -252,11 +312,16 @@ const PaymentDialog = ({
         throw new Error(errorText || 'Order creation failed');
       }
       
-      const data = await res.json();
-      console.log('📦 Order response:', data);
+      const rawData = await res.json();
+      console.log('📦 Raw order response:', rawData);
+      
+      // ✅ Normalize the response
+      const data = normalizeResponse(rawData);
+      console.log('📦 Normalized order response:', data);
       
       if (data.success) {
-        console.log('✅ Order created successfully:', data.data._id);
+        const orderId = data._id || data.orderId || rawData?.data?._id;
+        console.log('✅ Order created successfully:', orderId);
         
         Alert.alert(
           'Order Created!',
@@ -269,7 +334,7 @@ const PaymentDialog = ({
                 setTimeout(() => {
                   router.push({
                     pathname: '/order',
-                    params: { orderId: data.data._id }
+                    params: { orderId }
                   });
                 }, 300);
               },
@@ -294,6 +359,7 @@ const PaymentDialog = ({
     }
   }, [user, productOwnerId, product, price, txnId, router, handleClose]);
 
+  // ✅ FIXED: Wallet transfer with normalized response
   const walletTransfer = useCallback(async () => {
     setStatus('LOADING');
     setError(null);
@@ -312,7 +378,7 @@ const PaymentDialog = ({
     console.log('💰 Wallet transfer payload:', payload);
 
     try {
-      const res = await fetch(`${API_URL}/api/transaction/transferFund`, {
+      const res = await fetch(`${API_URL}/transaction/transferFund`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -324,10 +390,14 @@ const PaymentDialog = ({
         throw new Error(errorText || 'Wallet transfer failed');
       }
       
-      const data = await res.json();
-      console.log('💰 Wallet transfer response:', data);
+      const rawData = await res.json();
+      console.log('💰 Raw wallet transfer response:', rawData);
+      
+      // ✅ Normalize the response
+      const data = normalizeResponse(rawData);
+      console.log('💰 Normalized wallet transfer response:', data);
 
-      if (data.success !== false) {
+      if (data.success) {
         console.log('✅ Wallet transfer successful');
         setStatus('SUCCESS');
         onPaymentSuccess?.(price);
@@ -354,12 +424,13 @@ const PaymentDialog = ({
     }
   }, [user, ownerId, price, productTitle, txnId, onPaymentSuccess, handleOrderCreation, handleClose, orderTimestamp]);
 
+  // ✅ FIXED: Online transfer with normalized response
   const onlineTransfer = useCallback(async () => {
     setStatus('LOADING');
     setError(null);
     
     const payload = {
-      userId: user._id,
+      userId: user.userId,
       receiverId: ownerId,
       type: 'transfer',
       amount: remainder,
@@ -386,14 +457,21 @@ const PaymentDialog = ({
         throw new Error(errorText || 'Payment creation failed');
       }
 
-      const data = await res.json();
-      console.log('💳 Online payment response:', data);
+      const rawData = await res.json();
+      console.log('💳 Raw online payment response:', rawData);
+      
+      // ✅ Normalize the response
+      const data = normalizeResponse(rawData);
+      console.log('💳 Normalized online payment response:', data);
 
-      if (data.success === true) {
-        console.log('✅ Payment URL received:', data.url);
-        setOrderId(data.orderId);
+      if (data.success) {
+        const paymentUrl = data.url || rawData?.data?.url;
+        const paymentOrderId = data.orderId || rawData?.data?.orderId;
         
-        if (data.url) {
+        console.log('✅ Payment URL received:', paymentUrl);
+        setOrderId(paymentOrderId);
+        
+        if (paymentUrl) {
           Alert.alert(
             'Complete Payment',
             'You will be redirected to complete your payment securely.',
@@ -409,7 +487,7 @@ const PaymentDialog = ({
               {
                 text: 'Continue',
                 onPress: () => {
-                  Linking.openURL(data.url).catch(err => {
+                  Linking.openURL(paymentUrl).catch(err => {
                     console.error('❌ Failed to open payment URL:', err);
                     Alert.alert('Error', 'Failed to open payment page. Please try again.');
                     setStatus('FAILURE');
@@ -434,7 +512,7 @@ const PaymentDialog = ({
       setError(err.message || 'Network error occurred');
       Alert.alert('Error', err.message || 'Something went wrong. Please try again.');
     }
-  }, [user, ownerId, remainder, productTitle, txnId, walletDeduction, orderTimestamp]);
+  }, [user, ownerId, remainder, productTitle, txnId, walletDeduction, orderTimestamp, product._id]);
 
   const handlePay = useCallback(async () => {
     if (status === 'FAILURE') {
@@ -496,9 +574,9 @@ const PaymentDialog = ({
     if (status === 'LOADING') return 'Processing…';
     if (status === 'SUCCESS') return 'Payment Successful';
     if (status === 'FAILURE') return 'Retry Payment';
-    if (remainder === 0) return `Pay ₼${price.toLocaleString()} with Wallet`;
+    if (remainder === 0) return `Pay ₼${formatNumber(price)} with Wallet`;
     if (!onlineMethod) return 'Select payment method';
-    return `Pay ₼${remainder.toLocaleString()} via ${onlineMethod}`;
+    return `Pay ₼${formatNumber(remainder)} via ${onlineMethod}`;
   }, [status, price, remainder, onlineMethod]);
 
   const isPayDisabled = 
@@ -609,7 +687,7 @@ const PaymentDialog = ({
                   </View>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Product Price</Text>
-                    <Text style={styles.priceText}>₼ {price.toLocaleString()}</Text>
+                    <Text style={styles.priceText}>₼ {formatNumber(price)}</Text>
                   </View>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Wallet Balance</Text>
@@ -622,7 +700,7 @@ const PaymentDialog = ({
                             styles.walletBalance,
                             { color: walletBalance > 0 ? '#16a34a' : '#ef4444' }
                           ]}>
-                            ₼ {walletBalance.toLocaleString()}
+                            ₼ {formatNumber(walletBalance)}
                           </Text>
                           <Ionicons name="refresh-outline" size={16} color="#6b7280" />
                         </View>
@@ -642,7 +720,7 @@ const PaymentDialog = ({
                   checked={useWallet}
                   onChange={setUseWallet}
                   disabled={!walletBalance || status !== 'READY' || loadingWallet}
-                  label={`Use Wallet ${walletBalance > 0 ? `(up to ₼${walletBalance.toLocaleString()})` : '(No Balance)'}`}
+                  label={`Use Wallet ${walletBalance > 0 ? `(up to ₼${formatNumber(walletBalance)})` : '(No Balance)'}`}
                 />
 
                 {useWallet && (
@@ -651,7 +729,7 @@ const PaymentDialog = ({
                     <Text style={styles.infoText}>
                       {remainder === 0
                         ? '✓ Full amount will be paid from wallet.'
-                        : `₼${walletDeduction.toLocaleString()} from wallet, ₼${remainder.toLocaleString()} to pay online.`}
+                        : `₼${formatNumber(walletDeduction)} from wallet, ₼${formatNumber(remainder)} to pay online.`}
                     </Text>
                   </View>
                 )}
@@ -701,7 +779,6 @@ const PaymentDialog = ({
 };
 
 const styles = StyleSheet.create({
-  // ... (keep all your existing styles - they remain unchanged)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -714,6 +791,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    minHeight: '60%',
     maxHeight: '90%',
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
   },
@@ -735,7 +813,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   scrollContent: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   scrollContentContainer: {
     padding: 20,

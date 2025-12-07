@@ -17,80 +17,148 @@ function AppContent() {
     checkAuth();
   }, []);
 
-  const hideTabsRoutes = [
-    '/AccountManagement/Accountsetting',
-    '/auth',
-    '/filters',
-    '/checkout',
-    '/chat',
-    '/UserInfo/Userinfo',
-    '/Chat/chat',
-    '/Chat/chatbot',
-    '/Chat/raiseQuery'
-  ];
+  // Define routes where tabs should be hidden
+const hideTabsRoutes = [
+  '/AccountManagement/Accountsetting',
+  '/auth',
+  '/filters',
+  '/checkout',
 
-  const shouldHideTabs =
-    hideTabsRoutes.some(route => pathname?.startsWith(route)) ||
-    pathname?.startsWith('/product/');
+  // From HEAD
+  '/chat',
+  '/UserInfo/Userinfo',
+  '/Chat/chat',
+  '/Chat/chatbot',
+  '/Chat/raiseQuery',
 
-  return (
-    <>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'none',
-        }}
-      >
+  // From incoming branch
+  '/UserInfo/EditForm',
+  '/confirm'
+];
+
+// Check if current route should hide tabs
+const shouldHideTabs =
+  hideTabsRoutes.some(route => pathname?.startsWith(route)) ||
+  pathname?.startsWith('/product/') ||
+  pathname?.startsWith('/order/');
+
+return (
+  <>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'none'
+      }}
+    >
+
         <Stack.Screen name="index" />
         <Stack.Screen name="wishlist" />
         <Stack.Screen name="post" />
         <Stack.Screen name="orders" />
         <Stack.Screen name="profile" />
-        <Stack.Screen
-          name="product/[id]"
-          options={{
+        
+        {/* Product detail screen */}
+        <Stack.Screen 
+          name="product/[id]" 
+          options={{ 
             animation: 'slide_from_right',
-          }}
+            presentation: 'card'
+          }} 
         />
-        <Stack.Screen
-          name="auth"
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="filters"
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="checkout"
-          options={{
+        
+        {/* Order detail screen */}
+        <Stack.Screen 
+          name="order/[orderId]" 
+          options={{ 
             animation: 'slide_from_right',
-          }}
+            presentation: 'card'
+          }} 
         />
-        <Stack.Screen
-          name="chat"
-          options={{
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="AccountManagement/Accountsetting"
-          options={{
+        
+        {/* Modal/Fullscreen screens */}
+        <Stack.Screen 
+          name="auth" 
+          options={{ 
             presentation: 'modal',
-            animation: 'slide_from_bottom',
-          }}
+            animation: 'slide_from_bottom'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="confirm" 
+          options={{ 
+            presentation: 'modal',
+            animation: 'slide_from_bottom'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="filters" 
+          options={{ 
+            presentation: 'modal',
+            animation: 'slide_from_bottom'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="checkout" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="Chat/chat" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="AccountManagement/Accountsetting" 
+          options={{ 
+            presentation: 'modal',
+            animation: 'slide_from_bottom'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="UserInfo/Userinfo" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+        
+        <Stack.Screen 
+          name="UserInfo/EditForm" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+
+        {/* Dashboard screens */}
+        <Stack.Screen 
+          name="Dashboard/Dashboard" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
+        />
+
+        {/* Categories screen */}
+        <Stack.Screen 
+          name="categories/index" 
+          options={{ 
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }} 
         />
       </Stack>
-
       {!shouldHideTabs && <BottomTabBar />}
-     <Toast config={{}} />
-
-
     </>
   );
 }
@@ -98,19 +166,17 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <PersistGate
+      <PersistGate 
         loading={
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: '#f3f4f6',
-            }}
-          >
+          <View style={{ 
+            flex: 1, 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            backgroundColor: '#f3f4f6'
+          }}>
             <ActivityIndicator size="large" color="#16a34a" />
           </View>
-        }
+        } 
         persistor={persistor}
       >
         <FilterProvider>
