@@ -170,22 +170,22 @@ const PaymentDialog = ({
 
     // ✅ SECURITY: Minimal payload with userId from localStorage
     const payload = {
-      userId: userId,  // From localStorage (backend still validates token)
+      buyerId: userId,  // From localStorage (backend still validates token)
       productId: product._id,  // Backend fetches full product details
       walletUsed: useWallet,
       walletAmount: walletAmountToUse, // Specific amount to use from wallet
-      orderData: {
+      checkoutDetails: {
         // Shipping address from frontend (user input)
-        address: {
           name: user.fullName,
           email: user.email,
           city: user.city,
           address: user.address,
-          zipCode: user.postalCode,
-        },
+          pincode: user.postalCode,
+        
       },
     };
-
+    console.log(payload);
+    
    try {
     const res = await fetch(
       `${import.meta.env.VITE_SERVER}/api/payments/initiate`,
@@ -214,10 +214,14 @@ const PaymentDialog = ({
         }, 2000);
         return;
       }
+      console.log(data.data);
+      
+      console.log(data.completed);
+      
 
       if (data.success === true) {
         // If payment completed without redirect (wallet-only payment)
-        if (data.completed) {
+        if (data.completed === true) {
           console.log("Payment completed successfully");
           setStatus("SUCCESS");
 
@@ -231,7 +235,7 @@ const PaymentDialog = ({
             } else {
               onClose();
             }
-          }, 1800);
+          }, 2300);
         }
         // If payment requires redirect (online payment or wallet + online)
         else if (data.url) {
