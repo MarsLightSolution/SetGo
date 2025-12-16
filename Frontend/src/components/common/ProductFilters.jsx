@@ -16,6 +16,7 @@ import { MapContainer, TileLayer, Circle, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 // Fix default icon issue with Leaflet in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -87,9 +88,8 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
           );
         })
         .catch((error) => {
-          console.error("Location error:", error);
           setMapCenter([50.9375, 6.9603]);
-          alert(t("navbar.unableToFetchLocation"));
+          toast.error(t("navbar.unableToFetchLocation"));
         });
     }
   }, [
@@ -117,8 +117,7 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
           };
           dispatch(setLocation(newLocation));
         } catch (error) {
-          alert(t("navbar.unableToFetchLocation"));
-          console.error(error);
+          toast.error(t("navbar.unableToFetchLocation"));
           setIsApplying(false);
           return;
         }

@@ -47,7 +47,6 @@ function NewPasswordModal({ onClose }) {
         }, 1000);
       }
     } catch (err) {
-      console.error("Password update failed:", err);
       setErrorMsg(err.response?.data?.message || "Something went wrong.");
     } finally {
       setLoading(false);

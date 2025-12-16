@@ -133,7 +133,6 @@ const EditForm = () => {
           showErrorToast(t("editForm.failedToLoadAd"));
         }
       } catch (err) {
-        console.error(err);
         showErrorToast(t("editForm.errorFetchingAd"));
       }
     };
@@ -264,11 +263,9 @@ const handleSubmit = async (e) => {
     }
 
     const data = await response.json();
-    console.log("✅ Product updated:", data);
     showSuccessToast(t("editForm.adUpdatedSuccess"));
     navigate('/userinfo');
   } catch (err) {
-    console.error("❌ Update error:", err);
     showErrorToast(t("editForm.adUpdateError"));
   }
 };

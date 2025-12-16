@@ -25,7 +25,7 @@ const useUserProfile = () => {
     try {
       return stored ? { ...defaultProfile, ...JSON.parse(stored) } : defaultProfile;
     } catch (err) {
-      console.error("Failed to parse userData:", err);
+      // Failed to parse userData - using default profile
       return defaultProfile;
     }
   });
@@ -45,7 +45,7 @@ const useUserProfile = () => {
       setLoading(true);
       localStorage.setItem("userData", JSON.stringify(profile));
     } catch (err) {
-      console.error("Error saving profile:", err);
+      // Error saving profile
     } finally {
       setLoading(false);
     }

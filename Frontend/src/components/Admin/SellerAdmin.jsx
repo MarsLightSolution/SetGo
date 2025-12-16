@@ -14,6 +14,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
 
 const API_URL = `${import.meta.env.VITE_SERVER}/Orders`;
 
@@ -27,11 +28,9 @@ export default function SellerAdminDashboard() {
   const fetchOrders = async () => {
     try {
       const res = await axios.get(`${API_URL}/seller/${sellerId}`);
-      
-      console.log("Fetched orders:", res.data.orders);
       setOrders(res.data.orders || []);
     } catch (err) {
-      console.error("Error fetching orders:", err);
+      toast.error("Failed to fetch orders");
       setOrders([]); // prevent map crash
     }
   };
@@ -39,15 +38,14 @@ export default function SellerAdminDashboard() {
   // Upload tracking ID
   const handleUploadTracking = async (id) => {
     const trackingId = trackingInputs[id];
-    if (!trackingId) return alert("Enter a tracking ID");
+    if (!trackingId) return toast.error("Please enter a tracking ID");
 
     try {
       await axios.patch(`${API_URL}/${id}/tracking`, { trackingId });
       await fetchOrders(); // refresh orders
-      alert(`Tracking ID uploaded for Order #${id}`);
+      toast.success(`Tracking ID uploaded for Order #${id.slice(-8)}`);
     } catch (err) {
-      console.error("Error uploading tracking ID:", err);
-      alert("Failed to upload tracking ID");
+      toast.error("Failed to upload tracking ID");
     }
   };
 const handleReject = async (id) => {
@@ -56,9 +54,9 @@ const handleReject = async (id) => {
       userId: "68a1bb9533d35012fa5e32fa", // or current logged-in user ID
     });
     await fetchOrders();
-    alert(`Order #${id} cancelled`);
+    toast.success(`Order #${id.slice(-8)} cancelled`);
   } catch (err) {
-    console.error("Error cancelling order:", err);
+    toast.error("Failed to cancel order");
   }
 };
 
@@ -67,9 +65,9 @@ const handleReject = async (id) => {
     try {
       await axios.patch(`${API_URL}/${id}/status`, { status: "reported" });
       await fetchOrders();
-      alert(`Order #${id} reported`);
+      toast.success(`Order #${id.slice(-8)} reported`);
     } catch (err) {
-      console.error("Error reporting order:", err);
+      toast.error("Failed to report order");
     }
   };
 
@@ -153,7 +151,7 @@ const handleReject = async (id) => {
 
             {/* Right: Report button */}
             <button
-              onClick={() => alert("Report feature triggered")}
+              onClick={() => toast.info("Report feature coming soon")}
               className="flex items-center gap-1 text-red-600 font-medium hover:underline"
             >
               Report

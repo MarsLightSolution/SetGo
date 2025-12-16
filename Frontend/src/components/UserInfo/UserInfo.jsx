@@ -140,9 +140,6 @@
       if (userId && accessToken) {
         fetchUserAds()
       } else {
-        console.log("DEBUG: Conditions NOT met for fetching ads.")
-        if (!userId) console.log("DEBUG: Reason: userId is null or undefined.")
-        if (!accessToken) console.log("DEBUG: Reason: Access token is missing from localStorage.")
         setAds([])
       }
     }, [userId, accessToken, navigate])
@@ -165,7 +162,6 @@
 
         toast.success(wasPaused ? "Listing resumed!" : "Listing paused!")
       } catch (err) {
-        console.error("ERROR: Failed to toggle product status:", err.response ? err.response.data : err.message)
         toast.error("Failed to update ad status. Please try again.")
         if (err.response && err.response.status === 401) {
           navigate("/login")
@@ -192,7 +188,6 @@
         )
         toast.success("Ad boosted successfully! Priority increased for better visibility.")
       } catch (err) {
-        console.error("ERROR: Failed to boost product:", err.response ? err.response.data : err.message)
         toast.error("Failed to boost ad. Please try again.")
         if (err.response && err.response.status === 401) {
           navigate("/login")
@@ -215,7 +210,6 @@
         setAds((prev) => prev.filter((ad) => ad._id !== id))
         toast.success("Ad deleted successfully!")
       } catch (err) {
-        console.error("ERROR: Failed to delete product:", err.response ? err.response.data : err.message)
         toast.error("Failed to delete ad. Please try again.")
         if (err.response && err.response.status === 401) {
           navigate("/login")
@@ -490,7 +484,6 @@
               user={dialogUser}
               owner={owner}
               onPaymentSuccess={async () => {
-                console.log("✅ Payment success, now boosting ad...");
                 await boostAd(dialogProduct._id); // call boost API only after payment
                 setShowPaymentDialog(false);
               }}

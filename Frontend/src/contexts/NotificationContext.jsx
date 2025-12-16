@@ -30,21 +30,18 @@ export const NotificationProvider = ({ children }) => {
       });
 
       socketInstance.on('connect', () => {
-        console.log('Connected to notification server');
         setIsConnected(true);
-        
+
         // Join user to receive notifications
         socketInstance.emit('join-user', userEmail || userId);
       });
 
       socketInstance.on('disconnect', () => {
-        console.log('Disconnected from notification server');
         setIsConnected(false);
       });
 
       // Listen for notifications
       socketInstance.on('notification', (notificationData) => {
-        console.log('Received notification:', notificationData);
         const notificationWithId = {
           ...notificationData,
           id: notificationData.id || `socket_${Date.now()}_${Math.random()}`
@@ -160,10 +157,9 @@ export const NotificationProvider = ({ children }) => {
         const parsed = JSON.parse(savedNotifications);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setNotifications(parsed);
-          console.log('Loaded', parsed.length, 'notifications from localStorage');
         }
       } catch (error) {
-        console.error('Error parsing saved notifications:', error);
+        // Error parsing saved notifications
       }
     }
     setIsInitialized(true);
@@ -173,7 +169,6 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (isInitialized && notifications.length >= 0) {
       localStorage.setItem('notifications', JSON.stringify(notifications));
-      console.log('Saved', notifications.length, 'notifications to localStorage');
     }
   }, [notifications, isInitialized]);
 
@@ -220,8 +215,7 @@ export const NotificationProvider = ({ children }) => {
   const handleNotificationClick = useCallback((notification) => {
     // Handle different notification types - this is used in the notifications page
     // The actual navigation should be handled by the component using this context
-    console.log('Notification clicked:', notification);
-    
+
     // Mark as read if not already read
     if (!notification.isRead) {
       const updatedNotifications = notifications.map(n => 

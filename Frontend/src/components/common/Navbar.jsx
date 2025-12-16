@@ -7,13 +7,14 @@ import { MdOutlineAddCircle } from "react-icons/md";
 import { useSelector, useDispatch } from "react-redux";
 import NotificationBell from "./NotificationBell";
 import ProductFilters from "./ProductFilters";
-import { TextField, MenuItem } from "@mui/material"; 
+import { TextField, MenuItem } from "@mui/material";
 import logo from "../../assets/images/logo.png"; // Adjust the path as necessary
 import {
   setSearchQuery,
   setCategoryFilter,
   setPostalCode,
 } from "../../slices/FilterSlice";
+import { toast } from "react-hot-toast";
 
 // i18n imports
 import { useTranslation } from "react-i18next";
@@ -52,7 +53,7 @@ const Navbar = () => {
       setUserName("");
       navigate("/login");
     } catch (err) {
-      console.error("Logout error:", err);
+      toast.error("Logout failed. Please try again.");
     }
   };
 
@@ -76,7 +77,7 @@ const Navbar = () => {
 
   const handleNearbyClick = () => {
     if (!navigator.geolocation) {
-      alert(t("geolocationNotSupported")); 
+      toast.error(t("geolocationNotSupported"));
       return;
     }
 
@@ -87,15 +88,13 @@ const Navbar = () => {
 
         dispatch(setLocationFilter({ latitude, longitude }));
         navigate("/");
-        console.log("Location set:", latitude, longitude);
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
-          alert(t("allowLocationAccess")); 
+          toast.error(t("allowLocationAccess"));
         } else {
-          alert(t("unableToFetchLocation")); 
+          toast.error(t("unableToFetchLocation"));
         }
-        console.error(error);
       }
     );
   };

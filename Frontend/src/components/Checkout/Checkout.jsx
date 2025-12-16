@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import PaymentDialog from "../../pages/PaymentDialog";
 import ShareModal from "../../components/Popups/ShareModal";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
 
 import leftadImage from "../../assets/images/ad01.png";
 import rightadImage from "../../assets/images/ad02.png";
@@ -52,27 +53,27 @@ const CheckoutPage = () => {
   const handleCheckout = async () => {
     // Validate form fields
     if (!form.fullName || !form.email || !form.address || !form.city || !form.postalCode) {
-      alert("⚠️ Please fill in all the fields before proceeding.");
+      toast.error("Please fill in all the fields before proceeding.");
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email)) {
-      alert("⚠️ Please enter a valid email address.");
+      toast.error("Please enter a valid email address.");
       return;
     }
 
     // Postal code validation (6 digits)
     if (form.postalCode.length !== 6) {
-      alert("⚠️ Postal code must be 6 digits.");
+      toast.error("Postal code must be 6 digits.");
       return;
     }
 
     const userId = user?._id;
 
     if (!userId) {
-      alert("⚠️ Please log in to continue.");
+      toast.error("Please log in to continue.");
       navigate("/login");
       return;
     }
@@ -105,11 +106,10 @@ const CheckoutPage = () => {
         setDialogUser(dialogData);
         setShowPaymentDialog(true);
       } else {
-        alert("❌ Failed to load user data. Please try again.");
+        toast.error("Failed to load user data. Please try again.");
       }
     } catch (err) {
-      console.error("Error fetching user:", err);
-      alert("❌ Error loading user data. Please check your connection.");
+      toast.error("Error loading user data. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +131,6 @@ const CheckoutPage = () => {
   };
 
   const handlePaymentSuccess = (amount) => {
-    console.log("✅ Payment successful:", amount);
     // You can add additional success handling here
   };
 

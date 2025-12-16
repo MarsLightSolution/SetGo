@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast } from "react-hot-toast"
 // import { eventNames } from "../../../../backend/models/user"
 
 export default function AdminDashboard() {
@@ -36,7 +37,6 @@ export default function AdminDashboard() {
       setLoading(true)
       const response = await fetch(`${import.meta.env.VITE_SERVER}/dashboard`)
       const result = await response.json()
-      console.log(result)
       if (result.success) {
         setDashboardData(result.data)
       } else {
@@ -44,7 +44,6 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setError("Network error: " + err.message)
-      console.error("Dashboard API error:", err)
     } finally {
       setLoading(false)
     }
@@ -55,7 +54,6 @@ export default function AdminDashboard() {
       setGalleryLoading(true)
       const response = await fetch(`${import.meta.env.VITE_SERVER}/api/products/priority`)
       const result = await response.json()
-      console.log("Gallery data:", result)
       if (result.success) {
         const products = result.data.products || []
         const mappedProducts = products.map((product) => ({
@@ -78,7 +76,6 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setError("Network error: " + err.message)
-      console.error("Gallery API error:", err)
     } finally {
       setGalleryLoading(false)
     }
@@ -123,7 +120,6 @@ export default function AdminDashboard() {
         await fetchDashboardData()
       }
     } catch (err) {
-      console.error("Error approving delivery:", err)
       setError("Failed to approve delivery")
       await fetchDashboardData()
     }
@@ -131,7 +127,6 @@ export default function AdminDashboard() {
   const handleReleaseFunds = async (orderId, to, transaferTo) => {
     try {
       const order = dashboardData.orders.find((o) => o.id === orderId)
-      console.log(order)
 
       if (order && (order.status === "delivered" || order.status === "cancelled")) {
         const orderTimestamp = Date.now() // ✅ ensure unique referenceId
@@ -146,8 +141,6 @@ export default function AdminDashboard() {
           source: "Admin wallet",
         }
 
-        console.log(payload)
-
         try {
           // Step 1: Transfer funds
           const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
@@ -156,7 +149,6 @@ export default function AdminDashboard() {
             body: JSON.stringify(payload),
           })
           const data = await res.json().catch(() => ({}))
-          console.log(data)
 
           if (res.ok) {
             // ✅ Step 2: Update order as "funds released"
@@ -167,7 +159,7 @@ export default function AdminDashboard() {
             })
 
             if (orderRes.ok) {
-              alert("Funds released successfully to " + to)
+              toast.success("Funds released successfully to " + to)
 
               // Update frontend state
               setDashboardData((prev) => ({
@@ -185,20 +177,18 @@ export default function AdminDashboard() {
               }))
               setRefreshTrigger((prev) => prev + 1)
             } else {
-              alert("Transaction done but order update failed!")
+              toast.error("Transaction done but order update failed!")
             }
           } else {
-            alert("Failed to release funds " + to)
+            toast.error("Failed to release funds " + to)
             setStatus("FAILURE")
           }
         } catch (err) {
-          console.error(err)
           setStatus("FAILURE")
         }
         await fetchDashboardData()
       }
     } catch (err) {
-      console.error("Error releasing funds:", err)
       setError("Failed to release funds to seller")
       await fetchDashboardData()
     }
@@ -244,20 +234,16 @@ export default function AdminDashboard() {
         await fetchDashboardData()
       }
     } catch (err) {
-      console.error("Error cancelling order:", err)
       setError("Failed to cancel order and return funds")
       await fetchDashboardData()
     }
   }
   const renderText = (text) => {
-    console.log("[v0] renderText called with:", text, "type:", typeof text)
     if (typeof text === "string") {
       return text
     }
     if (typeof text === "object" && text !== null) {
-      console.log("[v0] Found object with keys:", Object.keys(text))
       const result = text.en || text.az || text.ru || Object.values(text)[0] || "N/A"
-      console.log("[v0] Extracted text:", result)
       return result
     }
     if (text === null || text === undefined) {

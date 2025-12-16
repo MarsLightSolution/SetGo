@@ -49,7 +49,6 @@ function ProfileMgmt() {
       setIsEditingName(false);
       showSuccessToast(t('profileMgmt.nameUpdateSuccess'));
     } catch (err) {
-      console.error(err);
       showErrorToast(err.response?.data?.message || t('profileMgmt.nameUpdateFailed'));
     } finally {
       setSavingName(false);
@@ -70,7 +69,6 @@ function ProfileMgmt() {
       updateField('deliveryAddress', newAddress);
       showSuccessToast(t('profileMgmt.addressUpdateSuccess'));
     } catch (err) {
-      console.error(err);
       showErrorToast(err.response?.data?.message || t('profileMgmt.addressUpdateFailed'));
     }
   };

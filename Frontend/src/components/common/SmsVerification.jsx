@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 function SmsVerification({ phoneNumber, email, onClose, showCloseButton = false, onSuccess }) {
   const [otp, setOtp] = useState("");
@@ -41,7 +42,6 @@ function SmsVerification({ phoneNumber, email, onClose, showCloseButton = false,
         setError(response.data.message || "Invalid OTP");
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error);
       setError(
         error.response?.data?.message ||
         "An error occurred while verifying OTP. Please try again."
@@ -68,12 +68,11 @@ function SmsVerification({ phoneNumber, email, onClose, showCloseButton = false,
       );
 
       if (response.data.success) {
-        alert("OTP sent successfully!");
+        toast.success("OTP sent successfully!");
       } else {
         setError(response.data.message || "Failed to resend OTP");
       }
     } catch (error) {
-      console.error("Error resending OTP:", error);
       setError(
         error.response?.data?.message ||
         "An error occurred while resending OTP. Please try again."

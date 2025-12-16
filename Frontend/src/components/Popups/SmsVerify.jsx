@@ -27,10 +27,8 @@ function SmsVerify({ phoneNumber, email, onClose }) {
         code,
       });
 
-      console.log("Verification successful:", res.data);
       navigate("/login");
     } catch (err) {
-      console.error("OTP verification failed:", err.response?.data || err.message);
       setError(t("smsVerify.verificationFailed"));
     } finally {
       setLoading(false);
@@ -48,10 +46,8 @@ function SmsVerify({ phoneNumber, email, onClose }) {
         phoneNumber,
       });
 
-      console.log("OTP resent:", res.data);
       setMessage(t("smsVerify.otpSentMessage"));
     } catch (err) {
-      console.error("Resend failed:", err.response?.data || err.message);
       setError(t("smsVerify.resendFailed"));
     } finally {
       setResending(false);

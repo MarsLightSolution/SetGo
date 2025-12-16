@@ -13,7 +13,7 @@ const PublicRoute = ({ children }) => {
           setIsAuthenticated(true);
         }
       } catch (error) {
-        console.log(error);
+        // User not authenticated
         setIsAuthenticated(false);
       }
     };

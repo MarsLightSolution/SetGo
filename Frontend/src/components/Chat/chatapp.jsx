@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom"
 import { FaCamera } from "react-icons/fa"
 import imageCompression from "browser-image-compression"
 import heic2any from "heic2any"
+import { toast } from "react-hot-toast"
 export default function ChatApp() {
   const [currentUser, setCurrentUser] = useState(null)
   const [allUsers, setAllUsers] = useState([])
@@ -224,7 +225,7 @@ useEffect(() => {
         setConversations(data.conversations)
       }
     } catch (error) {
-      console.log("Error loading conversations:", error)
+      // Error loading conversations
     }
   }
 
@@ -246,7 +247,7 @@ useEffect(() => {
         }
       }
     } catch (error) {
-      console.log("Error creating conversation:", error)
+      // Error creating conversation
     }
   }
 
@@ -271,7 +272,7 @@ useEffect(() => {
         setMessages(formattedMessages)
       }
     } catch (error) {
-      console.log("Error loading messages:", error)
+      // Error loading messages
     }
   }
 
@@ -314,7 +315,7 @@ useEffect(() => {
         setNewMessage("")
       }
     } catch (error) {
-      console.log("Error sending message:", error)
+      // Error sending message
     }
   }
 const handleFileChange = async (e) => {
@@ -387,8 +388,7 @@ const handleFileChange = async (e) => {
       throw new Error(data.message || "File upload failed");
     }
   } catch (error) {
-    console.error("❌ Error processing/uploading file:", error);
-    alert("Failed to send image. Please try again.");
+    toast.error("Failed to send image. Please try again.");
   }
 };
 

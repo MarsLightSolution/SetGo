@@ -26,7 +26,6 @@ function EmailSettings() {
       setNewsletter(res.data.data.newsletter);
       toast.success(t("emailSettings.newsletterToggleSuccess"));
     } catch (err) {
-      console.error("Error toggling newsletter:", err);
       toast.error(t("emailSettings.newsletterToggleError"));
     } finally {
       setLoading(false);
@@ -42,7 +41,6 @@ function EmailSettings() {
       setMessagesFromUsers(res.data.data.messageforuser);
       toast.success(t("emailSettings.messagesToggleSuccess"));
     } catch (err) {
-      console.error("Error toggling messages:", err);
       toast.error(t("emailSettings.messagesToggleError"));
     } finally {
       setLoading(false);

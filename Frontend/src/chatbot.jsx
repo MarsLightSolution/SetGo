@@ -147,7 +147,7 @@ export default function Chatbot({ onClose }) {
         }
       }
     } catch (err) {
-      console.error("Chatbot error:", err);
+      // Error handled - show user-friendly message
       setMessages((prev) => [
         ...prev,
         { sender: "bot", text: "⚠️ Sorry, something went wrong. Please try again later." },

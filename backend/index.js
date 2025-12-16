@@ -13,6 +13,7 @@ const mongoose = require("./config/mongoose");
 const logger = require("./utils/logger");
 const initSocket = require("./controller/Socketcontroller");
 const uploadPictures = require("./middlewares/multer.middleware");
+const { log } = require("console");
 
 dotenv.config();
 
@@ -29,10 +30,11 @@ const allowedOrigins = [
   "http://tiwari.shop",       // Add this (for HTTP redirects)
   "http://www.tiwari.shop",
   "http://10.113.84.234:8080",
-  "http://10.175.186.234:8080"   // Add this
+  "http://10.150.188.234:8080",  // Add this
 ];
 
 const corsOptions = {
+  
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 function PhoneVerification({ onSendOTP, setPhoneNumber, email, onClose, showCloseButton = false }) {
   const [selectedCountry, setSelectedCountry] = useState("Germany +49");
@@ -74,9 +75,8 @@ function PhoneVerification({ onSendOTP, setPhoneNumber, email, onClose, showClos
         setError(response.data.message || "Failed to send OTP");
       }
     } catch (error) {
-      console.error("Error sending OTP:", error);
       setError(
-        error.response?.data?.message || 
+        error.response?.data?.message ||
         "An error occurred while sending OTP. Please try again."
       );
     } finally {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
 import {
   Package,
   User,
@@ -64,7 +65,7 @@ const OrderDetail = () => {
         }
       }
     } catch (err) {
-      console.error("Failed to fetch order:", err);
+      // Failed to fetch order
     } finally {
       setLoading(false);
     }
@@ -88,7 +89,7 @@ const OrderDetail = () => {
         }
       }
     } catch (err) {
-      console.error("Failed to fetch review:", err);
+      // Failed to fetch review
     }
   };
 
@@ -118,8 +119,7 @@ const OrderDetail = () => {
         setShowReviewForm(true);
       }, 1500);
     } catch (err) {
-      console.error("Failed to confirm delivery:", err);
-      alert(err.response?.data?.message || "Failed to confirm delivery");
+      toast.error(err.response?.data?.message || "Failed to confirm delivery");
       setNotifyClicked(false);
     }
   };
@@ -130,7 +130,7 @@ const OrderDetail = () => {
     if (!order) return;
 
     if (reviewFormData.rating === 0) {
-      alert("Please select a rating");
+      toast.error("Please select a rating");
       return;
     }
 
@@ -154,7 +154,7 @@ const OrderDetail = () => {
           setReview(data.data);
           setIsEditingReview(false);
           setShowReviewForm(false);
-          alert("Review updated successfully!");
+          toast.success("Review updated successfully!");
         }
       } else {
         // Submit new review
@@ -176,12 +176,11 @@ const OrderDetail = () => {
             reviewSubmitted: true,
             reviewId: data.data._id,
           }));
-          alert("Review submitted successfully! Thank you for your feedback.");
+          toast.success("Review submitted successfully! Thank you for your feedback.");
         }
       }
     } catch (err) {
-      console.error("Failed to submit review:", err);
-      alert(err.response?.data?.message || "Failed to submit review");
+      toast.error(err.response?.data?.message || "Failed to submit review");
     } finally {
       setReviewLoading(false);
     }
@@ -208,11 +207,10 @@ const OrderDetail = () => {
           reviewSubmitted: false,
           reviewId: null,
         }));
-        alert("Review deleted successfully!");
+        toast.success("Review deleted successfully!");
       }
     } catch (err) {
-      console.error("Failed to delete review:", err);
-      alert(err.response?.data?.message || "Failed to delete review");
+      toast.error(err.response?.data?.message || "Failed to delete review");
     }
   };
 

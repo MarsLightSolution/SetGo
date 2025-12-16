@@ -40,7 +40,6 @@ const Login = () => {
       });
 
       const data = await res.json();
-      console.log("Login response:", data);
 
       if (res.status === 200 || res.status === 201) {
         localStorage.setItem("userId", data.userId);
@@ -54,11 +53,6 @@ const Login = () => {
         const userData = await userRes.json();
         if (userRes.ok) {
           localStorage.setItem("userData", JSON.stringify(userData.data));
-        } else {
-          console.warn(
-            t("login.fetchUserDetailsFailed"), // Translated warning
-            userData.message || userData.error
-          );
         }
 
         showSuccessToast(t("login.successMessage")); // Translated
@@ -69,7 +63,6 @@ const Login = () => {
         showErrorToast(data?.error || data?.message || t("login.failedMessage")); // Translated fallback
       }
     } catch (err) {
-      console.error("Login error:", err);
       showErrorToast(t("login.serverError")); // Translated
     } finally {
       setLoading(false);

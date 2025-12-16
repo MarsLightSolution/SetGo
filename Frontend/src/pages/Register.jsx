@@ -84,7 +84,6 @@ const Register = () => {
         showErrorToast(data?.error || data?.message || t("register.failedMessage")); // Translated fallback
       }
     } catch (error) {
-      console.error("Error:", error);
       showErrorToast(t("register.serverError")); // Translated
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import React from 'react';
 import EmailImage from "../../assets/images/post2.png";
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -13,7 +14,7 @@ function EmailNotification() {
 
   const handleResendEmail = async () => {
     if (!email) {
-      alert(t("emailNotification.noEmailProvided")); // Translated alert
+      toast.error(t("emailNotification.noEmailProvided")); // Translated alert
       return;
     }
 
@@ -21,13 +22,12 @@ function EmailNotification() {
       const res = await axios.post(`${import.meta.env.VITE_SERVER}/forgotpassword`, { email });
 
       if (res.status === 200 || res.status === 201) {
-        alert(t("emailNotification.resendSuccess")); // Translated alert
+        toast.success(t("emailNotification.resendSuccess")); // Translated alert
       } else {
-        alert(t("emailNotification.resendFailed")); // Translated alert
+        toast.error(t("emailNotification.resendFailed")); // Translated alert
       }
     } catch (error) {
-      console.error("Resend email error:", error);
-      alert(t("emailNotification.resendError")); // Translated alert
+      toast.error(t("emailNotification.resendError")); // Translated alert
     }
   };
 

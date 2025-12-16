@@ -48,7 +48,6 @@ function NewPassword() {
         showErrorToast(t("newPassword.resetFailed")); // Translated
       }
     } catch (error) {
-      console.error("Error resetting password:", error);
       const message =
         error?.response?.data?.error ||
         error?.response?.data?.message ||

@@ -62,7 +62,6 @@ function AccountSettings() {
           setAds([]);
         }
       } catch (error) {
-        console.error("Error fetching ads:", error);
         setAds([]);
       }
     };
@@ -72,7 +71,6 @@ function AccountSettings() {
     if (userId && accessToken) {
       fetchUserAds();
     } else {
-      console.log("DEBUG: Ads fetch skipped. userId or accessToken missing.");
       setAds([]);
     }
   }, [userId]);
@@ -102,7 +100,6 @@ function AccountSettings() {
         toast.error(t("accountSettings.billingAddressUpdateFailed")); // Translated
       }
     } catch (error) {
-      console.error("Error updating billing address:", error);
       toast.error(
         t("accountSettings.billingAddressUpdateError") +
           (error.response?.data?.message || error.message)
@@ -145,8 +142,7 @@ function AccountSettings() {
         }, 1000);
       }
     } catch (error) {
-      console.error("Delete account error:", error);
-      alert(t("accountSettings.deleteAccountError")); // Translated
+      toast.error(t("accountSettings.deleteAccountError")); // Translated
     }
   };
 
