@@ -16,16 +16,18 @@ const PAYMENT_SERVICE_SECRET = process.env.PAYMENT_SERVICE_SECRET;
 
 router.post('/initiate', authenticateUser, async (req, res) => {
   try {
-    const buyerId = req.user.id; // From JWT token
+     // From JWT token
     const { 
+      buyerId,
       productId, 
-      amount: onlineAmount, 
-      walletDeduction = 0,
+      walletUsed, 
+      walletDeduction = req.body.walletAmount || 0,
       checkoutDetails 
     } = req.body;
 
     console.log(`[Payment Gateway] Initiating payment for buyer ${buyerId}`);
-
+    // console.log(onlineAmount , walletDeduction);
+    
     // ========= STEP 1: VALIDATE INPUT =========
     
     if (!productId) {
@@ -35,12 +37,6 @@ router.post('/initiate', authenticateUser, async (req, res) => {
       });
     }
 
-    if (onlineAmount < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid online payment amount'
-      });
-    }
 
     if (walletDeduction < 0) {
       return res.status(400).json({
@@ -48,7 +44,8 @@ router.post('/initiate', authenticateUser, async (req, res) => {
         message: 'Invalid wallet deduction amount'
       });
     }
-
+    console.log(req.body);
+    
     // Validate checkout details
     if (!checkoutDetails || !checkoutDetails.name || !checkoutDetails.email || 
         !checkoutDetails.address || !checkoutDetails.city || !checkoutDetails.pincode) {
@@ -61,11 +58,19 @@ router.post('/initiate', authenticateUser, async (req, res) => {
     // ========= STEP 2: VERIFY PRODUCT =========
     
     const product = await Product.findById(productId).populate('owner');
-    
     if (!product) {
       return res.status(404).json({
         success: false,
         message: 'Product not found'
+      });
+    }
+    console.log(product);
+    const onlineAmount = product.price - walletDeduction;
+
+    if (onlineAmount < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid online payment amount'
       });
     }
 
@@ -178,6 +183,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
       return res.json({
         success: true,
         paymentMethod: 'wallet',
+        completed: true,
         data: {
           orderId: order._id,
           message: 'Payment completed successfully using wallet',
