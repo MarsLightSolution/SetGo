@@ -40,6 +40,7 @@ import {
 } from "../Hooks/Tostify";
 import { useTranslation } from "react-i18next";
 import Footer from "../components/common/Footer";
+import logger from "../utils/logger";
 
 const MyShop = () => {
   const { t, i18n } = useTranslation();
@@ -84,7 +85,7 @@ const MyShop = () => {
           setHasShop(false);
         }
       } catch (error) {
-        console.error("Error fetching shop:", error);
+        logger.error("Failed to fetch user shop", { error });
         showErrorToast(t("shop.fetchError") || "Failed to fetch shop data");
       } finally {
         setLoading(false);

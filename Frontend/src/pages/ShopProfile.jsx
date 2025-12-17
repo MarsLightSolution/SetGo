@@ -38,6 +38,7 @@ import {
   ToastifyContainer,
 } from "../Hooks/Tostify";
 import Footer from "../components/common/Footer";
+import logger from "../utils/logger";
 
 const ShopProfile = () => {
   const { id } = useParams();
@@ -71,16 +72,16 @@ const ShopProfile = () => {
           { method: "GET", credentials: "include" }
         );
 
-        console.log("ShopProfile fetch response status:", res.status);
+        // Remove console logs for production
 
         if (!res.ok) {
-          console.log("Shop not found, redirecting...");
+          logger.error("Shop not found", { shopId: id, status: res.status });
           navigate("/shops");
           return;
         }
 
         const data = await res.json();
-        console.log("ShopProfile data:", data);
+        // Remove console logs for production
 
         if (data.success && data.data) {
           setShop(data.data);
@@ -96,7 +97,7 @@ const ShopProfile = () => {
           navigate("/shops");
         }
       } catch (error) {
-        console.error("Error fetching shop:", error);
+        logger.error("Failed to fetch shop", { error, shopId: id });
         navigate("/shops");
       } finally {
         setLoading(false);
@@ -131,7 +132,7 @@ const ShopProfile = () => {
         setTotalPages(data.pagination?.totalPages || 1);
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      logger.error("Failed to fetch shop products", { error, shopId: shop._id });
     } finally {
       setProductsLoading(false);
     }
@@ -164,7 +165,7 @@ const ShopProfile = () => {
         showErrorToast(data.message);
       }
     } catch (error) {
-      console.error("Error following shop:", error);
+      logger.error("Failed to follow/unfollow shop", { error, shopId: shop._id });
       showErrorToast(t("common.error") || "Something went wrong");
     }
   };

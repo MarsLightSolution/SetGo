@@ -26,6 +26,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import imageCompression from "browser-image-compression";
 import heic2any from "heic2any";
+import logger from "../utils/logger";
 
 const Form = () => {
   const { t } = useTranslation();
@@ -106,7 +107,7 @@ const Form = () => {
           setPostToShop(false);
         }
       } catch (error) {
-        console.error("Error fetching shop:", error);
+        logger.error("Failed to fetch user shop", { error });
         setHasShop(false);
         setPostToShop(false);
       } finally {
@@ -131,7 +132,7 @@ const Form = () => {
           }));
         },
         (err) => {
-          console.error("Geolocation error:", err);
+          logger.error("Geolocation error", { error: err });
         }
       );
     }
@@ -208,7 +209,7 @@ const Form = () => {
           compressedFiles.push(compressedFile);
           previews.push(URL.createObjectURL(compressedFile));
         } catch (err) {
-          console.warn(`Skipping file ${file.name}:`, err);
+          logger.error("File processing failed", { fileName: file.name, error: err });
           if (err !== undefined) showErrorToast(`${t("Dimension exceeded")}`);
         }
       }
@@ -361,7 +362,7 @@ const Form = () => {
         showErrorToast(data.message || t("form.somethingWentWrong"));
       }
     } catch (error) {
-      console.error("Error submitting ad:", error);
+      logger.error("Failed to submit ad", { error });
       showErrorToast(t("form.failedToSubmitForm"));
     } finally {
       setLoading(false);

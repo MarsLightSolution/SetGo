@@ -22,6 +22,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import ShareModal from "../components/Popups/ShareModal";
+import logger from "../utils/logger";
 
 // i18n import
 import { useTranslation } from "react-i18next";
@@ -91,7 +92,7 @@ const ProductDetail = () => {
     e.stopPropagation();
 
     if (!user) {
-      alert(t("productDetail.loginToWatchlist"));
+      toast.info(t("productDetail.loginToWatchlist"));
       return;
     }
 
@@ -110,7 +111,7 @@ const ProductDetail = () => {
       try {
         setUser(JSON.parse(storedUser));
       } catch (e) {
-        console.error("Error parsing userData:", e);
+        logger.error("Error parsing userData", e);
       }
     }
   }, []);
@@ -121,7 +122,6 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (product?._id) {
-      console.log("🔍 Fetching reviews for product:", product._id);
       fetchReviewSummary();
       fetchReviews();
     }
@@ -140,7 +140,7 @@ const ProductDetail = () => {
       );
 
       if (!res.ok) {
-        console.error("Failed to fetch product:", res.status, res.statusText);
+        logger.error("Failed to fetch product", null, { status: res.status, statusText: res.statusText, productId: id });
         setProduct(null);
         return;
       }
@@ -148,7 +148,7 @@ const ProductDetail = () => {
       const result = await res.json();
       setProduct(result.data);
     } catch (error) {
-      console.error("Error fetching product:", error);
+      logger.error("Error fetching product", error, { productId: id });
       setProduct(null);
     } finally {
       setLoading(false);
@@ -171,7 +171,7 @@ const ProductDetail = () => {
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 3);
       setRelatedProducts(filtered || []);
     } catch (err) {
-      console.error("Failed to fetch related products", err);
+      logger.error("Failed to fetch related products", err, { category: categoryName });
     }
   };
 
@@ -185,22 +185,18 @@ const ProductDetail = () => {
   const fetchReviewSummary = async () => {
     try {
       const url = `${import.meta.env.VITE_SERVER}/reviews/product/${id}/summary`;
-      console.log("📊 Fetching review summary from:", url);
-      
+
       const res = await fetch(url, {
         credentials: "include",
       });
 
-      console.log("📊 Review summary response status:", res.status);
-
       if (!res.ok) {
-        console.error("❌ Failed to fetch review summary:", res.status);
+        logger.error("Failed to fetch review summary", null, { status: res.status, productId: id });
         return;
       }
 
       const result = await res.json();
-      console.log("📊 Review summary full response:", result);
-      
+
       if (result.success && result.data) {
         // Transform the distribution from controller format to frontend format
         const transformedSummary = {
@@ -214,11 +210,10 @@ const ProductDetail = () => {
             1: result.data.distribution?.oneStar || 0,
           }
         };
-        console.log("📊 Transformed summary:", transformedSummary);
         setReviewSummary(transformedSummary);
       }
     } catch (error) {
-      console.error("❌ Error fetching review summary:", error);
+      logger.error("Error fetching review summary", error, { productId: id });
     }
   };
 
@@ -226,31 +221,26 @@ const ProductDetail = () => {
     setReviewsLoading(true);
     try {
       let url = `${import.meta.env.VITE_SERVER}/reviews/product/${id}?page=${currentPage}&limit=${reviewsPerPage}&sortBy=${sortBy}`;
-      
+
       if (filterRating) {
         url += `&rating=${filterRating}`;
       }
-
-      console.log("📝 Fetching reviews from:", url);
 
       const res = await fetch(url, {
         credentials: "include",
       });
 
-      console.log("📝 Reviews response status:", res.status);
-
       if (!res.ok) {
-        console.error("❌ Failed to fetch reviews:", res.status);
+        logger.error("Failed to fetch reviews", null, { status: res.status, productId: id });
         return;
       }
 
       const result = await res.json();
-      console.log("📝 Reviews full response:", result);
-      
+
       if (result.success) {
         // The controller returns reviews directly in 'data', not 'data.reviews'
         const reviewsData = result.data || [];
-        
+
         // Transform reviews to include buyer name
         const transformedReviews = reviewsData.map(review => ({
           ...review,
@@ -261,13 +251,12 @@ const ProductDetail = () => {
             respondedAt: review.sellerResponse.respondedAt
           } : null
         }));
-        
-        console.log("📝 Transformed reviews:", transformedReviews);
+
         setReviews(transformedReviews);
         setTotalPages(result.pagination?.totalPages || 1);
       }
     } catch (error) {
-      console.error("❌ Error fetching reviews:", error);
+      logger.error("Error fetching reviews", error, { productId: id });
     } finally {
       setReviewsLoading(false);
     }
@@ -305,7 +294,7 @@ const ProductDetail = () => {
       toast.success("Review marked as helpful!");
       fetchReviews();
     } catch (error) {
-      console.error("Error marking review as helpful:", error);
+      logger.error("Error marking review as helpful", error, { reviewId });
       toast.error("Failed to mark review as helpful");
     }
   };
@@ -348,11 +337,11 @@ const ProductDetail = () => {
     const ownerId = product?.owner?._id || product?.owner;
 
     if (!userId) {
-      alert(t("productDetail.loginToBuy"));
+      toast.info(t("productDetail.loginToBuy"));
       return;
     }
     if (!ownerId) {
-      alert(t("productDetail.ownerInfoMissing"));
+      toast.error(t("productDetail.ownerInfoMissing"));
       return;
     }
 
@@ -370,23 +359,23 @@ const ProductDetail = () => {
           },
         });
       } else {
-        alert(t("productDetail.failedToLoadUserData"));
+        toast.error(t("productDetail.failedToLoadUserData"));
       }
     } catch (err) {
-      console.error("Error fetching user:", err);
-      alert(t("productDetail.errorLoadingUserData"));
+      logger.error("Error fetching user for checkout", err, { userId });
+      toast.error(t("productDetail.errorLoadingUserData"));
     }
   };
 
   const handleSendMessage = async () => {
     if (!user) {
-      alert(t("productDetail.loginToMessage"));
+      toast.info(t("productDetail.loginToMessage"));
       return;
     }
 
     const ownerId = product?.owner?._id || product?.owner;
     if (!ownerId) {
-      alert(t("productDetail.ownerInfoMissingMessaging"));
+      toast.error(t("productDetail.ownerInfoMissingMessaging"));
       return;
     }
 
@@ -407,7 +396,7 @@ const ProductDetail = () => {
       const data = await res.json();
 
       if (!data.success) {
-        alert(data.message || t("productDetail.failedToStartConversation"));
+        toast.error(data.message || t("productDetail.failedToStartConversation"));
         return;
       }
 
@@ -432,8 +421,8 @@ const ProductDetail = () => {
         },
       });
     } catch (err) {
-      console.error("Error starting chat:", err);
-      alert(t("productDetail.anErrorOccurred"));
+      logger.error("Error starting chat", err, { userId: user._id, ownerId });
+      toast.error(t("productDetail.anErrorOccurred"));
     }
   };
 
@@ -454,13 +443,13 @@ const ProductDetail = () => {
       const data = await res.json();
       setIsFollowing(data?.isFollowing);
     } catch (err) {
-      console.error("Error checking follow status", err);
+      logger.error("Error checking follow status", err, { followerId, followingId });
     }
   };
 
   const handleFollowToggle = async () => {
     if (!user || !ownerId) {
-      alert(t("productDetail.authRequiredFollow"));
+      toast.info(t("productDetail.authRequiredFollow"));
       return;
     }
     setFollowLoading(true);
@@ -491,11 +480,11 @@ const ProductDetail = () => {
       } else {
         const errorMsg =
           result.message || t("productDetail.followUnfollowFailed");
-        alert(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
-      console.error("Follow/Unfollow error:", err);
-      alert(t("productDetail.anErrorOccurred"));
+      logger.error("Follow/Unfollow error", err, { userId: user._id, ownerId });
+      toast.error(t("productDetail.anErrorOccurred"));
     } finally {
       setFollowLoading(false);
     }

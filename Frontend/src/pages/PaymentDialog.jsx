@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import logger from "../utils/logger";
 
 // Simple CSS-based status indicators (no external dependencies)
 const StatusIndicator = ({ status }) => {
@@ -184,8 +185,7 @@ const PaymentDialog = ({
         
       },
     };
-    console.log(payload);
-    
+
    try {
     const res = await fetch(
       `${import.meta.env.VITE_SERVER}/api/payments/initiate`,
@@ -198,8 +198,6 @@ const PaymentDialog = ({
         body: JSON.stringify(payload),
       }
     );
-      // console.log(res);
-      
 
       const data = await res.json().catch(() => ({}));
 
@@ -214,15 +212,10 @@ const PaymentDialog = ({
         }, 2000);
         return;
       }
-      console.log(data.data);
-      
-      console.log(data.completed);
-      
 
       if (data.success === true) {
         // If payment completed without redirect (wallet-only payment)
         if (data.completed === true) {
-          console.log("Payment completed successfully");
           setStatus("SUCCESS");
 
           // Notify parent component
@@ -259,7 +252,7 @@ const PaymentDialog = ({
         );
       }
     } catch (err) {
-      console.error("Payment error:", err);
+      logger.error("Payment error", err, { productId: product._id, userId });
       setStatus("FAILURE");
       setErrorMessage("Network error. Please check your connection.");
     }

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { closeConcernWithMessage, addAdminResponse, updateConcernStatus } from "./queryApi";
-import { 
-  Package, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
-  MessageSquare, 
+import { toast } from "react-hot-toast";
+import logger from "./utils/logger";
+import {
+  Package,
+  CheckCircle,
+  Clock,
+  XCircle,
+  MessageSquare,
   Send,
   X,
   Calendar,
@@ -74,7 +76,7 @@ export default function MyQueries() {
         setQueries(data.concerns);
       }
     } catch (error) {
-      console.error("Error fetching queries:", error);
+      logger.error("Failed to fetch queries", { error, userId });
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ export default function MyQueries() {
         setShowDetails(true);
       }
     } catch (error) {
-      console.error("Error fetching query details:", error);
+      logger.error("Failed to fetch query details", { error, concernId });
     }
   };
 
@@ -102,7 +104,7 @@ export default function MyQueries() {
 
   const handleCloseQueryWithMessage = async () => {
     if (!closeMessage.trim()) {
-      alert("Please enter a closing message for the user.");
+      toast.error("Please enter a closing message for the user.");
       return;
     }
 
@@ -115,15 +117,15 @@ export default function MyQueries() {
       );
 
       if (result.success) {
-        alert("✅ Query closed successfully! Email sent to user.");
+        toast.success("Query closed successfully! Email sent to user.");
         setShowCloseModal(false);
         setCloseMessage("");
         setShowDetails(false);
         fetchQueries();
       }
     } catch (err) {
-      console.error("Error closing query:", err);
-      alert("❌ Failed to close query. Please try again.");
+      logger.error("Failed to close query", { error: err, concernId: selectedQuery._id });
+      toast.error("Failed to close query. Please try again.");
     } finally {
       setClosingQuery(false);
     }
@@ -136,7 +138,7 @@ export default function MyQueries() {
 
   const handleSendAdminResponse = async () => {
     if (!responseMessage.trim()) {
-      alert("Please enter a response message.");
+      toast.error("Please enter a response message.");
       return;
     }
 
@@ -149,15 +151,15 @@ export default function MyQueries() {
       );
 
       if (result.success) {
-        alert("✅ Response sent successfully!");
+        toast.success("Response sent successfully!");
         setShowResponseModal(false);
         setResponseMessage("");
         fetchQueryDetails(selectedQuery._id);
         fetchQueries();
       }
     } catch (err) {
-      console.error("Error sending response:", err);
-      alert("❌ Failed to send response. Please try again.");
+      logger.error("Failed to send admin response", { error: err, concernId: selectedQuery._id });
+      toast.error("Failed to send response. Please try again.");
     } finally {
       setSendingResponse(false);
     }
@@ -169,13 +171,13 @@ export default function MyQueries() {
     try {
       const result = await updateConcernStatus(selectedQuery._id, newStatus);
       if (result.success) {
-        alert(`✅ Status updated to ${newStatus}`);
+        toast.success(`Status updated to ${newStatus}`);
         fetchQueryDetails(selectedQuery._id);
         fetchQueries();
       }
     } catch (err) {
-      console.error("Error updating status:", err);
-      alert("❌ Failed to update status.");
+      logger.error("Failed to update status", { error: err, concernId: selectedQuery._id, newStatus });
+      toast.error("Failed to update status.");
     }
   };
 
@@ -486,7 +488,7 @@ export default function MyQueries() {
                                 alt={`Query attachment ${idx + 1}`}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                 onError={(e) => {
-                                  console.error(`Failed to load image: ${imageUrl}`);
+                                  logger.error("Failed to load query image", { imageUrl });
                                   e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBOb3QgRm91bmQ8L3RleHQ+PC9zdmc+';
                                 }}
                               />
@@ -622,7 +624,7 @@ export default function MyQueries() {
                   alt="Enlarged view"
                   className="max-h-[90vh] max-w-full w-auto h-auto object-contain rounded-2xl shadow-2xl"
                   onError={(e) => {
-                    console.error(`Failed to load enlarged image: ${selectedImage}`);
+                    logger.error("Failed to load enlarged query image", { imageUrl: selectedImage });
                     e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzFmMjkzNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZmZmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBOb3QgRm91bmQ8L3RleHQ+PC9zdmc+';
                   }}
                 />
