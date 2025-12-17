@@ -20,6 +20,8 @@ import { useTranslation } from "react-i18next"
 import i18n from "../i18n"
 
 import { setProducts } from "../slices/productSlices"
+import logger from "../utils/logger"
+import { toast } from "react-hot-toast"
 
 const getLocalizedText = (field) => {
   if (!field) return ""
@@ -59,7 +61,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
   const handleLikeToggle = (e) => {
     e.stopPropagation()
     if (!isAuthenticated()) {
-      alert(t("home.loginToLike"))
+      toast.info(t("home.loginToLike"))
       return
     }
     if (!liked) {
@@ -478,7 +480,7 @@ const Home = () => {
       })
 
       if (!res.ok) {
-        console.error(t("home.fetchProductsError"))
+        logger.error("Failed to fetch products", null, { status: res.status, type });
         return
       }
 
@@ -488,7 +490,7 @@ const Home = () => {
       dispatch(setProducts({ latestAds: products }))
       setLatestPagination(pagination)
     } catch (err) {
-      console.error(t("home.fetchFailed"), err)
+      logger.error("Error fetching products", err, { type });
     }
   }
 
@@ -506,7 +508,7 @@ const Home = () => {
         setShops(data.data || [])
       }
     } catch (error) {
-      console.error("Error fetching shops:", error)
+      logger.error("Error fetching shops", error);
     } finally {
       setShopsLoading(false)
     }
@@ -552,7 +554,7 @@ const Home = () => {
       })
 
       if (!response.ok) {
-        console.error("Failed to fetch gallery data")
+        logger.error("Failed to fetch gallery data", null, { status: response.status });
         return
       }
 
@@ -578,7 +580,7 @@ const Home = () => {
 
       setGalleryData(mappedProducts)
     } catch (error) {
-      console.error("Error fetching gallery data:", error)
+      logger.error("Error fetching gallery data", error);
     } finally {
       setGalleryLoading(false)
     }

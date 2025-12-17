@@ -3,6 +3,7 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
+import logger from "../utils/logger";
 
 const LOTTIES = {
   LOADING: "https://lottie.host/b929aa99-cfcf-4ce7-bdf5-61cad2c3f6f8/wL9y4hrffB.lottie",
@@ -133,7 +134,7 @@ const PaymentDialogboast = ({ product, user, owner, onClose, onPaymentSuccess })
         setStatus("FAILURE");
       }
     } catch (err) {
-      console.error(err);
+      logger.error("Wallet transfer failed", err, { userId: user._id, amount: price });
       setStatus("FAILURE");
     }
   };
@@ -170,7 +171,7 @@ const PaymentDialogboast = ({ product, user, owner, onClose, onPaymentSuccess })
         setStatus("FAILURE");
       }
     } catch (err) {
-      console.error(err);
+      logger.error("Online payment failed", err, { userId: user._id, productId: product._id });
       setStatus("FAILURE");
     }
   };
