@@ -33,14 +33,19 @@ const hideTabsRoutes = [
 
   // From incoming branch
   '/UserInfo/EditForm',
-  '/confirm'
+  '/confirm',
+
+  // Shop routes
+  '/shops',
+  '/shop'
 ];
 
 // Check if current route should hide tabs
 const shouldHideTabs =
   hideTabsRoutes.some(route => pathname?.startsWith(route)) ||
   pathname?.startsWith('/product/') ||
-  pathname?.startsWith('/order/');
+  pathname?.startsWith('/order/') ||
+  pathname?.startsWith('/shop/');
 
 return (
   <>
@@ -150,15 +155,33 @@ return (
         />
 
         {/* Categories screen */}
-        <Stack.Screen 
-          name="categories/index" 
-          options={{ 
+        <Stack.Screen
+          name="categories/index"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
+        />
+
+        {/* Shop screens */}
+        <Stack.Screen
+          name="shops/index"
+          options={{
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }}
+        />
+
+        <Stack.Screen
+          name="shop/[id]"
+          options={{
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }}
         />
       </Stack>
       {!shouldHideTabs && <BottomTabBar />}
+      <Toast />
     </>
   );
 }

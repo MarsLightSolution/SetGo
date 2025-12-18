@@ -1,27 +1,24 @@
-import { useEffect, useState , useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-} from 'react-native';
 import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Animated,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { productService } from '../services/productService';
-import { useFilters } from '../context/FilterContext';
 import { API_BASE_URL } from '../config/api';
+import { useFilters } from '../context/FilterContext';
+import { productService } from '../services/productService';
 import { useAuthStore } from '../Store/authStore';
-//added wishlist by ashu
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../Store/wishSlice';
-
-//added chatbot by ashu------
-import { Animated } from 'react-native';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -38,15 +35,20 @@ export default function HomeScreen() {
     hasNextPage: false,
     hasPrevPage: false,
   });
-  //added for chatbot by ashu------
-  const [chatVisible, setChatVisible] = useState(false);
-const scaleAnim = useRef(new Animated.Value(1)).current;
-  
+
+  // Shops state
+  const [shops, setShops] = useState([]);
+  const [shopsLoading, setShopsLoading] = useState(false);
+  const [shopsError, setShopsError] = useState(null);
+
+  // Chatbot animation
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     checkAuth();
   }, []);
 
-  //added animation for chatbot button by ashu------
+  // Chatbot button animation
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -62,7 +64,7 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
         }),
       ])
     ).start();
-  }, []);
+  }, [scaleAnim]);
 
   const quickActions = [
     { icon: '🚗', label: 'Vehicles', category: 'Cars & Motorcycles' },
@@ -71,24 +73,32 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
     { icon: '🛋️', label: 'Furniture', category: 'Household & Furniture' },
   ];
 
-  const fetchProducts = async (page = 1) => {
+  // Get localized text helper
+  const getLocalizedText = useCallback((field) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    return field.en || field.az || field.ru || '';
+  }, []);
+
+  // Fetch products
+  const fetchProducts = useCallback(async (page = 1) => {
     try {
       setLoading(true);
-      
+
       const params = {
         page,
         limit: 12,
         ...filters,
       };
 
-      Object.keys(params).forEach(key => {
+      Object.keys(params).forEach((key) => {
         if (params[key] === '' || params[key] === null || params[key] === undefined) {
           delete params[key];
         }
       });
 
       const data = await productService.getProducts(params);
-      
+
       setLatestAds(data.products || []);
       setPagination({
         currentPage: data.currentPage || 1,
@@ -96,62 +106,113 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
         hasNextPage: data.hasNextPage || false,
         hasPrevPage: data.hasPrevPage || false,
       });
-
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [filters]);
 
-  const fetchGalleryProducts = async () => {
+  // Fetch gallery products
+  const fetchGalleryProducts = useCallback(async () => {
     try {
       const data = await productService.getPriorityProducts();
       setGalleryAds(data.products || []);
     } catch (error) {
       console.error('Error fetching gallery:', error);
     }
-  };
+  }, []);
 
+  // Fetch shops - WITH DEBUG LOGGING
+  const fetchShops = useCallback(async () => {
+    console.log('=== FETCHING SHOPS ===');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    
+    setShopsLoading(true);
+    setShopsError(null);
+    
+    try {
+      const url = `${API_BASE_URL}/api/shops?limit=10`;
+      console.log('Fetching from:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Shops API Response:', JSON.stringify(data, null, 2));
+
+      if (data.success) {
+        console.log('Shops found:', data.data?.length || 0);
+        setShops(data.data || []);
+      } else {
+        console.log('API returned success: false');
+        setShopsError(data.message || 'Failed to fetch shops');
+      }
+    } catch (error) {
+      console.error('Error fetching shops:', error);
+      setShopsError(error.message);
+    } finally {
+      setShopsLoading(false);
+    }
+  }, []);
+
+  // Initial load
   useEffect(() => {
     fetchProducts();
     fetchGalleryProducts();
+    fetchShops();
+  }, []);
+
+  // Fetch when filters change
+  useEffect(() => {
+    fetchProducts();
   }, [filters]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchProducts();
     fetchGalleryProducts();
-  };
+    fetchShops();
+  }, [fetchProducts, fetchGalleryProducts, fetchShops]);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     updateFilters({ searchQuery: searchText });
-  };
+  }, [searchText, updateFilters]);
 
-  const handleQuickAction = (category) => {
+  const handleQuickAction = useCallback((category) => {
     updateFilters({ category });
-  };
+  }, [updateFilters]);
 
-  const getImageUrl = (product) => {
+  const getImageUrl = useCallback((product) => {
     if (product.image) return product.image;
     if (product.pictures && product.pictures.length > 0) {
       const picturePath = product.pictures[0].replace(/\\/g, '/');
       return `${API_BASE_URL}/${picturePath}`;
     }
     return 'https://via.placeholder.com/150';
-  };
+  }, []);
 
+  const handleChatbotPress = useCallback(() => {
+    router.push('Chat/chatbot');
+  }, [router]);
+
+  // Ad Card Component
   const AdCard = ({ ad }) => {
     const imageUrl = getImageUrl(ad);
     const title = typeof ad.title === 'object' ? ad.title.en : ad.title;
     const description = typeof ad.description === 'object' ? ad.description.en : ad.description;
 
-    //added wishlist by ashu
-     const { wishlist } = useSelector((state) => state.wishlist);
+    const { wishlist } = useSelector((state) => state.wishlist);
     const isWishlisted = wishlist.some((item) => item._id === ad._id);
-
     const dispatch = useDispatch();
+
     const toggleWishlist = () => {
       if (isWishlisted) {
         dispatch(unlike(ad._id));
@@ -160,41 +221,38 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
       }
     };
 
-
     return (
       <TouchableOpacity
-      style={styles.adCard}
-      onPress={() => router.push(`/product/${ad._id}`)}
-    >
-      {/* Heart Button */}
-      <TouchableOpacity style={styles.likeButton} onPress={toggleWishlist}>
-        <Icon
-          name={isWishlisted ? 'heart' : 'heart'}
-          size={20}
-          color={isWishlisted ? '#EF4444' : '#D1D5DB'}
-        />
-      </TouchableOpacity>
+        style={styles.adCard}
+        onPress={() => router.push(`/product/${ad._id}`)}
+      >
+        <TouchableOpacity style={styles.likeButton} onPress={toggleWishlist}>
+          <Icon
+            name="heart"
+            size={20}
+            color={isWishlisted ? '#EF4444' : '#D1D5DB'}
+          />
+        </TouchableOpacity>
         <View style={styles.adImage}>
-          <Image 
+          <Image
             source={{ uri: imageUrl }}
             style={styles.adImageContent}
             resizeMode="cover"
           />
         </View>
-
         <View style={styles.adContent}>
-          <Text style={styles.adTitle} numberOfLines={1}>{title || 'No title'}</Text>
+          <Text style={styles.adTitle} numberOfLines={1}>
+            {title || 'No title'}
+          </Text>
           <Text style={styles.adDescription} numberOfLines={2}>
             {description || 'No description'}
           </Text>
-
           <View style={styles.adFooter}>
             <Text style={styles.adPrice}>₼ {ad.price || 0}</Text>
             <View style={styles.conditionBadge}>
               <Text style={styles.conditionText}>{ad.condition || 'Used'}</Text>
             </View>
           </View>
-
           <View style={styles.adMeta}>
             <View style={styles.seller}>
               <Icon name="user" size={12} color="#9CA3AF" />
@@ -209,16 +267,125 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
     );
   };
 
-  //added chatbot navigation handler by ashu------
-  const handleChatbotPress = () => {
-    // Try the correct route based on your file structure
-    // If file is at: app/chat/chatbot.jsx -> route is '/chat/chatbot'
-    router.push('Chat/chatbot');
+  // Shop Card Component
+  const ShopCard = ({ shop }) => {
+    const shopName = getLocalizedText(shop.shopName);
+    const logoUri = shop.logo ? `${API_BASE_URL}${shop.logo}` : null;
+    const bannerUri = shop.banner ? `${API_BASE_URL}${shop.banner}` : null;
+
+    return (
+      <TouchableOpacity
+        style={styles.shopCard}
+        onPress={() => router.push(`/shop/${shop.slug || shop._id}`)}
+      >
+        <View style={styles.shopBanner}>
+          {bannerUri ? (
+            <Image
+              source={{ uri: bannerUri }}
+              style={styles.shopBannerImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.shopBannerPlaceholder} />
+          )}
+        </View>
+        <View style={styles.shopContent}>
+          <View style={styles.shopLogoContainer}>
+            {logoUri ? (
+              <Image
+                source={{ uri: logoUri }}
+                style={styles.shopLogo}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.shopLogoPlaceholder}>
+                <Icon name="shopping-bag" size={20} color="#FFFFFF" />
+              </View>
+            )}
+          </View>
+          <Text style={styles.shopName} numberOfLines={1}>
+            {shopName}
+          </Text>
+          <Text style={styles.shopCategory} numberOfLines={1}>
+            {shop.category || 'General'}
+          </Text>
+          <View style={styles.shopStats}>
+            <View style={styles.shopStatItem}>
+              <Icon name="package" size={12} color="#6B7280" />
+              <Text style={styles.shopStatText}>
+                {shop.totalProducts || 0} products
+              </Text>
+            </View>
+            {shop.address?.city && (
+              <Text style={styles.shopCity} numberOfLines={1}>
+                {shop.address.city}
+              </Text>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Shops Section Component - ALWAYS VISIBLE FOR DEBUGGING
+  const ShopsSection = () => {
+    // Debug info
+    console.log('ShopsSection render - loading:', shopsLoading, 'shops:', shops.length, 'error:', shopsError);
+
+    return (
+      <View style={styles.shopsSection}>
+        {/* Header - Always show */}
+        <View style={styles.shopsSectionHeader}>
+          <View style={styles.shopsTitleRow}>
+            <Icon name="shopping-bag" size={20} color="#008235" />
+            <Text style={styles.shopsSectionTitle}>Featured Shops</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => router.push('/shops')}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <Icon name="chevron-right" size={16} color="#008235" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Content based on state */}
+        {shopsLoading ? (
+          <View style={styles.shopsLoading}>
+            <ActivityIndicator size="small" color="#008235" />
+            <Text style={styles.loadingText}>Loading shops...</Text>
+          </View>
+        ) : shopsError ? (
+          <View style={styles.shopsError}>
+            <Icon name="alert-circle" size={24} color="#EF4444" />
+            <Text style={styles.errorText}>Error: {shopsError}</Text>
+            <TouchableOpacity onPress={fetchShops} style={styles.retryButton}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : shops.length === 0 ? (
+          <View style={styles.shopsEmpty}>
+            <Icon name="shopping-bag" size={32} color="#D1D5DB" />
+            <Text style={styles.emptyShopsText}>No shops available</Text>
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.shopsScrollContent}
+          >
+            {shops.map((shop) => (
+              <ShopCard key={shop._id} shop={shop} />
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    );
   };
 
   return (
     <View style={styles.mainContainer}>
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -231,13 +398,13 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
               <View style={styles.logoCircle}>
                 <Text style={styles.logoText}>S</Text>
               </View>
-              <Text style={styles.logoName}>SATGO</Text>
+              <Text style={styles.logoName}>SETGO</Text>
             </View>
             <View style={styles.headerIcons}>
               <TouchableOpacity style={styles.iconButton}>
                 <Icon name="bell" size={24} color="#FFFFFF" />
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.iconButton}
                 onPress={() => router.push('/filters')}
               >
@@ -259,10 +426,12 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
               returnKeyType="search"
             />
             {searchText.length > 0 && (
-              <TouchableOpacity onPress={() => {
-                setSearchText('');
-                updateFilters({ searchQuery: '' });
-              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSearchText('');
+                  updateFilters({ searchQuery: '' });
+                }}
+              >
                 <Icon name="x" size={20} color="#9CA3AF" />
               </TouchableOpacity>
             )}
@@ -272,8 +441,8 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           {quickActions.map((action, index) => (
-            <TouchableOpacity 
-              key={index} 
+            <TouchableOpacity
+              key={index}
               style={styles.quickActionItem}
               onPress={() => handleQuickAction(action.category)}
             >
@@ -291,12 +460,12 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
             <Text style={styles.sectionTitle}>Featured Products</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {galleryAds.map((ad) => (
-                <TouchableOpacity 
-                  key={ad._id} 
+                <TouchableOpacity
+                  key={ad._id}
                   style={styles.galleryCard}
                   onPress={() => router.push(`/product/${ad._id}`)}
                 >
-                  <Image 
+                  <Image
                     source={{ uri: getImageUrl(ad) }}
                     style={styles.galleryImage}
                     resizeMode="cover"
@@ -310,6 +479,10 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
             </ScrollView>
           </View>
         )}
+
+        {/* ========== FEATURED SHOPS SECTION ========== */}
+        <ShopsSection />
+        {/* ========== END SHOPS SECTION ========== */}
 
         {/* Active Filters */}
         {(filters.category || filters.searchQuery || filters.condition) && (
@@ -327,10 +500,12 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
               {filters.searchQuery && (
                 <View style={styles.filterChip}>
                   <Text style={styles.filterChipText}>"{filters.searchQuery}"</Text>
-                  <TouchableOpacity onPress={() => {
-                    setSearchText('');
-                    updateFilters({ searchQuery: '' });
-                  }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSearchText('');
+                      updateFilters({ searchQuery: '' });
+                    }}
+                  >
                     <Icon name="x" size={14} color="#008235" />
                   </TouchableOpacity>
                 </View>
@@ -361,10 +536,22 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
                 <TouchableOpacity
                   disabled={!pagination.hasPrevPage}
                   onPress={() => fetchProducts(pagination.currentPage - 1)}
-                  style={[styles.paginationButton, !pagination.hasPrevPage && styles.paginationButtonDisabled]}
+                  style={[
+                    styles.paginationButton,
+                    !pagination.hasPrevPage && styles.paginationButtonDisabled,
+                  ]}
                 >
-                  <Icon name="chevron-left" size={20} color={pagination.hasPrevPage ? "#008235" : "#D1D5DB"} />
-                  <Text style={[styles.paginationText, !pagination.hasPrevPage && styles.paginationTextDisabled]}>
+                  <Icon
+                    name="chevron-left"
+                    size={20}
+                    color={pagination.hasPrevPage ? '#008235' : '#D1D5DB'}
+                  />
+                  <Text
+                    style={[
+                      styles.paginationText,
+                      !pagination.hasPrevPage && styles.paginationTextDisabled,
+                    ]}
+                  >
                     Previous
                   </Text>
                 </TouchableOpacity>
@@ -376,12 +563,24 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
                 <TouchableOpacity
                   disabled={!pagination.hasNextPage}
                   onPress={() => fetchProducts(pagination.currentPage + 1)}
-                  style={[styles.paginationButton, !pagination.hasNextPage && styles.paginationButtonDisabled]}
+                  style={[
+                    styles.paginationButton,
+                    !pagination.hasNextPage && styles.paginationButtonDisabled,
+                  ]}
                 >
-                  <Text style={[styles.paginationText, !pagination.hasNextPage && styles.paginationTextDisabled]}>
+                  <Text
+                    style={[
+                      styles.paginationText,
+                      !pagination.hasNextPage && styles.paginationTextDisabled,
+                    ]}
+                  >
                     Next
                   </Text>
-                  <Icon name="chevron-right" size={20} color={pagination.hasNextPage ? "#008235" : "#D1D5DB"} />
+                  <Icon
+                    name="chevron-right"
+                    size={20}
+                    color={pagination.hasNextPage ? '#008235' : '#D1D5DB'}
+                  />
                 </TouchableOpacity>
               </View>
             </>
@@ -394,7 +593,7 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
         </View>
       </ScrollView>
 
-      {/* ============= FLOATING CHATBOT BUTTON - ADDED BY ASHU (FIXED OVERLAY) ============= */}
+      {/* Floating Chatbot Button */}
       <TouchableOpacity
         style={styles.floatingChatButton}
         onPress={handleChatbotPress}
@@ -409,13 +608,11 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
           </View>
         </Animated.View>
       </TouchableOpacity>
-      {/* ============= END FLOATING CHATBOT BUTTON ============= */}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  //added mainContainer for fixed button by ashu------
   mainContainer: {
     flex: 1,
     backgroundColor: '#F9FAFB',
@@ -549,6 +746,173 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#008235',
   },
+
+  // Shops Section Styles
+  shopsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  shopsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  shopsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  shopsSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  shopsScrollContent: {
+    paddingRight: 16,
+  },
+  shopsLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  shopsError: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#008235',
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  shopsEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    gap: 8,
+  },
+  emptyShopsText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#008235',
+  },
+  shopCard: {
+    width: 180,
+    marginRight: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  shopBanner: {
+    width: '100%',
+    height: 60,
+  },
+  shopBannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  shopBannerPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#008235',
+  },
+  shopContent: {
+    padding: 12,
+    paddingTop: 0,
+  },
+  shopLogoContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginTop: -22,
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    backgroundColor: '#008235',
+  },
+  shopLogo: {
+    width: '100%',
+    height: '100%',
+  },
+  shopLogoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#008235',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shopName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  shopCategory: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  shopStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  shopStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  shopStatText: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  shopCity: {
+    fontSize: 11,
+    color: '#6B7280',
+    maxWidth: 70,
+  },
+
+  // Filter styles
   filtersActive: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -578,6 +942,8 @@ const styles = StyleSheet.create({
     color: '#008235',
     fontWeight: '500',
   },
+
+  // Ad card styles
   adsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -707,28 +1073,28 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-  
-  // ============= CHATBOT BUTTON STYLES - ADDED BY ASHU =============
+
+  // Chatbot button styles
   floatingChatButton: {
     position: 'absolute',
-    right: 40,
+    right: 20,
     bottom: 90,
     zIndex: 999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   chatButtonGradient: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#008235',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   chatBadge: {
     position: 'absolute',
@@ -749,5 +1115,4 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#EF4444',
   },
-  // ============= END CHATBOT BUTTON STYLES =============
 });
