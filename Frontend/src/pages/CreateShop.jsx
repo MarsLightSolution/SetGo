@@ -29,6 +29,7 @@ import {
 } from "../Hooks/Tostify";
 import { useTranslation } from "react-i18next";
 import Footer from "../components/common/Footer";
+import logger from "../utils/logger";
 
 const CreateShop = () => {
   const { t, i18n } = useTranslation();
@@ -111,7 +112,7 @@ const CreateShop = () => {
           navigate("/my-shop");
         }
       } catch (error) {
-        console.error("Error checking shop:", error);
+        logger.error("Error checking shop", error);
         // Network error - might not be logged in
         showErrorToast(t("common.pleaseLogin") || "Please login to create a shop");
         navigate("/login");
@@ -272,7 +273,7 @@ const CreateShop = () => {
         showErrorToast(data.message || t("shop.createFailed") || "Failed to create shop");
       }
     } catch (error) {
-      console.error("Error creating shop:", error);
+      logger.error("Error creating shop", error);
       showErrorToast(t("shop.createFailed") || "Failed to create shop. Please try again.");
     } finally {
       setLoading(false);

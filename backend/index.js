@@ -24,12 +24,12 @@ const allowedOrigins = [
   "http://localhost:5173",  // dev
   "http://51.20.123.49",
   "http://172.20.10.2:8081",
-  "http://localhost:8081",
+  "http://localhost:8082",
   "https://tiwari.shop",      // Add this
   "https://www.tiwari.shop",  // Add this
   "http://tiwari.shop",       // Add this (for HTTP redirects)
   "http://www.tiwari.shop",
-  "http://10.113.84.234:8080",
+  "http://10.134.226.234:8080",
   "http://10.150.188.234:8080",  // Add this
 ];
 

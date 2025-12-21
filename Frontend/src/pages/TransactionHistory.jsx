@@ -48,7 +48,7 @@ const TransactionHistory = ({ forcedUserId }) => {
         setTotalCredit(totalCredit || 0);
         setTotalDebit(totalDebit || 0);
       } catch (err) {
-        console.error(
+        logger.error(
           t("transactionHistory.failedToFetchTransactions"),
           err
         );

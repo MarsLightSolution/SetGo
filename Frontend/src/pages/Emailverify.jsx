@@ -25,7 +25,7 @@ function EmailVerify() {
         }
       } catch (err) {
         setMessage("Verification failed or token expired.");
-        console.error("Verification error:", err);
+        logger.error("Verification error:", err);
       }
     };
 

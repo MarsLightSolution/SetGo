@@ -35,11 +35,11 @@ const UserPage = () => {
           setFollowing(data.following || []); // Assuming data.data.following structure
         }
       } else {
-        console.error(`Failed to fetch ${type}:`, data.message);
+        logger.error(`Failed to fetch ${type}:`, data.message);
         // Optionally toast error
       }
     } catch (err) {
-      console.error(`Error fetching ${type}:`, err);
+      logger.error(`Error fetching ${type}:`, err);
       // Optionally toast error
     } finally {
       setLoading(false);

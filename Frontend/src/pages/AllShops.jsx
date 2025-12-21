@@ -84,7 +84,7 @@ const AllShops = () => {
           setTotalPages(data.pagination?.totalPages || 1);
         }
       } catch (error) {
-        console.error("Error fetching shops:", error);
+        logger.error("Error fetching shops:", error);
       } finally {
         setLoading(false);
       }

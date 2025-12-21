@@ -171,7 +171,7 @@ const EditShop = () => {
           setBannerPreview(`${import.meta.env.VITE_SERVER}${shop.banner}`);
         }
       } catch (error) {
-        console.error("Error fetching shop:", error);
+        logger.error("Error fetching shop:", error);
         showErrorToast(t("shop.fetchError") || "Failed to load shop data");
         navigate("/my-shop");
       } finally {
@@ -333,7 +333,7 @@ const EditShop = () => {
         showErrorToast(data.message || t("shop.updateFailed") || "Failed to update shop");
       }
     } catch (error) {
-      console.error("Error updating shop:", error);
+      logger.error("Error updating shop:", error);
       showErrorToast(t("shop.updateFailed") || "Failed to update shop");
     } finally {
       setLoading(false);
@@ -360,7 +360,7 @@ const EditShop = () => {
         showErrorToast(data.message || t("shop.deleteFailed") || "Failed to delete shop");
       }
     } catch (error) {
-      console.error("Error deleting shop:", error);
+      logger.error("Error deleting shop:", error);
       showErrorToast(t("shop.deleteFailed") || "Failed to delete shop");
     } finally {
       setDeleting(false);
