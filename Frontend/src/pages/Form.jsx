@@ -572,28 +572,25 @@ const Form = () => {
 
               <TextField
                 select
-                label={t("form.condition") || "Condition"}
+                label={t("Condition") || "Condition"}
                 name="condition"
                 value={formData.condition}
                 onChange={handleChange}
                 fullWidth
               >
-                <MenuItem value="">
-                  {t("form.selectCondition") || "Select condition"}
-                </MenuItem>
-                <MenuItem value="New">{t("form.conditionNew") || "New"}</MenuItem>
+                <MenuItem value="New">{t("New") || "New"}</MenuItem>
                 <MenuItem value="Like New">
-                  {t("form.conditionLikeNew") || "Like New"}
+                  {t("Like New") || "Like New"}
                 </MenuItem>
                 <MenuItem value="Used">
-                  {t("form.conditionUsed") || "Used"}
+                  {t("Used") || "Used"}
                 </MenuItem>
                 <MenuItem value="Defective / Needs Repair">
-                  {t("form.conditionDefective") || "Defective / Needs Repair"}
+                  {t("Defective / Needs Repair") || "Defective / Needs Repair"}
                 </MenuItem>
               </TextField>
               <TextField
-                label={t("form.description") || "Description"}
+                label={t("Description") || "Description"}
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
@@ -746,11 +743,11 @@ const Form = () => {
               disabled
               helperText={
                 <span>
-                  {t("form.nameHelper") || "Your display name"} <br />
-                  <strong>{t("form.note") || "Note"}:</strong>{" "}
-                  {t("form.forMoreInfo") || "For more info, visit"}{" "}
+                  {t("Your display name") || "Your display name"} <br />
+                  <strong>{t("Note") || "Note"}:</strong>{" "}
+                  {t("For more info, visit") || "For more info, visit"}{" "}
                   <a href="#" className="text-blue-600 underline">
-                    {t("form.helpCenter") || "Help Center"}
+                    {t("Help Center") || "Help Center"}
                   </a>
                 </span>
               }
@@ -778,16 +775,18 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label={t("form.termsAndConditions")}
+              label={t("Terms And Conditions")}
             />
             <p className="text-xs text-gray-500 mt-2">
-              {t("form.termsText1", {
-                termsLink: (
-                  <a href="#" className="text-blue-600 underline">
-                    {t("form.termsOfUse")}
-                  </a>
-                ),
-              })}
+              By checking this box, you agree to our{" "}
+              <a href="#" className="text-blue-600 underline">
+                Terms of Use
+              </a>
+              {" "}and{" "}
+              <a href="#" className="text-blue-600 underline">
+                Privacy Policy
+              </a>
+              .
             </p>
           </div>
 
@@ -804,10 +803,10 @@ const Form = () => {
             startIcon={hasShop && postToShop ? <StoreIcon /> : null}
           >
             {loading
-              ? t("common.loading") || "Loading..."
+              ? t("Loading...") || "Loading..."
               : hasShop && postToShop
-              ? t("form.publishToShop") || "Publish to Shop"
-              : t("form.publishAd") || "Publish Ad"}
+              ? t("Publish to Shop") || "Publish to Shop"
+              : t("Publish Ad") || "Publish Ad"}
           </Button>
 
           {/* Create Shop CTA - Show if user doesn't have shop */}
@@ -819,10 +818,10 @@ const Form = () => {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-800">
-                    {t("form.wantToSellMore") || "Want to sell more?"}
+                    {t("Want to sell more?") || "Want to sell more?"}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {t("form.createShopDesc") || "Create your own shop, build your brand, and reach more customers."}
+                    {t("Create your own shop, build your brand, and reach more customers.") || "Create your own shop, build your brand, and reach more customers."}
                   </p>
                 </div>
                 <Button
@@ -831,7 +830,7 @@ const Form = () => {
                   href="/create-shop"
                   className="whitespace-nowrap"
                 >
-                  {t("form.createShop") || "Create Shop"}
+                  {t("CreateShop") || "Create Shop"}
                 </Button>
               </div>
             </div>
