@@ -137,6 +137,13 @@ const ShopProfile = () => {
     }
   };
 
+  // Fetch products when shop is loaded
+  useEffect(() => {
+    if (shop?._id) {
+      fetchProducts(page);
+    }
+  }, [shop?._id, page]);
+
   // Handle follow/unfollow
   const handleFollow = async () => {
     try {
