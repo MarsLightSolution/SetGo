@@ -77,6 +77,13 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    quantity: {
+      type: Number,
+      required: true,
+      default: 1,
+      min: 0,
+      index: true, // ✅ index for faster queries on availability
+    },
     priority: {
       type: Boolean,
       default: false, // ✅ false by default, admin can set to true

@@ -178,6 +178,7 @@ const addProduct = asyncHandler(async (req, res) => {
     subscribe: subscribe === "true" || subscribe === true,
     isBuy: isBuy === "true" || isBuy === true,
     isSell: isSell === "true" || isSell === true,
+    quantity: Number(quantity) || 1, // ✅ NEW: Default to 1 if not provided
     owner: user || null,
     shop: validShopId,                                // ✅ NEW: Add shop reference
     listingType: validShopId ? "shop" : "individual", // ✅ NEW: Set listing type
@@ -294,6 +295,7 @@ const getProducts = asyncHandler(async (req, res) => {
   // ✅ General filter stage
   const matchStage = {
     isSell: false,
+    quantity: { $gt: 0 }, // ✅ NEW: Only show products with quantity > 0
     price: {
       $gte: Number(minPrice),
       $lte: Number(maxPrice),
@@ -382,6 +384,7 @@ const getProducts = asyncHandler(async (req, res) => {
       owner: 1,
       isBuy: 1,
       isSell: 1,
+      quantity: 1,          // ✅ NEW: Include quantity
       createdAt: 1,
       updatedAt: 1,
       shop: 1,              // ✅ NEW
@@ -498,6 +501,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
   const products = await Product.find({
     category: new RegExp(`^${category.trim()}$`, "i"),
     isSell: false,
+    quantity: { $gt: 0 }, // ✅ NEW: Only show products with quantity > 0
   })
     .populate({
       path: "shop",
@@ -858,6 +862,7 @@ const getPriorityProducts = asyncHandler(async (req, res) => {
   const matchStage = {
     price: { $gte: Number(minPrice), $lte: Number(maxPrice) },
     priority: true,
+    quantity: { $gt: 0 }, // ✅ NEW: Only show products with quantity > 0
   };
 
   pipeline.push({ $match: matchStage });
@@ -899,6 +904,7 @@ const getPriorityProducts = asyncHandler(async (req, res) => {
       location: 1,
       owner: 1,
       priority: 1,
+      quantity: 1,          // ✅ NEW: Include quantity
       createdAt: 1,
       shop: 1,              // ✅ NEW
       listingType: 1,       // ✅ NEW
@@ -978,6 +984,7 @@ const getProductsByShop = asyncHandler(async (req, res) => {
   const matchStage = {
     shop: new mongoose.Types.ObjectId(shopId),
     isSell: false,
+    quantity: { $gt: 0 }, // ✅ NEW: Only show products with quantity > 0
   };
 
   if (category) {
@@ -999,6 +1006,7 @@ const getProductsByShop = asyncHandler(async (req, res) => {
         price: 1,
         condition: 1,
         pictures: 1,
+        quantity: 1, // ✅ NEW: Include quantity
         createdAt: 1,
       },
     },

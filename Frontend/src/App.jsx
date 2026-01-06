@@ -5,18 +5,6 @@ import NotificationProvider from './contexts/NotificationContext'
 import Navbar from './components/common/Navbar'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
-import CheckoutPage from './components/Checkout/Checkout'
-import MyOrders from './components/Order/MyOrders'
-import OrderDetail from './components/Order/OrderDetail'
-import SellerAdminDashboard from './components/Admin/SellerAdmin'
-import AdminOrders from './components/Admin/Adminpanel'
-import AdminRoute from './components/Admin/AdminRoute' 
-import Dashboard from './components/common/Dashboard'
-import CreateShop from "./pages/CreateShop";
-import MyShop from "./pages/MyShop";
-import AllShops from "./pages/AllShops";
-import ShopProfile from "./pages/ShopProfile";
-import EditShop from "./pages/EditShop";
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
 const Register = lazy(() => import('./pages/Register'))
@@ -47,6 +35,18 @@ const Notifications = lazy(() => import('./pages/Notifications'))
 const Chatbot = lazy(() => import('../src/chatbot'))
 const RaiseQuery = lazy(() => import('../src/Raisequery'))
 const MyQueries = lazy(() => import('../src/MyQueries'))
+const CheckoutPage = lazy(() => import('./components/Checkout/Checkout'))
+const MyOrders = lazy(() => import('./components/Order/MyOrders'))
+const OrderDetail = lazy(() => import('./components/Order/OrderDetail'))
+const SellerAdminDashboard = lazy(() => import('./components/Admin/SellerAdmin'))
+const AdminOrders = lazy(() => import('./components/Admin/Adminpanel'))
+const AdminRoute = lazy(() => import('./components/Admin/AdminRoute'))
+const Dashboard = lazy(() => import('./components/common/Dashboard'))
+const CreateShop = lazy(() => import('./pages/CreateShop'))
+const MyShop = lazy(() => import('./pages/MyShop'))
+const AllShops = lazy(() => import('./pages/AllShops'))
+const ShopProfile = lazy(() => import('./pages/ShopProfile'))
+const EditShop = lazy(() => import('./pages/EditShop'))
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   TextField,
   Button,
@@ -8,11 +8,13 @@ import {
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import { CloudUpload as CloudUploadIcon, Close as CloseIcon } from "@mui/icons-material";
+import axios from "axios";
 import {
   showSuccessToast,
   showErrorToast,
   ToastifyContainer,
 } from "../../Hooks/Tostify";
+import imageCompression from "browser-image-compression";
 
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n'; // Import i18n instance
@@ -42,6 +44,14 @@ const EditForm = () => {
   const [initialImageUrls, setInitialImageUrls] = useState([]);
   const [newlySelectedFiles, setNewlySelectedFiles] = useState([]);
   const [errors, setErrors] = useState({});
+
+  // Fix memory leak: Memoize object URLs so they aren't recreated on every render
+  const newlySelectedFileUrls = useMemo(() => {
+    return newlySelectedFiles.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+  }, [newlySelectedFiles]);
 
   // --- Category Keys and Helpers (Crucial for Translation & Data Mapping) ---
   const categoryKeys = [
@@ -97,12 +107,12 @@ const EditForm = () => {
   useEffect(() => {
     const fetchAd = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_SERVER}/api/products/product/${id}?lang=${i18n.language}`, {
-          credentials: "include",
+        const response = await axios.get(`${import.meta.env.VITE_SERVER}/api/products/product/${id}?lang=${i18n.language}`, {
+          withCredentials: true,
         });
-        const data = await res.json();
-        if (res.ok) {
-          const product = data.data;
+
+        if (response.data && response.data.data) {
+          const product = response.data.data;
 
           const initialTitle = product.title?.[i18n.language] || product.title?.en || "";
           const initialDescription = product.description?.[i18n.language] || product.description?.en || "";
@@ -140,7 +150,7 @@ const EditForm = () => {
     fetchAd();
   }, [id, i18n.language, t]);
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value, type, checked, files } = e.target;
     let updatedValue = type === "checkbox" ? checked : value;
     let newErrors = { ...errors };
@@ -178,7 +188,31 @@ const EditForm = () => {
             if (fileInputRef.current) fileInputRef.current.value = null;
             return;
         }
-        setNewlySelectedFiles((prev) => [...prev, ...selectedFiles]);
+
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+
+        try {
+          const compressedFiles = await Promise.all(
+            selectedFiles.map(async (file) => {
+              if (file.type.startsWith("image/")) {
+                try {
+                  return await imageCompression(file, options);
+                } catch (error) {
+                  console.error("Compression failed for", file.name, error);
+                  return file; // Fallback to original if compression fails
+                }
+              }
+              return file;
+            })
+          );
+          setNewlySelectedFiles((prev) => [...prev, ...compressedFiles]);
+        } catch (error) {
+          console.error("Error processing files", error);
+        }
     } else {
         setFormData((prev) => ({
             ...prev,
@@ -195,6 +229,7 @@ const EditForm = () => {
     } else if (type === 'new') {
       const updatedFiles = [...newlySelectedFiles];
       const removedFile = updatedFiles.splice(index, 1)[0];
+      updatedFiles.splice(index, 1);
       setNewlySelectedFiles(updatedFiles);
       URL.revokeObjectURL(URL.createObjectURL(removedFile));
     }
@@ -205,9 +240,10 @@ const EditForm = () => {
 
   useEffect(() => {
     return () => {
-      newlySelectedFiles.forEach((file) => URL.revokeObjectURL(URL.createObjectURL(file)));
+      // Cleanup URLs when component unmounts or files change
+      newlySelectedFileUrls.forEach((item) => URL.revokeObjectURL(item.url));
     };
-  }, [newlySelectedFiles]);
+  }, [newlySelectedFileUrls]);
 
 
 const handleSubmit = async (e) => {
@@ -253,18 +289,15 @@ const handleSubmit = async (e) => {
     }
 
     // --- API call ---
-    const response = await fetch(`${import.meta.env.VITE_SERVER}/api/products/product/${id}`, {
-      method: "PUT",
-      credentials: "include",
-      body: updatedData,
+    const accessToken = localStorage.getItem("accessToken");
+    const response = await axios.put(`${import.meta.env.VITE_SERVER}/api/products/product/${id}`, updatedData, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      withCredentials: true,
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to update product");
-    }
-
-    const data = await response.json();
-    console.log("✅ Product updated:", data);
+    console.log("✅ Product updated:", response.data);
     showSuccessToast(t("editForm.adUpdatedSuccess"));
     navigate('/userinfo');
   } catch (err) {
@@ -433,10 +466,10 @@ const handleSubmit = async (e) => {
             {/* Preview Newly Selected Images */}
             {newlySelectedFiles.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-4">
-                {newlySelectedFiles.map((file, index) => (
+                {newlySelectedFileUrls.map((item, index) => (
                   <div key={`new-${index}`} className="relative">
                     <img
-                      src={URL.createObjectURL(file)}
+                      src={item.url}
                       alt={`${t("editForm.previewImageAlt")} ${index + 1}`}
                       className="w-24 h-24 object-cover rounded-md border"
                     />
