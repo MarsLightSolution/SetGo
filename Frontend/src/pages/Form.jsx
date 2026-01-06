@@ -59,11 +59,13 @@ const Form = () => {
     latitude: "",
     longitude: "",
     inputLanguage: i18n.language || "en",
+    quantity: 1, // ✅ NEW: Default quantity
   });
 
   const [errors, setErrors] = useState({});
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isBulkListing, setIsBulkListing] = useState(false); // ✅ NEW: Bulk listing toggle
 
   // Fetch user's shop data on component mount
   useEffect(() => {
@@ -273,6 +275,13 @@ const Form = () => {
     if (!/^[A-Za-z\s]+$/.test(formData.name))
       currentErrors.name = t("form.nameAlphabetOnly");
 
+    // ✅ NEW: Quantity validation
+    if (!formData.quantity || formData.quantity < 1) {
+      currentErrors.quantity = t("form.quantityMinError") || "Quantity must be at least 1";
+    } else if (formData.quantity > 10000) {
+      currentErrors.quantity = t("form.quantityMaxError") || "Quantity cannot exceed 10,000 units";
+    }
+
     setErrors(currentErrors);
     if (Object.keys(currentErrors).length > 0) {
       showErrorToast(t("form.fixFormErrors"));
@@ -354,8 +363,10 @@ const Form = () => {
           latitude: prev.latitude,
           longitude: prev.longitude,
           inputLanguage: i18n.language || "en",
+          quantity: 1, // ✅ NEW: Reset quantity to default
         }));
         setImagePreviews([]);
+        setIsBulkListing(false); // ✅ NEW: Reset bulk listing toggle
         if (fileInputRef.current) fileInputRef.current.value = null;
       } else {
         showErrorToast(data.message || t("form.somethingWentWrong"));
@@ -500,6 +511,65 @@ const Form = () => {
                   ),
                 }}
               />
+
+              {/* ✅ NEW: Quantity/Units Section */}
+              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                  <label className="font-semibold text-gray-800 text-base">
+                    Available Units
+                  </label>
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">
+                    <span className={`text-sm font-medium transition-colors ${!isBulkListing ? 'text-green-700' : 'text-gray-400'}`}>
+                      Single
+                    </span>
+                    <Switch
+                      checked={isBulkListing}
+                      onChange={(e) => {
+                        setIsBulkListing(e.target.checked);
+                        if (!e.target.checked) {
+                          setFormData((prev) => ({ ...prev, quantity: 1 }));
+                        }
+                      }}
+                      size="small"
+                      color="success"
+                    />
+                    <span className={`text-sm font-medium transition-colors ${isBulkListing ? 'text-green-700' : 'text-gray-400'}`}>
+                      Bulk
+                    </span>
+                  </div>
+                </div>
+
+                {isBulkListing ? (
+                  <TextField
+                    type="number"
+                    label="Number of Units"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    error={!!errors.quantity}
+                    helperText={errors.quantity || "Enter the number of units available"}
+                    fullWidth
+                    slotProps={{
+                      htmlInput: { min: 1, max: 10000 }
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'white',
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center gap-3 text-sm text-gray-700 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 text-green-700 font-bold text-lg">
+                      1
+                    </div>
+                    <span className="font-medium">
+                      This listing is for 1 unit
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <TextField
                 select
                 label={t("form.condition") || "Condition"}

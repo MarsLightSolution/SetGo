@@ -772,6 +772,28 @@ const ProductDetail = () => {
                         </div>
                       )}
 
+                    {/* ✅ Available Units Badge */}
+                    {product.quantity && product.quantity > 0 && (
+                      <div className="mb-4 inline-flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-4 py-2.5 rounded-lg">
+                        <InventoryIcon className="text-green-600" fontSize="small" />
+                        <div>
+                          <span className="text-sm font-semibold text-gray-800">
+                            {product.quantity} {product.quantity === 1 ? 'Unit' : 'Units'} Available
+                          </span>
+                          {product.quantity <= 5 && product.quantity > 1 && (
+                            <span className="ml-2 text-xs text-orange-600 font-medium">
+                              • Only {product.quantity} left in stock!
+                            </span>
+                          )}
+                          {product.quantity === 1 && (
+                            <span className="ml-2 text-xs text-red-600 font-medium">
+                              • Last one available!
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Specs */}
                     <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
                       <div>
