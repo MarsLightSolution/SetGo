@@ -37,15 +37,15 @@ const AllShops = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const categories = [
-    { value: "all", label: t("shop.allCategories") || "All Categories" },
+    { value: "all", label: "All Categories" },
     { value: "Electronics", label: t("home.category.electronics") || "Electronics" },
     { value: "Clothing & Fashion", label: t("home.category.clothingFashion") || "Clothing & Fashion" },
     { value: "Home & Garden", label: t("home.category.householdFurniture") || "Home & Garden" },
     { value: "Vehicles", label: t("home.category.carsMotorcycles") || "Vehicles" },
     { value: "Sports & Outdoors", label: t("home.category.leisureHobbyNeighborhood") || "Sports & Outdoors" },
-    { value: "Books & Media", label: t("shop.booksMedia") || "Books & Media" },
+    { value: "Books & Media", label: "Books & Media" },
     { value: "Services", label: t("home.category.service") || "Services" },
-    { value: "General", label: t("shop.general") || "General" },
+    { value: "General", label: "General" },
     { value: "Other", label: t("home.category.other") || "Other" },
   ];
 
@@ -124,10 +124,10 @@ const AllShops = () => {
         <Box className="bg-gradient-to-r from-green-600 to-green-500 py-8 px-4">
           <Box className="max-w-6xl mx-auto">
             <Typography variant="h4" className="text-white font-bold mb-2">
-              {t("shop.browseShops") || "Browse Shops"}
+              Browse Shops
             </Typography>
             <Typography variant="body1" className="text-green-100">
-              {t("shop.discoverShops") || "Discover shops and find great products"}
+              Discover shops and find great products
             </Typography>
           </Box>
         </Box>
@@ -136,7 +136,7 @@ const AllShops = () => {
         <Box className="max-w-6xl mx-auto px-4 py-6">
           <Box className="flex flex-col sm:flex-row gap-4 mb-6">
             <TextField
-              placeholder={t("shop.searchShops") || "Search shops..."}
+              placeholder="Search shops..."
               value={search}
               onChange={handleSearchChange}
               size="small"
@@ -175,10 +175,10 @@ const AllShops = () => {
             <Box className="text-center py-20">
               <StoreIcon sx={{ fontSize: 80, color: "#ccc", mb: 2 }} />
               <Typography variant="h6" className="text-gray-500">
-                {t("shop.noShopsFound") || "No shops found"}
+                No shops found
               </Typography>
               <Typography variant="body2" className="text-gray-400">
-                {t("shop.tryDifferentSearch") || "Try different search or category"}
+                Try different search or category
               </Typography>
             </Box>
           ) : (
@@ -244,7 +244,7 @@ const AllShops = () => {
                             <Box className="flex items-center gap-1">
                               <InventoryIcon fontSize="small" />
                               <Typography variant="body2">
-                                {shop.totalProducts || 0} {t("shop.products") || "products"}
+                                {shop.totalProducts || 0} {shop.totalProducts === 1 ? (t("product") || "product") : (t("products") || "products")}
                               </Typography>
                             </Box>
                             {shop.address?.city && (

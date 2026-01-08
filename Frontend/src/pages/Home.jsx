@@ -182,7 +182,7 @@ const ShopCard = ({ shop }) => {
         <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <Package className="w-3 h-3" />
-            {shop.totalProducts || 0} {t("shop.products") || "products"}
+            {shop.totalProducts || 0} {shop.totalProducts === 1 ? "product" : "products"}
           </span>
           {shop.address?.city && (
             <span className="truncate">{shop.address.city}</span>
@@ -332,7 +332,7 @@ const ShopsSection = ({ shops, loading, onRefresh }) => {
             onClick={() => navigate("/shops")}
             className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1"
           >
-            {t("home.viewAllShops") || "View All"}
+            {t("View All") || "View All"}
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
