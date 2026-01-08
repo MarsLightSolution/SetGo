@@ -107,7 +107,7 @@ const CreateShop = () => {
         const data = await res.json();
 
         if (data.hasShop) {
-          showErrorToast(t("shop.alreadyHaveShop") || "You already have a shop!");
+          showErrorToast("You already have a shop!");
           navigate("/my-shop");
         }
       } catch (error) {
@@ -154,7 +154,7 @@ const CreateShop = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showErrorToast(t("shop.logoSizeError") || "Logo must be less than 5MB");
+        showErrorToast("Logo must be less than 5MB");
         return;
       }
       setLogo(file);
@@ -167,7 +167,7 @@ const CreateShop = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showErrorToast(t("shop.bannerSizeError") || "Banner must be less than 5MB");
+        showErrorToast("Banner must be less than 5MB");
         return;
       }
       setBanner(file);
@@ -194,17 +194,17 @@ const CreateShop = () => {
     const newErrors = {};
 
     if (!formData.shopName.trim()) {
-      newErrors.shopName = t("shop.shopNameRequired") || "Shop name is required";
+      newErrors.shopName = "Shop name is required";
     }
 
     if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = t("shop.emailRequired") || "Contact email is required";
+      newErrors.contactEmail = "Contact email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
-      newErrors.contactEmail = t("shop.invalidEmail") || "Invalid email format";
+      newErrors.contactEmail = "Invalid email format";
     }
 
     if (!formData.address.city.trim()) {
-      newErrors["address.city"] = t("shop.cityRequired") || "City is required";
+      newErrors["address.city"] = "City is required";
     }
 
     setErrors(newErrors);
@@ -216,7 +216,7 @@ const CreateShop = () => {
     e.preventDefault();
 
     if (!validateForm()) {
-      showErrorToast(t("shop.fixFormErrors") || "Please fix the errors in the form");
+      showErrorToast("Please fix the errors in the form");
       return;
     }
 
@@ -264,16 +264,16 @@ const CreateShop = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showSuccessToast(t("shop.createSuccess") || "Shop created successfully!");
+        showSuccessToast("Shop created successfully!");
         setTimeout(() => {
           navigate("/my-shop");
         }, 1500);
       } else {
-        showErrorToast(data.message || t("shop.createFailed") || "Failed to create shop");
+        showErrorToast(data.message || "Failed to create shop");
       }
     } catch (error) {
       console.error("Error creating shop:", error);
-      showErrorToast(t("shop.createFailed") || "Failed to create shop. Please try again.");
+      showErrorToast("Failed to create shop. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -303,10 +303,10 @@ const CreateShop = () => {
             <StoreIcon className="text-green-600" fontSize="large" />
             <Box>
               <Typography variant="h5" className="font-bold text-gray-800">
-                {t("shop.createShop") || "Create Your Shop"}
+                Create Your Shop
               </Typography>
               <Typography variant="body2" className="text-gray-500">
-                {t("shop.createShopSubtitle") || "Set up your shop and start selling"}
+                Set up your shop and start selling
               </Typography>
             </Box>
           </Box>
@@ -314,7 +314,7 @@ const CreateShop = () => {
           {/* Banner Upload */}
           <Box className="mb-6">
             <Typography variant="subtitle1" className="font-medium mb-2">
-              {t("shop.shopBanner") || "Shop Banner"}
+              Shop Banner
             </Typography>
             <Box className="relative">
               {bannerPreview ? (
@@ -346,7 +346,7 @@ const CreateShop = () => {
                 >
                   <CloudUploadIcon className="text-gray-400" sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="body2" className="text-gray-500 text-center px-4">
-                    {t("shop.uploadBanner") || "Upload banner image (1200x300 recommended)"}
+                    Upload banner image (1200x300 recommended)
                   </Typography>
                 </Box>
               )}
@@ -363,7 +363,7 @@ const CreateShop = () => {
           {/* Logo Upload */}
           <Box className="mb-6">
             <Typography variant="subtitle1" className="font-medium mb-2">
-              {t("shop.shopLogo") || "Shop Logo"}
+              Shop Logo
             </Typography>
             <Box className="flex items-center gap-4">
               {logoPreview ? (
@@ -395,16 +395,16 @@ const CreateShop = () => {
                 >
                   <CloudUploadIcon className="text-gray-400" />
                   <Typography variant="caption" className="text-gray-500">
-                    {t("shop.logo") || "Logo"}
+                    Logo
                   </Typography>
                 </Box>
               )}
               <Box>
                 <Typography variant="body2" className="text-gray-600">
-                  {t("shop.uploadLogo") || "Upload a square logo (200x200 recommended)"}
+                  Upload a square logo (200x200 recommended)
                 </Typography>
                 <Typography variant="caption" className="text-gray-400">
-                  {t("shop.maxSize") || "Max size: 5MB"}
+                  Max size: 5MB
                 </Typography>
               </Box>
               <input
@@ -420,7 +420,7 @@ const CreateShop = () => {
           {/* Shop Name */}
           <Box className="mb-4">
             <TextField
-              label={t("shop.shopName") || "Shop Name"}
+              label="Shop Name"
               name="shopName"
               value={formData.shopName}
               onChange={handleChange}
@@ -434,14 +434,14 @@ const CreateShop = () => {
           {/* Description */}
           <Box className="mb-4">
             <TextField
-              label={t("shop.description") || "Description"}
+              label="Description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               multiline
               rows={3}
               fullWidth
-              placeholder={t("shop.descriptionPlaceholder") || "Describe your shop..."}
+              placeholder="Describe your shop..."
             />
           </Box>
 
@@ -449,7 +449,7 @@ const CreateShop = () => {
           <Box className="mb-4">
             <TextField
               select
-              label={t("shop.category") || "Category"}
+              label="Category"
               name="category"
               value={formData.category}
               onChange={handleChange}
@@ -465,12 +465,12 @@ const CreateShop = () => {
 
           {/* Contact Info */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            {t("shop.contactInfo") || "Contact Information"}
+            Contact Information
           </Typography>
           <Grid container spacing={2} className="mb-4">
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.contactEmail") || "Contact Email"}
+                label="Contact Email"
                 name="contactEmail"
                 type="email"
                 value={formData.contactEmail}
@@ -483,7 +483,7 @@ const CreateShop = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.contactPhone") || "Contact Phone"}
+                label="Contact Phone"
                 name="contactPhone"
                 value={formData.contactPhone}
                 onChange={handleChange}
@@ -495,12 +495,12 @@ const CreateShop = () => {
 
           {/* Address */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            {t("shop.location") || "Location"}
+            Location
           </Typography>
           <Grid container spacing={2} className="mb-4">
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.city") || "City"}
+                label="City"
                 name="address.city"
                 value={formData.address.city}
                 onChange={handleChange}
@@ -512,7 +512,7 @@ const CreateShop = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.postalCode") || "Postal Code"}
+                label="Postal Code"
                 name="address.postalCode"
                 value={formData.address.postalCode}
                 onChange={handleChange}
@@ -521,7 +521,7 @@ const CreateShop = () => {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label={t("shop.streetAddress") || "Street Address"}
+                label="Street Address"
                 name="address.street"
                 value={formData.address.street}
                 onChange={handleChange}
@@ -533,18 +533,18 @@ const CreateShop = () => {
           {/* Working Hours */}
           <Box className="mb-4">
             <TextField
-              label={t("shop.workingHours") || "Working Hours"}
+              label="Working Hours"
               name="settings.workingHours"
               value={formData.settings.workingHours}
               onChange={handleChange}
               fullWidth
-              placeholder={t("shop.workingHoursPlaceholder") || "e.g., Mon-Fri: 9AM-6PM, Sat: 10AM-4PM"}
+              placeholder="e.g., Mon-Fri: 9AM-6PM, Sat: 10AM-4PM"
             />
           </Box>
 
           {/* Social Links */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            {t("shop.socialLinks") || "Social Links"} ({t("shop.optional") || "Optional"})
+            Social Links (Optional)
           </Typography>
           <Grid container spacing={2} className="mb-6">
             <Grid item xs={12} sm={6}>
@@ -617,7 +617,7 @@ const CreateShop = () => {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label={t("shop.website") || "Website"}
+                label="Website"
                 name="socialLinks.website"
                 value={formData.socialLinks.website}
                 onChange={handleChange}
@@ -657,7 +657,7 @@ const CreateShop = () => {
               className="sm:w-auto"
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <StoreIcon />}
             >
-              {loading ? t("common.creating") || "Creating..." : t("shop.createShopBtn") || "Create Shop"}
+              {loading ? "Creating..." : "Create Shop"}
             </Button>
           </Box>
         </Paper>

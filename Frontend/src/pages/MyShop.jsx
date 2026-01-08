@@ -85,7 +85,7 @@ const MyShop = () => {
         }
       } catch (error) {
         console.error("Error fetching shop:", error);
-        showErrorToast(t("shop.fetchError") || "Failed to fetch shop data");
+        showErrorToast("Failed to fetch shop data");
       } finally {
         setLoading(false);
       }
@@ -112,10 +112,10 @@ const MyShop = () => {
           <Paper className="max-w-md w-full p-8 text-center" elevation={2}>
             <StoreIcon sx={{ fontSize: 80, color: "#16a34a", mb: 2 }} />
             <Typography variant="h5" className="font-bold mb-2">
-              {t("shop.noShopYet") || "You don't have a shop yet"}
+              You don't have a shop yet
             </Typography>
             <Typography variant="body1" className="text-gray-500 mb-6">
-              {t("shop.createShopPrompt") || "Create your shop and start selling your products to thousands of customers."}
+              Create your shop and start selling your products to thousands of customers.
             </Typography>
             <Button
               variant="contained"
@@ -125,7 +125,7 @@ const MyShop = () => {
               onClick={() => navigate("/create-shop")}
               fullWidth
             >
-              {t("shop.createShopBtn") || "Create Shop"}
+              Create Shop
             </Button>
           </Paper>
         </Box>
@@ -186,7 +186,7 @@ const MyShop = () => {
                   />
                 </Box>
                 <Typography variant="body2" className="text-gray-500">
-                  {shop.category} • {t("shop.memberSince") || "Member since"}{" "}
+                  {shop.category} • Member since{" "}
                   {new Date(shop.createdAt).toLocaleDateString()}
                 </Typography>
               </Box>
@@ -200,7 +200,7 @@ const MyShop = () => {
                   onClick={() => navigate(`/shop/${shop.slug}`)}
                   size="small"
                 >
-                  {t("shop.viewPublic") || "View"}
+                  View
                 </Button>
                 <Button
                   variant="contained"
@@ -209,7 +209,7 @@ const MyShop = () => {
                   onClick={() => navigate(`/edit-shop/${shop._id}`)}
                   size="small"
                 >
-                  {t("shop.edit") || "Edit"}
+                  Edit
                 </Button>
               </Box>
             </Box>
@@ -228,7 +228,7 @@ const MyShop = () => {
                     {shop.totalProducts || 0}
                   </Typography>
                   <Typography variant="body2" className="text-gray-500">
-                    {t("shop.products") || "Products"}
+                    Products
                   </Typography>
                 </CardContent>
               </Card>
@@ -241,7 +241,7 @@ const MyShop = () => {
                     {shop.followerCount || 0}
                   </Typography>
                   <Typography variant="body2" className="text-gray-500">
-                    {t("shop.followers") || "Followers"}
+                    Followers
                   </Typography>
                 </CardContent>
               </Card>
@@ -254,7 +254,7 @@ const MyShop = () => {
                     {shop.totalViews || 0}
                   </Typography>
                   <Typography variant="body2" className="text-gray-500">
-                    {t("shop.views") || "Views"}
+                    Views
                   </Typography>
                 </CardContent>
               </Card>
@@ -267,7 +267,7 @@ const MyShop = () => {
                     {shop.totalSales || 0}
                   </Typography>
                   <Typography variant="body2" className="text-gray-500">
-                    {t("shop.sales") || "Sales"}
+                    Sales
                   </Typography>
                 </CardContent>
               </Card>
@@ -277,7 +277,7 @@ const MyShop = () => {
             <Grid item xs={12}>
               <Paper className="p-4" elevation={1}>
                 <Typography variant="subtitle1" className="font-medium mb-3">
-                  {t("shop.quickActions") || "Quick Actions"}
+                  Quick Actions
                 </Typography>
                 <Box className="flex flex-wrap gap-2">
                   <Button
@@ -286,7 +286,7 @@ const MyShop = () => {
                     startIcon={<AddIcon />}
                     onClick={() => navigate("/form")}
                   >
-                    {t("shop.addProduct") || "Add Product"}
+                    Add Product
                   </Button>
                   <Button
                     variant="outlined"
@@ -294,7 +294,7 @@ const MyShop = () => {
                     startIcon={<InventoryIcon />}
                     onClick={() => navigate("/myproducts")}
                   >
-                    {t("shop.viewProducts") || "My Products"}
+                    My Products
                   </Button>
                 </Box>
               </Paper>
@@ -304,7 +304,7 @@ const MyShop = () => {
             <Grid item xs={12} md={7}>
               <Paper className="p-4" elevation={1}>
                 <Typography variant="subtitle1" className="font-medium mb-3">
-                  {t("shop.aboutShop") || "About Shop"}
+                  About Shop
                 </Typography>
                 
                 {/* Description */}
@@ -354,7 +354,7 @@ const MyShop = () => {
             <Grid item xs={12} md={5}>
               <Paper className="p-4" elevation={1}>
                 <Typography variant="subtitle1" className="font-medium mb-3">
-                  {t("shop.socialLinks") || "Social Links"}
+                  Social Links
                 </Typography>
                 
                 <Box className="space-y-2">
@@ -406,7 +406,7 @@ const MyShop = () => {
                     !shop.socialLinks?.whatsapp &&
                     !shop.socialLinks?.website && (
                       <Typography variant="body2" className="text-gray-400">
-                        {t("shop.noSocialLinks") || "No social links added yet"}
+                        No social links added yet
                       </Typography>
                     )}
                 </Box>
@@ -415,17 +415,17 @@ const MyShop = () => {
               {/* Settings */}
               <Paper className="p-4 mt-3" elevation={1}>
                 <Typography variant="subtitle1" className="font-medium mb-3">
-                  {t("shop.settings") || "Settings"}
+                  Settings
                 </Typography>
                 <Box className="flex flex-wrap gap-2">
                   <Chip
-                    label={t("shop.pickup") || "Pickup"}
+                    label="Pickup"
                     color={shop.settings?.pickupAvailable ? "success" : "default"}
                     variant={shop.settings?.pickupAvailable ? "filled" : "outlined"}
                     size="small"
                   />
                   <Chip
-                    label={t("shop.delivery") || "Delivery"}
+                    label="Delivery"
                     color={shop.settings?.deliveryAvailable ? "success" : "default"}
                     variant={shop.settings?.deliveryAvailable ? "filled" : "outlined"}
                     size="small"

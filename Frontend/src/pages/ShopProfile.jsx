@@ -274,7 +274,7 @@ const ShopProfile = () => {
 
                   <Typography variant="body2" className="text-gray-500 mt-1">
                     {shop.category} •{" "}
-                    {t("shop.memberSince") || "Member since"}{" "}
+                    Member since{" "}
                     {new Date(shop.createdAt).toLocaleDateString()}
                   </Typography>
 
@@ -285,7 +285,7 @@ const ShopProfile = () => {
                         {shop.totalProducts || 0}
                       </Typography>
                       <Typography variant="caption" className="text-gray-500">
-                        {t("shop.products") || "Products"}
+                        Products
                       </Typography>
                     </Box>
                     <Box className="text-center">
@@ -293,7 +293,7 @@ const ShopProfile = () => {
                         {followerCount}
                       </Typography>
                       <Typography variant="caption" className="text-gray-500">
-                        {t("shop.followers") || "Followers"}
+                        Followers
                       </Typography>
                     </Box>
                     <Box className="text-center">
@@ -301,7 +301,7 @@ const ShopProfile = () => {
                         {shop.totalViews || 0}
                       </Typography>
                       <Typography variant="caption" className="text-gray-500">
-                        {t("shop.views") || "Views"}
+                        Views
                       </Typography>
                     </Box>
                   </Box>
@@ -317,9 +317,7 @@ const ShopProfile = () => {
                     }
                     onClick={handleFollow}
                   >
-                    {isFollowing
-                      ? t("shop.following") || "Following"
-                      : t("shop.follow") || "Follow"}
+                    {isFollowing ? "Following" : "Follow"}
                   </Button>
                   <IconButton onClick={handleShare}>
                     <ShareIcon />
@@ -434,7 +432,7 @@ const ShopProfile = () => {
         {/* Products Section */}
         <Box className="max-w-5xl mx-auto px-4 py-8">
           <Typography variant="h6" className="font-semibold mb-4">
-            {t("shop.shopProducts") || "Products"} ({shop.totalProducts || 0})
+            Products ({shop.totalProducts || 0})
           </Typography>
 
           {productsLoading ? (
@@ -445,7 +443,7 @@ const ShopProfile = () => {
             <Box className="text-center py-10 bg-white rounded-lg">
               <InventoryIcon sx={{ fontSize: 60, color: "#ccc", mb: 2 }} />
               <Typography variant="body1" className="text-gray-500">
-                {t("shop.noProductsYet") || "No products yet"}
+                No products yet
               </Typography>
             </Box>
           ) : (

@@ -93,9 +93,9 @@ const EditShop = () => {
     { value: "Home & Garden", label: t("home.category.householdFurniture") || "Home & Garden" },
     { value: "Vehicles", label: t("home.category.carsMotorcycles") || "Vehicles" },
     { value: "Sports & Outdoors", label: t("home.category.leisureHobbyNeighborhood") || "Sports & Outdoors" },
-    { value: "Books & Media", label: t("shop.booksMedia") || "Books & Media" },
+    { value: "Books & Media", label: "Books & Media" },
     { value: "Services", label: t("home.category.service") || "Services" },
-    { value: "General", label: t("shop.general") || "General" },
+    { value: "General", label: "General" },
     { value: "Other", label: t("home.category.other") || "Other" },
   ];
 
@@ -120,7 +120,7 @@ const EditShop = () => {
         const data = await res.json();
 
         if (!data.hasShop || !data.data) {
-          showErrorToast(t("shop.noShopFound") || "Shop not found");
+          showErrorToast("Shop not found");
           navigate("/create-shop");
           return;
         }
@@ -129,7 +129,7 @@ const EditShop = () => {
 
         // Check if the shop ID matches (if ID is provided in URL)
         if (id && shop._id !== id) {
-          showErrorToast(t("shop.unauthorized") || "You can only edit your own shop");
+          showErrorToast("You can only edit your own shop");
           navigate("/my-shop");
           return;
         }
@@ -172,7 +172,7 @@ const EditShop = () => {
         }
       } catch (error) {
         console.error("Error fetching shop:", error);
-        showErrorToast(t("shop.fetchError") || "Failed to load shop data");
+        showErrorToast("Failed to load shop data");
         navigate("/my-shop");
       } finally {
         setFetchingShop(false);
@@ -212,7 +212,7 @@ const EditShop = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showErrorToast(t("shop.logoSizeError") || "Logo must be less than 5MB");
+        showErrorToast("Logo must be less than 5MB");
         return;
       }
       setLogo(file);
@@ -226,7 +226,7 @@ const EditShop = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showErrorToast(t("shop.bannerSizeError") || "Banner must be less than 5MB");
+        showErrorToast("Banner must be less than 5MB");
         return;
       }
       setBanner(file);
@@ -256,17 +256,17 @@ const EditShop = () => {
     const newErrors = {};
 
     if (!formData.shopName.trim()) {
-      newErrors.shopName = t("shop.shopNameRequired") || "Shop name is required";
+      newErrors.shopName = "Shop name is required";
     }
 
     if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = t("shop.emailRequired") || "Contact email is required";
+      newErrors.contactEmail = "Contact email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
-      newErrors.contactEmail = t("shop.invalidEmail") || "Invalid email format";
+      newErrors.contactEmail = "Invalid email format";
     }
 
     if (!formData.address.city.trim()) {
-      newErrors["address.city"] = t("shop.cityRequired") || "City is required";
+      newErrors["address.city"] = "City is required";
     }
 
     setErrors(newErrors);
@@ -278,7 +278,7 @@ const EditShop = () => {
     e.preventDefault();
 
     if (!validateForm()) {
-      showErrorToast(t("shop.fixFormErrors") || "Please fix the errors in the form");
+      showErrorToast("Please fix the errors in the form");
       return;
     }
 
@@ -325,16 +325,16 @@ const EditShop = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showSuccessToast(t("shop.updateSuccess") || "Shop updated successfully!");
+        showSuccessToast("Shop updated successfully!");
         setTimeout(() => {
           navigate("/my-shop");
         }, 1500);
       } else {
-        showErrorToast(data.message || t("shop.updateFailed") || "Failed to update shop");
+        showErrorToast(data.message || "Failed to update shop");
       }
     } catch (error) {
       console.error("Error updating shop:", error);
-      showErrorToast(t("shop.updateFailed") || "Failed to update shop");
+      showErrorToast("Failed to update shop");
     } finally {
       setLoading(false);
     }
@@ -352,16 +352,16 @@ const EditShop = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showSuccessToast(t("shop.deleteSuccess") || "Shop closed successfully");
+        showSuccessToast("Shop closed successfully");
         setTimeout(() => {
           navigate("/");
         }, 1500);
       } else {
-        showErrorToast(data.message || t("shop.deleteFailed") || "Failed to delete shop");
+        showErrorToast(data.message || "Failed to delete shop");
       }
     } catch (error) {
       console.error("Error deleting shop:", error);
-      showErrorToast(t("shop.deleteFailed") || "Failed to delete shop");
+      showErrorToast("Failed to delete shop");
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
@@ -393,10 +393,10 @@ const EditShop = () => {
               <StoreIcon className="text-green-600" fontSize="large" />
               <Box>
                 <Typography variant="h5" className="font-bold text-gray-800">
-                  {t("shop.editShop") || "Edit Shop"}
+                  Edit Shop
                 </Typography>
                 <Typography variant="body2" className="text-gray-500">
-                  {t("shop.editShopSubtitle") || "Update your shop information"}
+                  Update your shop information
                 </Typography>
               </Box>
             </Box>
@@ -407,14 +407,14 @@ const EditShop = () => {
               onClick={() => setDeleteDialogOpen(true)}
               size="small"
             >
-              {t("shop.closeShop") || "Close Shop"}
+Close Shop
             </Button>
           </Box>
 
           {/* Banner Upload */}
           <Box className="mb-6">
             <Typography variant="subtitle1" className="font-medium mb-2">
-              {t("shop.shopBanner") || "Shop Banner"}
+              Shop Banner
             </Typography>
             <Box className="relative">
               {bannerPreview ? (
@@ -446,7 +446,7 @@ const EditShop = () => {
                 >
                   <CloudUploadIcon className="text-gray-400" sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="body2" className="text-gray-500 text-center px-4">
-                    {t("shop.uploadBanner") || "Upload banner image (1200x300 recommended)"}
+                    Upload banner image (1200x300 recommended)
                   </Typography>
                 </Box>
               )}
@@ -463,7 +463,7 @@ const EditShop = () => {
           {/* Logo Upload */}
           <Box className="mb-6">
             <Typography variant="subtitle1" className="font-medium mb-2">
-              {t("shop.shopLogo") || "Shop Logo"}
+              Shop Logo
             </Typography>
             <Box className="flex items-center gap-4">
               {logoPreview ? (
@@ -495,16 +495,16 @@ const EditShop = () => {
                 >
                   <CloudUploadIcon className="text-gray-400" />
                   <Typography variant="caption" className="text-gray-500">
-                    {t("shop.logo") || "Logo"}
+                    Logo
                   </Typography>
                 </Box>
               )}
               <Box>
                 <Typography variant="body2" className="text-gray-600">
-                  {t("shop.uploadLogo") || "Upload a square logo (200x200 recommended)"}
+                  Upload a square logo (200x200 recommended)
                 </Typography>
                 <Typography variant="caption" className="text-gray-400">
-                  {t("shop.maxSize") || "Max size: 5MB"}
+                  Max size: 5MB
                 </Typography>
               </Box>
               <input
@@ -520,7 +520,7 @@ const EditShop = () => {
           {/* Shop Name */}
           <Box className="mb-4">
             <TextField
-              label={t("shop.shopName") || "Shop Name"}
+              label="Shop Name"
               name="shopName"
               value={formData.shopName}
               onChange={handleChange}
@@ -534,14 +534,14 @@ const EditShop = () => {
           {/* Description */}
           <Box className="mb-4">
             <TextField
-              label={t("shop.description") || "Description"}
+              label="Description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               multiline
               rows={3}
               fullWidth
-              placeholder={t("shop.descriptionPlaceholder") || "Describe your shop..."}
+              placeholder="Describe your shop..."
             />
           </Box>
 
@@ -549,7 +549,7 @@ const EditShop = () => {
           <Box className="mb-4">
             <TextField
               select
-              label={t("shop.category") || "Category"}
+              label="Category"
               name="category"
               value={formData.category}
               onChange={handleChange}
@@ -565,12 +565,12 @@ const EditShop = () => {
 
           {/* Contact Info */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            {t("shop.contactInfo") || "Contact Information"}
+            Contact Information
           </Typography>
           <Grid container spacing={2} className="mb-4">
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.contactEmail") || "Contact Email"}
+                label="Contact Email"
                 name="contactEmail"
                 type="email"
                 value={formData.contactEmail}
@@ -583,7 +583,7 @@ const EditShop = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.contactPhone") || "Contact Phone"}
+                label="Contact Phone"
                 name="contactPhone"
                 value={formData.contactPhone}
                 onChange={handleChange}
@@ -595,12 +595,12 @@ const EditShop = () => {
 
           {/* Address */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            {t("shop.location") || "Location"}
+            Location
           </Typography>
           <Grid container spacing={2} className="mb-4">
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.city") || "City"}
+                label="City"
                 name="address.city"
                 value={formData.address.city}
                 onChange={handleChange}
@@ -612,7 +612,7 @@ const EditShop = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={t("shop.postalCode") || "Postal Code"}
+                label="Postal Code"
                 name="address.postalCode"
                 value={formData.address.postalCode}
                 onChange={handleChange}
@@ -621,7 +621,7 @@ const EditShop = () => {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label={t("shop.streetAddress") || "Street Address"}
+                label="Street Address"
                 name="address.street"
                 value={formData.address.street}
                 onChange={handleChange}
@@ -632,7 +632,7 @@ const EditShop = () => {
 
           {/* Settings */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            {t("shop.settings") || "Settings"}
+            Settings
           </Typography>
           <Box className="mb-4 space-y-2">
             <FormControlLabel
@@ -644,7 +644,7 @@ const EditShop = () => {
                   color="success"
                 />
               }
-              label={t("shop.pickupAvailable") || "Pickup Available"}
+              label="Pickup Available"
             />
             <FormControlLabel
               control={
@@ -655,25 +655,25 @@ const EditShop = () => {
                   color="success"
                 />
               }
-              label={t("shop.deliveryAvailable") || "Delivery Available"}
+              label="Delivery Available"
             />
           </Box>
 
           {/* Working Hours */}
           <Box className="mb-4">
             <TextField
-              label={t("shop.workingHours") || "Working Hours"}
+              label="Working Hours"
               name="settings.workingHours"
               value={formData.settings.workingHours}
               onChange={handleChange}
               fullWidth
-              placeholder={t("shop.workingHoursPlaceholder") || "e.g., Mon-Fri: 9AM-6PM, Sat: 10AM-4PM"}
+              placeholder="e.g., Mon-Fri: 9AM-6PM, Sat: 10AM-4PM"
             />
           </Box>
 
           {/* Social Links */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            {t("shop.socialLinks") || "Social Links"} ({t("shop.optional") || "Optional"})
+            Social Links (Optional)
           </Typography>
           <Grid container spacing={2} className="mb-6">
             <Grid item xs={12} sm={6}>
@@ -746,7 +746,7 @@ const EditShop = () => {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label={t("shop.website") || "Website"}
+                label="Website"
                 name="socialLinks.website"
                 value={formData.socialLinks.website}
                 onChange={handleChange}
@@ -780,7 +780,7 @@ const EditShop = () => {
               disabled={loading}
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
             >
-              {loading ? t("common.saving") || "Saving..." : t("shop.saveChanges") || "Save Changes"}
+              {loading ? "Saving..." : "Save Changes"}
             </Button>
           </Box>
         </Paper>
@@ -788,11 +788,10 @@ const EditShop = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>{t("shop.closeShopTitle") || "Close Shop?"}</DialogTitle>
+        <DialogTitle>Close Shop?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {t("shop.closeShopWarning") ||
-              "Are you sure you want to close your shop? Your products will be converted to individual listings. This action cannot be undone."}
+            Are you sure you want to close your shop? Your products will be converted to individual listings. This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -806,7 +805,7 @@ const EditShop = () => {
             disabled={deleting}
             startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
           >
-            {deleting ? t("common.closing") || "Closing..." : t("shop.closeShop") || "Close Shop"}
+            {deleting ? "Closing..." : "Close Shop"}
           </Button>
         </DialogActions>
       </Dialog>
