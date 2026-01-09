@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [ main-2, '**' ]
+  pull_request:
+    branches: [ main-2 ]
+
+jobs:
+  frontend:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Frontend dependencies
+        run: npm --prefix Frontend ci
+
+      - name: Lint Frontend
+        run: npm --prefix Frontend run lint
+
+      - name: Build Frontend
+        run: npm --prefix Frontend run build
+
+      - name: Upload Frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: Frontend/dist
+
+  backend-audit:
+    name: Backend Audit (fail on high)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Run npm audit (fails on high/critical)
+        run: npm --prefix backend audit --audit-level=high
+
+      - name: Run Backend tests
+        run: npm --prefix backend test
+
+  secret-scan:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks scan
+        uses: zricethezav/gitleaks-action@v8
+        with:
+          args: --redact --report-path gitleaks-report.json
+
+      - name: Upload gitleaks report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+  console-check:
+    name: Report console.log occurrences
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find console.log usages
+        run: |
+          set -e
+          mkdir -p reports
+          # Allow the step to succeed even if grep finds nothing
+          grep -RIn --exclude-dir=node_modules --exclude-dir=dist "console.log" || true > reports/console-log.txt
+
+      - name: Upload console.log report
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-log-report
+          path: reports/console-log.txt
+
+  summary:
+    name: Summary (non-blocking)
+    runs-on: ubuntu-latest
+    needs: [frontend, backend-audit, secret-scan, console-check]
+    steps:
+      - name: Create summary
+        run: |
+          echo "CI run completed. Review artifacts (frontend-dist, gitleaks-report, console-log-report) and check audit results." > summary.txt
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-summary
+          path: summary.txt
