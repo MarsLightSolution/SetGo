@@ -21,10 +21,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
 
       - name: Install Frontend dependencies
-        run: npm --prefix Frontend ci
+        run: npm --prefix Frontend ci || npm --prefix Frontend install --no-audit --no-fund
 
       - name: Lint Frontend
         run: npm --prefix Frontend run lint
@@ -52,10 +51,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
 
       - name: Install Backend dependencies
-        run: npm --prefix backend ci
+        run: npm --prefix backend ci || npm --prefix backend install --no-audit --no-fund
 
       - name: Run npm audit (fails on high/critical)
         run: npm --prefix backend audit --audit-level=high
