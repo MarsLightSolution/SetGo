@@ -6,6 +6,7 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/user');
+const logger = require('../utils/logger');
 
 // Webhook secret (shared with payment microservice)
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
@@ -17,7 +18,7 @@ const verifyWebhookSecret = (req, res, next) => {
   const webhookSecret = req.headers['x-webhook-secret'];
   
   if (!webhookSecret) {
-    console.warn('[Webhook] Missing webhook secret');
+    logger.warn('[Webhook] Missing webhook secret');
     return res.status(401).json({
       success: false,
       message: 'Webhook authentication required'
@@ -25,14 +26,14 @@ const verifyWebhookSecret = (req, res, next) => {
   }
   
   if (webhookSecret !== WEBHOOK_SECRET) {
-    console.warn('[Webhook] Invalid webhook secret from IP:', req.ip);
+    logger.warn('[Webhook] Invalid webhook secret', { ip: req.ip });
     return res.status(403).json({
       success: false,
       message: 'Invalid webhook credentials'
     });
   }
   
-  console.log('[Webhook] Authentication successful');
+  logger.info('[Webhook] Authentication successful');
   next();
 };
 
@@ -52,15 +53,15 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
       metadata        // Contains mainOrderId, productId, etc.
     } = req.body;
 
-    console.log(`[Webhook] Payment completed webhook received for order ${orderId}`);
-    console.log(`[Webhook] Transaction ID: ${transactionId}, Amount: ${amount} ${currency}`);
+    logger.info(`[Webhook] Payment completed webhook received for order ${orderId}`);
+    logger.info('[Webhook] Transaction received', { transactionId, amount, currency });
 
     // ========= STEP 1: FIND ORDER =========
     
     const mainOrderId = metadata.mainOrderId;
     
     if (!mainOrderId) {
-      console.error('[Webhook] No mainOrderId in metadata');
+      logger.error('[Webhook] No mainOrderId in metadata');
       return res.status(400).json({
         success: false,
         message: 'Missing mainOrderId in metadata'
@@ -70,7 +71,7 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
     const order = await Order.findById(mainOrderId);
 
     if (!order) {
-      console.error(`[Webhook] Order not found: ${mainOrderId}`);
+      logger.error(`[Webhook] Order not found: ${mainOrderId}`);
       return res.status(404).json({
         success: false,
         message: 'Order not found'
@@ -79,7 +80,7 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
 
     // Check if already processed (idempotency)
     if (order.paymentStatus === 'completed' && order.transactionId === transactionId) {
-      console.log(`[Webhook] Order ${mainOrderId} already processed. Skipping.`);
+      logger.info(`[Webhook] Order ${mainOrderId} already processed. Skipping.`);
       return res.json({
         success: true,
         message: 'Webhook already processed',
@@ -87,7 +88,7 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
       });
     }
 
-    console.log(`[Webhook] Processing payment for order ${order._id}`);
+    logger.info(`[Webhook] Processing payment for order ${order._id}`);
 
     // ========= STEP 2: UPDATE ORDER =========
     
@@ -109,7 +110,7 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
 
     await order.save();
 
-    console.log(`[Webhook] Order ${order._id} updated to paid status`);
+    logger.info(`[Webhook] Order ${order._id} updated to paid status`);
 
     // ========= STEP 3: UPDATE PRODUCT STOCK =========
     
@@ -120,19 +121,15 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
         if (product.stock > 0) {
           product.stock -= 1;
           await product.save();
-          console.log(`[Webhook] Product ${product._id} stock reduced to ${product.stock}`);
+          logger.info(`[Webhook] Product ${product._id} stock reduced to ${product.stock}`);
         } else {
-          console.warn(`[Webhook] Product ${product._id} already out of stock`);
+          logger.warn(`[Webhook] Product ${product._id} already out of stock`);
         }
       } else {
-        console.warn(`[Webhook] Product ${order.productId} not found`);
+        logger.warn(`[Webhook] Product ${order.productId} not found`);
       }
     } catch (error) {
-      console.error('[Webhook] Error updating product stock:', error);
-      // Continue processing even if stock update fails
-    }
-
-    // ========= STEP 4: UPDATE SELLER WALLET =========
+      logger.error('[Webhook] Error updating product stock', { message: error.message, stack: error.stack });
     
     try {
       const seller = await User.findById(order.sellerId);
@@ -144,12 +141,12 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
         seller.walletBalance = (seller.walletBalance || 0) + sellerEarnings;
         await seller.save();
         
-        console.log(`[Webhook] Added ₼${sellerEarnings} to seller ${seller._id} wallet`);
+        logger.info(`[Webhook] Added ₼${sellerEarnings} to seller ${seller._id} wallet`);
       } else {
-        console.warn(`[Webhook] Seller ${order.sellerId} not found`);
+        logger.warn(`[Webhook] Seller ${order.sellerId} not found`);
       }
     } catch (error) {
-      console.error('[Webhook] Error updating seller wallet:', error);
+      logger.error('[Webhook] Error updating seller wallet', { message: error.message, stack: error.stack });
       // Continue processing even if wallet update fails
     }
 
@@ -170,10 +167,10 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
         
         await buyer.save();
         
-        console.log(`[Webhook] Updated buyer ${buyer._id} purchase history`);
+        logger.info(`[Webhook] Updated buyer ${buyer._id} purchase history`);
       }
     } catch (error) {
-      console.error('[Webhook] Error updating buyer history:', error);
+      logger.error('[Webhook] Error updating buyer history', { message: error.message, stack: error.stack });
       // Continue processing
     }
 
@@ -196,14 +193,15 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
 
     // ========= STEP 7: LOG SUCCESS =========
     
-    console.log(`[Webhook] ✅ Payment webhook processed successfully for order ${order._id}`);
-    console.log(`[Webhook] Summary:`);
-    console.log(`  - Order ID: ${order._id}`);
-    console.log(`  - Transaction ID: ${transactionId}`);
-    console.log(`  - Total Paid: ₼${order.paidAmount}`);
-    console.log(`  - Wallet: ₼${order.walletDeduction}`);
-    console.log(`  - Online: ₼${amount}`);
-    console.log(`  - Status: ${order.status}`);
+    logger.info(`[Webhook] ✅ Payment webhook processed successfully for order ${order._id}`);
+    logger.info('[Webhook] Summary', {
+      orderId: order._id,
+      transactionId,
+      totalPaid: order.paidAmount,
+      wallet: order.walletDeduction,
+      online: amount,
+      status: order.status
+    });
 
     // ========= STEP 8: RETURN SUCCESS RESPONSE =========
     
@@ -219,7 +217,7 @@ router.post('/payment-completed', verifyWebhookSecret, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Webhook] Error processing payment webhook:', error);
+    logger.error('[Webhook] Error processing payment webhook', { message: error.message, stack: error.stack });
 
     res.status(500).json({
       success: false,
@@ -243,14 +241,14 @@ router.post('/payment-failed', verifyWebhookSecret, async (req, res) => {
       metadata
     } = req.body;
 
-    console.log(`[Webhook] Payment failed webhook received for order ${orderId}`);
-    console.log(`[Webhook] Reason: ${reason}`);
+    logger.info(`[Webhook] Payment failed webhook received for order ${orderId}`);
+    logger.info('[Webhook] Failure reason', { reason });
 
     const mainOrderId = metadata.mainOrderId;
     const order = await Order.findById(mainOrderId);
 
     if (!order) {
-      console.error(`[Webhook] Order not found: ${mainOrderId}`);
+      logger.error(`[Webhook] Order not found: ${mainOrderId}`);
       return res.status(404).json({
         success: false,
         message: 'Order not found'
@@ -273,11 +271,11 @@ router.post('/payment-failed', verifyWebhookSecret, async (req, res) => {
         buyer.walletBalance = (buyer.walletBalance || 0) + order.walletDeduction;
         await buyer.save();
         
-        console.log(`[Webhook] Refunded ₼${order.walletDeduction} to buyer's wallet`);
+        logger.info(`[Webhook] Refunded ₼${order.walletDeduction} to buyer's wallet`);
       }
     }
 
-    console.log(`[Webhook] Payment failure processed for order ${order._id}`);
+    logger.info(`[Webhook] Payment failure processed for order ${order._id}`);
 
     res.json({
       success: true,
@@ -290,7 +288,7 @@ router.post('/payment-failed', verifyWebhookSecret, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Webhook] Error processing payment failure webhook:', error);
+    logger.error('[Webhook] Error processing payment failure webhook', { message: error.message, stack: error.stack });
 
     res.status(500).json({
       success: false,

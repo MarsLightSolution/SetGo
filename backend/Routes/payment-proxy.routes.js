@@ -8,6 +8,7 @@ const authenticateUser = require('../middlewares/auth.middlewares');
 const Order = require('../models/Order'); // Your Order model
 const Product = require('../models/product.model'); // Your Product model
 const User = require('../models/user'); // Your User model
+const logger = require('../utils/logger');
 
 // Environment variables
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3001';
@@ -25,8 +26,8 @@ router.post('/initiate', authenticateUser, async (req, res) => {
       checkoutDetails 
     } = req.body;
 
-    console.log(`[Payment Gateway] Initiating payment for buyer ${buyerId}`);
-    // console.log(onlineAmount , walletDeduction);
+    logger.info(`[Payment Gateway] Initiating payment for buyer ${buyerId}`);
+    // logger.debug('amounts', { onlineAmount, walletDeduction });
     
     // ========= STEP 1: VALIDATE INPUT =========
     
@@ -44,7 +45,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
         message: 'Invalid wallet deduction amount'
       });
     }
-    console.log(req.body);
+    logger.debug('initiate payment request body', { body: req.body });
     
     // Validate checkout details
     if (!checkoutDetails || !checkoutDetails.name || !checkoutDetails.email || 
@@ -64,7 +65,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
         message: 'Product not found'
       });
     }
-    console.log(product);
+    logger.debug('Product found for payment initiation', { productId: product._id, price: product.price, stock: product.stock });
     const onlineAmount = product.price - walletDeduction;
 
     if (onlineAmount < 0) {
@@ -148,7 +149,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
       }
     });
 
-    console.log(`[Payment Gateway] Order created: ${order._id}`);
+    logger.info(`[Payment Gateway] Order created: ${order._id}`);
 
     // ========= STEP 7: HANDLE WALLET-ONLY PAYMENT =========
     
@@ -178,7 +179,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
         await seller.save();
       }
 
-      console.log(`[Payment Gateway] Wallet-only payment completed for order ${order._id}`);
+      logger.info(`[Payment Gateway] Wallet-only payment completed for order ${order._id}`);
 
       return res.json({
         success: true,
@@ -204,7 +205,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
       buyer.walletBalance -= walletDeduction;
       await buyer.save();
       
-      console.log(`[Payment Gateway] Deducted ₼${walletDeduction} from buyer's wallet`);
+      logger.info(`[Payment Gateway] Deducted ₼${walletDeduction} from buyer's wallet`);
     }
 
     // ========= STEP 9: PREPARE PAYMENT MICROSERVICE REQUEST =========
@@ -224,7 +225,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
 
     // ========= STEP 10: CALL PAYMENT MICROSERVICE =========
     
-    console.log(`[Payment Gateway] Proxying to payment microservice for ₼${onlineAmount}`);
+    logger.info(`[Payment Gateway] Proxying to payment microservice for ₼${onlineAmount}`);
 
     let paymentResponse;
     try {
@@ -247,13 +248,13 @@ router.post('/initiate', authenticateUser, async (req, res) => {
         }
       );
     } catch (error) {
-      console.error('[Payment Gateway] Payment microservice error:', error.message);
+      logger.error('[Payment Gateway] Payment microservice error', { message: error.message, stack: error.stack });
       
       // Refund wallet if payment microservice fails
       if (walletDeduction > 0) {
         buyer.walletBalance += walletDeduction;
         await buyer.save();
-        console.log(`[Payment Gateway] Refunded ₼${walletDeduction} to buyer's wallet`);
+        logger.info(`[Payment Gateway] Refunded ₼${walletDeduction} to buyer's wallet`);
       }
 
       // Update order status
@@ -292,7 +293,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
     order.paymentStatus = 'processing';
     await order.save();
 
-    console.log(`[Payment Gateway] Payment initiated. Payment Order ID: ${paymentOrderId}, Main Order ID: ${order._id}`);
+    logger.info(`[Payment Gateway] Payment initiated. Payment Order ID: ${paymentOrderId}, Main Order ID: ${order._id}`);
 
     // ========= STEP 12: RETURN SUCCESS RESPONSE =========
     
@@ -312,7 +313,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Payment Gateway] Error initiating payment:', error);
+    logger.error('[Payment Gateway] Error initiating payment', { message: error.message, stack: error.stack });
 
     res.status(500).json({
       success: false,
@@ -378,7 +379,7 @@ router.get('/order/:orderId', authenticateUser, async (req, res) => {
         
         paymentDetails = paymentResponse.data.data;
       } catch (error) {
-        console.error('[Payment Gateway] Error fetching payment details:', error.message);
+        logger.error('[Payment Gateway] Error fetching payment details', { message: error.message, stack: error.stack });
         // Continue without payment details
       }
     }
@@ -417,7 +418,7 @@ router.get('/order/:orderId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Payment Gateway] Error fetching order:', error);
+    logger.error('[Payment Gateway] Error fetching order', { message: error.message, stack: error.stack });
 
     res.status(500).json({
       success: false,
@@ -471,7 +472,7 @@ router.get('/orders', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Payment Gateway] Error fetching orders:', error);
+    logger.error('[Payment Gateway] Error fetching orders', { message: error.message, stack: error.stack });
 
     res.status(500).json({
       success: false,
@@ -525,7 +526,7 @@ router.post('/order/:orderId/cancel', authenticateUser, async (req, res) => {
       buyer.walletBalance = (buyer.walletBalance || 0) + order.paidAmount;
       await buyer.save();
 
-      console.log(`[Payment Gateway] Refunded ₼${order.paidAmount} to buyer's wallet`);
+      logger.info(`[Payment Gateway] Refunded ₼${order.paidAmount} to buyer's wallet`);
     }
 
     // Restore product stock
@@ -546,7 +547,7 @@ router.post('/order/:orderId/cancel', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Payment Gateway] Error cancelling order:', error);
+    logger.error('[Payment Gateway] Error cancelling order', { message: error.message, stack: error.stack });
 
     res.status(500).json({
       success: false,

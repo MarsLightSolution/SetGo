@@ -4,15 +4,13 @@ const axios = require("axios");
 const BASE_URL = "http://localhost:8080";
 
 // ========================= LOGGER HELPERS =========================
+const logger = require('../utils/logger');
 const logInfo = (endpoint, message, extra = {}) => {
-  console.log(`[${new Date().toISOString()}] ✅ INFO in ${endpoint} | ${message}`, extra);
+  logger.info(message, { endpoint, ...extra });
 };
 
 const logError = (endpoint, err, extra = {}) => {
-  console.error(`[${new Date().toISOString()}] ❌ ERROR in ${endpoint} | ${err.message}`, {
-    stack: err.stack,
-    ...extra,
-  });
+  logger.error(err.message || 'Error in ChatBotController', { endpoint, stack: err.stack, ...extra });
 };
 
 // ========================= MAIN HANDLER =========================

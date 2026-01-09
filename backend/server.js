@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const logger = require('./utils/logger');
 
 app.use(cors());
 app.use(express.json());
@@ -20,4 +21,4 @@ app.get("/api/orders/:id", (req, res) => {
   res.json(mockOrder);
 });
 
-app.listen(5000, () => console.log("Chatbot backend running on 5000"));
+app.listen(5000, () => logger.info('Chatbot backend running on 5000'));

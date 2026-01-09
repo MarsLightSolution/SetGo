@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { uploadPictures } = require("../middlewares/multer.middleware.js");
 const verifyJWT = require("../middlewares/auth.middlewares.js");
+const { createProductLimiter, uploadLimiter } = require("../middlewares/rateLimiter.middleware");
 const {
   addProduct,
   getProducts,
@@ -16,7 +17,11 @@ const {
   ,updateProductPriority
 } = require("../controller/product.controller.js");
 
+// SECURITY: Adding product requires authentication + rate limiting to prevent spam
 router.post("/add",
+  verifyJWT,
+  createProductLimiter,
+  uploadLimiter,
   uploadPictures.fields([
     { name: "pictures", maxCount: 8 }
   ]),
@@ -37,12 +42,14 @@ router.get("/product/:id"
 // Get all ads/products by a specific user
 router.get("/user/:userId/ads", getProductsByUser);
 
-// Delete product by ID
-router.delete("/product/:id", deleteProduct);
+// SECURITY: Delete product requires authentication (user must own the product)
+router.delete("/product/:id", verifyJWT, deleteProduct);
 
-// Update product by ID
+// SECURITY: Update product requires authentication (user must own the product)
 router.put(
   "/product/:id",
+  verifyJWT,
+  uploadLimiter,
   uploadPictures.fields([{ name: "pictures", maxCount: 8}]),
   updateProduct
 );
@@ -55,9 +62,11 @@ router.route("/try").post((req, res) => {
   res.send("Test passed");
 });
 
-router.patch("/mark-sold/:productId", markProductAsSold);
+// SECURITY: Mark as sold requires authentication (user must own the product)
+router.patch("/mark-sold/:productId", verifyJWT, markProductAsSold);
 router.get('/category/:category', getProductsByCategory);
 router.route("/productadds")
 router.get("/priority", getPriorityProducts);
-router.put("/priority/:productId", updateProductPriority);
+// SECURITY: Update priority requires authentication
+router.put("/priority/:productId", verifyJWT, updateProductPriority);
 module.exports = router;

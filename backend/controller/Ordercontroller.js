@@ -10,19 +10,20 @@ const {
   itemReceivedTemplate,
   fundsReleasedTemplate
 } = require("../services/templates.js");
+const logger = require('../utils/logger');
 
 const placeOrder = async (req, res) => {
-  console.log("hi");
+  logger.debug('placeOrder called', { body: req.body });
   
   try {
     const { buyerId, sellerId, productId, total, transactionId,address} = req.body;
-    console.log("const done"+buyerId + " " + sellerId +" " + productId+ " "+  total+" "+ transactionId+ " " + address);
+    logger.debug('parsed order fields', { buyerId, sellerId, productId, total, transactionId });
     
     // Validate required fields
     if (!buyerId || !sellerId || !productId || !total || !address) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
-    console.log("varification  done");
+    logger.debug('verification done');
     
     const product = await Product.findById(productId).populate("owner","username email");
     if (!product) {
@@ -40,7 +41,7 @@ const placeOrder = async (req, res) => {
       product: product.title.en,
       amount: total,
     };
-    console.log(newOrder, buyer, seller);
+    logger.debug('order preview', { newOrder, buyer: { id: buyer.id }, seller: { id: seller.id } });
 
     const order = new Order({
       buyerId,
@@ -58,7 +59,7 @@ const placeOrder = async (req, res) => {
         pincode: address.zipCode,
       },
     });
-    console.log(order);
+    logger.debug('saving order to DB', { orderPreview: { product: newOrder.product, amount: newOrder.amount } });
 
     await order.save();
     try {
@@ -74,7 +75,7 @@ const placeOrder = async (req, res) => {
       sellerPaymentTemplate(seller, newOrder, buyer)
     );
   } catch (mailErr) {
-    console.error("Email sending failed:", mailErr.message);
+    logger.error('Email sending failed', { message: mailErr.message });
     // don’t throw, just log
   }
 
@@ -128,7 +129,7 @@ const getSellerOrders = async (req, res) => {
       orders,
     });
   } catch (error) {
-    console.error("Error fetching seller orders:", error);
+    logger.error('Error fetching seller orders', { message: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -183,7 +184,7 @@ const uploadTrackingId = async (req, res) => {
         trackingUpdateTemplate(seller, order, trackingId)
       );
     } catch (mailErr) {
-      console.error("Email sending failed:", mailErr.message);
+      logger.error('Email sending failed', { message: mailErr.message });
     }
 
     res.status(200).json({
@@ -192,7 +193,7 @@ const uploadTrackingId = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error("Error uploading tracking ID:", error);
+    logger.error('Error uploading tracking ID', { message: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
