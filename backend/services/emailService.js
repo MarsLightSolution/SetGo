@@ -10,6 +10,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+const logger = require('../utils/logger');
 
 /**
  * Send Email Helper
@@ -25,9 +26,9 @@ async function sendEmail(to, subject, html) {
       subject,
       html,
     });
-    console.log(`[EmailService] Email sent to: ${to}`);
+    logger.info(`[EmailService] Email sent`, { to });
   } catch (error) {
-    console.error(`[EmailService] Failed to send email: ${error.message}`);
+    logger.error('[EmailService] Failed to send email', { message: error.message, stack: error.stack });
   }
 }
 

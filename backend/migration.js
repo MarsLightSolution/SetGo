@@ -1,23 +1,29 @@
 const mongoose = require("mongoose");
 const Product = require("./models/product.model"); // make sure path is correct
 
-// ✅ Your MongoDB Atlas URI
-const MONGO_URI = "mongodb+srv://tiwariraj1202:RAJtiwari9165%40@cluster0.dwmup.mongodb.net/SetGo?retryWrites=true&w=majority&appName=Cluster0";
+const logger = require('./utils/logger');
+// MongoDB connection URI must come from environment variables
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  logger.error('MONGO_URI environment variable not set. Aborting migration.');
+  process.exit(1);
+}
 
 async function migrate() {
   try {
-    // ✅ Connect to Atlas
+    // Connect to Atlas
     await mongoose.connect(MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log("✅ Connected to MongoDB Atlas");
+    logger.info('Connected to MongoDB Atlas');
 
-    // ✅ Fetch all products
+    // Fetch all products
     const products = await Product.find();
-    console.log(`📦 Found ${products.length} products.`);
+    logger.info('Found products for migration', { count: products.length });
 
-    // ✅ Add review-related fields to existing products if missing
+    // Add review-related fields to existing products if missing
     for (const product of products) {
       let changed = false;
 
@@ -33,19 +39,19 @@ async function migrate() {
 
       if (changed) {
         await product.save();
-        console.log(`✅ Updated product: ${product._id}`);
+        logger.info('Updated product during migration', { productId: product._id });
       }
     }
 
-    console.log("🎉 Migration complete! All products have review fields now.");
+    logger.info('Migration complete! All products have review fields now.');
 
-    // ✅ Disconnect from DB
+    // Disconnect from DB
     await mongoose.disconnect();
-    console.log("🔌 Disconnected from MongoDB Atlas");
+    logger.info('Disconnected from MongoDB Atlas');
   } catch (err) {
-    console.error("❌ Migration failed:", err);
+    logger.error('Migration failed', { message: err.message, stack: err.stack });
     await mongoose.disconnect();
-    console.log("🔌 Disconnected from MongoDB Atlas (after error)");
+    logger.info('Disconnected from MongoDB Atlas (after error)');
   }
 }
 

@@ -8,6 +8,8 @@ const {
   itemReceivedTemplate,
   fundsReleasedTemplate
 } = require("../services/templates.js");
+const logger = require('../utils/logger');
+
 const getAdminDashboardData = async (req, res) => {
   try {
     // Fetch orders with buyer/seller/product info
@@ -165,7 +167,7 @@ const getAdminDashboardData = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching admin dashboard data:", error);
+    logger.error('Error fetching admin dashboard data', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: "Failed to fetch admin dashboard data",
@@ -179,7 +181,7 @@ const cancelOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
     const userId = req.body.userId;
-    console.log(userId, ADMIN_ID);
+    logger.debug('cancelOrder invoked', { userId, ADMIN_ID });
     // 🔒 Only admin can cancel
     // if (userId !== ADMIN_ID ) {
     //   return res.status(403).json({
@@ -224,7 +226,7 @@ const cancelOrder = async (req, res) => {
         );
       }
     } catch (emailErr) {
-      console.error("❌ Failed to send cancellation email:", emailErr.message);
+      logger.error('Failed to send cancellation email', { message: emailErr.message });
     }
 
     return res.status(200).json({
@@ -233,7 +235,7 @@ const cancelOrder = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error("Cancel Order Error:", error);
+    logger.error('Cancel Order Error', { message: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -246,13 +248,13 @@ const approveDelivery = async (req, res) => {
   try {
     const { userId } = req.body; // admin id from frontend
     const { orderId } = req.params;
-    console.log("Approving delivery for order:",ADMIN_ID, "by user:", userId);
+    logger.debug('approveDelivery invoked', { ADMIN_ID, userId });
     // ✅ Ensure only admin can approve delivery
     // if (userId !== ADMIN_ID) {
     //   return res.status(403).json({ error: "Only admin can approve delivery" });
     // }
 
-    console.log("Approving delivery for order:", ADMIN_ID, "by user:", userId);
+    logger.debug('approveDelivery invoked again', { ADMIN_ID, userId });
 
     // // ✅ Ensure only admin can approve delivery
     // if (userId !== ADMIN_ID) {
@@ -291,7 +293,7 @@ const approveDelivery = async (req, res) => {
 
     res.json({ message: "Order delivery approved successfully", order });
   } catch (err) {
-    console.error("Approve delivery error:", err);
+    logger.error('Approve delivery error', { message: err.message, stack: err.stack });
     res.status(500).json({ error: "Server error approving delivery" });
   }
 };
@@ -301,7 +303,7 @@ const releaseFunds = async (req, res) => {
     const { userId } = req.body; // admin id from frontend
     const { orderId } = req.params;
 
-    console.log("Releasing funds for order:", orderId, "by user:", userId);
+    logger.debug('Releasing funds for order', { orderId, userId });
 
     // ✅ Ensure only admin can release funds
     if (userId !== ADMIN_ID) {
@@ -366,7 +368,7 @@ const releaseFunds = async (req, res) => {
       order,
     });
   } catch (err) {
-    console.error("Release funds error:", err);
+    logger.error('Release funds error', { message: err.message, stack: err.stack });
     res.status(500).json({ error: "Server error releasing funds" });
   }
 };

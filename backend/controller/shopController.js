@@ -2,6 +2,7 @@ const Shop = require("../models/Shop");
 const User = require("../models/user");
 const Product = require("../models/product.model");
 const mongoose = require("mongoose");
+const logger = require('../utils/logger');
 
 // =====================================================
 // CREATE SHOP
@@ -103,7 +104,7 @@ const createShop = async (req, res) => {
       data: shop,
     });
   } catch (error) {
-    console.error("Error creating shop:", error);
+    logger.error('Error creating shop', { message: error.message, stack: error.stack });
 
     if (error.code === 11000) {
       return res.status(400).json({
@@ -151,7 +152,7 @@ const getMyShop = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error getting my shop:", error);
+    logger.error('Error getting my shop', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Failed to fetch your shop.",
@@ -241,7 +242,7 @@ const getAllShops = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error getting shops:", error);
+    logger.error('Error getting shops', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Failed to fetch shops.",
@@ -266,9 +267,7 @@ const getShopById = async (req, res) => {
       ? { _id: id }
       : { slug: id.toLowerCase() };
     
-    console.log("Looking for shop with:", id);
-    console.log("Is ObjectId:", isObjectId);
-    console.log("Query:", query);
+    logger.debug('Looking for shop', { id, isObjectId, query });
 
     const shop = await Shop.findOne({ ...query, status: { $ne: "closed" } })
       .populate("owner", "username profileName email phoneNumber")
@@ -299,7 +298,7 @@ const getShopById = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error getting shop:", error);
+    logger.error('Error getting shop', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Failed to fetch shop.",
@@ -394,7 +393,7 @@ const updateShop = async (req, res) => {
       data: shop,
     });
   } catch (error) {
-    console.error("Error updating shop:", error);
+    logger.error('Error updating shop', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Failed to update shop.",
@@ -450,7 +449,7 @@ const deleteShop = async (req, res) => {
       message: "Shop closed successfully.",
     });
   } catch (error) {
-    console.error("Error deleting shop:", error);
+    logger.error('Error deleting shop', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Failed to delete shop.",
@@ -530,7 +529,7 @@ const getShopProducts = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error getting shop products:", error);
+    logger.error('Error getting shop products', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Failed to fetch shop products.",
@@ -590,7 +589,7 @@ const toggleFollowShop = async (req, res) => {
       followerCount: shop.followerCount,
     });
   } catch (error) {
-    console.error("Error toggling follow:", error);
+    logger.error('Error toggling follow', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Failed to update follow status.",

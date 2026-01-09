@@ -7,7 +7,8 @@ router.get('/clear-cache', async (req, res) => {
     await redisClient.del('userList');
     res.send({ message: '✅ Redis cache cleared successfully!' });
   } catch (err) {
-    console.error('❌ Error clearing cache:', err);
+    const logger = require('../utils/logger');
+    logger.error('Error clearing cache', { message: err.message, stack: err.stack });
     res.status(500).send({ error: 'Error clearing cache' });
   }
 });

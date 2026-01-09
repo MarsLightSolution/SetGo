@@ -69,7 +69,8 @@ function validateEnvVariables() {
   const errors = [];
   const warnings = [];
 
-  console.log('\n🔍 Validating environment variables...\n');
+  const logger = require('./logger');
+  logger.info('🔍 Validating environment variables...');
 
   // Check each required variable
   for (const [key, config] of Object.entries(REQUIRED_ENV_VARS)) {
@@ -133,19 +134,18 @@ function validateEnvVariables() {
 
   // Display results
   if (warnings.length > 0) {
-    console.log('⚠️  WARNINGS:\n');
-    warnings.forEach(warning => console.log(`   ${warning}`));
-    console.log('');
+    logger.warn('WARNINGS:');
+    warnings.forEach(warning => logger.warn(`   ${warning}`));
   }
 
   if (errors.length > 0) {
-    console.log('❌ VALIDATION ERRORS:\n');
-    errors.forEach(error => console.log(`   ${error}`));
-    console.log('\n💡 Run "node scripts/generateSecrets.js" to generate secure credentials\n');
+    logger.error('VALIDATION ERRORS:');
+    errors.forEach(err => logger.error(`   ${err}`));
+    logger.info('Run "node scripts/generateSecrets.js" to generate secure credentials');
     throw new ValidationError(errors);
   }
 
-  console.log('✅ Environment validation passed!\n');
+  logger.info('Environment validation passed!');
   return true;
 }
 

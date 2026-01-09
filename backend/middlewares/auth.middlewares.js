@@ -2,10 +2,11 @@ const jwt = require("jsonwebtoken");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const User = require("../models/user");
+const logger = require('../utils/logger');
 
 const verifyToken = asyncHandler(async (req, _res, next) => {
   const token = req.cookies.refreshToken; // ✅ Get token from cookies
-  console.log(token);
+  logger.debug('refreshToken presence check', { hasToken: !!token });
   if (!token) {
     throw new ApiError(401, "No token provided");
   }

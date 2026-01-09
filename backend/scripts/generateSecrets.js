@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 /**
  * Security Credential Generator
@@ -48,3 +49,6 @@ console.log('   4. Update .env.example with placeholder values only');
 console.log('   5. Store production secrets in secure vault (AWS Secrets Manager, etc.)');
 console.log('\n=' .repeat(70));
 console.log('\n');
+
+// Security note: do not record secrets in logs. Log that generation occurred.
+logger.info('generateSecrets executed; secrets were printed to stdout for manual copy (not logged).');

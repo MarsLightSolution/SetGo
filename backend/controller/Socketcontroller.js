@@ -1,18 +1,20 @@
-    function initSocket(io) {
+const logger = require('../utils/logger');
+
+function initSocket(io) {
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+    logger.info('User connected', { socketId: socket.id });
 
     // Join conversation room
     socket.on("joinConversation", (conversationId) => {
       socket.join(conversationId);
-      console.log(`Socket ${socket.id} joined conversation ${conversationId}`);
+      logger.info('Socket joined conversation', { socketId: socket.id, conversationId });
     });
 
     // Handle text/image/file messages (just relay, no DB work)
     socket.on("sendMessage", (message) => {
       // message = { conversationId, senderId, text, fileUrl?, messageType? }
       io.to(message.conversationId).emit("newMessage", message);
-      console.log("Relayed message to conversation:", message.conversationId);
+      logger.debug('Relayed message to conversation', { conversationId: message.conversationId });
     });
 
     // Typing indicator
@@ -36,7 +38,7 @@
 
     // Disconnect
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
+      logger.info('User disconnected', { socketId: socket.id });
     });
   });
 }

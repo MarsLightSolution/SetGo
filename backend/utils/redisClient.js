@@ -9,13 +9,14 @@ const client = redis.createClient({
         port: process.env.REDIS_PORT
     }
 });
+const logger = require('../utils/logger');
 
 client.on('error', (err) => {
-    // console.error('Redis Client Error:', err);
+    logger.error('Redis Client Error', { message: err.message, stack: err.stack });
 });
 
 client.connect() // returns a promise
-    .then(() => console.log('Redis connected successfully'))
-    .catch(console.error);
+    .then(() => logger.info('Redis connected successfully'))
+    .catch(err => logger.error('Redis connection failed', { message: err.message, stack: err.stack }));
 
 module.exports = client;

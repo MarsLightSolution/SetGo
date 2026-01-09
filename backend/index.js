@@ -25,7 +25,7 @@ dotenv.config();
 try {
   validateEnvVariables();
 } catch (error) {
-  console.error('\n❌ Environment validation failed. Server cannot start.\n');
+  logger.error('Environment validation failed. Server cannot start.', { message: error.message });
   process.exit(1);
 }
 
@@ -207,9 +207,9 @@ initSocket(io);
 
 // Optional: log connections
 io.on("connection", (socket) => {
-  console.log("New client connected:", socket.id);
+  logger.info('New client connected', { socketId: socket.id });
   socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+    logger.info('Client disconnected', { socketId: socket.id });
   });
 });
 
@@ -217,9 +217,8 @@ io.on("connection", (socket) => {
 const port = process.env.PORT || 8080;
 server.listen(port, (err) => {
   if (err) {
-    console.error("Error starting server:", err);
+    logger.error('Error starting server', { message: err.message, stack: err.stack });
   } else {
-    console.log(`Server running on port ${port}`);
-    logger.info(`Server started on port ${port}`);
+    logger.info('Server running', { port });
   }
 });

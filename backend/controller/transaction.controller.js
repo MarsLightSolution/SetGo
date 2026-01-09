@@ -7,7 +7,7 @@ const logger = require('../utils/logger'); // Import the logger
 const walletTransfer = asyncHandler(async (req, res) => {
   const { senderId, receiverId, amount, transactionId, description } = req.body;
   logger.info(`[WalletTransfer] Request received from sender: ${senderId} to receiver: ${receiverId} for amount: ${amount}`);
-  console.log(transactionId + " id ");
+  logger.debug('walletTransfer transaction id', { transactionId });
 
   // Use an existing session if provided, otherwise create a new one
   const session = req.body.session || await mongoose.startSession();

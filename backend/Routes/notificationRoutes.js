@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const authMiddleware = require('../middlewares/auth.middlewares'); // Using existing auth middleware
+const logger = require('../utils/logger');
 
 // Get all notifications for the authenticated user
 router.get('/', authMiddleware, async (req, res) => {
@@ -36,7 +37,7 @@ router.get('/', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch notifications',
@@ -56,7 +57,7 @@ router.get('/unread-count', authMiddleware, async (req, res) => {
       data: { unreadCount }
     });
   } catch (error) {
-    console.error('Error getting unread count:', error);
+    logger.error('Error getting unread count', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to get unread count',
@@ -91,7 +92,7 @@ router.patch('/:id/read', authMiddleware, async (req, res) => {
       data: notification
     });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    logger.error('Error marking notification as read', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to mark notification as read',
@@ -112,7 +113,7 @@ router.patch('/mark-all-read', authMiddleware, async (req, res) => {
       data: { modifiedCount: result.modifiedCount }
     });
   } catch (error) {
-    console.error('Error marking all notifications as read:', error);
+    logger.error('Error marking all notifications as read', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to mark all notifications as read',
@@ -144,7 +145,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       message: 'Notification deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    logger.error('Error deleting notification', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to delete notification',
@@ -168,7 +169,7 @@ router.delete('/read/all', authMiddleware, async (req, res) => {
       data: { deletedCount: result.deletedCount }
     });
   } catch (error) {
-    console.error('Error deleting read notifications:', error);
+    logger.error('Error deleting read notifications', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to delete read notifications',
@@ -208,7 +209,7 @@ router.post('/', authMiddleware, async (req, res) => {
       data: notification
     });
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logger.error('Error creating notification', { message: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'Failed to create notification',

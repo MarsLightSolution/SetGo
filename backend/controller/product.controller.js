@@ -39,7 +39,7 @@ const addProduct = asyncHandler(async (req, res) => {
 
   logger.info(`[AddProduct] Request body received`, { body: req.body });
 
-  console.log(req.body);
+  logger.debug('AddProduct request body', { body: req.body });
   
   if (!termsAccepted) {
     logger.warn(`[AddProduct] Terms not accepted`);
