@@ -4,10 +4,15 @@ const User = require('../models/user');
 const {onlineWalletTransfer} =require('../controller/transaction.controller');
 
 // Configure Paymentwall once at module level
+// SECURITY: Credentials moved to environment variables
+if (!process.env.PAYMENTWALL_PROJECT_KEY || !process.env.PAYMENTWALL_SECRET_KEY) {
+  throw new Error('PAYMENTWALL_PROJECT_KEY and PAYMENTWALL_SECRET_KEY must be set in environment variables');
+}
+
 Paymentwall.Configure(
   Paymentwall.Base.API_GOODS,
-  'be2b2a35356b78cbf499cdac649363e2',
-  '57c1c499c2d85db6b1ac8bfe71a009ca'
+  process.env.PAYMENTWALL_PROJECT_KEY,
+  process.env.PAYMENTWALL_SECRET_KEY
 );
 
 exports.createPayment = async (userId,receiverId, amount, product, source, email) => {
@@ -62,10 +67,16 @@ exports.handlePingback = async (req, res) => {
 
     // Validate the pingback signature
     console.log(req.query);
-    // if (!pingback.validate()) {
-    //   console.warn('Invalid Paymentwall pingback:', req.query);
-    //   return res.status(400).send('Invalid pingback');
-    // }
+
+    // SECURITY: Enable signature validation in production
+    if (process.env.NODE_ENV === 'production') {
+      if (!pingback.validate()) {
+        console.warn('⚠️ Invalid Paymentwall pingback signature:', req.query);
+        return res.status(400).send('Invalid pingback');
+      }
+    } else {
+      console.warn('⚠️ Pingback signature validation DISABLED in development mode');
+    }
     console.log("2");
     const orderId = req.query.ref; // <-- use `ref` from query as your order ID
     if (!orderId) {

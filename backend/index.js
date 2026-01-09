@@ -8,41 +8,80 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
+const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
 
 const mongoose = require("./config/mongoose");
 const logger = require("./utils/logger");
 const initSocket = require("./controller/Socketcontroller");
 const uploadPictures = require("./middlewares/multer.middleware");
+const { validateEnvVariables } = require("./utils/validateEnv");
+const { generalLimiter } = require("./middlewares/rateLimiter.middleware");
 
+// Load environment variables first
 dotenv.config();
+
+// SECURITY: Validate environment variables before starting server
+try {
+  validateEnvVariables();
+} catch (error) {
+  console.error('\n❌ Environment validation failed. Server cannot start.\n');
+  process.exit(1);
+}
 
 const app = express();
 
+// ------------------- SECURITY MIDDLEWARE -------------------
+// SECURITY: Helmet.js - Sets various HTTP headers for security
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Needed for some third-party services
+}));
+
+// SECURITY: MongoDB injection prevention
+app.use(mongoSanitize());
+
 // ------------------- CORS -------------------
-const allowedOrigins = [
-  "http://localhost:5173",  // dev
-  "http://51.20.123.49",
-  "http://172.20.10.2:8081",
-  "http://localhost:8081",
-  "https://tiwari.shop",      // Add this
-  "https://www.tiwari.shop",  // Add this
-  "http://tiwari.shop",       // Add this (for HTTP redirects)
-  "http://www.tiwari.shop",
-  "http://10.113.84.234:8080",
-  "http://10.175.186.234:8080"   // Add this
-];
+// SECURITY: Use environment-based CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      process.env.FRONTEND_URL,
+      "https://tiwari.shop",
+      "https://www.tiwari.shop",
+    ].filter(Boolean) // Remove undefined values
+  : [
+      "http://localhost:5173",
+      "http://localhost:3000",  // For serve build testing
+      "http://localhost:8081",
+      "http://172.20.10.2:8081",
+      "http://51.20.123.49",
+      "http://10.113.84.234:8080",
+      "http://10.175.186.234:8080"
+    ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      logger.warn(`CORS blocked request from origin: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: "GET,POST,PUT,DELETE,PATCH",
-  allowedHeaders: "Content-Type,Authorization",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
+  maxAge: 86400, // Cache preflight requests for 24 hours
 };
 
 app.use(cors(corsOptions));
@@ -65,8 +104,85 @@ app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// SECURITY: Apply general rate limiting to all routes
+app.use(generalLimiter);
+
 // ------------------- Routes -------------------
 app.use("/", require("./Routes"));
+
+// ------------------- GLOBAL ERROR HANDLER -------------------
+// SECURITY: Centralized error handling
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  // Log error details for debugging
+  logger.error({
+    message: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    url: req.url,
+    method: req.method,
+    ip: req.ip,
+  });
+
+  // Rate limit error
+  if (err.message && err.message.includes('Too many requests')) {
+    return res.status(429).json({
+      error: 'Too many requests',
+      message: err.message,
+    });
+  }
+
+  // CORS error
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: 'Origin not allowed',
+    });
+  }
+
+  // Validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      error: 'Validation Error',
+      message: err.message,
+      details: err.errors,
+    });
+  }
+
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      error: 'Authentication Error',
+      message: 'Invalid token',
+    });
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      error: 'Authentication Error',
+      message: 'Token expired',
+    });
+  }
+
+  // MongoDB duplicate key error
+  if (err.code === 11000) {
+    return res.status(409).json({
+      error: 'Duplicate Entry',
+      message: 'Resource already exists',
+    });
+  }
+
+  // Default error response
+  const statusCode = err.statusCode || err.status || 500;
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal Server Error'
+    : err.message;
+
+  res.status(statusCode).json({
+    error: 'Server Error',
+    message: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  });
+});
 
 // ------------------- SOCKET.IO -------------------
 const server = http.createServer(app);
