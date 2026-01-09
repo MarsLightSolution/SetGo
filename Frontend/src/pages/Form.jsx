@@ -282,6 +282,13 @@ const Form = () => {
       currentErrors.quantity = t("Quantity cannot exceed 10,000 units") || "Quantity cannot exceed 10,000 units";
     }
 
+    // ✅ NEW: Quantity validation
+    if (!formData.quantity || formData.quantity < 1) {
+      currentErrors.quantity = t("form.quantityMinError") || "Quantity must be at least 1";
+    } else if (formData.quantity > 10000) {
+      currentErrors.quantity = t("form.quantityMaxError") || "Quantity cannot exceed 10,000 units";
+    }
+
     setErrors(currentErrors);
     if (Object.keys(currentErrors).length > 0) {
       showErrorToast(t("Please fix the errors in the form"));
