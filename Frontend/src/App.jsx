@@ -5,6 +5,7 @@ import NotificationProvider from './contexts/NotificationContext'
 import Navbar from './components/common/Navbar'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
+import ErrorBoundary from './components/common/ErrorBoundary'
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
 const Register = lazy(() => import('./pages/Register'))
@@ -55,10 +56,11 @@ const LoadingSpinner = () => (
 )
 function App() {
   return (
-    <NotificationProvider>
-      <div>
-        <Navbar />
-        <Suspense fallback={<LoadingSpinner />}>
+    <ErrorBoundary>
+      <NotificationProvider>
+        <div>
+          <Navbar />
+          <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route path='/' element={<Home />} />
             <Route path='/register' element={<PublicRoute><Register /></PublicRoute>} />
@@ -109,6 +111,7 @@ function App() {
         </Suspense>
       </div>
     </NotificationProvider>
+    </ErrorBoundary>
   )
 }
 

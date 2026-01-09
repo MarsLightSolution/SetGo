@@ -6,7 +6,8 @@ const verifyJWT = require('../middlewares/auth.middlewares.js');
 const { validateCreatePayment } = require('../middlewares/validation.middleware');
 
 // SECURITY: Payment routes with strict rate limiting, authentication, and input validation
-router.post('/create', paymentLimiter, verifyJWT, validateCreatePayment, paymentController.createPayment);
+// Rate limiter MUST come first to prevent DoS attacks before authentication
+router.post('/create', paymentLimiter, validateCreatePayment, verifyJWT, paymentController.createPayment);
 // Pingback is called by payment gateway, so no auth but still rate limited
 router.get('/pingback', paymentLimiter, paymentController.handlePingback);
 router.get('/')
