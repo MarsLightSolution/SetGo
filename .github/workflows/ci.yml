@@ -99,17 +99,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Run gitleaks scan
-        uses: zricethezav/gitleaks-action@v8
-        with:
-          args: --redact --report-path gitleaks-report.json
-
-      - name: Upload gitleaks report
-        uses: actions/upload-artifact@v4
-        with:
-          name: gitleaks-report
-          path: gitleaks-report.json
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_SUMMARY: true
 
   console-check:
     name: Report console.log occurrences
@@ -210,9 +207,10 @@ jobs:
           echo "" >> summary.txt
           echo "Artifacts Available:" >> summary.txt
           echo "  - frontend-dist (production build)" >> summary.txt
-          echo "  - gitleaks-report (secret scanning)" >> summary.txt
           echo "  - console-log-report (debug statements)" >> summary.txt
           echo "  - security-check-report (middleware config)" >> summary.txt
+          echo "" >> summary.txt
+          echo "Note: Gitleaks report available in Actions summary tab" >> summary.txt
           echo "" >> summary.txt
           echo "Security Improvements Applied:" >> summary.txt
           echo "  • Rate limiting (10 req/hr for payments)" >> summary.txt
