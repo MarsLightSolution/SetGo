@@ -2,13 +2,25 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 import axiosRetry from 'axios-retry';
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from './secureAuthService';
 
-// 1️⃣ Read API URL from app.json > expo.extra.apiUrl
+// Read API URL from environment or app.config.js extra
 const extra = (Constants.expoConfig || Constants.manifest || {}).extra || {};
-export const API_URL = extra.apiUrl || "http://51.20.123.49/api";
+const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-// 2️⃣ Create Axios Instance
+// Use environment variable first, then app config
+export const API_URL = envApiUrl || extra.apiUrl;
+
+// Validate API URL is configured
+if (!API_URL) {
+  if (__DEV__) {
+    console.warn(
+      'API_URL is not configured. Set EXPO_PUBLIC_API_URL in your .env file.'
+    );
+  }
+}
+
+// Create Axios Instance
 const api = axios.create({
   baseURL: API_URL,
   timeout: 15000,
@@ -16,10 +28,10 @@ const api = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
-  withCredentials: false, // Change only if your backend needs cookies
+  withCredentials: false,
 });
 
-// 3️⃣ Axios Retry
+// Axios Retry for transient failures
 axiosRetry(api, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
@@ -31,48 +43,45 @@ axiosRetry(api, {
     );
   },
   shouldResetTimeout: true,
-  onRetry: (count, error, config) => {
-    console.log(`Retry ${count} → ${config?.url}`);
-  },
 });
 
-// 4️⃣ Request Interceptor (Add Token)
+// Request Interceptor - Add Auth Token
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await SecureStore.getItemAsync('authToken');
+      // Use centralized secure auth service
+      const token = await getAuthToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (err) {
-      console.error("Auth token error:", err);
+      // Continue without token if retrieval fails
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// 5️⃣ Response Interceptor (Error Logging)
+// Response Interceptor - Error Handling
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response) {
-      console.error("API Error:", {
-        status: error.response.status,
-        data: error.response.data,
-        url: error.config?.url,
-      });
-    } else if (error.request) {
-      console.error("API No Response:", {
-        message: error.message,
-        url: error.config?.url,
-      });
-    } else {
-      console.error("API Request Setup Error:", error.message);
+    // Only log errors in development
+    if (__DEV__) {
+      if (error.response) {
+        console.warn('API Error:', {
+          status: error.response.status,
+          url: error.config?.url,
+        });
+      } else if (error.request) {
+        console.warn('API No Response:', {
+          message: error.message,
+          url: error.config?.url,
+        });
+      }
     }
     return Promise.reject(error);
   }
 );
 
-// 6️⃣ Export final axios instance
 export default api;

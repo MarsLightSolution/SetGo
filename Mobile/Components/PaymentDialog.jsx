@@ -12,17 +12,19 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { io } from 'socket.io-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from '../utils/logger';
+import { getUserId } from '../services/secureAuthService';
 
-const { width } = Dimensions.get('window');
+const { width: _width } = Dimensions.get('window'); // Prefixed with _ since not currently used
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api';
-const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8080';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-// ✅ Helper function to get text from multilingual object
+// Helper function to get text from multilingual object
 const getTextValue = (textObj, fallback = '') => {
   if (!textObj) return fallback;
   if (typeof textObj === 'string') return textObj;
@@ -43,216 +45,136 @@ const formatNumber = (v) => {
   return (n ?? 0).toLocaleString();
 };
 
-// ✅ NORMALIZED API RESPONSE HANDLER
-// Handles all response formats: { data: {...} }, { success, data: {...} }, or flat response
-const normalizeResponse = (response) => {
-  if (!response) return { success: false, data: null };
-  
-  // If response has nested data object, flatten it
-  if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-    return {
-      success: response.success !== false,
-      ...response.data,  // Spread all nested data properties to top level
-      _raw: response,    // Keep raw response for debugging
-    };
-  }
-  
-  // If response.data is a primitive (number, string), treat it as the main value
-  if (response.data !== undefined && typeof response.data !== 'object') {
-    return {
-      success: response.success !== false,
-      value: response.data,
-      _raw: response,
-    };
-  }
-  
-  // Response is already flat
-  return {
-    success: response.success !== false,
-    ...response,
-    _raw: response,
-  };
-};
-
-// ✅ Extract wallet balance from any response format
-const extractWalletBalance = (response, fallback = 0) => {
-  if (!response) return fallback;
-  
-  // Try all possible paths
-  const paths = [
-    response?.data?.walletBalance,
-    response?.data?.data?.walletBalance,
-    response?.walletBalance,
-    response?.balance,
-    response?.data?.balance,
-    response?.data,  // In case data itself is the balance number
-  ];
-  
-  for (const value of paths) {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-  }
-  
-  return fallback;
-};
-
-const PaymentDialog = ({ 
-  isVisible, 
-  product, 
-  user, 
-  onClose, 
+const PaymentDialog = ({
+  isVisible,
+  product,
+  user,
+  onClose,
   onPaymentSuccess,
 }) => {
   const router = useRouter();
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
-  const [onlineMethod, setOnlineMethod] = useState('');
-  const [status, setStatus] = useState('READY');
-  const [orderId, setOrderId] = useState(null);
-  const [socket, setSocket] = useState(null);
+  const [customAmount, setCustomAmount] = useState(''); // Custom wallet amount
+  const [status, setStatus] = useState('READY'); // READY, LOADING, SUCCESS, FAILURE
+  const [errorMessage, setErrorMessage] = useState('');
   const [loadingWallet, setLoadingWallet] = useState(false);
-  const [error, setError] = useState(null);
-  
+
   // Animation values
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  
-  const orderTimestamp = Date.now().toString();
-  const price = product?.price ?? 0;
-  const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
-  const remainder = price - walletDeduction;
-  const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
 
-  // Get owner ID properly
-  const ownerId = product?.owner?._id || product?.owner || null;
-  const productOwnerId = product?.owner?._id || product?.owner || null;
-  
+  const price = product?.price ?? 0;
+
+  // Calculate actual wallet amount to use
+  const walletAmountToUse = useMemo(() => {
+    if (!useWallet) return 0;
+
+    if (customAmount === '') {
+      // Use maximum possible (either full balance or price, whichever is lower)
+      return Math.min(walletBalance, price);
+    }
+
+    const amount = parseFloat(customAmount);
+    if (isNaN(amount) || amount <= 0) return 0;
+
+    // Ensure amount doesn't exceed wallet balance or price
+    return Math.min(amount, walletBalance, price);
+  }, [useWallet, customAmount, walletBalance, price]);
+
+  // Calculate remaining amount to pay online
+  const remainingAmount = useMemo(() => {
+    return Math.max(0, price - walletAmountToUse);
+  }, [price, walletAmountToUse]);
+
   // Get product title (handles both string and object)
   const productTitle = useMemo(() => {
     return getTextValue(product?.title, 'Unnamed Product');
   }, [product?.title]);
 
-  // ✅ FIXED: Fetch wallet balance with normalized response handling
+  // Fetch wallet balance
   const fetchWalletBalance = useCallback(async (retryCount = 0) => {
+    if (!user?.userId) return;
+
     setLoadingWallet(true);
-    setError(null);
-    
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const res = await fetch(`${API_URL}/users/${user.userId}/wallet`, {
         method: 'GET',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         signal: controller.signal,
       });
-      
-      console.log('📍 Wallet API URL:', `${API_URL}/users/${user.userId}/wallet`);
+
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ Wallet API error:', errorText);
-        throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
+        throw new Error(`HTTP ${res.status}`);
       }
-      
-      const rawData = await res.json();
-      console.log('💰 Raw wallet response:', rawData);
-      
-      // ✅ Use helper to extract wallet balance from any response format
-      const balance = extractWalletBalance(rawData, user?.walletBalance ?? 0);
-      console.log('✅ Extracted wallet balance:', balance);
-      
-      setWalletBalance(balance);
-      
+
+      const data = await res.json();
+      logger.log('Wallet response:', data);
+
+      // Extract wallet balance from response
+      const balance =
+        data?.data?.walletBalance ??
+        data?.walletBalance ??
+        data?.balance ??
+        data?.data ??
+        0;
+
+      setWalletBalance(typeof balance === 'number' ? balance : 0);
     } catch (err) {
-      console.error('❌ Wallet fetch error:', err);
-      
-      if (err.name === 'AbortError') {
-        setError('Request timeout. Please check your connection.');
-      } else {
-        setError('Failed to fetch wallet balance');
-      }
-      
+      logger.error('Wallet fetch error:', err);
+
       if (retryCount === 0) {
-        console.log('🔄 Retrying wallet balance fetch...');
         setTimeout(() => fetchWalletBalance(1), 1500);
       } else {
-        console.log('⚠️ Using fallback wallet balance from user prop');
         setWalletBalance(user?.walletBalance ?? 0);
       }
     } finally {
       setLoadingWallet(false);
     }
-  }, [user?.userId, user?.walletBalance, isVisible]);
+  }, [user?.userId, user?.walletBalance]);
 
   useEffect(() => {
-    if (isVisible) {
-      console.log('💳 Fetching wallet balance for user:', user?.userId);
+    if (isVisible && user?.userId) {
       fetchWalletBalance();
     }
-  }, [isVisible, fetchWalletBalance]);
+  }, [isVisible, fetchWalletBalance, user?.userId]);
 
   useEffect(() => {
     if (status === 'SUCCESS' || status === 'FAILURE') {
-      Animated.sequence([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 4,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
     } else {
       scaleAnim.setValue(0);
     }
   }, [status, scaleAnim]);
 
-  useEffect(() => {
-    if (!orderId || !isVisible) return;
+  // Handler for custom amount input
+  const handleCustomAmountChange = (value) => {
+    // Allow empty string or valid numbers with up to 2 decimal places
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setCustomAmount(value);
+    }
+  };
 
-    console.log('🔌 Connecting to socket for order:', orderId);
-    console.log('🔌 Socket URL:', SOCKET_URL);
-    
-    const newSocket = io(SOCKET_URL, { 
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: 3,
-      withCredentials: true,
-    });
-
-    newSocket.emit('subscribePayment', orderId);
-
-    newSocket.on('paymentUpdate', (data) => {
-      console.log('📡 Payment update received:', data);
-      if (data.status === 'PAID' && data.orderId === orderId) {
-        console.log('✅ Payment confirmed!');
-        setStatus('SUCCESS');
-        onPaymentSuccess?.(price);
-        
-        setTimeout(() => {
-          newSocket.disconnect();
-          handleClose();
-        }, 2000);
-      }
-    });
-
-    newSocket.on('connect_error', (err) => {
-      console.error('❌ Socket connection error:', err);
-    });
-
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.off('paymentUpdate');
-      newSocket.off('connect_error');
-      newSocket.disconnect();
-    };
-  }, [orderId, isVisible, price, onPaymentSuccess]);
+  // Quick select buttons for wallet amount
+  const handleQuickSelect = (percentage) => {
+    const maxUsable = Math.min(walletBalance, price);
+    const amount = (maxUsable * percentage).toFixed(2);
+    setCustomAmount(amount);
+  };
 
   const handleClose = useCallback(() => {
     if (status === 'LOADING') {
@@ -263,13 +185,12 @@ const PaymentDialog = ({
       );
       return;
     }
-    
+
     setStatus('READY');
     setUseWallet(false);
-    setOnlineMethod('');
-    setOrderId(null);
-    setError(null);
-    
+    setCustomAmount('');
+    setErrorMessage('');
+
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 200,
@@ -280,198 +201,95 @@ const PaymentDialog = ({
     });
   }, [status, onClose, fadeAnim]);
 
-  // ✅ FIXED: Order creation with normalized response
-  const handleOrderCreation = useCallback(async () => {
-    try {
-      const orderPayload = {
-        buyerId: user.userId,
-        sellerId: productOwnerId,
-        productId: product._id,
-        total: price,
-        transactionId: txnId,
-        address: {
-          name: user.fullName || user.name || user.username || 'N/A',
-          email: user.email || 'N/A',
-          city: user.city || 'Not specified',
-          address: user.address || 'Not specified',
-          zipCode: user.postalCode || user.zipCode || 'Not specified',
-        },
-      };
-
-      console.log('📦 Creating order:', orderPayload);
-
-      const res = await fetch(`${API_URL}/Orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(orderPayload),
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || 'Order creation failed');
-      }
-      
-      const rawData = await res.json();
-      console.log('📦 Raw order response:', rawData);
-      
-      // ✅ Normalize the response
-      const data = normalizeResponse(rawData);
-      console.log('📦 Normalized order response:', data);
-      
-      if (data.success) {
-        const orderId = data._id || data.orderId || rawData?.data?._id;
-        console.log('✅ Order created successfully:', orderId);
-        
-        Alert.alert(
-          'Order Created!',
-          'Your order has been created successfully.',
-          [
-            {
-              text: 'View Order',
-              onPress: () => {
-                handleClose();
-                setTimeout(() => {
-                  router.push({
-                    pathname: '/order',
-                    params: { orderId }
-                  });
-                }, 300);
-              },
-            },
-            {
-              text: 'Close',
-              onPress: () => handleClose(),
-              style: 'cancel',
-            }
-          ]
-        );
-      } else {
-        throw new Error(data.message || 'Order creation failed');
-      }
-    } catch (err) {
-      console.error('❌ Order creation error:', err);
-      Alert.alert(
-        'Order Failed', 
-        err.message || 'Failed to create order. Please contact support.',
-        [{ text: 'OK' }]
-      );
-    }
-  }, [user, productOwnerId, product, price, txnId, router, handleClose]);
-
-  // ✅ FIXED: Wallet transfer with normalized response
-  const walletTransfer = useCallback(async () => {
+  /**
+   * UNIFIED PAYMENT PROCESSING
+   * Uses the new /api/payments/initiate endpoint
+   * Backend handles: product lookup, price validation, wallet deduction, payment processing
+   */
+  const processPayment = async () => {
     setStatus('LOADING');
-    setError(null);
-    
-    const payload = {
-      senderId: user.userId,
-      receiverId: ownerId,
-      type: 'transfer',
-      amount: price,
-      description: `Payment for ${productTitle} - Order ${orderTimestamp}`,
-      transactionId: txnId,
-      referenceId: `order_${orderTimestamp}`,
-      source: 'wallet',
-    };
+    setErrorMessage('');
 
-    console.log('💰 Wallet transfer payload:', payload);
+    // Get userId from secure storage
+    const storedUserId = await getUserId();
+    const buyerId = storedUserId || user?.userId;
 
-    try {
-      const res = await fetch(`${API_URL}/transaction/transferFund`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || 'Wallet transfer failed');
-      }
-      
-      const rawData = await res.json();
-      console.log('💰 Raw wallet transfer response:', rawData);
-      
-      // ✅ Normalize the response
-      const data = normalizeResponse(rawData);
-      console.log('💰 Normalized wallet transfer response:', data);
-
-      if (data.success) {
-        console.log('✅ Wallet transfer successful');
-        setStatus('SUCCESS');
-        onPaymentSuccess?.(price);
-        
-        await handleOrderCreation();
-        
-        setTimeout(() => {
-          handleClose();
-        }, 2000);
-      } else {
-        console.error('❌ Wallet transfer failed:', data);
-        setStatus('FAILURE');
-        setError(data.message || 'Wallet transfer failed');
-        Alert.alert(
-          'Payment Failed', 
-          data.message || 'Insufficient balance or transfer error. Please try again.'
-        );
-      }
-    } catch (err) {
-      console.error('❌ Wallet transfer error:', err);
+    if (!buyerId) {
       setStatus('FAILURE');
-      setError(err.message || 'Network error. Please check your connection.');
-      Alert.alert('Error', err.message || 'Something went wrong. Please try again.');
+      setErrorMessage('Authentication required. Please log in again.');
+      return;
     }
-  }, [user, ownerId, price, productTitle, txnId, onPaymentSuccess, handleOrderCreation, handleClose, orderTimestamp]);
 
-  // ✅ FIXED: Online transfer with normalized response
-  const onlineTransfer = useCallback(async () => {
-    setStatus('LOADING');
-    setError(null);
-    
+    // Minimal payload - backend fetches product details and validates
     const payload = {
-      userId: user.userId,
-      receiverId: ownerId,
-      type: 'transfer',
-      amount: remainder,
-      description: `Payment for ${productTitle} - Order ${orderTimestamp}`,
-      transactionId: txnId,
-      referenceId: `order_${orderTimestamp}`,
-      source: 'online',
-      product: product._id,
-      walletDeduction: walletDeduction,
+      buyerId: buyerId,
+      productId: product._id,
+      walletUsed: useWallet,
+      walletAmount: walletAmountToUse,
+      checkoutDetails: {
+        name: user.fullName || user.name || user.userName || 'N/A',
+        email: user.email || 'N/A',
+        city: user.city || 'Not specified',
+        address: user.address || 'Not specified',
+        pincode: user.postalCode || user.zipCode || 'Not specified',
+      },
     };
 
-    console.log('💳 Online transfer payload:', payload);
+    logger.log('Payment payload:', payload);
 
     try {
-      const res = await fetch(`${API_URL}/payment/create`, {
+      const res = await fetch(`${API_URL}/payments/initiate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || 'Payment creation failed');
+      const data = await res.json().catch(() => ({}));
+      logger.log('Payment response:', data);
+
+      // Handle unauthorized/authentication errors
+      if (res.status === 401 || res.status === 403) {
+        setStatus('FAILURE');
+        setErrorMessage('Session expired. Please log in again.');
+        return;
       }
 
-      const rawData = await res.json();
-      console.log('💳 Raw online payment response:', rawData);
-      
-      // ✅ Normalize the response
-      const data = normalizeResponse(rawData);
-      console.log('💳 Normalized online payment response:', data);
+      if (data.success === true) {
+        // If payment completed without redirect (wallet-only payment)
+        if (data.completed === true) {
+          logger.log('Payment completed successfully');
+          setStatus('SUCCESS');
 
-      if (data.success) {
-        const paymentUrl = data.url || rawData?.data?.url;
-        const paymentOrderId = data.orderId || rawData?.data?.orderId;
-        
-        console.log('✅ Payment URL received:', paymentUrl);
-        setOrderId(paymentOrderId);
-        
-        if (paymentUrl) {
+          // Notify parent component
+          onPaymentSuccess?.(price);
+
+          // Navigate to order page
+          setTimeout(() => {
+            handleClose();
+            if (data.orderId) {
+              router.push({
+                pathname: `/order/${data.orderId}`,
+              });
+            }
+          }, 2300);
+        }
+        // If payment requires redirect (online payment or wallet + online)
+        else if (data.url) {
+          // Store pending payment info
+          try {
+            await AsyncStorage.setItem('pendingPayment', JSON.stringify({
+              orderId: data.orderId,
+              transactionId: data.transactionId,
+              timestamp: Date.now(),
+            }));
+          } catch (e) {
+            logger.warn('Failed to store pending payment:', e);
+          }
+
+          // Open payment URL
           Alert.alert(
             'Complete Payment',
             'You will be redirected to complete your payment securely.',
@@ -480,17 +298,16 @@ const PaymentDialog = ({
                 text: 'Cancel',
                 onPress: () => {
                   setStatus('READY');
-                  setOrderId(null);
                 },
                 style: 'cancel',
               },
               {
                 text: 'Continue',
                 onPress: () => {
-                  Linking.openURL(paymentUrl).catch(err => {
-                    console.error('❌ Failed to open payment URL:', err);
-                    Alert.alert('Error', 'Failed to open payment page. Please try again.');
+                  Linking.openURL(data.url).catch(err => {
+                    logger.error('Failed to open payment URL:', err);
                     setStatus('FAILURE');
+                    setErrorMessage('Failed to open payment page. Please try again.');
                   });
                 },
               },
@@ -498,91 +315,40 @@ const PaymentDialog = ({
             { cancelable: false }
           );
         } else {
-          throw new Error('Payment URL not received');
+          setStatus('FAILURE');
+          setErrorMessage('Invalid payment response. Please try again.');
         }
       } else {
-        console.error('❌ Payment creation failed:', data);
         setStatus('FAILURE');
-        setError(data.message || 'Payment creation failed');
-        Alert.alert('Payment Failed', data.message || 'Unable to create payment. Please try again.');
+        setErrorMessage(data.message || 'Payment failed. Please try again.');
       }
     } catch (err) {
-      console.error('❌ Online transfer error:', err);
+      logger.error('Payment error:', err);
       setStatus('FAILURE');
-      setError(err.message || 'Network error occurred');
-      Alert.alert('Error', err.message || 'Something went wrong. Please try again.');
+      setErrorMessage('Network error. Please check your connection.');
     }
-  }, [user, ownerId, remainder, productTitle, txnId, walletDeduction, orderTimestamp, product._id]);
+  };
 
-  const handlePay = useCallback(async () => {
+  const handlePay = async () => {
     if (status === 'FAILURE') {
       setStatus('READY');
-      setError(null);
+      setErrorMessage('');
       return;
     }
-    
+
     if (isPayDisabled) return;
 
-    console.log('💳 Initiating payment...');
-    console.log('💰 Wallet deduction:', walletDeduction);
-    console.log('💳 Online payment:', remainder);
-
-    if (remainder === 0) {
-      console.log('💰 Full wallet payment');
-      await walletTransfer();
-    } else {
-      console.log('💳 Online payment required');
-      await onlineTransfer();
-    }
-  }, [status, remainder, walletTransfer, onlineTransfer, walletDeduction]);
-
-  const RadioButton = ({ value, label, disabled }) => (
-    <TouchableOpacity
-      style={[styles.radioContainer, disabled && styles.radioDisabled]}
-      onPress={() => !disabled && setOnlineMethod(value)}
-      disabled={disabled}
-    >
-      <View style={styles.radio}>
-        {onlineMethod === value && (
-          <View style={styles.radioSelected} />
-        )}
-      </View>
-      <Text style={[styles.radioLabel, disabled && styles.radioLabelDisabled]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const CheckBox = ({ checked, onChange, disabled, label }) => (
-    <TouchableOpacity
-      style={[styles.checkboxContainer, disabled && styles.checkboxDisabled]}
-      onPress={() => !disabled && onChange(!checked)}
-      disabled={disabled}
-    >
-      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-        {checked && (
-          <Ionicons name="checkmark" size={16} color="#fff" />
-        )}
-      </View>
-      <Text style={[styles.checkboxLabel, disabled && styles.checkboxLabelDisabled]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+    await processPayment();
+  };
 
   const payLabel = useMemo(() => {
-    if (status === 'LOADING') return 'Processing…';
+    if (status === 'LOADING') return 'Processing Payment...';
     if (status === 'SUCCESS') return 'Payment Successful';
     if (status === 'FAILURE') return 'Retry Payment';
-    if (remainder === 0) return `Pay ₼${formatNumber(price)} with Wallet`;
-    if (!onlineMethod) return 'Select payment method';
-    return `Pay ₼${formatNumber(remainder)} via ${onlineMethod}`;
-  }, [status, price, remainder, onlineMethod]);
+    return `Pay ₼ ${formatNumber(price)}`;
+  }, [status, price]);
 
-  const isPayDisabled = 
-    status === 'LOADING' || 
-    status === 'SUCCESS' ||
-    (status === 'READY' && remainder > 0 && !onlineMethod);
+  const isPayDisabled = status === 'LOADING' || status === 'SUCCESS';
 
   const renderStatusAnimation = () => {
     if (status === 'LOADING') {
@@ -594,10 +360,10 @@ const PaymentDialog = ({
         </View>
       );
     }
-    
+
     if (status === 'SUCCESS') {
       return (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.statusContainer,
             { transform: [{ scale: scaleAnim }] }
@@ -607,14 +373,14 @@ const PaymentDialog = ({
             <Ionicons name="checkmark-circle" size={80} color="#16a34a" />
           </View>
           <Text style={styles.statusText}>Payment Successful!</Text>
-          <Text style={styles.statusSubtext}>Creating your order...</Text>
+          <Text style={styles.statusSubtext}>Redirecting to order...</Text>
         </Animated.View>
       );
     }
-    
+
     if (status === 'FAILURE') {
       return (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.statusContainer,
             { transform: [{ scale: scaleAnim }] }
@@ -624,22 +390,25 @@ const PaymentDialog = ({
             <Ionicons name="close-circle" size={80} color="#ef4444" />
           </View>
           <Text style={styles.statusText}>Payment Failed</Text>
-          {error && (
-            <Text style={styles.errorMessage}>{error}</Text>
+          {errorMessage && (
+            <Text style={styles.errorMessage}>{errorMessage}</Text>
           )}
           <Text style={styles.statusSubtext}>Please try again</Text>
         </Animated.View>
       );
     }
-    
+
     return null;
   };
 
-  if (!product || !user || !ownerId) {
-    console.warn('❌ PaymentDialog: Missing required props', { 
-      product: !!product, 
-      user: !!user, 
-      ownerId: !!ownerId 
+  // Validation check
+  const customAmountExceedsLimit = customAmount &&
+    parseFloat(customAmount) > Math.min(walletBalance, price);
+
+  if (!product || !user) {
+    logger.warn('PaymentDialog: Missing required props', {
+      product: !!product,
+      user: !!user,
     });
     return null;
   }
@@ -652,12 +421,12 @@ const PaymentDialog = ({
       onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity 
-          style={styles.modalBackdrop} 
+        <TouchableOpacity
+          style={styles.modalBackdrop}
           onPress={handleClose}
           activeOpacity={1}
         />
-        
+
         <Animated.View style={[styles.modalContent, { opacity: fadeAnim }]}>
           <View style={styles.header}>
             <Text style={styles.title}>Complete Payment</Text>
@@ -670,25 +439,27 @@ const PaymentDialog = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
+          <ScrollView
             showsVerticalScrollIndicator={false}
             style={styles.scrollContent}
             contentContainerStyle={styles.scrollContentContainer}
           >
             {status === 'READY' ? (
               <>
+                {/* Order Summary */}
                 <View style={styles.summaryCard}>
                   <Text style={styles.sectionTitle}>Order Summary</Text>
+
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Product</Text>
-                    <Text style={styles.productName} numberOfLines={1}>
-                      {productTitle}
-                    </Text>
+                    <Text style={styles.productName} numberOfLines={1}>{productTitle}</Text>
                   </View>
+
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Product Price</Text>
                     <Text style={styles.priceText}>₼ {formatNumber(price)}</Text>
                   </View>
+
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Wallet Balance</Text>
                     {loadingWallet ? (
@@ -707,41 +478,117 @@ const PaymentDialog = ({
                       </TouchableOpacity>
                     )}
                   </View>
+
+                  {/* Payment Breakdown */}
+                  {useWallet && walletAmountToUse > 0 && (
+                    <>
+                      <View style={[styles.summaryRow, styles.breakdownRow]}>
+                        <Text style={styles.summaryLabel}>Wallet Payment</Text>
+                        <Text style={styles.walletDeductText}>
+                          - ₼ {walletAmountToUse.toFixed(2)}
+                        </Text>
+                      </View>
+                      <View style={[styles.summaryRow, styles.totalRow]}>
+                        <Text style={styles.totalLabel}>Online Payment</Text>
+                        <Text style={styles.totalValue}>
+                          ₼ {remainingAmount.toFixed(2)}
+                        </Text>
+                      </View>
+                    </>
+                  )}
                 </View>
 
-                {error && (
-                  <View style={styles.errorCard}>
-                    <Ionicons name="alert-circle" size={20} color="#ef4444" />
-                    <Text style={styles.errorText}>{error}</Text>
+                {/* Wallet Checkbox */}
+                {walletBalance > 0 && (
+                  <View style={styles.walletSection}>
+                    <TouchableOpacity
+                      style={styles.walletToggle}
+                      onPress={() => {
+                        setUseWallet(!useWallet);
+                        if (useWallet) {
+                          setCustomAmount('');
+                        }
+                      }}
+                      disabled={status !== 'READY'}
+                    >
+                      <View style={[styles.checkbox, useWallet && styles.checkboxChecked]}>
+                        {useWallet && (
+                          <Ionicons name="checkmark" size={16} color="#fff" />
+                        )}
+                      </View>
+                      <Text style={styles.walletToggleText}>Use Wallet Balance</Text>
+                    </TouchableOpacity>
+
+                    {/* Custom Amount Input */}
+                    {useWallet && (
+                      <View style={styles.customAmountContainer}>
+                        <Text style={styles.customAmountLabel}>
+                          Enter Amount to Use from Wallet
+                        </Text>
+                        <View style={styles.inputWrapper}>
+                          <Text style={styles.currencyPrefix}>₼</Text>
+                          <TextInput
+                            style={styles.customAmountInput}
+                            value={customAmount}
+                            onChangeText={handleCustomAmountChange}
+                            placeholder={`Max: ${Math.min(walletBalance, price).toFixed(2)}`}
+                            placeholderTextColor="#9ca3af"
+                            keyboardType="decimal-pad"
+                            editable={status === 'READY'}
+                          />
+                        </View>
+
+                        {/* Quick Select Buttons */}
+                        <View style={styles.quickSelectRow}>
+                          {[0.25, 0.5, 0.75, 1].map((percent) => (
+                            <TouchableOpacity
+                              key={percent}
+                              style={styles.quickSelectBtn}
+                              onPress={() => handleQuickSelect(percent)}
+                              disabled={status !== 'READY'}
+                            >
+                              <Text style={styles.quickSelectText}>
+                                {percent === 1 ? 'Max' : `${percent * 100}%`}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+
+                        {/* Validation Message */}
+                        {customAmountExceedsLimit && (
+                          <Text style={styles.validationError}>
+                            Amount exceeds available balance or price
+                          </Text>
+                        )}
+                      </View>
+                    )}
                   </View>
                 )}
 
-                <CheckBox
-                  checked={useWallet}
-                  onChange={setUseWallet}
-                  disabled={!walletBalance || status !== 'READY' || loadingWallet}
-                  label={`Use Wallet ${walletBalance > 0 ? `(up to ₼${formatNumber(walletBalance)})` : '(No Balance)'}`}
-                />
-
-                {useWallet && (
+                {/* Wallet Usage Info */}
+                {useWallet && walletAmountToUse > 0 && (
                   <View style={styles.infoCard}>
-                    <Ionicons name="information-circle" size={20} color="#16a34a" />
+                    <Ionicons name="information-circle" size={20} color="#3b82f6" />
                     <Text style={styles.infoText}>
-                      {remainder === 0
-                        ? '✓ Full amount will be paid from wallet.'
-                        : `₼${formatNumber(walletDeduction)} from wallet, ₼${formatNumber(remainder)} to pay online.`}
+                      {walletAmountToUse >= price
+                        ? `Full amount (₼ ${walletAmountToUse.toFixed(2)}) will be paid from your wallet.`
+                        : `₼ ${walletAmountToUse.toFixed(2)} will be deducted from wallet. Remaining ₼ ${remainingAmount.toFixed(2)} will be paid online.`}
                     </Text>
                   </View>
                 )}
 
-                {remainder > 0 && (
-                  <View style={styles.paymentMethods}>
-                    <Text style={styles.sectionTitle}>Choose Payment Method</Text>
-                    <RadioButton 
-                      value="CARD" 
-                      label="Credit / Debit Card"
-                      disabled={remainder === 0 || status !== 'READY'}
-                    />
+                {/* Payment Method Info */}
+                {(!useWallet || remainingAmount > 0) && (
+                  <View style={styles.paymentMethodCard}>
+                    <View style={styles.paymentMethodIcon}>
+                      <Ionicons name="card" size={24} color="#16a34a" />
+                    </View>
+                    <View style={styles.paymentMethodInfo}>
+                      <Text style={styles.paymentMethodTitle}>Secure Payment</Text>
+                      <Text style={styles.paymentMethodSubtitle}>
+                        Powered by Azericard Gateway
+                      </Text>
+                    </View>
                   </View>
                 )}
               </>
@@ -750,6 +597,7 @@ const PaymentDialog = ({
             )}
           </ScrollView>
 
+          {/* Pay Button */}
           {status !== 'SUCCESS' && (
             <View style={styles.footer}>
               <TouchableOpacity
@@ -761,13 +609,18 @@ const PaymentDialog = ({
                 onPress={handlePay}
                 disabled={isPayDisabled}
               >
-                <Text style={styles.payButtonText}>{payLabel}</Text>
+                {status === 'LOADING' ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.payButtonText}>{payLabel}</Text>
+                )}
               </TouchableOpacity>
 
+              {/* Security Badge */}
               <View style={styles.securityFooter}>
-                <Ionicons name="shield-checkmark" size={14} color="#9ca3af" />
+                <Ionicons name="lock-closed" size={14} color="#9ca3af" />
                 <Text style={styles.securityText}>
-                  100% Secured Payments | Verified Merchant
+                  Secured Payment • PCI DSS Certified
                 </Text>
               </View>
             </View>
@@ -823,36 +676,46 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
-    color: '#111827',
+    color: '#374151',
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 8,
+    paddingVertical: 8,
+  },
+  breakdownRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    marginTop: 8,
+    paddingTop: 12,
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
   },
   summaryLabel: {
     fontSize: 14,
     color: '#6b7280',
-    flex: 1,
-  },
-  productName: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-    flex: 1,
-    textAlign: 'right',
   },
   priceText: {
     fontSize: 18,
     fontWeight: '700',
     color: '#16a34a',
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    flex: 1,
+    textAlign: 'right',
+    marginLeft: 8,
   },
   balanceContainer: {
     flexDirection: 'row',
@@ -863,37 +726,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  errorCard: {
-    backgroundColor: '#fef2f2',
-    borderRadius: 10,
-    padding: 14,
+  walletDeductText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#16a34a',
+  },
+  totalLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3b82f6',
+  },
+  walletSection: {
     marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#fecaca',
   },
-  errorText: {
-    fontSize: 13,
-    color: '#dc2626',
-    lineHeight: 18,
-    marginLeft: 8,
-    flex: 1,
-  },
-  errorMessage: {
-    fontSize: 13,
-    color: '#ef4444',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  checkboxContainer: {
+  walletToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingVertical: 4,
+    padding: 14,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
-  checkboxDisabled: {
-    opacity: 0.5,
+  walletToggleText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#374151',
+    marginLeft: 12,
   },
   checkbox: {
     width: 24,
@@ -901,7 +765,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#d1d5db',
     borderRadius: 6,
-    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -909,69 +772,117 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a',
     borderColor: '#16a34a',
   },
-  checkboxLabel: {
-    fontSize: 15,
+  customAmountContainer: {
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  customAmountLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  currencyPrefix: {
+    paddingLeft: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  customAmountInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    fontSize: 16,
     color: '#111827',
   },
-  checkboxLabelDisabled: {
-    color: '#9ca3af',
+  quickSelectRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  quickSelectBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#16a34a',
+    alignItems: 'center',
+  },
+  quickSelectText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16a34a',
+  },
+  validationError: {
+    fontSize: 12,
+    color: '#ef4444',
+    marginTop: 8,
   },
   infoCard: {
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#eff6ff',
     borderRadius: 10,
     padding: 14,
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'flex-start',
     borderWidth: 1,
-    borderColor: '#bbf7d0',
+    borderColor: '#bfdbfe',
   },
   infoText: {
     fontSize: 13,
-    color: '#166534',
+    color: '#1e40af',
     lineHeight: 18,
     marginLeft: 8,
     flex: 1,
   },
-  paymentMethods: {
-    marginTop: 8,
-  },
-  radioContainer: {
+  paymentMethodCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#f9fafb',
-    borderRadius: 10,
-    marginBottom: 8,
+    padding: 16,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#bbf7d0',
+    marginBottom: 16,
   },
-  radioDisabled: {
-    opacity: 0.5,
-  },
-  radio: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#16a34a',
-    borderRadius: 10,
-    marginRight: 12,
+  paymentMethodIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  radioSelected: {
-    width: 10,
-    height: 10,
-    backgroundColor: '#16a34a',
-    borderRadius: 5,
+  paymentMethodInfo: {
+    marginLeft: 12,
   },
-  radioLabel: {
+  paymentMethodTitle: {
     fontSize: 15,
+    fontWeight: '600',
     color: '#111827',
   },
-  radioLabelDisabled: {
-    color: '#9ca3af',
+  paymentMethodSubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
   },
   statusContainer: {
     alignItems: 'center',
@@ -988,6 +899,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginTop: 4,
+  },
+  errorMessage: {
+    fontSize: 13,
+    color: '#ef4444',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   successIcon: {
     marginBottom: 8,

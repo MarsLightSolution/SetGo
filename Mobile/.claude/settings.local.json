@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(dir:*)",
+      "Bash(find:*)",
+      "Bash(npx react-native-community/cli doctor:*)",
+      "Bash(npx eslint:*)",
+      "Bash(node -e:*)",
+      "Bash(node --check:*)",
+      "Bash(./gradlew:*)",
+      "Bash(tasklist:*)",
+      "Bash($LOCALAPPDATA/Android/Sdk/emulator/emulator -list-avds)",
+      "Bash($LOCALAPPDATA/Android/Sdk/platform-tools/adb devices)",
+      "Bash($LOCALAPPDATA/Android/Sdk/platform-tools/adb shell df -h)",
+      "Bash(adb devices:*)",
+      "Bash(adb shell pm list packages:*)",
+      "Bash(adb shell:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(curl:*)",
+      "Bash(npx expo export:*)"
+    ]
+  }
+}

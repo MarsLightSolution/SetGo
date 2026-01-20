@@ -17,6 +17,8 @@ import { useAuthStore } from '../Store/authStore';
 import { showErrorToast, showSuccessToast } from '../utils/toastify';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { validateLoginForm, validateSignupForm } from '../utils/validation';
+import logger from '../utils/logger';
 
 const { width } = Dimensions.get('window');
 
@@ -38,13 +40,17 @@ export default function AuthScreen() {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      showErrorToast('Please enter email & password');
+    // Validate form
+    const { isValid, errors } = validateLoginForm({ email, password });
+    if (!isValid) {
+      const firstError = Object.values(errors)[0];
+      showErrorToast(firstError);
       return;
     }
 
+    setLoading(true);
     try {
-      const { success, message } = await login(email, password);
+      const { success, message } = await login(email.trim(), password);
 
       if (success) {
         showSuccessToast(message);
@@ -54,31 +60,18 @@ export default function AuthScreen() {
       }
     } catch (err) {
       showErrorToast('Network error. Please try again');
-      console.error('Login error:', err);
+      logger.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSignup = async () => {
-    if (!username || !email || !password) {
-      showErrorToast('⚠️ Please fill all fields');
-      return;
-    }
-
-    const usernameRegex = /^[a-zA-Z0-9_]{3,16}$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!usernameRegex.test(username)) {
-      showErrorToast('🙅 Username must be 3-16 characters (letters, numbers, underscore)');
-      return;
-    }
-
-    if (!emailRegex.test(email)) {
-      showErrorToast('📧 Please enter a valid email address');
-      return;
-    }
-
-    if (password.length < 6) {
-      showErrorToast('🔑 Password must be at least 6 characters');
+    // Validate form using validation utility
+    const { isValid, errors } = validateSignupForm({ email, password, username });
+    if (!isValid) {
+      const firstError = Object.values(errors)[0];
+      showErrorToast(firstError);
       return;
     }
 
@@ -88,29 +81,33 @@ export default function AuthScreen() {
       const res = await fetch(`${API_URL}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({
+          username: username.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        }),
       });
 
       const data = await res.json();
-      setLoading(false);
 
       if (res.status === 200 || res.status === 201) {
-        showSuccessToast('🎉 Account created! Please check your email for confirmation.');
+        showSuccessToast('Account created! Please check your email for confirmation.');
         setUsername('');
         setEmail('');
         setPassword('');
         setShowLogin(true);
         router.push({
           pathname: '/confirm',
-          params: { email, password },
+          params: { email: email.trim().toLowerCase(), password },
         });
       } else {
-        showErrorToast(data?.error || data?.message || '❌ Signup failed');
+        showErrorToast(data?.error || data?.message || 'Signup failed');
       }
     } catch (error) {
+      logger.error('Signup error:', error);
+      showErrorToast('Network error. Please check your connection.');
+    } finally {
       setLoading(false);
-      console.error('Signup error:', error);
-      showErrorToast('🌐 Network error. Please check your connection.');
     }
   };
 

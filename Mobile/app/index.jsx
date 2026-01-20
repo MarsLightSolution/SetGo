@@ -19,6 +19,7 @@ import { productService } from '../services/productService';
 import { useAuthStore } from '../Store/authStore';
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../Store/wishSlice';
+import logger from '../utils/logger';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -107,7 +108,7 @@ export default function HomeScreen() {
         hasPrevPage: data.hasPrevPage || false,
       });
     } catch (error) {
-      console.error('Error fetching products:', error);
+      logger.error('Error fetching products:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -120,21 +121,21 @@ export default function HomeScreen() {
       const data = await productService.getPriorityProducts();
       setGalleryAds(data.products || []);
     } catch (error) {
-      console.error('Error fetching gallery:', error);
+      logger.error('Error fetching gallery:', error);
     }
   }, []);
 
   // Fetch shops - WITH DEBUG LOGGING
   const fetchShops = useCallback(async () => {
-    console.log('=== FETCHING SHOPS ===');
-    console.log('API_BASE_URL:', API_BASE_URL);
+    logger.log('=== FETCHING SHOPS ===');
+    logger.log('API_BASE_URL:', API_BASE_URL);
     
     setShopsLoading(true);
     setShopsError(null);
     
     try {
       const url = `${API_BASE_URL}/api/shops?limit=10`;
-      console.log('Fetching from:', url);
+      logger.log('Fetching from:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -143,20 +144,20 @@ export default function HomeScreen() {
         },
       });
 
-      console.log('Response status:', response.status);
+      logger.log('Response status:', response.status);
       
       const data = await response.json();
-      console.log('Shops API Response:', JSON.stringify(data, null, 2));
+      logger.log('Shops API Response:', JSON.stringify(data, null, 2));
 
       if (data.success) {
-        console.log('Shops found:', data.data?.length || 0);
+        logger.log('Shops found:', data.data?.length || 0);
         setShops(data.data || []);
       } else {
-        console.log('API returned success: false');
+        logger.log('API returned success: false');
         setShopsError(data.message || 'Failed to fetch shops');
       }
     } catch (error) {
-      console.error('Error fetching shops:', error);
+      logger.error('Error fetching shops:', error);
       setShopsError(error.message);
     } finally {
       setShopsLoading(false);
@@ -330,7 +331,7 @@ export default function HomeScreen() {
   // Shops Section Component - ALWAYS VISIBLE FOR DEBUGGING
   const ShopsSection = () => {
     // Debug info
-    console.log('ShopsSection render - loading:', shopsLoading, 'shops:', shops.length, 'error:', shopsError);
+    logger.log('ShopsSection render - loading:', shopsLoading, 'shops:', shops.length, 'error:', shopsError);
 
     return (
       <View style={styles.shopsSection}>
@@ -499,7 +500,7 @@ export default function HomeScreen() {
               )}
               {filters.searchQuery && (
                 <View style={styles.filterChip}>
-                  <Text style={styles.filterChipText}>"{filters.searchQuery}"</Text>
+                  <Text style={styles.filterChipText}>&quot;{filters.searchQuery}&quot;</Text>
                   <TouchableOpacity
                     onPress={() => {
                       setSearchText('');

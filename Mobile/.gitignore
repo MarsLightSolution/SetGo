@@ -114,3 +114,9 @@ jest-stare/
 *.bak
 *.swp
 *.swo
+
+# ==============================
+# Reports & Documentation
+# ==============================
+*.md
+!README.md

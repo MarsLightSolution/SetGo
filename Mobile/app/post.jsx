@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/Feather";
@@ -23,6 +22,8 @@ import {
   showSuccessToast,
   showErrorToast,
 } from "../hooks/tostify.js";
+import { getAuthToken, getUserId, getUserData } from "../services/secureAuthService";
+import logger from "../utils/logger";
 
 const Form = () => {
   const router = useRouter();
@@ -56,54 +57,37 @@ const Form = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load userId, username, and auth token from AsyncStorage
+  // Load userId, username, and auth token from secure storage
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        console.log("=== Loading User Data from AsyncStorage ===");
-        
-        // Get userId
-        const storedUserId = await AsyncStorage.getItem("userId");
+        // Get userId from secure storage
+        const storedUserId = await getUserId();
         if (storedUserId) {
-          console.log("Found userId:", storedUserId);
           setUserId(storedUserId);
-        } else {
-          console.warn("No userId found in AsyncStorage");
         }
 
-        // Get auth token (if you're using JWT)
-        const storedToken = await AsyncStorage.getItem("authToken");
+        // Get auth token from secure storage
+        const storedToken = await getAuthToken();
         if (storedToken) {
-          console.log("Found auth token");
           setAuthToken(storedToken);
         }
 
-        // Get user object (if stored as JSON)
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) {
-          const userObj = JSON.parse(storedUser);
-          console.log("Found user object:", userObj);
-          
-          if (userObj && userObj.userName) {
-            setUsername(userObj.userName);
-            setFormData((prev) => ({ ...prev, name: userObj.userName }));
+        // Get user data
+        const userData = await getUserData();
+        if (userData) {
+          if (userData.userName) {
+            setUsername(userData.userName);
+            setFormData((prev) => ({ ...prev, name: userData.userName }));
           }
-          
-          // If userId is in the user object
-          if (userObj && userObj._id && !storedUserId) {
-            console.log("Using userId from user object:", userObj._id);
-            setUserId(userObj._id);
-          }
-        }
 
-        // Alternative: If username is stored separately
-        const storedUsername = await AsyncStorage.getItem("userName");
-        if (storedUsername && !username) {
-          setUsername(storedUsername);
-          setFormData((prev) => ({ ...prev, name: storedUsername }));
+          // If userId is in the user object and not already set
+          if (userData._id && !storedUserId) {
+            setUserId(userData._id);
+          }
         }
       } catch (error) {
-        console.error("Error loading user data:", error);
+        logger.error("Error loading user data:", error);
         showErrorToast("Failed to load user data");
       }
     };
@@ -130,7 +114,7 @@ const Form = () => {
           longitude: location.coords.longitude,
         }));
       } catch (error) {
-        console.error("Geolocation error:", error);
+        logger.error("Geolocation error:", error);
         showErrorToast("Unable to get your location");
       }
     };
@@ -164,7 +148,7 @@ const Form = () => {
       );
       return manipulatedImage;
     } catch (error) {
-      console.error("Image compression error:", error);
+      logger.error("Image compression error:", error);
       throw error;
     }
   };
@@ -234,7 +218,7 @@ const Form = () => {
             newImages.push(imageObject);
             newPreviews.push(compressed.uri);
           } catch (error) {
-            console.warn("Error processing image:", error);
+            logger.warn("Error processing image:", error);
             showErrorToast("Failed to process image. Please try another");
           }
         }
@@ -250,7 +234,7 @@ const Form = () => {
         setLoading(false);
       }
     } catch (error) {
-      console.error("Image picker error:", error);
+      logger.error("Image picker error:", error);
       setLoading(false);
       showErrorToast("Error picking images");
     }
@@ -289,12 +273,12 @@ const Form = () => {
   };
 
   const handleSubmit = async () => {
-    console.log("Submit button clicked");
+    logger.log("Submit button clicked");
     
     // Check if userId is available
     if (!userId) {
       showErrorToast("User not authenticated. Please login again");
-      console.error("No userId available. User needs to login");
+      logger.error("No userId available. User needs to login");
       return;
     }
 
@@ -320,7 +304,7 @@ const Form = () => {
       currentErrors.location = "Location must be 50 characters or less";
 
     setErrors(currentErrors);
-    console.log("Validation Errors:", currentErrors);
+    logger.log("Validation Errors:", currentErrors);
 
     if (Object.keys(currentErrors).length > 0) {
       showErrorToast("Please fix the errors in the form");
@@ -342,8 +326,8 @@ const Form = () => {
 
     // IMPORTANT: Append userId first
     submitData.append("user", userId);
-    console.log("=== User Authentication ===");
-    console.log("Sending userId:", userId);
+    logger.log("=== User Authentication ===");
+    logger.log("Sending userId:", userId);
 
     // Append all text fields
     Object.keys(formData).forEach((key) => {
@@ -353,8 +337,8 @@ const Form = () => {
     });
 
     // Debug: Log images before append
-    console.log("=== DEBUG: Images to Upload ===");
-    console.log("Number of images:", formData.pictures.length);
+    logger.log("=== DEBUG: Images to Upload ===");
+    logger.log("Number of images:", formData.pictures.length);
 
     try {
       setLoading(true);
@@ -370,13 +354,13 @@ const Form = () => {
             const blob = await response.blob();
             const file = new File([blob], pic.name, { type: pic.type });
             submitData.append("pictures", file);
-            console.log(`Appended image ${index} (web):`, {
+            logger.log(`Appended image ${index} (web):`, {
               name: file.name,
               type: file.type,
               size: file.size,
             });
           } catch (error) {
-            console.error(`Error converting image ${index} to blob:`, error);
+            logger.error(`Error converting image ${index} to blob:`, error);
             showErrorToast(`Failed to process image ${index + 1}`);
             setLoading(false);
             return;
@@ -389,16 +373,16 @@ const Form = () => {
             name: pic.name,
           };
           submitData.append("pictures", file);
-          console.log(`Appended image ${index} (mobile):`, {
+          logger.log(`Appended image ${index} (mobile):`, {
             name: file.name,
             type: file.type,
           });
         }
       }
 
-      console.log("=== Sending API Request ===");
-      console.log("URL:", `${API_URL}/api/products/add`);
-      console.log("Number of images being sent:", formData.pictures.length);
+      logger.log("=== Sending API Request ===");
+      logger.log("URL:", `${API_URL}/api/products/add`);
+      logger.log("Number of images being sent:", formData.pictures.length);
       
       // Prepare headers
       const headers = {};
@@ -406,12 +390,12 @@ const Form = () => {
       // Option 1: Send userId in Authorization header (if using token-based auth)
       if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
-        console.log("Using Authorization header with token");
+        logger.log("Using Authorization header with token");
       }
       
       // Option 2: Send userId as custom header (alternative approach)
       // headers['X-User-Id'] = userId;
-      // console.log("Using X-User-Id header:", userId);
+      // logger.log("Using X-User-Id header:", userId);
 
       // Important: Don't set Content-Type header
       // React Native will set it with proper boundary
@@ -422,13 +406,13 @@ const Form = () => {
         credentials:"include",
       });
 
-      console.log("Response status:", response.status);
+      logger.log("Response status:", response.status);
       
       // Check if response is JSON
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const result = await response.json();
-        console.log("Response data:", result);
+        logger.log("Response data:", result);
 
         if (response.ok) {
           showSuccessToast("Ad published successfully!");
@@ -460,11 +444,11 @@ const Form = () => {
       } else {
         // Not JSON response (possibly HTML error page)
         const textResponse = await response.text();
-        console.error("Non-JSON response:", textResponse.substring(0, 200));
+        logger.error("Non-JSON response:", textResponse.substring(0, 200));
         showErrorToast("Server error. Please try again later");
       }
     } catch (error) {
-      console.error("Submit error:", error);
+      logger.error("Submit error:", error);
       showErrorToast("Network error. Please check your connection");
     } finally {
       setLoading(false);

@@ -5,9 +5,10 @@ import { store, persistor } from '../Store/store';
 import { FilterProvider } from '../context/FilterContext';
 import { useAuthStore } from '../Store/authStore';
 import BottomTabBar from '../Components/BottomTabBar';
+import ErrorBoundary from '../Components/ErrorBoundary';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import Toast from 'react-native-toast-message';  // ✅ FIXED IMPORT
+import Toast from 'react-native-toast-message';
 
 function AppContent() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
@@ -188,24 +189,26 @@ return (
 
 export default function RootLayout() {
   return (
-    <Provider store={store}>
-      <PersistGate 
-        loading={
-          <View style={{ 
-            flex: 1, 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            backgroundColor: '#f3f4f6'
-          }}>
-            <ActivityIndicator size="large" color="#16a34a" />
-          </View>
-        } 
-        persistor={persistor}
-      >
-        <FilterProvider>
-          <AppContent />
-        </FilterProvider>
-      </PersistGate>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <PersistGate
+          loading={
+            <View style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: '#f3f4f6'
+            }}>
+              <ActivityIndicator size="large" color="#16a34a" />
+            </View>
+          }
+          persistor={persistor}
+        >
+          <FilterProvider>
+            <AppContent />
+          </FilterProvider>
+        </PersistGate>
+      </Provider>
+    </ErrorBoundary>
   );
 }

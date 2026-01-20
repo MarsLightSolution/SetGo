@@ -14,31 +14,27 @@ import {
   StatusBar,
   Animated,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { getAuthToken, getUserId, getUserData } from '../../services/secureAuthService';
 
 const { width } = Dimensions.get('window');
-const router = useRouter();
 // ==================== API CONFIGURATION ====================
 const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'http://51.20.123.49/api',
-  
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL,
+
   ENDPOINTS: {
     USER_ADS: (userId) => `/api/products/user/${userId}/ads`,
     MARK_SOLD: (id) => `/api/products/mark-sold/${id}`,
     PRIORITY: (id) => `/api/products/priority/${id}`,
     DELETE_PRODUCT: (id) => `/api/products/product/${id}`,
   },
-  
-  // CORRECTED: Keep /api in the URL for image paths
+
   getImageUrl: (path) => {
     if (!path) return '';
-    // Just normalize backslashes to forward slashes
     const normalizedPath = path.replace(/\\/g, '/');
-    // Combine base URL with normalized path
     return `${API_CONFIG.BASE_URL}/${normalizedPath}`;
   },
 };
@@ -46,13 +42,9 @@ const API_CONFIG = {
 // ==================== API SERVICE ====================
 const ApiService = {
   getHeaders: async () => {
-    // Try both 'token' and 'accessToken' keys for compatibility
-    let token = await AsyncStorage.getItem('token');
-    if (!token) {
-      token = await AsyncStorage.getItem('accessToken');
-    }
+    const token = await getAuthToken();
     return {
-      Authorization: `Bearer ${token}`,
+      Authorization: token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json',
     };
   },
@@ -387,6 +379,7 @@ const EmptyState = ({ onPlaceAd }) => (
 // ==================== MAIN COMPONENT ====================
 export default function UserProfile() {
   const navigation = useNavigation();
+  const router = useRouter();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedAdId, setExpandedAdId] = useState(null);
@@ -403,23 +396,17 @@ export default function UserProfile() {
 
   const loadUserData = async () => {
     try {
-      const name = await AsyncStorage.getItem('userName');
-      const createdAt = await AsyncStorage.getItem('userCreatedAt');
-      setUserName(name || 'User');
-      setUserCreatedAt(createdAt || new Date().toISOString());
+      const userData = await getUserData();
+      setUserName(userData?.userName || userData?.name || 'User');
+      setUserCreatedAt(userData?.createdAt || new Date().toISOString());
     } catch (error) {
-      console.error('Error loading user data:', error);
+      // Failed to load user data
     }
   };
 
   const fetchUserAds = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
-      // Check for token in both possible keys
-      let token = await AsyncStorage.getItem('token');
-      if (!token) {
-        token = await AsyncStorage.getItem('accessToken');
-      }
+      const [userId, token] = await Promise.all([getUserId(), getAuthToken()]);
 
       if (!userId || !token) {
         setAds([]);
@@ -430,7 +417,6 @@ export default function UserProfile() {
       const data = await ApiService.fetchUserAds(userId);
       setAds(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
-      console.error('Error fetching ads:', err);
       setAds([]);
       if (err.response?.status === 401) {
         Alert.alert('Session Expired', 'Please log in again.', [
@@ -450,7 +436,6 @@ export default function UserProfile() {
       await fetchUserAds();
       Alert.alert('Success', successMessage);
     } catch (err) {
-      console.error(`Error performing ${action}:`, err);
       if (err.response?.status === 401) {
         Alert.alert('Session Expired', 'Please log in again.', [
           { text: 'OK', onPress: () => navigation.navigate('Login') },
