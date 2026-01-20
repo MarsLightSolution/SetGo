@@ -20,7 +20,8 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(curl:*)",
-      "Bash(npx expo export:*)"
+      "Bash(npx expo export:*)",
+      "Bash(test:*)"
     ]
   }
 }

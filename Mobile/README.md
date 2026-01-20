@@ -1,56 +1,136 @@
-# Welcome to your Expo app 👋
+# SetGo Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native mobile application built with Expo for the SetGo marketplace platform.
 
-## Get started
+## Prerequisites
 
-1. Install dependencies
+- Node.js (v18 or higher)
+- npm or yarn
+- Expo CLI
+- Android Studio (for Android development)
+- Xcode (for iOS development, macOS only)
 
-   ```bash
-   npm install
-   ```
+## Getting Started
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### 1. Install Dependencies
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Environment Setup
 
-## Learn more
+Create a `.env` file in the root directory with the following variables:
 
-To learn more about developing your project with Expo, look at the following resources:
+```env
+EXPO_PUBLIC_API_URL=https://your-api-url.com/api
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 3. Run the App
 
-## Join the community
+**Start Development Server:**
+```bash
+npm start
+```
 
-Join our community of developers creating universal apps.
+**Run on Android:**
+```bash
+npm run android
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+**Run on iOS (macOS only):**
+```bash
+npm run ios
+```
 
+**Run on Web:**
+```bash
+npm run web
+```
 
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm start` | Start the Expo development server |
+| `npm run android` | Run on Android device/emulator |
+| `npm run ios` | Run on iOS simulator |
+| `npm run web` | Run in web browser |
+| `npm run lint` | Run ESLint |
+
+## Project Structure
+
+```
+Mobile/
+├── app/                    # Expo Router screens
+│   ├── _layout.jsx         # Root layout with navigation
+│   ├── index.jsx           # Home screen
+│   ├── auth.jsx            # Authentication screen
+│   ├── product/[id].jsx    # Product detail screen
+│   ├── order/[orderId].jsx # Order detail screen
+│   └── ...
+├── Components/             # Reusable components
+│   ├── PaymentDialog.jsx   # Payment modal
+│   ├── ErrorBoundary.jsx   # Error handling
+│   └── ...
+├── Store/                  # State management (Zustand/Redux)
+│   ├── authStore.js        # Authentication state
+│   └── store.js            # Redux store
+├── services/               # API and services
+│   ├── api.js              # Axios configuration
+│   └── secureAuthService.js # Secure token storage
+├── utils/                  # Utility functions
+│   ├── logger.js           # Development logging
+│   └── validation.js       # Input validation
+└── context/                # React contexts
+```
+
+## Features
+
+- User authentication (login/signup)
+- Product browsing and search
+- Shopping cart and checkout
+- Wallet payments
+- Order management
+- User profile management
+
+## Tech Stack
+
+- **Framework:** React Native with Expo SDK 53
+- **Navigation:** Expo Router
+- **State Management:** Zustand + Redux Toolkit
+- **Styling:** React Native StyleSheet
+- **HTTP Client:** Axios
+- **Secure Storage:** expo-secure-store
+
+## Development Notes
+
+- Logs are only visible in development mode (`__DEV__`)
+- Auth tokens are stored securely using expo-secure-store
+- API URL must be configured via environment variable
+
+## Troubleshooting
+
+**Metro bundler issues:**
+```bash
+npx expo start --clear
+```
+
+**Dependency issues:**
+```bash
+rm -rf node_modules
+npm install
+```
+
+**Android build issues:**
+```bash
 cd android
-.\gradlew.bat clean
+./gradlew clean
 cd ..
 npx expo run:android
+```
+
+**iOS pod issues (macOS):**
+```bash
+cd ios && pod install && cd ..
+```
