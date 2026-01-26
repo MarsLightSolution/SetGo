@@ -6,153 +6,166 @@ import { FilterProvider } from '../context/FilterContext';
 import { useAuthStore } from '../Store/authStore';
 import BottomTabBar from '../Components/BottomTabBar';
 import ErrorBoundary from '../Components/ErrorBoundary';
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import SplashScreen from '../Components/SplashScreen';
+import { useEffect, useState, useCallback } from 'react';
+import { View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 function AppContent() {
   const checkAuth = useAuthStore((state) => state.checkAuth);
+  const initialized = useAuthStore((state) => state.initialized);
   const pathname = usePathname();
+  const [showSplash, setShowSplash] = useState(true);
+  const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
+  // Mark app as ready when auth is initialized
+  useEffect(() => {
+    if (initialized) {
+      setAppReady(true);
+    }
+  }, [initialized]);
+
+  const handleSplashFinish = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
   // Define routes where tabs should be hidden
-const hideTabsRoutes = [
-  '/AccountManagement/Accountsetting',
-  '/auth',
-  '/filters',
-  '/checkout',
+  const hideTabsRoutes = [
+    '/AccountManagement/Accountsetting',
+    '/auth',
+    '/filters',
+    '/checkout',
+    '/chat',
+    '/UserInfo/Userinfo',
+    '/Chat/chat',
+    '/Chat/chatbot',
+    '/Chat/raiseQuery',
+    '/UserInfo/EditForm',
+    '/confirm',
+    '/shops',
+    '/shop'
+  ];
 
-  // From HEAD
-  '/chat',
-  '/UserInfo/Userinfo',
-  '/Chat/chat',
-  '/Chat/chatbot',
-  '/Chat/raiseQuery',
+  // Check if current route should hide tabs
+  const shouldHideTabs =
+    hideTabsRoutes.some(route => pathname?.startsWith(route)) ||
+    pathname?.startsWith('/product/') ||
+    pathname?.startsWith('/order/') ||
+    pathname?.startsWith('/shop/');
 
-  // From incoming branch
-  '/UserInfo/EditForm',
-  '/confirm',
+  // Show splash screen until app is ready and splash animation completes
+  if (showSplash || !appReady) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
 
-  // Shop routes
-  '/shops',
-  '/shop'
-];
-
-// Check if current route should hide tabs
-const shouldHideTabs =
-  hideTabsRoutes.some(route => pathname?.startsWith(route)) ||
-  pathname?.startsWith('/product/') ||
-  pathname?.startsWith('/order/') ||
-  pathname?.startsWith('/shop/');
-
-return (
-  <>
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'none'
-      }}
-    >
-
+  return (
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'none'
+        }}
+      >
         <Stack.Screen name="index" />
         <Stack.Screen name="wishlist" />
         <Stack.Screen name="post" />
         <Stack.Screen name="orders" />
         <Stack.Screen name="profile" />
-        
+
         {/* Product detail screen */}
-        <Stack.Screen 
-          name="product/[id]" 
-          options={{ 
+        <Stack.Screen
+          name="product/[id]"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
         />
-        
+
         {/* Order detail screen */}
-        <Stack.Screen 
-          name="order/[orderId]" 
-          options={{ 
+        <Stack.Screen
+          name="order/[orderId]"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
         />
-        
+
         {/* Modal/Fullscreen screens */}
-        <Stack.Screen 
-          name="auth" 
-          options={{ 
+        <Stack.Screen
+          name="auth"
+          options={{
             presentation: 'modal',
             animation: 'slide_from_bottom'
-          }} 
+          }}
         />
-        
-        <Stack.Screen 
-          name="confirm" 
-          options={{ 
+
+        <Stack.Screen
+          name="confirm"
+          options={{
             presentation: 'modal',
             animation: 'slide_from_bottom'
-          }} 
+          }}
         />
-        
-        <Stack.Screen 
-          name="filters" 
-          options={{ 
+
+        <Stack.Screen
+          name="filters"
+          options={{
             presentation: 'modal',
             animation: 'slide_from_bottom'
-          }} 
+          }}
         />
-        
-        <Stack.Screen 
-          name="checkout" 
-          options={{ 
+
+        <Stack.Screen
+          name="checkout"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
         />
-        
-        <Stack.Screen 
-          name="Chat/chat" 
-          options={{ 
+
+        <Stack.Screen
+          name="Chat/chat"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
         />
-        
-        <Stack.Screen 
-          name="AccountManagement/Accountsetting" 
-          options={{ 
+
+        <Stack.Screen
+          name="AccountManagement/Accountsetting"
+          options={{
             presentation: 'modal',
             animation: 'slide_from_bottom'
-          }} 
+          }}
         />
-        
-        <Stack.Screen 
-          name="UserInfo/Userinfo" 
-          options={{ 
+
+        <Stack.Screen
+          name="UserInfo/Userinfo"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
         />
-        
-        <Stack.Screen 
-          name="UserInfo/EditForm" 
-          options={{ 
+
+        <Stack.Screen
+          name="UserInfo/EditForm"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
         />
 
         {/* Dashboard screens */}
-        <Stack.Screen 
-          name="Dashboard/Dashboard" 
-          options={{ 
+        <Stack.Screen
+          name="Dashboard/Dashboard"
+          options={{
             animation: 'slide_from_right',
             presentation: 'card'
-          }} 
+          }}
         />
 
         {/* Categories screen */}
@@ -197,9 +210,9 @@ export default function RootLayout() {
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: '#f3f4f6'
+              backgroundColor: '#ffffff'
             }}>
-              <ActivityIndicator size="large" color="#16a34a" />
+              <SplashScreen onFinish={() => {}} />
             </View>
           }
           persistor={persistor}

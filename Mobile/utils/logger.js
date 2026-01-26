@@ -24,6 +24,15 @@ const logger = {
   },
 
   /**
+   * Log info messages (alias for log)
+   */
+  info: (...args) => {
+    if (isDev) {
+      console.info(...args);
+    }
+  },
+
+  /**
    * Log warning messages (only in development)
    */
   warn: (...args) => {

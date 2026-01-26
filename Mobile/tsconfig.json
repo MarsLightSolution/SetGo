@@ -6,14 +6,12 @@
       "@/*": [
         "./*"
       ]
-    },
-    "types": [
-      "expo-env"
-    ]
+    }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "app/index.jsx"
+    "**/*.js",
+    "**/*.jsx"
   ]
 }

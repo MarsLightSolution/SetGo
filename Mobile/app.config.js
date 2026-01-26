@@ -98,7 +98,9 @@ export default ({ config }) => {
         }
       ],
       "expo-secure-store",
-      "expo-router"
+      "expo-router",
+      "expo-font",
+      "expo-web-browser"
     ],
 
     // Environment variables and extra config
