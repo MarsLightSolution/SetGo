@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
-// Import reusable footer
-import Footer from "../common/Footer"; // adjust path if needed
 
 function AboutClassifieds() {
   const { t } = useTranslation();
@@ -85,8 +83,6 @@ function AboutClassifieds() {
         </div>
       </div>
 
-      {/* Reusable Footer */}
-      <Footer />
     </motion.div>
   );
 }

@@ -15,7 +15,6 @@ import {
   Close as CloseIcon,
   Store as StoreIcon,
 } from "@mui/icons-material";
-import Footer from "../components/common/Footer";
 import {
   showSuccessToast,
   showErrorToast,
@@ -149,7 +148,7 @@ const Form = () => {
       const filesArray = Array.from(files);
 
       if (filesArray.length + formData.pictures.length > 8) {
-        showErrorToast(t("Maximum 8 pictures allowed"));
+        showErrorToast(t("form.maxPicturesError"));
         return;
       }
 
@@ -159,7 +158,7 @@ const Form = () => {
 
       for (let file of filesArray) {
         if (file.size / 1024 / 1024 > 2) {
-          showErrorToast(`${file.name} exceeds 2 MB`);
+          showErrorToast(t("form.fileExceedsSize", { fileName: file.name }));
           continue;
         }
 
@@ -190,7 +189,7 @@ const Form = () => {
           await new Promise((resolve, reject) => {
             img.onload = () => {
               if (img.width > 5000 || img.height > 5000) {
-                showErrorToast(`${file.name} exceeds max dimensions 5000x5000`);
+                showErrorToast(t("form.fileExceedsDimensions", { fileName: file.name }));
                 reject();
               } else {
                 resolve();
@@ -211,7 +210,7 @@ const Form = () => {
           previews.push(URL.createObjectURL(compressedFile));
         } catch (err) {
           console.warn(`Skipping file ${file.name}:`, err);
-          if (err !== undefined) showErrorToast(`${t("Dimension exceeded")}`);
+          if (err !== undefined) showErrorToast(t("form.dimensionExceeded"));
         }
       }
 
@@ -256,52 +255,45 @@ const Form = () => {
 
     // Validation
     const currentErrors = {};
-    if (!formData.title.trim()) currentErrors.title = t("Title is required");
+    if (!formData.title.trim()) currentErrors.title = t("form.titleRequired");
     if (formData.title.length > 24)
-      currentErrors.title = t("Title cannot exceed 24 characters");
+      currentErrors.title = t("form.titleLengthError");
     if (!formData.category.trim())
-      currentErrors.category = t("Category is required");
-    if (!formData.price.trim()) currentErrors.price = t("Price is required");
+      currentErrors.category = t("form.categoryRequired");
+    if (!formData.price.trim()) currentErrors.price = t("form.priceRequired");
     else if (!/^\d+$/.test(formData.price))
-      currentErrors.price = t("Price must be a number");
+      currentErrors.price = t("form.priceNumbersOnly");
     if (!formData.description.trim())
-      currentErrors.description = t("Description is required");
+      currentErrors.description = t("form.descriptionRequired");
     if (!formData.postalCode.trim())
-      currentErrors.postalCode = t("Postal Code is required");
+      currentErrors.postalCode = t("form.postalCodeRequired");
     else if (!/^\d{6}$/.test(formData.postalCode))
-      currentErrors.postalCode = t("Invalid Postal Code format");
+      currentErrors.postalCode = t("form.postalCodeFormatError");
     if (formData.location.length > 50)
-      currentErrors.location = t("Location cannot exceed 50 characters");
+      currentErrors.location = t("form.locationLengthError");
     if (!/^[A-Za-z\s]+$/.test(formData.name))
-      currentErrors.name = t("Name must contain only alphabets");
+      currentErrors.name = t("form.nameAlphabetOnly");
 
-    // ✅ NEW: Quantity validation
+    // Quantity validation
     if (!formData.quantity || formData.quantity < 1) {
-      currentErrors.quantity = t("Quantity must be at least 1") || "Quantity must be at least 1";
+      currentErrors.quantity = t("form.quantityMinError");
     } else if (formData.quantity > 10000) {
-      currentErrors.quantity = t("Quantity cannot exceed 10,000 units") || "Quantity cannot exceed 10,000 units";
-    }
-
-    // ✅ NEW: Quantity validation
-    if (!formData.quantity || formData.quantity < 1) {
-      currentErrors.quantity = t("form.quantityMinError") || "Quantity must be at least 1";
-    } else if (formData.quantity > 10000) {
-      currentErrors.quantity = t("form.quantityMaxError") || "Quantity cannot exceed 10,000 units";
+      currentErrors.quantity = t("form.quantityMaxError");
     }
 
     setErrors(currentErrors);
     if (Object.keys(currentErrors).length > 0) {
-      showErrorToast(t("Please fix the errors in the form"));
+      showErrorToast(t("form.fixFormErrors"));
       return;
     }
 
     if (!formData.termsAccepted) {
-      showErrorToast(t("Please accept the terms and conditions"));
+      showErrorToast(t("form.termsRequired"));
       return;
     }
 
     if (formData.pictures.length === 0) {
-      showErrorToast(t("Please upload at least one picture"));
+      showErrorToast(t("form.picturesRequired"));
       return;
     }
 
@@ -346,8 +338,8 @@ const Form = () => {
       if (res.ok) {
         const successMessage =
           hasShop && postToShop
-            ? t("Product added to your shop!") || "Product added to your shop!"
-            : t("Form submitted successfully");
+            ? t("form.productAddedToShop")
+            : t("form.formSubmittedSuccess");
 
         showSuccessToast(successMessage);
 
@@ -376,11 +368,11 @@ const Form = () => {
         setIsBulkListing(false); // ✅ NEW: Reset bulk listing toggle
         if (fileInputRef.current) fileInputRef.current.value = null;
       } else {
-        showErrorToast(data.message || t("Something went wrong"));
+        showErrorToast(data.message || t("form.somethingWentWrong"));
       }
     } catch (error) {
       console.error("Error submitting ad:", error);
-      showErrorToast(t("Failed to submit form"));
+      showErrorToast(t("form.failedToSubmitForm"));
     } finally {
       setLoading(false);
     }
@@ -416,18 +408,18 @@ const Form = () => {
                     <p className="font-semibold text-gray-800">
                       {userShop.shopName?.en ||
                         userShop.shopName?.[i18n.language] ||
-                        "Your Shop"}
+                        t("form.yourShop")}
                     </p>
                     <p className="text-sm text-gray-500">
                       {postToShop
-                        ? t("Product will be posted to your shop") || "Product will be posted to your shop"
-                        : t("Product will be posted individually") || "Product will be posted individually"}
+                        ? t("form.productPostedToShop")
+                        : t("form.productPostedIndividually")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-sm font-medium ${!postToShop ? 'text-gray-700' : 'text-gray-400'}`}>
-                    {t("Individual") || "Individual"}
+                    {t("form.individual")}
                   </span>
                   <Switch
                     checked={postToShop}
@@ -435,7 +427,7 @@ const Form = () => {
                     color="success"
                   />
                   <span className={`text-sm font-medium ${postToShop ? 'text-green-700' : 'text-gray-400'}`}>
-                    {t("Shop") || "Shop"}
+                    {t("form.shop")}
                   </span>
                 </div>
               </div>
@@ -445,38 +437,38 @@ const Form = () => {
           {/* Ad Details */}
           <div>
             <h2 className="text-lg sm:text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              {t("Ad Details")}
+              {t("form.adDetails")}
             </h2>
 
             {/* Input Language Selector */}
             <TextField
               select
-              label={t("Language of Input")}
+              label={t("form.languageOfInput")}
               name="inputLanguage"
               value={formData.inputLanguage}
               onChange={handleChange}
               fullWidth
               sx={{ mb: 3 }}
             >
-              <MenuItem value="en">English</MenuItem>
-              <MenuItem value="az">Azərbaycan</MenuItem>
-              <MenuItem value="ru">Русский</MenuItem>
+              <MenuItem value="en">{t("form.languageEnglish")}</MenuItem>
+              <MenuItem value="az">{t("form.languageAzerbaijani")}</MenuItem>
+              <MenuItem value="ru">{t("form.languageRussian")}</MenuItem>
             </TextField>
 
             {/* Inputs */}
             <div className="flex flex-col gap-4">
               <TextField
-                label={t("Title")}
+                label={t("form.title")}
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
                 error={!!errors.title}
-                helperText={errors.title || t("Enter a descriptive title")}
+                helperText={errors.title || t("form.titleHelper")}
                 fullWidth
               />
               <TextField
                 select
-                label={t("Category")}
+                label={t("form.category")}
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
@@ -484,7 +476,7 @@ const Form = () => {
                 helperText={errors.category}
                 fullWidth
               >
-                <MenuItem value="">{t("Choose Category")}</MenuItem>
+                <MenuItem value="">{t("form.chooseCategory")}</MenuItem>
                 <MenuItem value="Cars & Motorcycles">
                   {t("home.category.carsMotorcycles")}
                 </MenuItem>
@@ -505,7 +497,7 @@ const Form = () => {
                 <MenuItem value="Other">{t("home.category.other")}</MenuItem>
               </TextField>
               <TextField
-                label={t("Price")}
+                label={t("form.price")}
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
@@ -514,7 +506,7 @@ const Form = () => {
                 fullWidth
                 InputProps={{
                   endAdornment: (
-                    <span className="text-gray-500">{t("Currency")}</span>
+                    <span className="text-gray-500">{t("form.currency")}</span>
                   ),
                 }}
               />
@@ -523,11 +515,11 @@ const Form = () => {
               <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                   <label className="font-semibold text-gray-800 text-base">
-                    Available Units
+                    {t("form.availableUnits")}
                   </label>
                   <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">
                     <span className={`text-sm font-medium transition-colors ${!isBulkListing ? 'text-green-700' : 'text-gray-400'}`}>
-                      Single
+                      {t("form.single")}
                     </span>
                     <Switch
                       checked={isBulkListing}
@@ -541,7 +533,7 @@ const Form = () => {
                       color="success"
                     />
                     <span className={`text-sm font-medium transition-colors ${isBulkListing ? 'text-green-700' : 'text-gray-400'}`}>
-                      Bulk
+                      {t("form.bulk")}
                     </span>
                   </div>
                 </div>
@@ -549,12 +541,12 @@ const Form = () => {
                 {isBulkListing ? (
                   <TextField
                     type="number"
-                    label="Number of Units"
+                    label={t("form.numberOfUnits")}
                     name="quantity"
                     value={formData.quantity}
                     onChange={handleChange}
                     error={!!errors.quantity}
-                    helperText={errors.quantity || "Enter the number of units available"}
+                    helperText={errors.quantity || t("form.numberOfUnitsHelper")}
                     fullWidth
                     slotProps={{
                       htmlInput: { min: 1, max: 10000 }
@@ -571,7 +563,7 @@ const Form = () => {
                       1
                     </div>
                     <span className="font-medium">
-                      This listing is for 1 unit
+                      {t("form.listingForOneUnit")}
                     </span>
                   </div>
                 )}
@@ -579,25 +571,25 @@ const Form = () => {
 
               <TextField
                 select
-                label={t("Condition") || "Condition"}
+                label={t("form.condition")}
                 name="condition"
                 value={formData.condition}
                 onChange={handleChange}
                 fullWidth
               >
-                <MenuItem value="New">{t("New") || "New"}</MenuItem>
+                <MenuItem value="New">{t("form.conditionNew")}</MenuItem>
                 <MenuItem value="Like New">
-                  {t("Like New") || "Like New"}
+                  {t("form.conditionLikeNew")}
                 </MenuItem>
                 <MenuItem value="Used">
-                  {t("Used") || "Used"}
+                  {t("form.conditionUsed")}
                 </MenuItem>
                 <MenuItem value="Defective / Needs Repair">
-                  {t("Defective / Needs Repair") || "Defective / Needs Repair"}
+                  {t("form.conditionDefective")}
                 </MenuItem>
               </TextField>
               <TextField
-                label={t("Description") || "Description"}
+                label={t("form.description")}
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
@@ -607,7 +599,7 @@ const Form = () => {
                 error={!!errors.description}
                 helperText={
                   errors.description ||
-                  t("Characters left: {{count}}", {
+                  t("form.charactersLeft", {
                     count: maxDescriptionLength - formData.description.length,
                   })
                 }
@@ -617,7 +609,7 @@ const Form = () => {
             {/* Upload Section */}
             <div className="mt-4">
               <label className="block font-medium mb-2">
-                {t("Pictures")} <span className="text-red-600">*</span>
+                {t("form.pictures")} <span className="text-red-600">*</span>
               </label>
               <div className="relative">
                 <div className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center cursor-pointer hover:border-green-600 transition-all">
@@ -637,10 +629,10 @@ const Form = () => {
                   >
                     <CloudUploadIcon style={{ fontSize: 40, color: "gray" }} />
                     <span className="text-gray-600 text-sm mt-2">
-                      {t("Click or Drag to upload")}
+                      {t("form.uploadTip")}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {t("Max 8 images")}
+                      {t("form.maxImagesTip")}
                     </span>
                   </label>
                 </div>
@@ -690,16 +682,16 @@ const Form = () => {
           {/* Location */}
           <div>
             <h2 className="text-lg sm:text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              {t("Location")}
+              {t("form.location")}
               {hasShop && postToShop && (
                 <span className="text-sm font-normal text-gray-500 ml-2">
-                  ({t("Auto-filled from shop") || "Auto-filled from shop"})
+                  ({t("form.autoFilledFromShop")})
                 </span>
               )}
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 mb-4">
               <TextField
-                label={t("Postal Code")}
+                label={t("form.postalCode")}
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
@@ -708,7 +700,7 @@ const Form = () => {
                 fullWidth
               />
               <TextField
-                label={t("City")}
+                label={t("form.locationCity")}
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
@@ -719,11 +711,11 @@ const Form = () => {
             </div>
             <TextField
               className="mt-4"
-              label={t("Street No")}
+              label={t("form.streetNo")}
               name="streetNo"
               value={formData.streetNo}
               onChange={handleChange}
-              helperText={t("Enter street number")}
+              helperText={t("form.streetNoHelper")}
               fullWidth
             />
             <FormControlLabel
@@ -734,27 +726,27 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label={t("Show full address")}
+              label={t("form.showFullAddress")}
             />
           </div>
 
           {/* Your Details */}
           <div>
             <h2 className="text-lg sm:text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              {t("Your Details")}
+              {t("form.yourDetails")}
             </h2>
             <TextField
-              label={t("Name") || "Name"}
+              label={t("form.name")}
               name="name"
               value={username}
               disabled
               helperText={
                 <span>
-                  {t("Your display name") || "Your display name"} <br />
-                  <strong>{t("Note") || "Note"}:</strong>{" "}
-                  {t("For more info, visit") || "For more info, visit"}{" "}
+                  {t("form.nameHelper1")} <br />
+                  <strong>{t("form.note")}:</strong>{" "}
+                  {t("form.forMoreInfoVisit")}{" "}
                   <a href="#" className="text-blue-600 underline">
-                    {t("Help Center") || "Help Center"}
+                    {t("form.helpCenter")}
                   </a>
                 </span>
               }
@@ -768,7 +760,7 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label={t("Subscribe to updates")}
+              label={t("form.subscribeToUpdates")}
             />
           </div>
 
@@ -782,16 +774,16 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label={t("Terms And Conditions")}
+              label={t("form.termsAndConditions")}
             />
             <p className="text-xs text-gray-500 mt-2">
-              By checking this box, you agree to our{" "}
+              {t("form.termsAgreementPrefix")}{" "}
               <a href="#" className="text-blue-600 underline">
-                Terms of Use
+                {t("form.termsOfUse")}
               </a>
-              {" "}and{" "}
+              {" "}{t("form.termsAgreementAnd")}{" "}
               <a href="#" className="text-blue-600 underline">
-                Privacy Policy
+                {t("form.privacyPolicy")}
               </a>
               .
             </p>
@@ -810,10 +802,10 @@ const Form = () => {
             startIcon={hasShop && postToShop ? <StoreIcon /> : null}
           >
             {loading
-              ? t("Loading...") || "Loading..."
+              ? t("common.loading")
               : hasShop && postToShop
-              ? t("Publish to Shop") || "Publish to Shop"
-              : t("Publish Ad") || "Publish Ad"}
+              ? t("form.publishToShop")
+              : t("form.publishAd")}
           </Button>
 
           {/* Create Shop CTA - Show if user doesn't have shop */}
@@ -825,10 +817,10 @@ const Form = () => {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-800">
-                    {t("Want to sell more?") || "Want to sell more?"}
+                    {t("form.wantToSellMore")}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {t("Create your own shop, build your brand, and reach more customers.") || "Create your own shop, build your brand, and reach more customers."}
+                    {t("form.createShopDescription")}
                   </p>
                 </div>
                 <Button
@@ -837,14 +829,13 @@ const Form = () => {
                   href="/create-shop"
                   className="whitespace-nowrap"
                 >
-                  {t("Create Shop") || "Create Shop"}
+                  {t("form.createShop")}
                 </Button>
               </div>
             </div>
           )}
         </form>
       </div>
-      <Footer />
     </>
   );
 };

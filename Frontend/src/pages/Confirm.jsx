@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle, Loader2 } from "lucide-react";
-import Footer from "../components/common/Footer";
 
 import { useTranslation } from 'react-i18next';
 
@@ -53,10 +52,6 @@ function Confirm() {
         </div>
       </div>
 
-      {/* Footer at bottom */}
-      <div className="mt-auto">
-        <Footer />
-      </div>
     </div>
   );
 }

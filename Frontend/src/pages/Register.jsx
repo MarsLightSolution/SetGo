@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import Footer from "../components/common/Footer";
 import { useNavigate } from "react-router-dom";
 import {
   showSuccessToast,
@@ -195,7 +194,6 @@ const Register = () => {
         </div>
       </div>
 
-      <Footer />
     </>
   );
 };

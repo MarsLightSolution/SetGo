@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import Footer from "../components/common/Footer";
 import { useNavigate } from "react-router-dom";
 import {
   showSuccessToast,
@@ -190,7 +189,6 @@ const Login = () => {
         </div>
       </div>
 
-      <Footer />
     </>
   );
 };

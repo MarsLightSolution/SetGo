@@ -11,8 +11,6 @@ import {
 } from '../../Hooks/Tostify'; 
 import { useTranslation } from 'react-i18next';
 
-// Import Footer
-import Footer from '../common/Footer';
 
 function ProfileMgmt() {
   const { t } = useTranslation();
@@ -207,8 +205,6 @@ function ProfileMgmt() {
         onSave={handleAddressUpdate}
       />
 
-      {/* Footer */}
-      <Footer />
     </motion.div>
   );
 }

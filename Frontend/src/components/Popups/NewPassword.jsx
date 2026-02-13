@@ -7,7 +7,6 @@ import {
   showErrorToast,
   ToastifyContainer,
 } from "../../Hooks/Tostify";
-import Footer from "../common/Footer"; // Assuming this path is correct
 
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -142,9 +141,6 @@ function NewPassword() {
             {loading ? t("newPassword.savingPassword") : t("newPassword.savePasswordButton")} {/* Translated */}
           </button>
         </div>
-      </div>
-      <div className="w-full py-4">
-        <Footer />
       </div>
     </div>
   );
