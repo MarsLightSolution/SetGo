@@ -12,33 +12,9 @@ import {
   resetFilters,
 } from "../../slices/FilterSlice";
 import "rc-slider/assets/index.css";
-import { MapContainer, TileLayer, Circle, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import { GoogleMap, MarkerF, CircleF, InfoWindowF } from "@react-google-maps/api";
+import { GoogleMapsLoader } from "./GoogleMap";
 import { useNavigate } from "react-router-dom";
-
-// Fix default icon issue with Leaflet in React
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-});
-
-// Create a custom red icon for the user's location
-const redIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
 
 const getCurrentLocation = () => {
   return new Promise((resolve, reject) => {
@@ -66,6 +42,7 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
   const [mapCenter, setMapCenter] = useState(
     location.latitude ? [location.latitude, location.longitude] : null
   );
+  const [selectedMarker, setSelectedMarker] = useState(null);
 
   useEffect(() => {
     setLocalPriceRange(priceRange);
@@ -219,29 +196,62 @@ const ProductFilters = ({ isOpen, onClose, onApply }) => {
       <label className="block text-sm font-medium mb-2">{t("navbar.radius")}: {localRadius} km</label>
       {mapCenter && (
         <div className="h-48 rounded-md overflow-hidden shadow-sm border border-gray-300 mb-2">
-          <MapContainer
-            center={mapCenter}
-            zoom={localRadius > 0 ? 12 - Math.min(Math.floor(localRadius / 50), 6) : 9}
-            scrollWheelZoom={false}
-            className="w-full h-full"
-            key={JSON.stringify(mapCenter)}
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <Circle center={mapCenter} radius={localRadius * 1000} pathOptions={{ color: 'lime', fillOpacity: 0.2 }} />
-            <Marker position={mapCenter} icon={redIcon}>
-              <Popup>{t("navbar.yourLocation")}</Popup>
-            </Marker>
-            {latestAds.map(product => product.location?.coordinates && (
-              <Marker key={product._id} position={[product.location.coordinates[1], product.location.coordinates[0]]}>
-                <Popup>
+          <GoogleMapsLoader>
+            <GoogleMap
+              center={{ lat: mapCenter[0], lng: mapCenter[1] }}
+              zoom={localRadius > 0 ? 12 - Math.min(Math.floor(localRadius / 50), 6) : 9}
+              mapContainerStyle={{ width: "100%", height: "100%" }}
+              options={{
+                scrollwheel: false,
+                zoomControl: true,
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: false,
+              }}
+            >
+              {localRadius > 0 && (
+                <CircleF
+                  center={{ lat: mapCenter[0], lng: mapCenter[1] }}
+                  radius={localRadius * 1000}
+                  options={{ strokeColor: "#84cc16", fillColor: "#84cc16", fillOpacity: 0.2 }}
+                />
+              )}
+              <MarkerF
+                position={{ lat: mapCenter[0], lng: mapCenter[1] }}
+                icon="https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                title={t("navbar.yourLocation")}
+                onClick={() => setSelectedMarker("user")}
+              />
+              {selectedMarker === "user" && (
+                <InfoWindowF
+                  position={{ lat: mapCenter[0], lng: mapCenter[1] }}
+                  onCloseClick={() => setSelectedMarker(null)}
+                >
+                  <span>{t("navbar.yourLocation")}</span>
+                </InfoWindowF>
+              )}
+              {latestAds.map(product => product.location?.coordinates && (
+                <MarkerF
+                  key={product._id}
+                  position={{ lat: product.location.coordinates[1], lng: product.location.coordinates[0] }}
+                  title={getLocalizedTitle(product)}
+                  onClick={() => setSelectedMarker(product._id)}
+                />
+              ))}
+              {latestAds.map(product => product.location?.coordinates && selectedMarker === product._id && (
+                <InfoWindowF
+                  key={`info-${product._id}`}
+                  position={{ lat: product.location.coordinates[1], lng: product.location.coordinates[0] }}
+                  onCloseClick={() => setSelectedMarker(null)}
+                >
                   <div>
                     <b>{getLocalizedTitle(product)}</b><br/>
                     <span>₼ {product.price}</span>
                   </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+                </InfoWindowF>
+              ))}
+            </GoogleMap>
+          </GoogleMapsLoader>
         </div>
       )}
       <input

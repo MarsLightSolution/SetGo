@@ -4,8 +4,6 @@ import { Eye, X } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-// Import Footer
-import Footer from "../common/Footer";
 
 function PaymentSettings() {
   const { t } = useTranslation();
@@ -118,8 +116,6 @@ function PaymentSettings() {
         </div>
       </div>
 
-      {/* Footer */}
-      <Footer />
     </motion.div>
   );
 }

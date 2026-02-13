@@ -9,7 +9,6 @@ import {
   Inventory as InventoryIcon,
   ChevronRight as ChevronRightIcon,
 } from "@mui/icons-material";
-import Footer from "../components/common/Footer";
 import leftadImage from "../assets/images/ad01.png";
 import rightadImage from "../assets/images/ad02.png";
 import UserIcon from "../assets/icons/user.svg";
@@ -18,25 +17,14 @@ import EyeIcon from "../assets/icons/eye.svg";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
 import { toast } from "react-toastify";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { GoogleMap, MarkerF, InfoWindowF } from "@react-google-maps/api";
+import { GoogleMapsLoader } from "../components/common/GoogleMap";
 import ShareModal from "../components/Popups/ShareModal";
+import SafeImage from "../components/common/SafeImage";
 
 // i18n import
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
-
-// Fix default icon issue with Leaflet in React
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-});
 
 // Helper for multilingual fields
 const getLocalizedText = (field) => {
@@ -549,7 +537,7 @@ const ProductDetail = () => {
                     <div className="relative w-full h-[220px] sm:h-[300px] md:h-[350px] lg:h-[350px] bg-gray-50 flex justify-center items-center rounded-md overflow-hidden">
                       {product?.pictures?.length > 0 ? (
                         <>
-                          <img
+                          <SafeImage
                             src={`${
                               import.meta.env.VITE_SERVER
                             }/${product.pictures[currentImageIndex].replace(
@@ -581,7 +569,7 @@ const ProductDetail = () => {
                           )}
                         </>
                       ) : (
-                        <img
+                        <SafeImage
                           src={`${
                             import.meta.env.VITE_SERVER
                           }/uploads/placeholder.jpg`}
@@ -594,7 +582,7 @@ const ProductDetail = () => {
                     {product.pictures?.length > 1 && (
                       <div className="flex gap-2 mt-4 overflow-x-auto">
                         {product.pictures.map((pic, idx) => (
-                          <img
+                          <SafeImage
                             key={idx}
                             src={`${import.meta.env.VITE_SERVER}/${pic.replace(
                               /\\/g,
@@ -625,7 +613,7 @@ const ProductDetail = () => {
                             {/* Shop Logo */}
                             <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center overflow-hidden border-2 border-white shadow">
                               {product.shop.logo ? (
-                                <img
+                                <SafeImage
                                   src={`${import.meta.env.VITE_SERVER}${product.shop.logo}`}
                                   alt="Shop logo"
                                   className="w-full h-full object-cover"
@@ -738,36 +726,37 @@ const ProductDetail = () => {
                             Location
                           </h2>
                           <div className="w-full overflow-hidden rounded-md h-[220px] sm:h-[300px]">
-                            <MapContainer
-                              center={[
-                                product.location.coordinates[1],
-                                product.location.coordinates[0],
-                              ]}
-                              zoom={13}
-                              scrollWheelZoom={false}
-                              style={{
-                                height: "100%",
-                                width: "100%",
-                                zIndex: 0,
-                                position: "relative",
-                              }}
-                            >
-                              <TileLayer
-                                attribution={t("productDetail.mapAttribution")}
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                              />
-                              <Marker
-                                position={[
-                                  product.location.coordinates[1],
-                                  product.location.coordinates[0],
-                                ]}
+                            <GoogleMapsLoader>
+                              <GoogleMap
+                                center={{
+                                  lat: product.location.coordinates[1],
+                                  lng: product.location.coordinates[0],
+                                }}
+                                zoom={13}
+                                mapContainerStyle={{
+                                  height: "100%",
+                                  width: "100%",
+                                }}
+                                options={{
+                                  scrollwheel: false,
+                                  zoomControl: true,
+                                  streetViewControl: false,
+                                  mapTypeControl: false,
+                                  fullscreenControl: false,
+                                }}
                               >
-                                <Popup>
-                                  {getLocalizedText(product.title) ||
-                                    t("productDetail.productLocation")}
-                                </Popup>
-                              </Marker>
-                            </MapContainer>
+                                <MarkerF
+                                  position={{
+                                    lat: product.location.coordinates[1],
+                                    lng: product.location.coordinates[0],
+                                  }}
+                                  title={
+                                    getLocalizedText(product.title) ||
+                                    t("productDetail.productLocation")
+                                  }
+                                />
+                              </GoogleMap>
+                            </GoogleMapsLoader>
                           </div>
                         </div>
                       )}
@@ -1162,7 +1151,7 @@ const ProductDetail = () => {
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center overflow-hidden">
                                 {product.shop.logo ? (
-                                  <img
+                                  <SafeImage
                                     src={`${import.meta.env.VITE_SERVER}${product.shop.logo}`}
                                     alt="Shop"
                                     className="w-full h-full object-cover"
@@ -1276,7 +1265,7 @@ const ProductDetail = () => {
                         }
                         className="flex gap-4 bg-white shadow p-4 rounded-md hover:bg-gray-50 cursor-pointer transition"
                       >
-                        <img
+                        <SafeImage
                           src={`${import.meta.env.VITE_SERVER}/${
                             item.pictures?.[0]?.replace(/\\/g, "/") ||
                             "uploads/placeholder.jpg"
@@ -1346,7 +1335,6 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
-      <Footer />
     </>
   );
 };

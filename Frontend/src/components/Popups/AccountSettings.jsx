@@ -11,7 +11,6 @@ import useUserProfile from "../../Hooks/useUserProfile"; // Assuming this hook e
 import axios from "axios";
 import Cookies from "js-cookie";
 import { toast, ToastContainer } from "react-toastify"; // Using react-toastify directly here
-import Footer from "../common/Footer";
 // import { useTranslation } from 'react-i18next';
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -534,8 +533,6 @@ function AccountSettings() {
         )}
       </AnimatePresence>
 
-      {/* ✅ Footer at the end */}
-      <Footer />
     </motion.div>
   );
 }

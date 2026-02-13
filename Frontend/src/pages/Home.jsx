@@ -5,7 +5,6 @@ import { Favorite, FavoriteBorder } from "@mui/icons-material"
 import { useDispatch, useSelector } from "react-redux"
 import { like, unlike } from "../slices/wishSlice"
 import { resetFilters, setCategoryFilter as setCategory } from "../slices/FilterSlice"
-import Footer from "../components/common/Footer"
 import { useNavigate } from "react-router-dom"
 import bannerImage from "../assets/images/banner1.png"
 import leftadImage from "../assets/images/ad01.png"
@@ -15,6 +14,7 @@ import { Image as ImageIcon } from "lucide-react"
 import { motion } from "framer-motion"
 import { Image as RefreshCw, ArrowLeft, ArrowRight, Tag, Package, Store, ChevronRight } from "lucide-react"
 import { ChatbotButton } from "../components/Chat/ChatbotButton"
+import SafeImage from "../components/common/SafeImage"
 
 import { useTranslation } from "react-i18next"
 import i18n from "../i18n"
@@ -83,7 +83,7 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
     <motion.div
       onClick={handleCardClick}
       whileHover={{ scale: 1.03 }}
-      className="relative group flex flex-col border border-gray-200 rounded-2xl bg-white shadow-md hover:shadow-lg transition-all duration-300 p-4 cursor-pointer w-[100%]"
+      className="relative group flex flex-col border border-gray-200 rounded-2xl bg-white shadow-md hover:shadow-lg transition-all duration-300 p-4 cursor-pointer w-full"
     >
       {/* Like Button */}
       {token && (
@@ -101,8 +101,8 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
       )}
 
       {/* Image */}
-      <div className="w-full h-40 flex gap-4 justify-center items-center bg-gray-50 rounded-xl ">
-        <img src={image || "/placeholder.svg"} alt={displayTitle} className="h-full w-full object-contain" />
+      <div className="w-full h-36 sm:h-40 flex justify-center items-center bg-gray-50 rounded-xl overflow-hidden">
+        <SafeImage src={image} alt={displayTitle} className="h-full w-full object-contain" />
       </div>
 
       {/* Content */}
@@ -141,7 +141,7 @@ const ShopCard = ({ shop }) => {
     <motion.div
       whileHover={{ scale: 1.03 }}
       onClick={() => navigate(`/shop/${shop.slug || shop._id}`)}
-      className="min-w-[220px] max-w-[240px] flex-shrink-0 bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl cursor-pointer transition-all overflow-hidden"
+      className="min-w-[180px] max-w-[180px] sm:min-w-[220px] sm:max-w-[220px] flex-shrink-0 bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl cursor-pointer transition-all overflow-hidden"
     >
       {/* Banner */}
       <div
@@ -160,7 +160,7 @@ const ShopCard = ({ shop }) => {
         {/* Logo */}
         <div className="w-12 h-12 rounded-full bg-green-600 border-2 border-white shadow-md flex items-center justify-center overflow-hidden -mt-6 mb-2">
           {shop.logo ? (
-            <img
+            <SafeImage
               src={`${import.meta.env.VITE_SERVER}${shop.logo}`}
               alt={getLocalizedText(shop.shopName)}
               className="w-full h-full object-cover"
@@ -182,7 +182,7 @@ const ShopCard = ({ shop }) => {
         <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
           <span className="flex items-center gap-1">
             <Package className="w-3 h-3" />
-            {shop.totalProducts || 0} {shop.totalProducts === 1 ? "product" : "products"}
+            {shop.totalProducts || 0} {shop.totalProducts === 1 ? t("home.product") : t("home.products")}
           </span>
           {shop.address?.city && (
             <span className="truncate">{shop.address.city}</span>
@@ -210,11 +210,11 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white p-6 rounded-2xl shadow-lg mt-5 border border-gray-100"
+      className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg mt-4 sm:mt-5 border border-gray-100"
     >
       {/* Header */}
-      <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-        <Package className="w-6 h-6 text-green-600" />
+      <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+        <Package className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
         {t(titleKey)}
       </h2>
 
@@ -225,7 +225,7 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.4 }}
-        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6"
+        className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5"
       >
         {ads.length > 0 ? (
           ads.map((ad, index) => (
@@ -250,7 +250,7 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
             </motion.div>
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center text-gray-500 text-center w-full py-10">
+          <div className="flex flex-col items-center justify-center text-gray-500 text-center w-full py-10 col-span-full">
             <Package className="w-10 h-10 mb-2 text-gray-400" />
             <p className="text-sm">{t("home.noAdsFound")}</p>
           </div>
@@ -262,19 +262,19 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex justify-center items-center gap-4 mt-8"
+          className="flex justify-center items-center gap-2 sm:gap-4 mt-6 sm:mt-8"
         >
           <button
             disabled={!pagination.hasPrevPage || isLoading}
             onClick={() => handlePageChange(pagination.prevPage)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
+            className={`flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow-sm transition-colors text-sm ${
               pagination.hasPrevPage && !isLoading
                 ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 : "bg-gray-50 cursor-not-allowed text-gray-400"
             }`}
           >
             <ArrowLeft className="w-4 h-4" />
-            {t("home.pagination.prev")}
+            <span className="hidden sm:inline">{t("home.pagination.prev")}</span>
           </button>
 
           <span className="text-sm font-medium text-gray-700">
@@ -287,13 +287,13 @@ const SectionWithAds = ({ titleKey, ads, pagination, onPageChange }) => {
           <button
             disabled={!pagination.hasNextPage || isLoading}
             onClick={() => handlePageChange(pagination.nextPage)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors ${
+            className={`flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow-sm transition-colors text-sm ${
               pagination.hasNextPage && !isLoading
                 ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 : "bg-gray-50 cursor-not-allowed text-gray-400"
             }`}
           >
-            {t("home.pagination.next")}
+            <span className="hidden sm:inline">{t("home.pagination.next")}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </motion.div>
@@ -319,20 +319,20 @@ const ShopsSection = ({ shops, loading, onRefresh }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 mt-5"
+      className="bg-white p-4 sm:p-5 rounded-2xl shadow-lg border border-gray-100 mt-4 sm:mt-5"
     >
       {/* Header */}
-      <div className="flex justify-between items-center mb-5">
-        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-          <Store className="w-6 h-6 text-green-600" />
+      <div className="flex justify-between items-center mb-4 sm:mb-5">
+        <h2 className="text-base sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+          <Store className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
           {t("home.featuredShops") || "Featured Shops"}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => navigate("/shops")}
             className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1"
           >
-            {t("View All") || "View All"}
+            {t("home.viewAll")}
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
@@ -562,7 +562,7 @@ const Home = () => {
       const mappedProducts = products.map((product) => ({
         _id: product._id,
         title: product.title,
-        location: product.location || product.postalCode || "Unknown Location",
+        location: product.location || product.postalCode || t("home.unknownLocation"),
         price: product.price,
         description: product.description,
         condition: product.condition,
@@ -600,29 +600,29 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 pt-[2rem]">
+    <div className="min-h-screen bg-gray-100 pt-4 sm:pt-6">
       <div className="w-full flex justify-center">
-        <div className="w-full max-w-screen-xl px-4 flex gap-4 items-start">
+        <div className="w-full max-w-screen-xl px-3 sm:px-4 flex gap-4 items-start">
           {/* Left Ad */}
-          <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
+          <div className="hidden xl:block w-[140px] flex-shrink-0 sticky top-[100px] h-fit z-30">
             <img
               src={leftadImage || "/placeholder.svg"}
               alt={t("home.leftAdAlt")}
-              className="w-full h-[550px] object-cover rounded"
+              className="w-full h-[500px] object-cover rounded"
             />
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto">
+          <div className="flex-1 min-w-0 flex flex-col gap-3">
             {/* Banner */}
-            <div className="relative ">
+            <div className="relative">
               <img
                 src={bannerImage || "/placeholder.svg"}
                 alt={t("home.bannerAlt")}
-                className="w-full h-[233px] object-cover rounded-xl shadow"
+                className="w-full h-[140px] sm:h-[180px] md:h-[220px] object-cover rounded-xl shadow"
               />
-              <div className="absolute bottom-4 left-6 z-10">
-                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-lg">
+              <div className="absolute bottom-3 left-4 sm:bottom-4 sm:left-6 z-10">
+                <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-lg text-xs sm:text-sm font-medium shadow-lg">
                   {t("home.joinNow")}
                 </button>
               </div>
@@ -630,11 +630,11 @@ const Home = () => {
 
             {/* Filter Status */}
             {hasActiveFilters() && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-800 font-medium">{t("home.activeFilters")}:</span>
-                    <div className="flex flex-wrap gap-2">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="text-blue-800 font-medium text-sm">{t("home.activeFilters")}:</span>
+                    <div className="flex flex-wrap gap-1.5">
                       {priceRange && priceRange[0] > 0 && (
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
                           {t("home.minPrice")}: ₼ {priceRange[0]}
@@ -693,13 +693,13 @@ const Home = () => {
             )}
 
             {/* Category + Gallery Section */}
-            <div className="flex flex-wrap gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
               {/* Categories */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
-                className="bg-white p-5 rounded-2xl shadow-lg w-full md:w-[35%] h-[395px] overflow-y-auto border border-gray-100"
+                className="bg-white p-5 rounded-2xl shadow-lg h-auto md:h-[380px] overflow-y-auto border border-gray-100"
               >
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
                   <Tag className="w-5 h-5 text-green-600" /> {t("home.categories")}
@@ -738,7 +738,7 @@ const Home = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
-                className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 flex-1 w-full md:w-[60%]"
+                className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 min-w-0"
               >
                 {/* Header */}
                 <div className="flex justify-between items-center mb-5">
@@ -791,12 +791,12 @@ const Home = () => {
                         whileHover={{ scale: 1.05 }}
                         transition={{ duration: 0.3 }}
                         onClick={() => handleGalleryItemClick(item._id)}
-                        className="min-w-[200px] max-w-[220px] flex-shrink-0 bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl cursor-pointer transition-all relative overflow-hidden group"
+                        className="min-w-[180px] max-w-[180px] sm:min-w-[220px] sm:max-w-[220px] flex-shrink-0 bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl cursor-pointer transition-all relative overflow-hidden group"
                       >
                         {/* Image */}
-                        <div className="w-full h-[150px] bg-gray-50 flex justify-center items-center overflow-hidden rounded-t-2xl relative">
-                          <img
-                            src={item.image || "/placeholder.svg"}
+                        <div className="w-full h-[130px] sm:h-[160px] bg-gray-50 flex justify-center items-center overflow-hidden rounded-t-2xl relative">
+                          <SafeImage
+                            src={item.image}
                             alt={item.title}
                             className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
@@ -879,18 +879,17 @@ const Home = () => {
           </div>
 
           {/* Right Ad */}
-          <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
+          <div className="hidden xl:block w-[140px] flex-shrink-0 sticky top-[100px] h-fit z-30">
             <img
               src={rightadImage || "/placeholder.svg"}
               alt={t("home.rightAdAlt")}
-              className="w-[160px] h-[550px] object-cover rounded"
+              className="w-full h-[500px] object-cover rounded"
             />
           </div>
         </div>
       </div>
 
       <ChatbotButton />
-      <Footer />
     </div>
   )
 }

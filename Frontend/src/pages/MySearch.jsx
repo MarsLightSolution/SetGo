@@ -1,7 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import EmptySearchImage from "../assets/images/binocular.png";
-import Footer from "../components/common/Footer";
 
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -39,8 +38,6 @@ const MySearch = () => {
         </div>
       </div>
 
-      {/* Footer placed outside the flexed content */}
-      <Footer />
     </div>
   );
 };

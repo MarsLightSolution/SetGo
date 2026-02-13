@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
-import Footer from "../common/Footer";
 
 // i18n import
 import { useTranslation } from "react-i18next";
@@ -171,7 +170,6 @@ function EmailSettings() {
     </div>
   </div>
 
-  <Footer />
 </motion.div>
 
   );

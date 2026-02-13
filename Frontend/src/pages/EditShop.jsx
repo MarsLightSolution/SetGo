@@ -37,7 +37,6 @@ import {
   ToastifyContainer,
 } from "../Hooks/Tostify";
 import { useTranslation } from "react-i18next";
-import Footer from "../components/common/Footer";
 
 const EditShop = () => {
   const { t, i18n } = useTranslation();
@@ -93,9 +92,9 @@ const EditShop = () => {
     { value: "Home & Garden", label: t("home.category.householdFurniture") || "Home & Garden" },
     { value: "Vehicles", label: t("home.category.carsMotorcycles") || "Vehicles" },
     { value: "Sports & Outdoors", label: t("home.category.leisureHobbyNeighborhood") || "Sports & Outdoors" },
-    { value: "Books & Media", label: "Books & Media" },
+    { value: "Books & Media", label: t("home.category.booksMedia") || "Books & Media" },
     { value: "Services", label: t("home.category.service") || "Services" },
-    { value: "General", label: "General" },
+    { value: "General", label: t("home.category.other") || "General" },
     { value: "Other", label: t("home.category.other") || "Other" },
   ];
 
@@ -120,7 +119,7 @@ const EditShop = () => {
         const data = await res.json();
 
         if (!data.hasShop || !data.data) {
-          showErrorToast("Shop not found");
+          showErrorToast(t("editShop.shopNotFound"));
           navigate("/create-shop");
           return;
         }
@@ -129,7 +128,7 @@ const EditShop = () => {
 
         // Check if the shop ID matches (if ID is provided in URL)
         if (id && shop._id !== id) {
-          showErrorToast("You can only edit your own shop");
+          showErrorToast(t("editShop.canOnlyEditOwnShop"));
           navigate("/my-shop");
           return;
         }
@@ -172,7 +171,7 @@ const EditShop = () => {
         }
       } catch (error) {
         console.error("Error fetching shop:", error);
-        showErrorToast("Failed to load shop data");
+        showErrorToast(t("editShop.failedToLoadShop"));
         navigate("/my-shop");
       } finally {
         setFetchingShop(false);
@@ -212,7 +211,7 @@ const EditShop = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showErrorToast("Logo must be less than 5MB");
+        showErrorToast(t("editShop.logoSizeError"));
         return;
       }
       setLogo(file);
@@ -226,7 +225,7 @@ const EditShop = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        showErrorToast("Banner must be less than 5MB");
+        showErrorToast(t("editShop.bannerSizeError"));
         return;
       }
       setBanner(file);
@@ -256,17 +255,17 @@ const EditShop = () => {
     const newErrors = {};
 
     if (!formData.shopName.trim()) {
-      newErrors.shopName = "Shop name is required";
+      newErrors.shopName = t("editShop.shopNameRequired");
     }
 
     if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = "Contact email is required";
+      newErrors.contactEmail = t("editShop.contactEmailRequired");
     } else if (!/\S+@\S+\.\S+/.test(formData.contactEmail)) {
-      newErrors.contactEmail = "Invalid email format";
+      newErrors.contactEmail = t("editShop.invalidEmailFormat");
     }
 
     if (!formData.address.city.trim()) {
-      newErrors["address.city"] = "City is required";
+      newErrors["address.city"] = t("editShop.cityRequired");
     }
 
     setErrors(newErrors);
@@ -278,7 +277,7 @@ const EditShop = () => {
     e.preventDefault();
 
     if (!validateForm()) {
-      showErrorToast("Please fix the errors in the form");
+      showErrorToast(t("editShop.fixFormErrors"));
       return;
     }
 
@@ -325,16 +324,16 @@ const EditShop = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showSuccessToast("Shop updated successfully!");
+        showSuccessToast(t("editShop.shopUpdatedSuccess"));
         setTimeout(() => {
           navigate("/my-shop");
         }, 1500);
       } else {
-        showErrorToast(data.message || "Failed to update shop");
+        showErrorToast(data.message || t("editShop.failedToUpdate"));
       }
     } catch (error) {
       console.error("Error updating shop:", error);
-      showErrorToast("Failed to update shop");
+      showErrorToast(t("editShop.failedToUpdate"));
     } finally {
       setLoading(false);
     }
@@ -352,16 +351,16 @@ const EditShop = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showSuccessToast("Shop closed successfully");
+        showSuccessToast(t("editShop.shopClosedSuccess"));
         setTimeout(() => {
           navigate("/");
         }, 1500);
       } else {
-        showErrorToast(data.message || "Failed to delete shop");
+        showErrorToast(data.message || t("editShop.failedToDelete"));
       }
     } catch (error) {
       console.error("Error deleting shop:", error);
-      showErrorToast("Failed to delete shop");
+      showErrorToast(t("editShop.failedToDelete"));
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
@@ -393,10 +392,10 @@ const EditShop = () => {
               <StoreIcon className="text-green-600" fontSize="large" />
               <Box>
                 <Typography variant="h5" className="font-bold text-gray-800">
-                  Edit Shop
+                  {t("editShop.title")}
                 </Typography>
                 <Typography variant="body2" className="text-gray-500">
-                  Update your shop information
+                  {t("editShop.subtitle")}
                 </Typography>
               </Box>
             </Box>
@@ -407,21 +406,21 @@ const EditShop = () => {
               onClick={() => setDeleteDialogOpen(true)}
               size="small"
             >
-Close Shop
+              {t("editShop.closeShopButton")}
             </Button>
           </Box>
 
           {/* Banner Upload */}
           <Box className="mb-6">
             <Typography variant="subtitle1" className="font-medium mb-2">
-              Shop Banner
+              {t("editShop.shopBanner")}
             </Typography>
             <Box className="relative">
               {bannerPreview ? (
                 <Box className="relative w-full h-40 sm:h-48 rounded-lg overflow-hidden">
                   <img
                     src={bannerPreview}
-                    alt="Banner preview"
+                    alt={t("editShop.bannerPreviewAlt")}
                     className="w-full h-full object-cover"
                   />
                   <IconButton
@@ -446,7 +445,7 @@ Close Shop
                 >
                   <CloudUploadIcon className="text-gray-400" sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="body2" className="text-gray-500 text-center px-4">
-                    Upload banner image (1200x300 recommended)
+                    {t("editShop.uploadBannerHint")}
                   </Typography>
                 </Box>
               )}
@@ -463,14 +462,14 @@ Close Shop
           {/* Logo Upload */}
           <Box className="mb-6">
             <Typography variant="subtitle1" className="font-medium mb-2">
-              Shop Logo
+              {t("editShop.shopLogo")}
             </Typography>
             <Box className="flex items-center gap-4">
               {logoPreview ? (
                 <Box className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200">
                   <img
                     src={logoPreview}
-                    alt="Logo preview"
+                    alt={t("editShop.logoPreviewAlt")}
                     className="w-full h-full object-cover"
                   />
                   <IconButton
@@ -495,16 +494,16 @@ Close Shop
                 >
                   <CloudUploadIcon className="text-gray-400" />
                   <Typography variant="caption" className="text-gray-500">
-                    Logo
+                    {t("editShop.logo")}
                   </Typography>
                 </Box>
               )}
               <Box>
                 <Typography variant="body2" className="text-gray-600">
-                  Upload a square logo (200x200 recommended)
+                  {t("editShop.uploadLogoHint")}
                 </Typography>
                 <Typography variant="caption" className="text-gray-400">
-                  Max size: 5MB
+                  {t("editShop.maxSize5MB")}
                 </Typography>
               </Box>
               <input
@@ -520,7 +519,7 @@ Close Shop
           {/* Shop Name */}
           <Box className="mb-4">
             <TextField
-              label="Shop Name"
+              label={t("editShop.shopNameLabel")}
               name="shopName"
               value={formData.shopName}
               onChange={handleChange}
@@ -534,14 +533,14 @@ Close Shop
           {/* Description */}
           <Box className="mb-4">
             <TextField
-              label="Description"
+              label={t("editShop.descriptionLabel")}
               name="description"
               value={formData.description}
               onChange={handleChange}
               multiline
               rows={3}
               fullWidth
-              placeholder="Describe your shop..."
+              placeholder={t("editShop.descriptionPlaceholder")}
             />
           </Box>
 
@@ -549,7 +548,7 @@ Close Shop
           <Box className="mb-4">
             <TextField
               select
-              label="Category"
+              label={t("editShop.categoryLabel")}
               name="category"
               value={formData.category}
               onChange={handleChange}
@@ -565,12 +564,12 @@ Close Shop
 
           {/* Contact Info */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            Contact Information
+            {t("editShop.contactInformation")}
           </Typography>
           <Grid container spacing={2} className="mb-4">
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Contact Email"
+                label={t("editShop.contactEmailLabel")}
                 name="contactEmail"
                 type="email"
                 value={formData.contactEmail}
@@ -583,7 +582,7 @@ Close Shop
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Contact Phone"
+                label={t("editShop.contactPhoneLabel")}
                 name="contactPhone"
                 value={formData.contactPhone}
                 onChange={handleChange}
@@ -595,12 +594,12 @@ Close Shop
 
           {/* Address */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            Location
+            {t("editShop.location")}
           </Typography>
           <Grid container spacing={2} className="mb-4">
             <Grid item xs={12} sm={6}>
               <TextField
-                label="City"
+                label={t("editShop.cityLabel")}
                 name="address.city"
                 value={formData.address.city}
                 onChange={handleChange}
@@ -612,7 +611,7 @@ Close Shop
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Postal Code"
+                label={t("editShop.postalCodeLabel")}
                 name="address.postalCode"
                 value={formData.address.postalCode}
                 onChange={handleChange}
@@ -621,7 +620,7 @@ Close Shop
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Street Address"
+                label={t("editShop.streetAddressLabel")}
                 name="address.street"
                 value={formData.address.street}
                 onChange={handleChange}
@@ -632,7 +631,7 @@ Close Shop
 
           {/* Settings */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            Settings
+            {t("editShop.settings")}
           </Typography>
           <Box className="mb-4 space-y-2">
             <FormControlLabel
@@ -644,7 +643,7 @@ Close Shop
                   color="success"
                 />
               }
-              label="Pickup Available"
+              label={t("editShop.pickupAvailable")}
             />
             <FormControlLabel
               control={
@@ -655,30 +654,30 @@ Close Shop
                   color="success"
                 />
               }
-              label="Delivery Available"
+              label={t("editShop.deliveryAvailable")}
             />
           </Box>
 
           {/* Working Hours */}
           <Box className="mb-4">
             <TextField
-              label="Working Hours"
+              label={t("editShop.workingHoursLabel")}
               name="settings.workingHours"
               value={formData.settings.workingHours}
               onChange={handleChange}
               fullWidth
-              placeholder="e.g., Mon-Fri: 9AM-6PM, Sat: 10AM-4PM"
+              placeholder={t("editShop.workingHoursPlaceholder")}
             />
           </Box>
 
           {/* Social Links */}
           <Typography variant="subtitle1" className="font-medium mb-3 mt-6">
-            Social Links (Optional)
+            {t("editShop.socialLinksOptional")}
           </Typography>
           <Grid container spacing={2} className="mb-6">
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Instagram"
+                label={t("editShop.instagramLabel")}
                 name="socialLinks.instagram"
                 value={formData.socialLinks.instagram}
                 onChange={handleChange}
@@ -695,7 +694,7 @@ Close Shop
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Facebook"
+                label={t("editShop.facebookLabel")}
                 name="socialLinks.facebook"
                 value={formData.socialLinks.facebook}
                 onChange={handleChange}
@@ -712,7 +711,7 @@ Close Shop
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Telegram"
+                label={t("editShop.telegramLabel")}
                 name="socialLinks.telegram"
                 value={formData.socialLinks.telegram}
                 onChange={handleChange}
@@ -729,7 +728,7 @@ Close Shop
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="WhatsApp"
+                label={t("editShop.whatsappLabel")}
                 name="socialLinks.whatsapp"
                 value={formData.socialLinks.whatsapp}
                 onChange={handleChange}
@@ -746,7 +745,7 @@ Close Shop
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Website"
+                label={t("editShop.websiteLabel")}
                 name="socialLinks.website"
                 value={formData.socialLinks.website}
                 onChange={handleChange}
@@ -780,7 +779,7 @@ Close Shop
               disabled={loading}
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
             >
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? t("editShop.saving") : t("editShop.saveChanges")}
             </Button>
           </Box>
         </Paper>
@@ -788,10 +787,10 @@ Close Shop
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Close Shop?</DialogTitle>
+        <DialogTitle>{t("editShop.closeShopDialogTitle")}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to close your shop? Your products will be converted to individual listings. This action cannot be undone.
+            {t("editShop.closeShopDialogMessage")}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -805,12 +804,11 @@ Close Shop
             disabled={deleting}
             startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
           >
-            {deleting ? "Closing..." : "Close Shop"}
+            {deleting ? t("editShop.closing") : t("editShop.closeShopButton")}
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Footer />
     </>
   );
 };

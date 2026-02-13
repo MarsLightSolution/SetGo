@@ -15,7 +15,6 @@ import {
   Close as CloseIcon,
   Store as StoreIcon,
 } from "@mui/icons-material";
-import Footer from "../components/common/Footer";
 import {
   showSuccessToast,
   showErrorToast,
@@ -159,7 +158,7 @@ const Form = () => {
 
       for (let file of filesArray) {
         if (file.size / 1024 / 1024 > 2) {
-          showErrorToast(`${file.name} exceeds 2 MB`);
+          showErrorToast(t("form.fileExceedsSize", { fileName: file.name }));
           continue;
         }
 
@@ -190,7 +189,7 @@ const Form = () => {
           await new Promise((resolve, reject) => {
             img.onload = () => {
               if (img.width > 5000 || img.height > 5000) {
-                showErrorToast(`${file.name} exceeds max dimensions 5000x5000`);
+                showErrorToast(t("form.fileExceedsDimensions", { fileName: file.name }));
                 reject();
               } else {
                 resolve();
@@ -211,7 +210,7 @@ const Form = () => {
           previews.push(URL.createObjectURL(compressedFile));
         } catch (err) {
           console.warn(`Skipping file ${file.name}:`, err);
-          if (err !== undefined) showErrorToast(`${t("Dimension exceeded")}`);
+          if (err !== undefined) showErrorToast(t("form.dimensionExceeded"));
         }
       }
 
@@ -282,11 +281,11 @@ const Form = () => {
       currentErrors.quantity = t("Quantity cannot exceed 10,000 units") || "Quantity cannot exceed 10,000 units";
     }
 
-    // ✅ NEW: Quantity validation
+    // Quantity validation
     if (!formData.quantity || formData.quantity < 1) {
-      currentErrors.quantity = t("form.quantityMinError") || "Quantity must be at least 1";
+      currentErrors.quantity = t("form.quantityMinError");
     } else if (formData.quantity > 10000) {
-      currentErrors.quantity = t("form.quantityMaxError") || "Quantity cannot exceed 10,000 units";
+      currentErrors.quantity = t("form.quantityMaxError");
     }
 
     setErrors(currentErrors);
@@ -346,8 +345,8 @@ const Form = () => {
       if (res.ok) {
         const successMessage =
           hasShop && postToShop
-            ? t("Product added to your shop!") || "Product added to your shop!"
-            : t("Form submitted successfully");
+            ? t("form.productAddedToShop")
+            : t("form.formSubmittedSuccess");
 
         showSuccessToast(successMessage);
 
@@ -416,18 +415,18 @@ const Form = () => {
                     <p className="font-semibold text-gray-800">
                       {userShop.shopName?.en ||
                         userShop.shopName?.[i18n.language] ||
-                        "Your Shop"}
+                        t("form.yourShop")}
                     </p>
                     <p className="text-sm text-gray-500">
                       {postToShop
-                        ? t("Product will be posted to your shop") || "Product will be posted to your shop"
-                        : t("Product will be posted individually") || "Product will be posted individually"}
+                        ? t("form.productPostedToShop")
+                        : t("form.productPostedIndividually")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-sm font-medium ${!postToShop ? 'text-gray-700' : 'text-gray-400'}`}>
-                    {t("Individual") || "Individual"}
+                    {t("form.individual")}
                   </span>
                   <Switch
                     checked={postToShop}
@@ -435,7 +434,7 @@ const Form = () => {
                     color="success"
                   />
                   <span className={`text-sm font-medium ${postToShop ? 'text-green-700' : 'text-gray-400'}`}>
-                    {t("Shop") || "Shop"}
+                    {t("form.shop")}
                   </span>
                 </div>
               </div>
@@ -458,9 +457,9 @@ const Form = () => {
               fullWidth
               sx={{ mb: 3 }}
             >
-              <MenuItem value="en">English</MenuItem>
-              <MenuItem value="az">Azərbaycan</MenuItem>
-              <MenuItem value="ru">Русский</MenuItem>
+              <MenuItem value="en">{t("form.languageEnglish")}</MenuItem>
+              <MenuItem value="az">{t("form.languageAzerbaijani")}</MenuItem>
+              <MenuItem value="ru">{t("form.languageRussian")}</MenuItem>
             </TextField>
 
             {/* Inputs */}
@@ -523,11 +522,11 @@ const Form = () => {
               <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                   <label className="font-semibold text-gray-800 text-base">
-                    Available Units
+                    {t("form.availableUnits")}
                   </label>
                   <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">
                     <span className={`text-sm font-medium transition-colors ${!isBulkListing ? 'text-green-700' : 'text-gray-400'}`}>
-                      Single
+                      {t("form.single")}
                     </span>
                     <Switch
                       checked={isBulkListing}
@@ -541,7 +540,7 @@ const Form = () => {
                       color="success"
                     />
                     <span className={`text-sm font-medium transition-colors ${isBulkListing ? 'text-green-700' : 'text-gray-400'}`}>
-                      Bulk
+                      {t("form.bulk")}
                     </span>
                   </div>
                 </div>
@@ -549,12 +548,12 @@ const Form = () => {
                 {isBulkListing ? (
                   <TextField
                     type="number"
-                    label="Number of Units"
+                    label={t("form.numberOfUnits")}
                     name="quantity"
                     value={formData.quantity}
                     onChange={handleChange}
                     error={!!errors.quantity}
-                    helperText={errors.quantity || "Enter the number of units available"}
+                    helperText={errors.quantity || t("form.numberOfUnitsHelper")}
                     fullWidth
                     slotProps={{
                       htmlInput: { min: 1, max: 10000 }
@@ -571,7 +570,7 @@ const Form = () => {
                       1
                     </div>
                     <span className="font-medium">
-                      This listing is for 1 unit
+                      {t("form.listingForOneUnit")}
                     </span>
                   </div>
                 )}
@@ -579,25 +578,25 @@ const Form = () => {
 
               <TextField
                 select
-                label={t("Condition") || "Condition"}
+                label={t("form.condition")}
                 name="condition"
                 value={formData.condition}
                 onChange={handleChange}
                 fullWidth
               >
-                <MenuItem value="New">{t("New") || "New"}</MenuItem>
+                <MenuItem value="New">{t("form.conditionNew")}</MenuItem>
                 <MenuItem value="Like New">
-                  {t("Like New") || "Like New"}
+                  {t("form.conditionLikeNew")}
                 </MenuItem>
                 <MenuItem value="Used">
-                  {t("Used") || "Used"}
+                  {t("form.conditionUsed")}
                 </MenuItem>
                 <MenuItem value="Defective / Needs Repair">
-                  {t("Defective / Needs Repair") || "Defective / Needs Repair"}
+                  {t("form.conditionDefective")}
                 </MenuItem>
               </TextField>
               <TextField
-                label={t("Description") || "Description"}
+                label={t("form.description")}
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
@@ -693,7 +692,7 @@ const Form = () => {
               {t("Location")}
               {hasShop && postToShop && (
                 <span className="text-sm font-normal text-gray-500 ml-2">
-                  ({t("Auto-filled from shop") || "Auto-filled from shop"})
+                  ({t("form.autoFilledFromShop")})
                 </span>
               )}
             </h2>
@@ -744,17 +743,17 @@ const Form = () => {
               {t("Your Details")}
             </h2>
             <TextField
-              label={t("Name") || "Name"}
+              label={t("form.name")}
               name="name"
               value={username}
               disabled
               helperText={
                 <span>
-                  {t("Your display name") || "Your display name"} <br />
-                  <strong>{t("Note") || "Note"}:</strong>{" "}
-                  {t("For more info, visit") || "For more info, visit"}{" "}
+                  {t("form.nameHelper1")} <br />
+                  <strong>{t("form.note")}:</strong>{" "}
+                  {t("form.forMoreInfoVisit")}{" "}
                   <a href="#" className="text-blue-600 underline">
-                    {t("Help Center") || "Help Center"}
+                    {t("form.helpCenter")}
                   </a>
                 </span>
               }
@@ -782,16 +781,16 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label={t("Terms And Conditions")}
+              label={t("form.termsAndConditions")}
             />
             <p className="text-xs text-gray-500 mt-2">
-              By checking this box, you agree to our{" "}
+              {t("form.termsAgreementPrefix")}{" "}
               <a href="#" className="text-blue-600 underline">
-                Terms of Use
+                {t("form.termsOfUse")}
               </a>
-              {" "}and{" "}
+              {" "}{t("form.termsAgreementAnd")}{" "}
               <a href="#" className="text-blue-600 underline">
-                Privacy Policy
+                {t("form.privacyPolicy")}
               </a>
               .
             </p>
@@ -810,10 +809,10 @@ const Form = () => {
             startIcon={hasShop && postToShop ? <StoreIcon /> : null}
           >
             {loading
-              ? t("Loading...") || "Loading..."
+              ? t("common.loading")
               : hasShop && postToShop
-              ? t("Publish to Shop") || "Publish to Shop"
-              : t("Publish Ad") || "Publish Ad"}
+              ? t("form.publishToShop")
+              : t("form.publishAd")}
           </Button>
 
           {/* Create Shop CTA - Show if user doesn't have shop */}
@@ -825,10 +824,10 @@ const Form = () => {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-800">
-                    {t("Want to sell more?") || "Want to sell more?"}
+                    {t("form.wantToSellMore")}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {t("Create your own shop, build your brand, and reach more customers.") || "Create your own shop, build your brand, and reach more customers."}
+                    {t("form.createShopDescription")}
                   </p>
                 </div>
                 <Button
@@ -837,14 +836,13 @@ const Form = () => {
                   href="/create-shop"
                   className="whitespace-nowrap"
                 >
-                  {t("Create Shop") || "Create Shop"}
+                  {t("form.createShop")}
                 </Button>
               </div>
             </div>
           )}
         </form>
       </div>
-      <Footer />
     </>
   );
 };
