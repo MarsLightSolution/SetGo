@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Footer from "../common/Footer"; // Assuming this path is correct
 import {
   ToastifyContainer,
   showSuccessToast,
@@ -121,8 +120,6 @@ function RenewPassword() {
           </div>
         </div>
 
-        {/* Footer */}
-        <Footer />
       </div>
     </>
   );

@@ -4,8 +4,6 @@ import { Eye } from "lucide-react";
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
-// Import Footer
-import Footer from '../common/Footer';
 
 function DataProtection() {
   const { t } = useTranslation();
@@ -112,8 +110,6 @@ function DataProtection() {
         </div>
       </motion.div>
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

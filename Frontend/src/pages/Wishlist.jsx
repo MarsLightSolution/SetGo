@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { FaMapMarkerAlt } from "react-icons/fa";
 import { MdOutlineCalendarToday } from "react-icons/md";
-import Footer from "../components/common/Footer";
 import { unlike } from "../slices/wishSlice";
 import EmptyImage from '../assets/images/binocular.png';
+import SafeImage from "../components/common/SafeImage";
 
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -59,8 +59,8 @@ const Wishlist = () => {
                   >
                     {/* Image */}
                     <Link to={`/product/${post._id}`} className="w-full md:w-[160px] h-[120px] flex items-center justify-center mb-4 md:mb-0 flex-shrink-0">
-                      <img
-                        src={`${import.meta.env.VITE_SERVER}/${post.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"}`}
+                      <SafeImage
+                        src={`${import.meta.env.VITE_SERVER}/${post.pictures?.[0]?.replace(/\\/g, "/")}`}
                         alt={displayTitle}
                         className="h-full w-full object-contain rounded-md"
                       />
@@ -131,8 +131,6 @@ const Wishlist = () => {
         )}
       </div>
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 };

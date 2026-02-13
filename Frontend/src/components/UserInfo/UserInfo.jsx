@@ -4,13 +4,13 @@
   import axios from "axios" // axios is correctly imported and used
   import bannerImage from "../../assets/images/banner1.png"
   import nodataImage from "../../assets/images/nodata.png"
-  import Footer from "../common/Footer"
-  import { FaEdit, FaEye, FaPause, FaRocket, FaTrash, FaPlay } from "react-icons/fa" // Added FaPlay import for paused state
+    import { FaEdit, FaEye, FaPause, FaRocket, FaTrash, FaPlay } from "react-icons/fa" // Added FaPlay import for paused state
   import { toast, ToastContainer } from "react-toastify"
   import "react-toastify/dist/ReactToastify.css"
   import PaymentDialogboast from "../../pages/PaymentDialogboast"
   // i18n import
   import { useTranslation } from "react-i18next"
+  import SafeImage from "../common/SafeImage"
 
   // Custom confirmation modal component
   const ConfirmDialog = ({ onConfirm, onCancel, action = "pause", adIsSellStatus = false }) => {
@@ -369,16 +369,14 @@
                   return (
                     <div
                       key={ad._id}
-                      className="min-w-[260px] max-w-[260px] h-[320px] border border-gray-200 rounded-lg bg-white shadow-md hover:shadow-xl hover:scale-105 hover:z-10 transition duration-300 ease-in flex-shrink-0 flex flex-col overflow-hidden cursor-pointer"
+                      className="min-w-[220px] max-w-[220px] border border-gray-200 rounded-2xl bg-white shadow-md hover:shadow-xl hover:scale-105 hover:z-10 transition duration-300 ease-in flex-shrink-0 flex flex-col overflow-hidden cursor-pointer"
                       onClick={() => handlePreview(ad._id)} // Added click handler to entire card for preview redirect
                     >
                       {/* Image */}
-                      <div className="h-44 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      <div className="h-[160px] w-full bg-gray-100 flex items-center justify-center overflow-hidden rounded-t-2xl">
                         {ad.pictures?.[0] ? (
-                          <img
-                            src={`${import.meta.env.VITE_SERVER}/${
-                              ad.pictures?.[0]?.replace(/\\/g, "/") || "uploads/placeholder.jpg"
-                            }`}
+                          <SafeImage
+                            src={`${import.meta.env.VITE_SERVER}/${ad.pictures?.[0]?.replace(/\\/g, "/")}`}
                             alt={displayTitle}
                             className="h-full w-full object-cover rounded-t-lg" // Removed click handler and hover effects from image
                           />
@@ -496,7 +494,6 @@
               }}
             />
           )}
-        <Footer />
       </div>
     )
   }

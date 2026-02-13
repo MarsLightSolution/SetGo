@@ -5,9 +5,10 @@ import { Link } from "react-router-dom";
 import { Package, Truck, CheckCircle, Clock, XCircle, Calendar, MapPin, Star, ArrowRight } from "lucide-react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
+import SafeImage from "../common/SafeImage";
 
 const MyOrders = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const userId = localStorage.getItem("userId");
@@ -70,7 +71,7 @@ const MyOrders = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading your orders...</p>
+          <p className="text-gray-500">{t("orders.loadingOrders")}</p>
         </div>
       </div>
     );
@@ -81,12 +82,12 @@ const MyOrders = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
           <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">No orders found</h2>
+          <h2 className="text-2xl font-semibold mb-2">{t("orders.noOrdersFound")}</h2>
           <p className="text-gray-500 mb-6">
-            You haven't placed any orders yet. Start shopping to see your orders here.
+            {t("orders.noOrdersMessage")}
           </p>
           <Link to="/" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-            Start Shopping
+            {t("orders.startShopping")}
           </Link>
         </div>
       </div>
@@ -100,11 +101,11 @@ const MyOrders = () => {
     <div className="border-b border-gray-300 pb-4 mb-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">My Orders</h1>
-          <p className="text-gray-500 mt-2">Track and manage your orders</p>
+          <h1 className="text-xl font-bold text-gray-800">{t("orders.myOrders")}</h1>
+          <p className="text-gray-500 mt-2">{t("orders.trackAndManage")}</p>
         </div>
         <div className="text-m text-gray-500">
-          {orders.length} {orders.length === 1 ? "order" : "orders"}
+          {t("orders.orderCount", { count: orders.length })}
         </div>
       </div>
     </div>
@@ -116,10 +117,10 @@ const MyOrders = () => {
           {/* Order Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b  border-gray-300 pb-4 mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-800">Order ID: #{order._id}</p>
+              <p className="text-sm font-medium text-gray-800">{t("orders.orderId", { id: order._id })}</p>
               <div className="flex items-center gap-2 mt-1 text-gray-500 text-sm">
                 <Calendar className="h-4 w-4" />
-                <span>Placed on {formatDate(order.createdAt || order.orderDate)}</span>
+                <span>{t("orders.placedOn", { date: formatDate(order.createdAt || order.orderDate) })}</span>
               </div>
             </div>
             <div
@@ -136,15 +137,15 @@ const MyOrders = () => {
           <div className="flex flex-col lg:flex-row gap-6 items-center">
             <div className="flex gap-4 flex-1">
               <div className="flex-shrink-0">
-                <img
-                  src={order.productId?.image || "/placeholder.svg"}
-                  alt={order.productId?.title?.[i18n.language] || "Product"}
+                <SafeImage
+                  src={order.productId?.image}
+                  alt={order.productId?.title?.[i18n.language] || t("orders.product")}
                   className="w-36 h-36 object-cover rounded border"
                 />
               </div>
               <div className="flex-1 min-w-0 ">
                 <h3 className="font-semibold text-lg text-gray-800 mb-2 line-clamp-2 ">
-                  {order.productId?.title?.[i18n.language] || "Unnamed Product"}
+                  {order.productId?.title?.[i18n.language] || t("orders.unnamedProduct")}
                 </h3>
                 <div className="flex items-center gap-4 mb-2">
                   <span className="text-xl font-bold text-green-700">
@@ -168,12 +169,12 @@ const MyOrders = () => {
     to={`/order/${order._id}`}
     className="bg-green-600 text-white flex items-center justify-center gap-1 px-3 py-2 rounded hover:bg-green-700 transition"
   >
-    View Details <ArrowRight className="h-4 w-4" />
+    {t("orders.viewDetails")} <ArrowRight className="h-4 w-4" />
   </Link>
 
   {/* Report Button */}
   <button className="text-red-600 text-base px-2 py-1 rounded hover:underline transition w-full cursor-pointer">
-    Report
+    {t("orders.report")}
   </button>
 </div>
 

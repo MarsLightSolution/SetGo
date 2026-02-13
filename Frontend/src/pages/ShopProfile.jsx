@@ -6,7 +6,6 @@ import {
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Button,
   CircularProgress,
   Chip,
@@ -37,7 +36,7 @@ import {
   showErrorToast,
   ToastifyContainer,
 } from "../Hooks/Tostify";
-import Footer from "../components/common/Footer";
+import SafeImage from "../components/common/SafeImage";
 
 const ShopProfile = () => {
   const { id } = useParams();
@@ -455,16 +454,14 @@ const ShopProfile = () => {
                       className="h-full cursor-pointer hover:shadow-lg transition-shadow"
                       onClick={() => navigate(`/products/product/${product._id}`)}
                     >
-                      <CardMedia
-                        component="img"
-                        height="160"
-                        image={
+                      <SafeImage
+                        src={
                           product.pictures?.[0]
                             ? `${import.meta.env.VITE_SERVER}/${product.pictures[0]}`
                             : "/placeholder.png"
                         }
                         alt={getLocalizedText(product.title)}
-                        className="h-40 object-cover"
+                        className="w-full h-[160px] object-cover"
                       />
                       <CardContent className="p-3">
                         <Typography
@@ -508,7 +505,6 @@ const ShopProfile = () => {
           )}
         </Box>
       </Box>
-      <Footer />
     </>
   );
 };

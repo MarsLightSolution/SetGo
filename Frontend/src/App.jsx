@@ -1,8 +1,9 @@
-import { Routes, Route } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
 import './App.css'
 import NotificationProvider from './contexts/NotificationContext'
 import Navbar from './components/common/Navbar'
+import Footer from './components/common/Footer'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
 import ErrorBoundary from './components/common/ErrorBoundary'
@@ -48,6 +49,17 @@ const MyShop = lazy(() => import('./pages/MyShop'))
 const AllShops = lazy(() => import('./pages/AllShops'))
 const ShopProfile = lazy(() => import('./pages/ShopProfile'))
 const EditShop = lazy(() => import('./pages/EditShop'))
+// Scroll to top on route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [pathname])
+  return null
+}
+
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -58,8 +70,10 @@ function App() {
   return (
     <ErrorBoundary>
       <NotificationProvider>
-        <div>
+        <div className="min-h-screen flex flex-col">
+          <ScrollToTop />
           <Navbar />
+          <main className="flex-1">
           <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route path='/' element={<Home />} />
@@ -109,6 +123,8 @@ function App() {
             } />
           </Routes>
         </Suspense>
+          </main>
+          <Footer />
       </div>
     </NotificationProvider>
     </ErrorBoundary>

@@ -2,7 +2,6 @@ import React from "react";
 import { Wallet, ShoppingBag, UserCog } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import Footer from "../common/Footer";
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -78,8 +77,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Footer always at bottom */}
-      <Footer />
     </div>
   );
 };

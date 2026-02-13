@@ -39,7 +39,6 @@ import {
   ToastifyContainer,
 } from "../Hooks/Tostify";
 import { useTranslation } from "react-i18next";
-import Footer from "../components/common/Footer";
 
 const MyShop = () => {
   const { t, i18n } = useTranslation();
@@ -129,7 +128,6 @@ const MyShop = () => {
             </Button>
           </Paper>
         </Box>
-        <Footer />
       </>
     );
   }
@@ -436,7 +434,6 @@ const MyShop = () => {
           </Grid>
         </Box>
       </Box>
-      <Footer />
     </>
   );
 };

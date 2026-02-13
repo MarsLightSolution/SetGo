@@ -23,7 +23,6 @@ import {
   Inventory as InventoryIcon,
 } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
-import Footer from "../components/common/Footer";
 
 const AllShops = () => {
   const { t, i18n } = useTranslation();
@@ -287,7 +286,6 @@ const AllShops = () => {
           )}
         </Box>
       </Box>
-      <Footer />
     </>
   );
 };
