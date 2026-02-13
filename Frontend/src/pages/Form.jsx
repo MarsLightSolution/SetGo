@@ -148,7 +148,7 @@ const Form = () => {
       const filesArray = Array.from(files);
 
       if (filesArray.length + formData.pictures.length > 8) {
-        showErrorToast(t("form.maxPicturesError"));
+        showErrorToast(t("Maximum 8 pictures allowed"));
         return;
       }
 
@@ -255,24 +255,31 @@ const Form = () => {
 
     // Validation
     const currentErrors = {};
-    if (!formData.title.trim()) currentErrors.title = t("form.titleRequired");
+    if (!formData.title.trim()) currentErrors.title = t("Title is required");
     if (formData.title.length > 24)
-      currentErrors.title = t("form.titleLengthError");
+      currentErrors.title = t("Title cannot exceed 24 characters");
     if (!formData.category.trim())
-      currentErrors.category = t("form.categoryRequired");
-    if (!formData.price.trim()) currentErrors.price = t("form.priceRequired");
+      currentErrors.category = t("Category is required");
+    if (!formData.price.trim()) currentErrors.price = t("Price is required");
     else if (!/^\d+$/.test(formData.price))
-      currentErrors.price = t("form.priceNumbersOnly");
+      currentErrors.price = t("Price must be a number");
     if (!formData.description.trim())
-      currentErrors.description = t("form.descriptionRequired");
+      currentErrors.description = t("Description is required");
     if (!formData.postalCode.trim())
-      currentErrors.postalCode = t("form.postalCodeRequired");
+      currentErrors.postalCode = t("Postal Code is required");
     else if (!/^\d{6}$/.test(formData.postalCode))
-      currentErrors.postalCode = t("form.postalCodeFormatError");
+      currentErrors.postalCode = t("Invalid Postal Code format");
     if (formData.location.length > 50)
-      currentErrors.location = t("form.locationLengthError");
+      currentErrors.location = t("Location cannot exceed 50 characters");
     if (!/^[A-Za-z\s]+$/.test(formData.name))
-      currentErrors.name = t("form.nameAlphabetOnly");
+      currentErrors.name = t("Name must contain only alphabets");
+
+    // ✅ NEW: Quantity validation
+    if (!formData.quantity || formData.quantity < 1) {
+      currentErrors.quantity = t("Quantity must be at least 1") || "Quantity must be at least 1";
+    } else if (formData.quantity > 10000) {
+      currentErrors.quantity = t("Quantity cannot exceed 10,000 units") || "Quantity cannot exceed 10,000 units";
+    }
 
     // Quantity validation
     if (!formData.quantity || formData.quantity < 1) {
@@ -283,17 +290,17 @@ const Form = () => {
 
     setErrors(currentErrors);
     if (Object.keys(currentErrors).length > 0) {
-      showErrorToast(t("form.fixFormErrors"));
+      showErrorToast(t("Please fix the errors in the form"));
       return;
     }
 
     if (!formData.termsAccepted) {
-      showErrorToast(t("form.termsRequired"));
+      showErrorToast(t("Please accept the terms and conditions"));
       return;
     }
 
     if (formData.pictures.length === 0) {
-      showErrorToast(t("form.picturesRequired"));
+      showErrorToast(t("Please upload at least one picture"));
       return;
     }
 
@@ -368,11 +375,11 @@ const Form = () => {
         setIsBulkListing(false); // ✅ NEW: Reset bulk listing toggle
         if (fileInputRef.current) fileInputRef.current.value = null;
       } else {
-        showErrorToast(data.message || t("form.somethingWentWrong"));
+        showErrorToast(data.message || t("Something went wrong"));
       }
     } catch (error) {
       console.error("Error submitting ad:", error);
-      showErrorToast(t("form.failedToSubmitForm"));
+      showErrorToast(t("Failed to submit form"));
     } finally {
       setLoading(false);
     }
@@ -437,13 +444,13 @@ const Form = () => {
           {/* Ad Details */}
           <div>
             <h2 className="text-lg sm:text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              {t("form.adDetails")}
+              {t("Ad Details")}
             </h2>
 
             {/* Input Language Selector */}
             <TextField
               select
-              label={t("form.languageOfInput")}
+              label={t("Language of Input")}
               name="inputLanguage"
               value={formData.inputLanguage}
               onChange={handleChange}
@@ -458,17 +465,17 @@ const Form = () => {
             {/* Inputs */}
             <div className="flex flex-col gap-4">
               <TextField
-                label={t("form.title")}
+                label={t("Title")}
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
                 error={!!errors.title}
-                helperText={errors.title || t("form.titleHelper")}
+                helperText={errors.title || t("Enter a descriptive title")}
                 fullWidth
               />
               <TextField
                 select
-                label={t("form.category")}
+                label={t("Category")}
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
@@ -476,7 +483,7 @@ const Form = () => {
                 helperText={errors.category}
                 fullWidth
               >
-                <MenuItem value="">{t("form.chooseCategory")}</MenuItem>
+                <MenuItem value="">{t("Choose Category")}</MenuItem>
                 <MenuItem value="Cars & Motorcycles">
                   {t("home.category.carsMotorcycles")}
                 </MenuItem>
@@ -497,7 +504,7 @@ const Form = () => {
                 <MenuItem value="Other">{t("home.category.other")}</MenuItem>
               </TextField>
               <TextField
-                label={t("form.price")}
+                label={t("Price")}
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
@@ -506,7 +513,7 @@ const Form = () => {
                 fullWidth
                 InputProps={{
                   endAdornment: (
-                    <span className="text-gray-500">{t("form.currency")}</span>
+                    <span className="text-gray-500">{t("Currency")}</span>
                   ),
                 }}
               />
@@ -599,7 +606,7 @@ const Form = () => {
                 error={!!errors.description}
                 helperText={
                   errors.description ||
-                  t("form.charactersLeft", {
+                  t("Characters left: {{count}}", {
                     count: maxDescriptionLength - formData.description.length,
                   })
                 }
@@ -609,7 +616,7 @@ const Form = () => {
             {/* Upload Section */}
             <div className="mt-4">
               <label className="block font-medium mb-2">
-                {t("form.pictures")} <span className="text-red-600">*</span>
+                {t("Pictures")} <span className="text-red-600">*</span>
               </label>
               <div className="relative">
                 <div className="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center cursor-pointer hover:border-green-600 transition-all">
@@ -629,10 +636,10 @@ const Form = () => {
                   >
                     <CloudUploadIcon style={{ fontSize: 40, color: "gray" }} />
                     <span className="text-gray-600 text-sm mt-2">
-                      {t("form.uploadTip")}
+                      {t("Click or Drag to upload")}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {t("form.maxImagesTip")}
+                      {t("Max 8 images")}
                     </span>
                   </label>
                 </div>
@@ -682,7 +689,7 @@ const Form = () => {
           {/* Location */}
           <div>
             <h2 className="text-lg sm:text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              {t("form.location")}
+              {t("Location")}
               {hasShop && postToShop && (
                 <span className="text-sm font-normal text-gray-500 ml-2">
                   ({t("form.autoFilledFromShop")})
@@ -691,7 +698,7 @@ const Form = () => {
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 mb-4">
               <TextField
-                label={t("form.postalCode")}
+                label={t("Postal Code")}
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
@@ -700,7 +707,7 @@ const Form = () => {
                 fullWidth
               />
               <TextField
-                label={t("form.locationCity")}
+                label={t("City")}
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
@@ -711,11 +718,11 @@ const Form = () => {
             </div>
             <TextField
               className="mt-4"
-              label={t("form.streetNo")}
+              label={t("Street No")}
               name="streetNo"
               value={formData.streetNo}
               onChange={handleChange}
-              helperText={t("form.streetNoHelper")}
+              helperText={t("Enter street number")}
               fullWidth
             />
             <FormControlLabel
@@ -726,14 +733,14 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label={t("form.showFullAddress")}
+              label={t("Show full address")}
             />
           </div>
 
           {/* Your Details */}
           <div>
             <h2 className="text-lg sm:text-xl font-semibold mb-4 border-b pb-2 text-green-700">
-              {t("form.yourDetails")}
+              {t("Your Details")}
             </h2>
             <TextField
               label={t("form.name")}
@@ -760,7 +767,7 @@ const Form = () => {
                   onChange={handleChange}
                 />
               }
-              label={t("form.subscribeToUpdates")}
+              label={t("Subscribe to updates")}
             />
           </div>
 

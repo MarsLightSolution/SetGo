@@ -66,6 +66,7 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       "http://10.175.186.234:8080",
       "http://10.233.109.234:8080",
       "http://10.106.131.234:8080"
+      "http://10.175.186.234:8080"
     ];
 
 const corsOptions = {
