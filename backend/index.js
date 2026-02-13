@@ -58,14 +58,14 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
     ].filter(Boolean) // Remove undefined values
   : [
       "http://localhost:5173",
-      "http://localhost:3000",  // For serve build testing
+      "http://localhost:8080",  // For serve build testing
       "http://localhost:8081",
       "http://172.20.10.2:8081",
       "http://51.20.123.49",
       "http://10.113.84.234:8080",
       "http://10.175.186.234:8080",
       "http://10.233.109.234:8080",
-      "http://10.106.131.234:8080"
+      "http://10.106.131.234:8080",
       "http://10.175.186.234:8080"
     ];
 
