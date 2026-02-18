@@ -114,6 +114,12 @@ jest-stare/
 *.bak
 *.swp
 *.swo
+nul
+
+# ==============================
+# Claude Code
+# ==============================
+.claude/
 
 # ==============================
 # Reports & Documentation
