@@ -6,9 +6,7 @@ import {
   migrateFromAsyncStorage,
   setUserData,
 } from '../services/secureAuthService';
-
-// Get API URL from environment variable
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_ENDPOINTS } from '../config/api';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -75,58 +73,79 @@ export const useAuthStore = create((set, get) => ({
       return { success: false, message: 'Email and password are required' };
     }
 
-    if (!API_URL) {
+    if (!API_ENDPOINTS.LOGIN) {
       return { success: false, message: 'API configuration error' };
     }
 
     set({ loading: true });
 
     try {
-      // 1. Login request
-      const response = await fetch(`${API_URL}/login`, {
+      const loginUrl = API_ENDPOINTS.LOGIN;
+      console.log('🔐 Login attempt to:', loginUrl);
+
+      // 1. Login request (credentials: 'include' to receive Set-Cookie)
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
+
+      console.log('🔐 Login response status:', response.status);
 
       const data = await response.json();
 
       // 2. Check login success
       if (response.status === 200 || response.status === 201) {
         const userId = data.userId;
-        const accessToken = data.accessToken;
+        // Backend sends "Bearer <token>" — strip the prefix for clean storage
+        const rawToken = data.accessToken || '';
+        const accessToken = rawToken.replace(/^Bearer\s+/i, '');
 
         if (!accessToken || !userId) {
           set({ loading: false });
           return { success: false, message: 'Invalid server response' };
         }
 
-        // 3. Create initial user object
+        // 3. Extract refresh token from Set-Cookie header (if available)
+        // On React Native, HttpOnly cookies are managed by the native cookie jar,
+        // but we also store it locally as a fallback for the refresh interceptor.
+        let refreshToken = null;
+        const setCookie = response.headers.get('set-cookie');
+        if (setCookie) {
+          const match = setCookie.match(/refreshToken=([^;]+)/);
+          if (match) {
+            refreshToken = match[1];
+          }
+        }
+
+        // 4. Create initial user object
         const basicUser = {
           _id: userId,
           userName: data.userName,
           userId: data.userId,
         };
 
-        // 4. Store session securely
+        // 5. Store session securely (access token + refresh token + userId)
         await setSession({
           token: accessToken,
+          refreshToken,
           userId: userId,
           userData: basicUser,
         });
 
-        // 5. Fetch full user data
-        const userRes = await fetch(`${API_URL}/userdata/${userId}`, {
+        // 6. Fetch full user data
+        const userRes = await fetch(API_ENDPOINTS.USER_DATA(userId), {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
+          credentials: 'include',
         });
 
         const userData = await userRes.json();
 
         if (userRes.ok && userData.data) {
-          // Update with full user data
           await setUserData(userData.data);
 
           set({
@@ -145,13 +164,13 @@ export const useAuthStore = create((set, get) => ({
           return { success: true, message: 'Login successful!' };
         }
       } else {
-        // Invalid credentials or server error
         set({ loading: false });
         return { success: false, message: data.message || 'Login failed' };
       }
     } catch (error) {
+      console.error('🔐 Login error:', error.message, error);
       set({ loading: false });
-      return { success: false, message: 'Network error. Please check your connection.' };
+      return { success: false, message: `Network error: ${error.message}` };
     }
   },
 
@@ -160,10 +179,16 @@ export const useAuthStore = create((set, get) => ({
    */
   logout: async () => {
     try {
+      // Invalidate refresh token on the backend
+      await fetch(API_ENDPOINTS.LOGOUT, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => {});
+
       await clearSession();
       set({ isAuthenticated: false, user: null });
     } catch (error) {
-      // Force clear state even if storage fails
+      // Force clear state even if storage/network fails
       set({ isAuthenticated: false, user: null });
     }
   },
