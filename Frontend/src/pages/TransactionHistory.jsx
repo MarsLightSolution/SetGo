@@ -112,40 +112,40 @@ const TransactionHistory = ({ forcedUserId }) => {
           {/* Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Wallet Balance */}
-            <div className="bg-gray-50 rounded-xl shadow p-6">
+            <div className="bg-gray-50 rounded-xl shadow p-6 overflow-hidden">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-medium text-gray-500">
+                <h2 className="text-sm font-medium text-gray-500 truncate mr-2">
                   {t("transactionHistory.walletBalanceLabel")}
                 </h2>
-                <Wallet className="h-5 w-5 text-green-600" />
+                <Wallet className="h-5 w-5 text-green-600 flex-shrink-0" />
               </div>
-              <div className="text-2xl font-bold text-green-700">
+              <div className="text-2xl font-bold text-green-700 truncate">
                 ₼ {walletBalance.toFixed(2)}
               </div>
             </div>
 
             {/* Total Credit */}
-            <div className="bg-green-50 rounded-xl shadow p-6">
+            <div className="bg-green-50 rounded-xl shadow p-6 overflow-hidden">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-medium text-gray-500">
+                <h2 className="text-sm font-medium text-gray-500 truncate mr-2">
                   {t("transactionHistory.totalCreditedLabel")}
                 </h2>
-                <TrendingUp className="h-5 w-5 text-green-600" />
+                <TrendingUp className="h-5 w-5 text-green-600 flex-shrink-0" />
               </div>
-              <div className="text-2xl font-bold text-green-700">
+              <div className="text-2xl font-bold text-green-700 truncate">
                 ₼ {totalCredit.toFixed(2)}
               </div>
             </div>
 
             {/* Total Debit */}
-            <div className="bg-red-50 rounded-xl shadow p-6">
+            <div className="bg-red-50 rounded-xl shadow p-6 overflow-hidden">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-medium text-gray-500">
+                <h2 className="text-sm font-medium text-gray-500 truncate mr-2">
                   {t("transactionHistory.totalDebitedLabel")}
                 </h2>
-                <TrendingDown className="h-5 w-5 text-red-600" />
+                <TrendingDown className="h-5 w-5 text-red-600 flex-shrink-0" />
               </div>
-              <div className="text-2xl font-bold text-red-700">
+              <div className="text-2xl font-bold text-red-700 truncate">
                 ₼ {totalDebit.toFixed(2)}
               </div>
             </div>
@@ -263,7 +263,7 @@ const TransactionHistory = ({ forcedUserId }) => {
                   : "en-GB"
               )}
             </td>
-            <td className="px-6 py-3 font-mono text-xs text-gray-400">
+            <td className="px-6 py-3 font-mono text-xs text-gray-400 max-w-[150px] truncate">
               {txn.transactionId}
             </td>
           </tr>

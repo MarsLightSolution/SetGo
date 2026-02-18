@@ -117,7 +117,7 @@ const MyOrders = () => {
           {/* Order Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b  border-gray-300 pb-4 mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-800">{t("orders.orderId", { id: order._id })}</p>
+              <p className="text-sm font-medium text-gray-800 truncate">{t("orders.orderId", { id: order._id })}</p>
               <div className="flex items-center gap-2 mt-1 text-gray-500 text-sm">
                 <Calendar className="h-4 w-4" />
                 <span>{t("orders.placedOn", { date: formatDate(order.createdAt || order.orderDate) })}</span>
@@ -136,14 +136,14 @@ const MyOrders = () => {
           {/* Product Info */}
           <div className="flex flex-col lg:flex-row gap-6 items-center">
             <div className="flex gap-4 flex-1">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 overflow-hidden rounded">
                 <SafeImage
                   src={order.productId?.image}
                   alt={order.productId?.title?.[i18n.language] || t("orders.product")}
                   className="w-36 h-36 object-cover rounded border"
                 />
               </div>
-              <div className="flex-1 min-w-0 ">
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <h3 className="font-semibold text-lg text-gray-800 mb-2 line-clamp-2 ">
                   {order.productId?.title?.[i18n.language] || t("orders.unnamedProduct")}
                 </h3>

@@ -323,8 +323,8 @@ const OrderDetail = () => {
               <Package className="h-5 w-5" />
               {t("orderDetail.orderInvoice")}
             </h1>
-            <p className="text-gray-800 text-xs mt-1">
-              {t("orderDetail.orderId")}: <span className="font-mono font-semibold">{order._id}</span>
+            <p className="text-gray-800 text-xs mt-1 truncate">
+              {t("orderDetail.orderId")}: <span className="font-mono font-semibold break-all">{order._id}</span>
             </p>
           </div>
 
@@ -332,15 +332,15 @@ const OrderDetail = () => {
             {/* Product Info */}
             <div className="bg-lime-50 rounded-lg p-4 shadow border border-lime-200">
               <div className="flex gap-4">
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 overflow-hidden rounded-lg">
                   <SafeImage
                     src={order.productId?.images?.[0]}
                     alt={order.productId?.productName?.[lang] || t("orderDetail.product")}
                     className="w-24 h-24 object-cover rounded-lg shadow border border-lime-300"
                   />
                 </div>
-                <div className="flex-1 space-y-1">
-                  <h2 className="text-base font-bold text-gray-800">
+                <div className="flex-1 min-w-0 space-y-1 overflow-hidden">
+                  <h2 className="text-base font-bold text-gray-800 line-clamp-2">
                     {order.productId?.title?.[lang] || t("orderDetail.na")}
                   </h2>
                   <p className="text-gray-600 text-xs line-clamp-2">
@@ -434,7 +434,7 @@ const OrderDetail = () => {
                               </span>
                             </div>
                             {review.reviewText && (
-                              <p className="text-gray-700 text-sm leading-relaxed">
+                              <p className="text-gray-700 text-sm leading-relaxed line-clamp-4 break-words">
                                 "{review.reviewText}"
                               </p>
                             )}

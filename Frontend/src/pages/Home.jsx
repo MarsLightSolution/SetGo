@@ -106,20 +106,20 @@ const AdCard = ({ ad, image, price, description, condition, name, createdAt }) =
       </div>
 
       {/* Content */}
-      <div className="mt-3 w-full">
+      <div className="mt-3 w-full min-w-0 overflow-hidden">
         <p className="truncate text-gray-800 font-semibold text-base">{displayTitle}</p>
-        <p className="text-gray-500 text-xs mt-1">{displayDescription}</p>
+        <p className="text-gray-500 text-xs mt-1 truncate">{displayDescription}</p>
 
         <div className="flex items-center justify-between mt-2">
-          <p className="text-green-700 font-bold text-sm">₼ {price}</p>
-          <span className="text-[11px] text-gray-400 flex items-center gap-1">
+          <p className="text-green-700 font-bold text-sm truncate">₼ {price}</p>
+          <span className="text-[11px] text-gray-400 flex items-center gap-1 flex-shrink-0">
             {new Date(createdAt).toLocaleDateString()}
           </span>
         </div>
 
-        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-          <span>{condition || "—"}</span>
-          <span className="font-medium text-gray-600">👤 {name || "Unknown"}</span>
+        <div className="flex justify-between items-center mt-2 text-xs text-gray-500 min-w-0">
+          <span className="truncate">{condition || "—"}</span>
+          <span className="font-medium text-gray-600 truncate ml-2">👤 {name || "Unknown"}</span>
         </div>
       </div>
     </motion.div>
@@ -179,13 +179,13 @@ const ShopCard = ({ shop }) => {
         <p className="text-xs text-gray-500 truncate">{shop.category}</p>
 
         {/* Stats */}
-        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
+        <div className="flex items-center justify-between mt-2 text-xs text-gray-500 min-w-0">
+          <span className="flex items-center gap-1 flex-shrink-0">
             <Package className="w-3 h-3" />
             {shop.totalProducts || 0} {shop.totalProducts === 1 ? t("home.product") : t("home.products")}
           </span>
           {shop.address?.city && (
-            <span className="truncate">{shop.address.city}</span>
+            <span className="truncate ml-1 max-w-[80px]">{shop.address.city}</span>
           )}
         </div>
       </div>
@@ -820,22 +820,22 @@ const Home = () => {
                         </div>
 
                         {/* Content */}
-                        <div className="p-3 flex flex-col gap-1">
+                        <div className="p-3 flex flex-col gap-1 min-w-0 overflow-hidden">
                           <p className="text-sm font-semibold text-gray-800 truncate capitalize">
                             {item.title}
                           </p>
                           <p className="text-xs text-gray-500 truncate leading-snug">
                             {item.description}
                           </p>
-                          <div className="flex justify-between items-center">
-                            <p className="text-sm font-bold text-green-700">₼ {item.price}</p>
-                            <span className="text-[11px] text-gray-400">
+                          <div className="flex justify-between items-center min-w-0">
+                            <p className="text-sm font-bold text-green-700 truncate">₼ {item.price}</p>
+                            <span className="text-[11px] text-gray-400 flex-shrink-0">
                               {new Date(item.createdAt).toLocaleDateString()}
                             </span>
                           </div>
-                          <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
-                            <span>{item.condition}</span>
-                            <span className="flex items-center gap-1">
+                          <div className="flex justify-between items-center text-xs text-gray-500 mt-1 min-w-0">
+                            <span className="truncate">{item.condition}</span>
+                            <span className="flex items-center gap-1 flex-shrink-0">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="currentColor"

@@ -451,7 +451,7 @@ const ShopProfile = () => {
                 {products.map((product) => (
                   <Grid item xs={6} sm={4} md={3} key={product._id}>
                     <Card
-                      className="h-full cursor-pointer hover:shadow-lg transition-shadow"
+                      className="h-full cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
                       onClick={() => navigate(`/products/product/${product._id}`)}
                     >
                       <SafeImage
@@ -462,6 +462,7 @@ const ShopProfile = () => {
                         }
                         alt={getLocalizedText(product.title)}
                         className="w-full h-[160px] object-cover"
+                        style={{ display: "block" }}
                       />
                       <CardContent className="p-3">
                         <Typography

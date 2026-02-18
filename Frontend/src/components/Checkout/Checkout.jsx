@@ -192,17 +192,13 @@ const CheckoutPage = () => {
               </div>
 
               {/* Title */}
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2 line-clamp-2 break-words">
                 {product.title?.en || product.name?.en || t("checkout.product")}
               </h2>
 
               {/* Description */}
-              <p className="text-gray-600 leading-relaxed text-m mb-4">
-                {product.description?.en
-                  ? product.description.en.length > 100
-                    ? product.description.en.substring(0, 100) + "..."
-                    : product.description.en
-                  : t("checkout.noDescription")}
+              <p className="text-gray-600 leading-relaxed text-m mb-4 line-clamp-3 break-words">
+                {product.description?.en || t("checkout.noDescription")}
               </p>
 
               {/* Details */}

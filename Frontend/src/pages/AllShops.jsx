@@ -221,9 +221,9 @@ const AllShops = () => {
                         </Avatar>
 
                         {/* Shop Info */}
-                        <Box className="ml-0 mt-4">
-                          <Box className="flex items-center gap-1 flex-wrap">
-                            <Typography variant="h6" className="font-semibold text-gray-800">
+                        <Box className="ml-0 mt-4 overflow-hidden">
+                          <Box className="flex items-center gap-1 flex-wrap min-w-0">
+                            <Typography variant="h6" className="font-semibold text-gray-800" noWrap>
                               {getLocalizedText(shop.shopName)}
                             </Typography>
                             {shop.isVerified && (

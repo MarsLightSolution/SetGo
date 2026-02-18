@@ -58,7 +58,7 @@ const Wishlist = () => {
                     className="border border-gray-100 p-4 rounded flex flex-col md:flex-row md:items-center justify-between"
                   >
                     {/* Image */}
-                    <Link to={`/product/${post._id}`} className="w-full md:w-[160px] h-[120px] flex items-center justify-center mb-4 md:mb-0 flex-shrink-0">
+                    <Link to={`/product/${post._id}`} className="w-full md:w-[160px] h-[120px] flex items-center justify-center mb-4 md:mb-0 flex-shrink-0 overflow-hidden rounded-md">
                       <SafeImage
                         src={`${import.meta.env.VITE_SERVER}/${post.pictures?.[0]?.replace(/\\/g, "/")}`}
                         alt={displayTitle}
@@ -67,21 +67,17 @@ const Wishlist = () => {
                     </Link>
 
                     {/* Info Section */}
-                    <div className="flex-1 md:ml-4 w-full">
+                    <div className="flex-1 md:ml-4 min-w-0 overflow-hidden">
                       <div className="flex justify-between text-sm text-gray-500 mb-1">
                         <span className="flex items-center gap-1">
                           <MdOutlineCalendarToday className="text-gray-400" />
-                          {formatPostDate(post.createdAt)} {/* Use localized date */}
+                          {formatPostDate(post.createdAt)}
                         </span>
                       </div>
 
-                      <p className="font-bold text-lg text-black">{displayTitle}</p>
-                      <p className="text-sm text-gray-700 mt-1">
-                        {/* Shorten description, then translate "..." or "read more" */}
-                        {displayDescription.length > 100
-                          ? `${displayDescription.slice(0, 100)}...` // Simplified shortening
-                          : displayDescription
-                        }
+                      <p className="font-bold text-lg text-black line-clamp-1">{displayTitle}</p>
+                      <p className="text-sm text-gray-700 mt-1 line-clamp-2">
+                        {displayDescription}
                       </p>
 
                       <p className="text-green-700 font-bold text-xl mt-2">
