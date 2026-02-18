@@ -51,7 +51,10 @@ export default ({ config }) => {
           }
         }
       },
-      requireFullScreen: false
+      requireFullScreen: false,
+      config: {
+        googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      },
     },
 
     // Android Configuration
@@ -70,7 +73,12 @@ export default ({ config }) => {
       // Always allow cleartext traffic (HTTP) for development and production
       usesCleartextTraffic: true,
       // Network security configuration
-      networkSecurityConfig: './network_security_config.xml'
+      networkSecurityConfig: './network_security_config.xml',
+      config: {
+        googleMaps: {
+          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+        },
+      },
     },
 
     // Web Configuration
