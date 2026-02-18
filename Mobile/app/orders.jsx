@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_ENDPOINTS } from '../config/api';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function OrdersScreen() {
   const [totalCredit, setTotalCredit] = useState(0);
   const [totalDebit, setTotalDebit] = useState(0);
 
-  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+  // API endpoints imported at top of file
 
   const orders = [
     {
@@ -66,7 +67,7 @@ export default function OrdersScreen() {
       }
 
       const response = await fetch(
-        `${API_URL}/users/${userId}/transactions`,
+        API_ENDPOINTS.USER_TRANSACTIONS(userId),
         {
           method: 'GET',
           credentials: 'include',

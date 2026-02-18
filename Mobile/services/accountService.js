@@ -14,7 +14,7 @@
  * See PRODUCTION_READINESS_AUDIT.md for full security requirements.
  */
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://your-api-url.com/api';
+import { API_ENDPOINTS } from '../config/api';
 
 /**
  * Account Service
@@ -33,7 +33,7 @@ export const accountService = {
    */
   getUserProfile: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/profile/userdata/${userId}`);
+      const response = await fetch(API_ENDPOINTS.USER_DATA(userId));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -62,7 +62,7 @@ export const accountService = {
    */
   updateProfileName: async (userId, profileName) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/nameupdate/${userId}/profileName`, {
+      const response = await fetch(API_ENDPOINTS.UPDATE_PROFILE_NAME(userId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileName: profileName }),
@@ -97,7 +97,7 @@ export const accountService = {
    */
   verifyEmail: async (userId, password, newEmail) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/emailverify`, {
+      const response = await fetch(API_ENDPOINTS.EMAIL_VERIFY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,7 +134,7 @@ export const accountService = {
    */
   updateDeliveryAddress: async (userId, deliveryAddress) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/deliveryaddress/${userId}/delivery-Address`, {
+      const response = await fetch(API_ENDPOINTS.UPDATE_DELIVERY_ADDRESS(userId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deliveryAddress: deliveryAddress }),
@@ -166,7 +166,7 @@ export const accountService = {
    */
   updateBillingAddress: async (userId, billingAddress) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/billingaddress/${userId}/billingAddress`, {
+      const response = await fetch(API_ENDPOINTS.UPDATE_BILLING_ADDRESS(userId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ billingAddress: billingAddress }),
@@ -199,7 +199,7 @@ export const accountService = {
    */
   sendOTP: async (phoneData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/twilio/send-otp`, {
+      const response = await fetch(API_ENDPOINTS.SEND_OTP, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(phoneData),
@@ -229,7 +229,7 @@ export const accountService = {
    */
   verifyOTP: async (otpData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/twilio/verify-otp`, {
+      const response = await fetch(API_ENDPOINTS.VERIFY_OTP, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(otpData),
@@ -261,7 +261,7 @@ export const accountService = {
    */
   updatePassword: async (userId, passwordData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/updatepassword/${userId}`, {
+      const response = await fetch(API_ENDPOINTS.UPDATE_PASSWORD(userId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(passwordData),
@@ -294,7 +294,7 @@ export const accountService = {
    */
   toggleNewsletter: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/profile/newsletter/${userId}`);
+      const response = await fetch(API_ENDPOINTS.NEWSLETTER(userId));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -321,7 +321,7 @@ export const accountService = {
    */
   toggleMessages: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/profile/messageforuser/${userId}`);
+      const response = await fetch(API_ENDPOINTS.USER_MESSAGES(userId));
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -350,7 +350,7 @@ export const accountService = {
    */
   getUserAds: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products/user/${userId}/ads`);
+      const response = await fetch(API_ENDPOINTS.USER_ADS(userId));
       const text = await response.text();
       try {
         const data = JSON.parse(text);
@@ -376,7 +376,7 @@ export const accountService = {
    */
   deleteUser: async (userId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/deleteuser/${userId}`, {
+      const response = await fetch(API_ENDPOINTS.DELETE_USER(userId), {
         method: 'DELETE',
       });
 

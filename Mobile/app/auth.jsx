@@ -19,21 +19,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { validateLoginForm, validateSignupForm } from '../utils/validation';
 import logger from '../utils/logger';
+import { API_ENDPOINTS } from '../config/api';
 
 const { width } = Dimensions.get('window');
 
 export default function AuthScreen() {
   const router = useRouter();
   const { login } = useAuthStore();
-  
+
   const [showLogin, setShowLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
   const toggleForm = (isLogin) => {
     setShowLogin(isLogin);
@@ -78,7 +77,7 @@ export default function AuthScreen() {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API_URL}/signup`, {
+      const res = await fetch(API_ENDPOINTS.SIGNUP, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

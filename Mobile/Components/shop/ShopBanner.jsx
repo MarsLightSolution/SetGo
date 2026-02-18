@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
+import { IMAGE_BASE_URL } from '../../config/api';
 
 /**
  * ShopBanner - Displays shop information banner on product detail
@@ -40,7 +40,7 @@ const ShopBanner = React.memo(function ShopBanner({ shop, listingType }) {
         <View style={styles.logoContainer}>
           {shop.logo ? (
             <Image
-              source={{ uri: `${API_URL}${shop.logo}` }}
+              source={{ uri: `${IMAGE_BASE_URL}${shop.logo}` }}
               style={styles.logo}
               resizeMode="cover"
             />

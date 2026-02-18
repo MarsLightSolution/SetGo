@@ -2,7 +2,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import NetInfo from '@react-native-community/netinfo';
-import { API_BASE_URL } from '../config/api';
+import { API_ENDPOINTS, BASE_URL } from '../config/api';
 
 /**
  * Network Helper Utilities
@@ -61,9 +61,9 @@ export const NetworkHelper = {
     const startTime = Date.now();
     
     try {
-      console.log('🔍 Testing connection to:', API_BASE_URL);
-      
-      const response = await fetch(`${API_BASE_URL}/api/products/getProducts?limit=1`, {
+      console.log('🔍 Testing connection to:', BASE_URL);
+
+      const response = await fetch(`${API_ENDPOINTS.GET_PRODUCTS}?limit=1`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ export const NetworkHelper = {
       platform: Platform.OS,
       isDevice: Constants.isDevice,
       isSimulator: Constants.isDevice === false,
-      apiUrl: API_BASE_URL,
+      apiUrl: BASE_URL,
       recommendedUrl: NetworkHelper.getRecommendedApiUrl(),
       deviceName: Constants.deviceName,
       osVersion: Platform.Version,

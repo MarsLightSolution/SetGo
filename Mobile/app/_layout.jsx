@@ -8,7 +8,8 @@ import BottomTabBar from '../Components/BottomTabBar';
 import ErrorBoundary from '../Components/ErrorBoundary';
 import SplashScreen from '../Components/SplashScreen';
 import { useEffect, useState, useCallback } from 'react';
-import { View } from 'react-native';
+import { View, StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 function AppContent() {
@@ -63,11 +64,17 @@ function AppContent() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#008235"
+        translucent={false}
+      />
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: 'none'
+          animation: 'none',
+          contentStyle: { backgroundColor: '#F9FAFB' }
         }}
       >
         <Stack.Screen name="index" />
@@ -196,32 +203,34 @@ function AppContent() {
       </Stack>
       {!shouldHideTabs && <BottomTabBar />}
       <Toast />
-    </>
+    </View>
   );
 }
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
-      <Provider store={store}>
-        <PersistGate
-          loading={
-            <View style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: '#ffffff'
-            }}>
-              <SplashScreen onFinish={() => {}} />
-            </View>
-          }
-          persistor={persistor}
-        >
-          <FilterProvider>
-            <AppContent />
-          </FilterProvider>
-        </PersistGate>
-      </Provider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <Provider store={store}>
+          <PersistGate
+            loading={
+              <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: '#ffffff'
+              }}>
+                <SplashScreen onFinish={() => {}} />
+              </View>
+            }
+            persistor={persistor}
+          >
+            <FilterProvider>
+              <AppContent />
+            </FilterProvider>
+          </PersistGate>
+        </Provider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }

@@ -55,8 +55,7 @@ const showWarningToast = (message) => {
   });
 };
 
-// IMPORTANT: Replace this with your actual backend URL
-const API_BASE_URL = `${process.env.EXPO_PUBLIC_API_URL}/`; // ← Change this to your deployed backend URL
+import { API_ENDPOINTS } from '../../config/api';
 
 export default function Chatbot() {
   const router = useRouter();
@@ -248,17 +247,8 @@ export default function Chatbot() {
     setLoading(true);
     
     try {
-      // Check if API_BASE_URL is configured
-      if (!API_BASE_URL || API_BASE_URL.includes('undefined')) {
-        throw new Error('Backend URL is not configured. Please set EXPO_PUBLIC_API_URL in your .env file.');
-      }
-
-      const endpoint = `${API_BASE_URL}chatbot/ask`;
-      console.log('📡 Making API call to:', endpoint);
-      console.log('📦 Payload:', { question, orderId: orderIdParam, userId });
-
       const { data } = await axios.post(
-        endpoint,
+        API_ENDPOINTS.CHATBOT_ASK,
         {
           question,
           orderId: orderIdParam,

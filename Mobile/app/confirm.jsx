@@ -3,23 +3,23 @@ import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 import { useAuthStore } from "../Store/authStore";
-import { showErrorToast, showSuccessToast } from "../utils/toastify";  
+import { showErrorToast, showSuccessToast } from "../utils/toastify";
+import { API_ENDPOINTS } from "../config/api";
 
 
 export default function ConfirmPage() {
   const router = useRouter();
-  const { email, password } = useLocalSearchParams(); // 👈 get both from signup
+  const { email, password } = useLocalSearchParams();
   const [verified, setVerified] = useState(false);
 
   const { login } = useAuthStore();
-  const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
   useEffect(() => {
     let interval;
 
     const checkStatus = async () => {
       try {
-        const res = await fetch(`${API_URL}/check-status?email=${email}`);
+        const res = await fetch(`${API_ENDPOINTS.CHECK_STATUS}?email=${email}`);
         const data = await res.json();
 
         if (data.success && data.emailVerified) {
@@ -60,7 +60,7 @@ export default function ConfirmPage() {
       <ActivityIndicator size="large" color="#007AFF" />
       {!verified ? (
         <Text style={styles.text}>
-          We’ve sent a confirmation link to {email}.{"\n"} Please check your
+          We've sent a confirmation link to {email}.{"\n"} Please check your
           email to continue.
         </Text>
       ) : (

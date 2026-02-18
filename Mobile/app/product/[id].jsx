@@ -12,9 +12,7 @@ import {
   Share,
   StatusBar,
   SafeAreaView,
-  Platform,
   RefreshControl,
-  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
@@ -29,9 +27,10 @@ import logger from '../../utils/logger';
 import { ReviewSection } from '../../Components/reviews';
 import { ShopBanner } from '../../Components/shop';
 import { StockBadge } from '../../Components/product';
+import { ProductLocationMap } from '../../Components/map';
 
 const { width } = Dimensions.get('window');
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
+import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 
 const getLocalizedText = (field, lang = 'en') => {
   if (!field) return '';
@@ -57,7 +56,7 @@ const RelatedProductItem = React.memo(function RelatedProductItem({ item, onPres
   return (
     <TouchableOpacity style={styles.relatedItem} onPress={onPress}>
       <ProductImage
-        uri={`${API_URL}/${item.pictures?.[0]?.replace(/\\/g, '/') || 'uploads/placeholder.jpg'}`}
+        uri={`${IMAGE_BASE_URL}/${item.pictures?.[0]?.replace(/\\/g, '/') || 'uploads/placeholder.jpg'}`}
         style={styles.relatedImage}
         resizeMode="cover"
       />
@@ -97,7 +96,7 @@ const ThumbnailGallery = React.memo(function ThumbnailGallery({ pictures, curren
           ]}
         >
           <Image
-            source={{ uri: `${API_URL}/${pic.replace(/\\/g, '/')}` }}
+            source={{ uri: `${IMAGE_BASE_URL}/${pic.replace(/\\/g, '/')}` }}
             style={styles.thumbnailImage}
             resizeMode="cover"
           />
@@ -146,7 +145,7 @@ export default function ProductDetail() {
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const res = await fetch(
-        `${API_URL}/api/products/product/${id}?lang=en`,
+        `${API_ENDPOINTS.GET_PRODUCT(id)}?lang=en`,
         { signal: controller.signal }
       );
 
@@ -194,7 +193,7 @@ export default function ProductDetail() {
 
     try {
       const res = await fetch(
-        `${API_URL}/api/products/category/${encodeURIComponent(categoryName)}?lang=en&limit=4`
+        `${API_ENDPOINTS.PRODUCTS_BY_CATEGORY(categoryName)}?lang=en&limit=4`
       );
       const json = await res.json();
       const filtered = json.data?.filter((p) => p._id !== id).slice(0, 4);
@@ -224,7 +223,7 @@ export default function ProductDetail() {
 
   const checkFollowStatus = useCallback(async (followerId, followingId) => {
     try {
-      const res = await fetch(`${API_URL}/check/${followerId}/${followingId}`);
+      const res = await fetch(API_ENDPOINTS.CHECK_FOLLOW(followerId, followingId));
       const data = await res.json();
       setIsFollowing(data?.isFollowing || false);
     } catch (err) {
@@ -237,7 +236,7 @@ export default function ProductDetail() {
     if (!user?._id) return;
 
     try {
-      const res = await fetch(`${API_URL}/user/${user._id}`, {
+      const res = await fetch(API_ENDPOINTS.USER_DATA(user._id), {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -369,7 +368,7 @@ export default function ProductDetail() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/chat/conversation/get-or-create`, {
+      const res = await fetch(API_ENDPOINTS.CHAT_GET_OR_CREATE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -387,7 +386,7 @@ export default function ProductDetail() {
 
       const conversationId = data.conversation._id;
 
-      await fetch(`${API_URL}/api/chat/messages`, {
+      await fetch(API_ENDPOINTS.CHAT_SEND_MESSAGE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -427,8 +426,8 @@ export default function ProductDetail() {
 
     try {
       const endpoint = isFollowing
-        ? `${API_URL}/unfollow/${ownerId}`
-        : `${API_URL}/follow/${ownerId}`;
+        ? API_ENDPOINTS.UNFOLLOW(ownerId)
+        : API_ENDPOINTS.FOLLOW(ownerId);
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -455,7 +454,7 @@ export default function ProductDetail() {
   const handleShare = useCallback(async () => {
     try {
       const productTitle = getLocalizedText(product.title);
-      const productUrl = `${API_URL}/products/product/${id}`;
+      const productUrl = API_ENDPOINTS.GET_PRODUCT(id);
 
       await Share.share({
         message: `Check out this product: ${productTitle}\nPrice: ₼${product.price?.toLocaleString()}\n\n${productUrl}`,
@@ -465,30 +464,6 @@ export default function ProductDetail() {
       logger.error('Error sharing:', error);
     }
   }, [product, id]);
-
-  // Open location in maps
-  const handleOpenMap = useCallback(() => {
-    if (!product?.location?.coordinates || product.location.coordinates.length !== 2) {
-      return;
-    }
-
-    const [longitude, latitude] = product.location.coordinates;
-    const label = getLocalizedText(product.title) || 'Product Location';
-
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${latitude},${longitude}`,
-      android: `geo:0,0?q=${latitude},${longitude}(${label})`,
-    });
-
-    Linking.canOpenURL(url).then((supported) => {
-      if (supported) {
-        Linking.openURL(url);
-      } else {
-        // Fallback to Google Maps web
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
-      }
-    });
-  }, [product]);
 
   const handleRelatedProductPress = useCallback((itemId) => {
     router.push(`/product/${itemId}`);
@@ -589,14 +564,14 @@ export default function ProductDetail() {
               product.pictures.map((pic, index) => (
                 <ProductImage
                   key={index}
-                  uri={`${API_URL}/${pic.replace(/\\/g, '/')}`}
+                  uri={`${IMAGE_BASE_URL}/${pic.replace(/\\/g, '/')}`}
                   style={styles.productImage}
                   resizeMode="contain"
                 />
               ))
             ) : (
               <ProductImage
-                uri={`${API_URL}/uploads/placeholder.jpg`}
+                uri={`${IMAGE_BASE_URL}/uploads/placeholder.jpg`}
                 style={styles.productImage}
                 resizeMode="contain"
               />
@@ -734,7 +709,7 @@ export default function ProductDetail() {
             <View style={[styles.avatar, isShopProduct && styles.shopAvatar]}>
               {isShopProduct && product.shop?.logo ? (
                 <Image
-                  source={{ uri: `${API_URL}${product.shop.logo}` }}
+                  source={{ uri: `${IMAGE_BASE_URL}${product.shop.logo}` }}
                   style={styles.avatarImage}
                   resizeMode="cover"
                 />
@@ -806,25 +781,18 @@ export default function ProductDetail() {
           </Text>
         </View>
 
-        {/* Location Section - Enhanced */}
+        {/* Location Section - Embedded Map */}
         {product.location?.coordinates &&
          product.location.coordinates.length === 2 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Location</Text>
-            <TouchableOpacity
-              style={styles.locationDisplay}
-              onPress={handleOpenMap}
-              activeOpacity={0.8}
-            >
-              <View style={styles.locationIconContainer}>
-                <Ionicons name="location" size={32} color="#16a34a" />
-              </View>
-              <View style={styles.locationInfo}>
-                <Text style={styles.locationText}>{displayPostalCode}</Text>
-                <Text style={styles.locationHint}>Tap to open in Maps</Text>
-              </View>
-              <Ionicons name="open-outline" size={20} color="#6b7280" />
-            </TouchableOpacity>
+            <ProductLocationMap
+              latitude={product.location.coordinates[1]}
+              longitude={product.location.coordinates[0]}
+              title={getLocalizedText(product.title)}
+              postalCode={displayPostalCode}
+              street={product.street}
+            />
           </View>
         )}
 
@@ -1210,38 +1178,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#4b5563',
     lineHeight: 24,
-  },
-  // Enhanced Location
-  locationDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  locationIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#dcfce7',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  locationInfo: {
-    flex: 1,
-  },
-  locationText: {
-    fontSize: 16,
-    color: '#111827',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  locationHint: {
-    fontSize: 13,
-    color: '#6b7280',
   },
   relatedItem: {
     flexDirection: 'row',

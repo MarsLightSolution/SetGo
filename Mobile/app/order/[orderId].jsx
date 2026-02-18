@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_ENDPOINTS } from '../../config/api';
 
 export default function OrderDetails() {
   const { orderId } = useLocalSearchParams();
@@ -25,7 +25,7 @@ export default function OrderDetails() {
 
   const fetchOrderDetails = async () => {
     try {
-      const res = await fetch(`${API_URL}/Orders/${orderId}`);
+      const res = await fetch(API_ENDPOINTS.ORDER_DETAIL(orderId));
       const data = await res.json();
       if (data.success) {
         setOrder(data.data);

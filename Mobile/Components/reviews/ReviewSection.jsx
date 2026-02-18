@@ -5,7 +5,7 @@ import ReviewFilters from './ReviewFilters';
 import ReviewItem from './ReviewItem';
 import logger from '../../utils/logger';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_ENDPOINTS } from '../../config/api';
 
 /**
  * ReviewSection - Complete review section with summary, filters, and list
@@ -27,7 +27,7 @@ const ReviewSection = ({ productId, currentUserId }) => {
   // Fetch review summary
   const fetchReviewSummary = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/reviews/product/${productId}/summary`);
+      const res = await fetch(API_ENDPOINTS.REVIEWS_PRODUCT_SUMMARY(productId));
 
       if (!res.ok) {
         logger.log('Review summary fetch failed:', res.status);
@@ -64,7 +64,7 @@ const ReviewSection = ({ productId, currentUserId }) => {
     }
 
     try {
-      let url = `${API_URL}/reviews/product/${productId}?page=${page}&limit=${reviewsPerPage}&sortBy=${sortBy}`;
+      let url = `${API_ENDPOINTS.REVIEWS_PRODUCT(productId)}?page=${page}&limit=${reviewsPerPage}&sortBy=${sortBy}`;
 
       if (filterRating) {
         url += `&rating=${filterRating}`;
@@ -118,7 +118,7 @@ const ReviewSection = ({ productId, currentUserId }) => {
     }
 
     try {
-      const res = await fetch(`${API_URL}/reviews/${reviewId}/helpful`, {
+      const res = await fetch(API_ENDPOINTS.REVIEW_HELPFUL(reviewId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserId }),

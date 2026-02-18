@@ -78,8 +78,7 @@ import {
 } from './modals';
 
 // ==================== API CONFIGURATION ====================
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://your-api-url.com/api"
+// All API endpoints are managed in config/api.js
 
 // ==================== EXTRACTED CODE - PHASE 2 ====================
 // The following items have been extracted to separate files:

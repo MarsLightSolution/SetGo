@@ -11,9 +11,11 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    StatusBar,
+    Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { API_BASE_URL } from '../../config/api';
+import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
@@ -71,7 +73,7 @@ export default function AllShopsScreen() {
       }
 
       const response = await fetch(
-        `${API_BASE_URL}/api/shops?${params.toString()}`,
+        `${API_ENDPOINTS.GET_SHOPS}?${params.toString()}`,
         { method: 'GET' }
       );
 
@@ -122,14 +124,14 @@ export default function AllShopsScreen() {
 
     const getShopLogo = () => {
       if (shop.logo) {
-        return `${API_BASE_URL}${shop.logo}`;
+        return `${IMAGE_BASE_URL}${shop.logo}`;
       }
       return null;
     };
 
     const getShopBanner = () => {
       if (shop.banner) {
-        return `${API_BASE_URL}${shop.banner}`;
+        return `${IMAGE_BASE_URL}${shop.banner}`;
       }
       return null;
     };
@@ -431,7 +433,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     padding: 16,
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 50,
   },
   headerTop: {
     flexDirection: 'row',

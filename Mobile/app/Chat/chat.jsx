@@ -23,9 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
-const API_BASE = `${process.env.EXPO_PUBLIC_API_URL}/api/chat`;
-const SOCKET_URL = "wss://tiwari.shop";
-const SERVER_BASE = process.env.EXPO_PUBLIC_API_URL || "http://51.20.123.49:8080";
+import { API_ENDPOINTS, SOCKET_URL, IMAGE_BASE_URL } from '../../config/api';
 
 const theme = {
   background: '#FFFFFF',
@@ -95,7 +93,7 @@ const MessageItem = ({ item }) => {
               </View>
             ) : item.fileUrl ? (
               <Image
-                source={{ uri: `${SERVER_BASE}${item.fileUrl}` }}
+                source={{ uri: `${IMAGE_BASE_URL}${item.fileUrl}` }}
                 style={styles.messageImage}
                 resizeMode="cover"
               />
@@ -319,7 +317,7 @@ export default function ChatApp() {
     setConnectionError('');
 
     try {
-      const response = await fetch(`${API_BASE}/connect`, {
+      const response = await fetch(API_ENDPOINTS.CHAT_CONNECT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, displayName: username }),
@@ -352,7 +350,7 @@ export default function ChatApp() {
 
   const loadAllUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE}/users`);
+      const response = await fetch(API_ENDPOINTS.CHAT_USERS);
       const data = await response.json();
       if (data.success) setAllUsers(data.users);
     } catch (error) {
@@ -362,7 +360,7 @@ export default function ChatApp() {
 
   const loadConversations = async (userId) => {
     try {
-      const response = await fetch(`${API_BASE}/conversations/${userId}`);
+      const response = await fetch(API_ENDPOINTS.CHAT_CONVERSATIONS(userId));
       const data = await response.json();
       if (data.success) {
         setConversations(data.conversations);
@@ -391,7 +389,7 @@ export default function ChatApp() {
     if (!currentUser) return;
     setIsLoadingMessages(true);
     try {
-      const response = await fetch(`${API_BASE}/conversations`, {
+      const response = await fetch(API_ENDPOINTS.CHAT_CREATE_CONVERSATION, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participants: [currentUser.userId, otherUser.userId] }),
@@ -424,7 +422,7 @@ export default function ChatApp() {
   const loadMessages = async (conversationId) => {
     if (!currentUser) return;
     try {
-      const response = await fetch(`${API_BASE}/messages/${conversationId}`);
+      const response = await fetch(API_ENDPOINTS.CHAT_MESSAGES(conversationId));
       const data = await response.json();
       if (data.success) {
         const formattedMessages = data.messages.reverse().map((msg) => ({
@@ -454,7 +452,7 @@ export default function ChatApp() {
     setNewMessage('');
 
     try {
-      const response = await fetch(`${API_BASE}/messages`, {
+      const response = await fetch(API_ENDPOINTS.CHAT_SEND_MESSAGE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -540,7 +538,7 @@ export default function ChatApp() {
       formData.append('conversationId', activeConversation._id);
       formData.append('senderId', currentUser.userId);
 
-      const response = await fetch(`${API_BASE}/upload`, {
+      const response = await fetch(API_ENDPOINTS.CHAT_UPLOAD, {
         method: 'POST',
         body: formData,
         headers: {

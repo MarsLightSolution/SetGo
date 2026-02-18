@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams } from 'expo-router';
-const SERVER_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 
 export default function EditForm() {
   const route = useRoute();
@@ -45,7 +45,7 @@ export default function EditForm() {
     const fetchAd = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${EXPO_PUBLIC_API_URL}/api/products/product/${id}`, {
+        const res = await fetch(API_ENDPOINTS.GET_PRODUCT(id), {
           credentials: "include",
         });
         const data = await res.json();
@@ -145,7 +145,7 @@ export default function EditForm() {
       });
 
       setLoading(true);
-      const res = await fetch(`${SERVER_URL}/api/products/product/${id}`, {
+      const res = await fetch(API_ENDPOINTS.UPDATE_PRODUCT(id), {
         method: "PUT",
         headers: { "Content-Type": "multipart/form-data" },
         credentials: "include",
@@ -247,7 +247,7 @@ export default function EditForm() {
           {initialImages.map((url, index) => (
             <View key={`initial-${index}`} style={styles.imageWrapper}>
               <Image
-                source={{ uri: `${SERVER_URL}/${url.replace(/\\/g, "/")}` }}
+                source={{ uri: `${IMAGE_BASE_URL}/${url.replace(/\\/g, "/")}` }}
                 style={styles.image}
               />
               <TouchableOpacity

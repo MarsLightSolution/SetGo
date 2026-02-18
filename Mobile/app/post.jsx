@@ -12,7 +12,9 @@ import {
   Platform,
   Switch,
   Modal,
+  StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
@@ -54,14 +56,11 @@ const showInfoToast = (message) => {
 };
 import { getAuthToken, getUserId, getUserData } from "../services/secureAuthService";
 import logger from "../utils/logger";
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://tiwari.shop";
-
-// Debug: Log API URL on load
-console.log("API_URL:", API_URL);
+import { API_ENDPOINTS } from "../config/api";
 
 const Form = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const maxDescriptionLength = 1000;
 
   // Auth check state
@@ -169,7 +168,7 @@ const Form = () => {
           return;
         }
 
-        const res = await fetch(`${API_URL}/api/shops/my-shop`, {
+        const res = await fetch(API_ENDPOINTS.MY_SHOP, {
           method: "GET",
           credentials: "include",
           headers: {
@@ -570,9 +569,9 @@ const Form = () => {
         return;
       }
 
-      logger.info("Submitting form to:", `${API_URL}/api/products/add`);
+      logger.info("Submitting form to:", API_ENDPOINTS.ADD_PRODUCT);
 
-      const response = await fetch(`${API_URL}/api/products/add`, {
+      const response = await fetch(API_ENDPOINTS.ADD_PRODUCT, {
         method: "POST",
         headers: headers,
         body: submitData,
@@ -1151,7 +1150,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 50,
     paddingHorizontal: 16,
     paddingBottom: 16,
   },

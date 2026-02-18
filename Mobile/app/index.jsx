@@ -11,9 +11,12 @@ import {
   TouchableOpacity,
   View,
   Animated,
+  StatusBar,
+  Platform,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { API_BASE_URL } from '../config/api';
+import { API_ENDPOINTS, IMAGE_BASE_URL } from '../config/api';
 import { useFilters } from '../context/FilterContext';
 import { productService } from '../services/productService';
 import { useAuthStore } from '../Store/authStore';
@@ -24,6 +27,7 @@ import logger from '../utils/logger';
 export default function HomeScreen() {
   const router = useRouter();
   const checkAuth = useAuthStore((state) => state.checkAuth);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { filters, updateFilters } = useFilters();
   const [latestAds, setLatestAds] = useState([]);
   const [galleryAds, setGalleryAds] = useState([]);
@@ -128,13 +132,11 @@ export default function HomeScreen() {
   // Fetch shops - WITH DEBUG LOGGING
   const fetchShops = useCallback(async () => {
     logger.log('=== FETCHING SHOPS ===');
-    logger.log('API_BASE_URL:', API_BASE_URL);
-    
     setShopsLoading(true);
     setShopsError(null);
-    
+
     try {
-      const url = `${API_BASE_URL}/api/shops?limit=10`;
+      const url = `${API_ENDPOINTS.GET_SHOPS}?limit=10`;
       logger.log('Fetching from:', url);
       
       const response = await fetch(url, {
@@ -195,7 +197,7 @@ export default function HomeScreen() {
     if (product.image) return product.image;
     if (product.pictures && product.pictures.length > 0) {
       const picturePath = product.pictures[0].replace(/\\/g, '/');
-      return `${API_BASE_URL}/${picturePath}`;
+      return `${IMAGE_BASE_URL}/${picturePath}`;
     }
     return 'https://via.placeholder.com/150';
   }, []);
@@ -215,8 +217,20 @@ export default function HomeScreen() {
     const dispatch = useDispatch();
 
     const toggleWishlist = () => {
+      if (!isAuthenticated) {
+        Alert.alert(
+          'Login Required',
+          'Please login to add items to your wishlist',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Login', onPress: () => router.push('/auth') },
+          ]
+        );
+        return;
+      }
+
       if (isWishlisted) {
-        dispatch(unlike(ad._id));
+        dispatch(unlike({ _id: ad._id }));
       } else {
         dispatch(like(ad));
       }
@@ -271,8 +285,8 @@ export default function HomeScreen() {
   // Shop Card Component
   const ShopCard = ({ shop }) => {
     const shopName = getLocalizedText(shop.shopName);
-    const logoUri = shop.logo ? `${API_BASE_URL}${shop.logo}` : null;
-    const bannerUri = shop.banner ? `${API_BASE_URL}${shop.banner}` : null;
+    const logoUri = shop.logo ? `${IMAGE_BASE_URL}${shop.logo}` : null;
+    const bannerUri = shop.banner ? `${IMAGE_BASE_URL}${shop.banner}` : null;
 
     return (
       <TouchableOpacity
@@ -627,7 +641,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     padding: 16,
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 50,
   },
   headerTop: {
     flexDirection: 'row',

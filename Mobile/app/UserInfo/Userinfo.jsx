@@ -22,21 +22,12 @@ import { getAuthToken, getUserId, getUserData } from '../../services/secureAuthS
 
 const { width } = Dimensions.get('window');
 // ==================== API CONFIGURATION ====================
-const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL,
+import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 
-  ENDPOINTS: {
-    USER_ADS: (userId) => `/api/products/user/${userId}/ads`,
-    MARK_SOLD: (id) => `/api/products/mark-sold/${id}`,
-    PRIORITY: (id) => `/api/products/priority/${id}`,
-    DELETE_PRODUCT: (id) => `/api/products/product/${id}`,
-  },
-
-  getImageUrl: (path) => {
-    if (!path) return '';
-    const normalizedPath = path.replace(/\\/g, '/');
-    return `${API_CONFIG.BASE_URL}/${normalizedPath}`;
-  },
+const getImageUrl = (path) => {
+  if (!path) return '';
+  const normalizedPath = path.replace(/\\/g, '/');
+  return `${IMAGE_BASE_URL}/${normalizedPath}`;
 };
 
 // ==================== API SERVICE ====================
@@ -52,7 +43,7 @@ const ApiService = {
   fetchUserAds: async (userId) => {
     const headers = await ApiService.getHeaders();
     const response = await axios.get(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_ADS(userId)}`,
+      API_ENDPOINTS.USER_ADS(userId),
       { headers }
     );
     return response.data;
@@ -61,7 +52,7 @@ const ApiService = {
   toggleAdStatus: async (id) => {
     const headers = await ApiService.getHeaders();
     await axios.patch(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MARK_SOLD(id)}`,
+      API_ENDPOINTS.MARK_SOLD(id),
       {},
       { headers }
     );
@@ -70,7 +61,7 @@ const ApiService = {
   boostAd: async (id) => {
     const headers = await ApiService.getHeaders();
     await axios.put(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRIORITY(id)}`,
+      API_ENDPOINTS.UPDATE_PRIORITY(id),
       {},
       { headers }
     );
@@ -79,7 +70,7 @@ const ApiService = {
   deleteAd: async (id) => {
     const headers = await ApiService.getHeaders();
     await axios.delete(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DELETE_PRODUCT(id)}`,
+      API_ENDPOINTS.DELETE_PRODUCT(id),
       { headers }
     );
   },
@@ -264,7 +255,7 @@ const AdCard = ({
       <View style={styles.imageContainer}>
         {ad.pictures?.[0] ? (
           <Image
-            source={{ uri: API_CONFIG.getImageUrl(ad.pictures[0]) }}
+            source={{ uri: getImageUrl(ad.pictures[0]) }}
             style={styles.adImage}
             resizeMode="cover"
           />

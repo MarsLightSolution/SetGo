@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../Store/authStore";
 import { useSelector, useDispatch } from "react-redux";
 import { unlike } from "../Store/wishSlice";
-import { API_BASE_URL } from "../config/api";
+import { IMAGE_BASE_URL } from "../config/api";
 
 export default function WishlistScreen() {
   const router = useRouter();
@@ -31,7 +31,7 @@ export default function WishlistScreen() {
     if (product.image) return product.image;
     if (product.pictures && product.pictures.length > 0) {
       const picturePath = product.pictures[0].replace(/\\/g, "/");
-      return `${API_BASE_URL}/${picturePath}`;
+      return `${IMAGE_BASE_URL}/${picturePath}`;
     }
     return "https://via.placeholder.com/150";
   };

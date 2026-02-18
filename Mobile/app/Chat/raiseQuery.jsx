@@ -45,7 +45,7 @@ const showErrorToast = (message) => {
   });
 };
 
-const API_BASE_URL = `${process.env.EXPO_PUBLIC_API_URL}/`;
+import { API_ENDPOINTS } from '../../config/api';
 
 export default function RaiseQuery() {
   const router = useRouter();
@@ -237,24 +237,8 @@ export default function RaiseQuery() {
     setLoading(true);
 
     try {
-      // Silent logging for debugging (only in dev mode)
-      if (__DEV__) {
-        console.log('Submitting concern to:', `${API_BASE_URL}concern/raise`);
-        console.log('Payload:', {
-          userId,
-          issueType: formData.issueType,
-          orderId: formData.orderId || null,
-          transactionId: formData.transactionId || null,
-          walletId: formData.walletId || null,
-          sellerId: formData.sellerId || null,
-          adId: formData.adId || null,
-          message: formData.message,
-          images: formData.images,
-        });
-      }
-
       const { data } = await axios.post(
-        `${API_BASE_URL}concern/raise`,
+        API_ENDPOINTS.CONCERN_RAISE,
         {
           userId,
           issueType: formData.issueType,

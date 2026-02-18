@@ -22,7 +22,7 @@ import { getUserId } from '../services/secureAuthService';
 
 const { width: _width } = Dimensions.get('window'); // Prefixed with _ since not currently used
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_ENDPOINTS } from '../config/api';
 
 // Helper function to get text from multilingual object
 const getTextValue = (textObj, fallback = '') => {
@@ -102,7 +102,7 @@ const PaymentDialog = ({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-      const res = await fetch(`${API_URL}/users/${user.userId}/wallet`, {
+      const res = await fetch(API_ENDPOINTS.USER_WALLET(user.userId), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +238,7 @@ const PaymentDialog = ({
     logger.log('Payment payload:', payload);
 
     try {
-      const res = await fetch(`${API_URL}/payments/initiate`, {
+      const res = await fetch(API_ENDPOINTS.PAYMENT_INITIATE, {
         method: 'POST',
         credentials: 'include',
         headers: {

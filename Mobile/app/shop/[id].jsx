@@ -11,11 +11,13 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    StatusBar,
+    Platform,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/Feather';
-import { API_BASE_URL } from '../../config/api';
+import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 import { useAuthStore } from '../../Store/authStore';
 
 const { width } = Dimensions.get('window');
@@ -50,7 +52,7 @@ export default function ShopProfileScreen() {
   const fetchShop = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/shops/${id}`, {
+      const response = await fetch(API_ENDPOINTS.GET_SHOP(id), {
         method: 'GET',
         credentials: 'include',
       });
@@ -99,7 +101,7 @@ export default function ShopProfileScreen() {
       });
 
       const response = await fetch(
-        `${API_BASE_URL}/api/shops/${shop._id}/products?${params}`,
+        `${API_ENDPOINTS.SHOP_PRODUCTS(shop._id)}?${params}`,
         { method: 'GET' }
       );
 
@@ -144,7 +146,7 @@ export default function ShopProfileScreen() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/shops/${shop._id}/follow`,
+        API_ENDPOINTS.FOLLOW_SHOP(shop._id),
         {
           method: 'POST',
           credentials: 'include',
@@ -190,7 +192,7 @@ export default function ShopProfileScreen() {
       const shopName = getLocalizedText(shop?.shopName);
       await Share.share({
         message: `Check out ${shopName} on SetGo!`,
-        url: `${API_BASE_URL}/shop/${shop?.slug || shop?._id}`,
+        url: API_ENDPOINTS.GET_SHOP(shop?.slug || shop?._id),
         title: shopName,
       });
     } catch (error) {
@@ -235,7 +237,7 @@ export default function ShopProfileScreen() {
     const getImageUrl = () => {
       if (product.pictures && product.pictures.length > 0) {
         const picturePath = product.pictures[0].replace(/\\/g, '/');
-        return `${API_BASE_URL}/${picturePath}`;
+        return `${IMAGE_BASE_URL}/${picturePath}`;
       }
       return 'https://via.placeholder.com/150';
     };
@@ -323,7 +325,7 @@ export default function ShopProfileScreen() {
           {/* Banner Image */}
           {shop.banner ? (
             <Image
-              source={{ uri: `${API_BASE_URL}${shop.banner}` }}
+              source={{ uri: `${IMAGE_BASE_URL}${shop.banner}` }}
               style={styles.bannerImage}
               resizeMode="cover"
             />
@@ -338,7 +340,7 @@ export default function ShopProfileScreen() {
           <View style={styles.logoContainer}>
             {shop.logo ? (
               <Image
-                source={{ uri: `${API_BASE_URL}${shop.logo}` }}
+                source={{ uri: `${IMAGE_BASE_URL}${shop.logo}` }}
                 style={styles.logo}
                 resizeMode="cover"
               />
@@ -633,7 +635,7 @@ const styles = StyleSheet.create({
   },
   headerBackButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 50,
     left: 16,
     zIndex: 10,
     backgroundColor: 'rgba(0,0,0,0.3)',
@@ -642,7 +644,7 @@ const styles = StyleSheet.create({
   },
   headerShareButton: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 50,
     right: 16,
     zIndex: 10,
     backgroundColor: 'rgba(0,0,0,0.3)',
