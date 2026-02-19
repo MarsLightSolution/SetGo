@@ -16,7 +16,8 @@ const logger = require("./utils/logger");
 const initSocket = require("./controller/Socketcontroller");
 const uploadPictures = require("./middlewares/multer.middleware");
 const { validateEnvVariables } = require("./utils/validateEnv");
-const { generalLimiter } = require("./middlewares/rateLimiter.middleware");
+// Rate limiters are applied at the route level (auth, payment, upload, product creation)
+// instead of globally, to avoid blocking legitimate mobile users who make many API calls
 
 // Load environment variables first
 dotenv.config();
@@ -43,6 +44,7 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false, // Needed for some third-party services
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow frontend to load images/static assets
 }));
 
 // SECURITY: MongoDB injection prevention
@@ -106,9 +108,6 @@ app.use("/uploads", express.static(path.resolve("uploads")));
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-// SECURITY: Apply general rate limiting to all routes
-app.use(generalLimiter);
 
 // ------------------- Routes -------------------
 app.use("/", require("./Routes"));
