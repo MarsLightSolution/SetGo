@@ -301,15 +301,22 @@ const Form = () => {
     requestLocationPermission();
   }, [formData.latitude, formData.longitude]);
 
-  // Request media permissions
+  // Request media and camera permissions
   useEffect(() => {
     (async () => {
       if (Platform.OS !== "web") {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== "granted") {
+        const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (mediaStatus !== "granted") {
           Alert.alert(
             "Permission Required",
             "Camera roll permission is needed to upload images"
+          );
+        }
+        const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+        if (cameraStatus !== "granted") {
+          Alert.alert(
+            "Permission Required",
+            "Camera permission is needed to take photos"
           );
         }
       }
@@ -331,7 +338,96 @@ const Form = () => {
     }
   };
 
-  // Handle image picker
+  // Launch camera to take a photo
+  const handleCamera = async () => {
+    try {
+      if (formData.pictures.length >= 8) {
+        showErrorToast("Maximum 8 pictures allowed");
+        return;
+      }
+
+      const { status } = await ImagePicker.getCameraPermissionsAsync();
+      if (status !== "granted") {
+        const { status: newStatus } = await ImagePicker.requestCameraPermissionsAsync();
+        if (newStatus !== "granted") {
+          showErrorToast("Camera permission is required to take photos");
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        setLoading(true);
+        const asset = result.assets[0];
+
+        try {
+          const uri = asset.uri;
+
+          if (asset.fileSize && asset.fileSize / 1024 / 1024 > 2) {
+            showErrorToast("Image exceeds 2 MB limit");
+            setLoading(false);
+            return;
+          }
+
+          const compressed = await compressImage(uri);
+          const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+
+          const imageObject = {
+            uri: Platform.OS === 'ios'
+              ? compressed.uri.replace('file://', '')
+              : compressed.uri,
+            type: 'image/jpeg',
+            name: filename,
+            width: compressed.width,
+            height: compressed.height,
+          };
+
+          setFormData((prev) => ({
+            ...prev,
+            pictures: [...prev.pictures, imageObject],
+          }));
+          setImagePreviews((prev) => [...prev, compressed.uri]);
+
+          const totalImages = formData.pictures.length + 1;
+          showSuccessToast(`Photo taken (${totalImages}/8)`);
+        } catch (error) {
+          logger.warn("Error processing camera image:", error);
+          showErrorToast("Failed to process photo");
+        }
+
+        setLoading(false);
+      }
+    } catch (error) {
+      logger.error("Camera error:", error);
+      setLoading(false);
+      showErrorToast("Error taking photo: " + error.message);
+    }
+  };
+
+  // Show picker options (camera or gallery)
+  const handleAddImage = () => {
+    if (formData.pictures.length >= 8) {
+      showErrorToast("Maximum 8 pictures allowed");
+      return;
+    }
+
+    Alert.alert(
+      "Add Photo",
+      "Choose how to add a photo",
+      [
+        { text: "Take Photo", onPress: handleCamera },
+        { text: "Choose from Gallery", onPress: handleImagePicker },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
+  // Handle image picker (gallery)
   const handleImagePicker = async () => {
     try {
       if (formData.pictures.length >= 8) {
@@ -515,7 +611,7 @@ const Form = () => {
 
     // Optional fields
     submitData.append("isBuy", "false");
-    submitData.append("isSell", "true");
+    submitData.append("isSell", "false");
 
     // Add shop-related fields
     if (hasShop && postToShop && userShop) {
@@ -919,7 +1015,7 @@ const Form = () => {
               styles.uploadBox,
               imagePreviews.length > 0 && styles.uploadBoxWithImages,
             ]}
-            onPress={handleImagePicker}
+            onPress={handleAddImage}
             disabled={loading}
           >
             {loading ? (

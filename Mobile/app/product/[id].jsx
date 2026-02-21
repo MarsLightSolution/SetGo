@@ -705,7 +705,16 @@ export default function ProductDetail() {
           <Text style={styles.cardTitle}>
             {isShopProduct ? 'Shop Information' : 'Seller Information'}
           </Text>
-          <View style={styles.sellerHeader}>
+          <TouchableOpacity
+            style={styles.sellerHeader}
+            onPress={() => {
+              if (isShopProduct && product.shop) {
+                router.push(`/shop/${product.shop.slug || product.shop._id}`);
+              }
+            }}
+            activeOpacity={isShopProduct ? 0.7 : 1}
+            disabled={!isShopProduct}
+          >
             <View style={[styles.avatar, isShopProduct && styles.shopAvatar]}>
               {isShopProduct && product.shop?.logo ? (
                 <Image
@@ -738,7 +747,12 @@ export default function ProductDetail() {
                 </Text>
               </View>
             </View>
-          </View>
+            {isShopProduct && (
+              <View style={styles.shopArrow}>
+                <Ionicons name="chevron-forward" size={20} color="#16a34a" />
+              </View>
+            )}
+          </TouchableOpacity>
 
           {!isOwnProduct && (
             <TouchableOpacity
@@ -1082,6 +1096,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
+  },
+  shopArrow: {
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginLeft: 4,
   },
   avatar: {
     width: 52,
