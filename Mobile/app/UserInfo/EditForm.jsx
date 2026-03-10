@@ -14,6 +14,9 @@ import * as ImagePicker from "expo-image-picker";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams } from 'expo-router';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
+import logger from '../../utils/logger';
+
+const log = logger.create('EditForm');
 
 export default function EditForm() {
   const route = useRoute();
@@ -67,7 +70,7 @@ export default function EditForm() {
           Alert.alert("Error", "Failed to load ad details");
         }
       } catch (err) {
-        console.error(err);
+        log.error(err);
         Alert.alert("Error", "Error fetching ad details");
       } finally {
         setLoading(false);
@@ -157,7 +160,7 @@ export default function EditForm() {
       Alert.alert("Success", "Ad updated successfully!");
       navigation.navigate("UserInfo");
     } catch (err) {
-      console.error("Update error:", err);
+      log.error("Update error:", err);
       Alert.alert("Error", "Failed to update ad.");
     } finally {
       setLoading(false);

@@ -3,6 +3,9 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { getAuthToken, setAuthToken, getRefreshToken } from './secureAuthService';
 import { BASE_URL, API_ENDPOINTS } from '../config/api';
+import logger from '../utils/logger';
+
+const log = logger.create('API');
 
 // Create Axios Instance
 const api = axios.create({
@@ -139,18 +142,16 @@ api.interceptors.response.use(
     }
 
     // Log non-401 errors in development
-    if (__DEV__) {
-      if (error.response) {
-        console.warn('API Error:', {
-          status: error.response.status,
-          url: error.config?.url,
-        });
-      } else if (error.request) {
-        console.warn('API No Response:', {
-          message: error.message,
-          url: error.config?.url,
-        });
-      }
+    if (error.response) {
+      log.warn('API Error:', {
+        status: error.response.status,
+        url: error.config?.url,
+      });
+    } else if (error.request) {
+      log.warn('API No Response:', {
+        message: error.message,
+        url: error.config?.url,
+      });
     }
 
     return Promise.reject(error);

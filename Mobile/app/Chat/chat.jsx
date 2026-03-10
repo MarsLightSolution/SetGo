@@ -24,6 +24,9 @@ import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
 import { API_ENDPOINTS, SOCKET_URL, IMAGE_BASE_URL } from '../../config/api';
+import logger from '../../utils/logger';
+
+const log = logger.create('Chat');
 
 const theme = {
   background: '#FFFFFF',
@@ -142,9 +145,9 @@ export default function ChatApp() {
     const saveUnreadCounts = async () => {
       try {
         await AsyncStorage.setItem('unreadCounts', JSON.stringify(unreadCounts));
-        console.log('💾 Saved unread counts to storage');
+        log.debug('Saved unread counts to storage');
       } catch (e) {
-        console.error('Error saving unread counts:', e);
+        log.error('Error saving unread counts:', e);
       }
     };
     saveUnreadCounts();
@@ -172,17 +175,17 @@ export default function ChatApp() {
             const userObj = JSON.parse(userJson);
             storedUsername = userObj.userName;
           } catch (e) {
-            console.error('Error parsing user JSON:', e);
+            log.error('Error parsing user JSON:', e);
           }
         }
       }
       
       if (storedUsername) {
-        console.log('Auto-connecting with username:', storedUsername);
+        log.info('Auto-connecting with username:', storedUsername);
         connectUser(storedUsername);
       }
     } catch (error) {
-      console.error('Error auto-connecting:', error);
+      log.error('Error auto-connecting:', error);
     }
   };
 
@@ -194,12 +197,12 @@ export default function ChatApp() {
       });
 
       socketRef.current.on('connect', () => {
-        console.log('✅ Socket connected');
+        log.info('Socket connected');
         
         // Join all conversations to receive messages
         conversations.forEach(conv => {
           socketRef.current.emit('joinConversation', conv._id);
-          console.log('🔔 Joined conversation:', conv._id);
+          log.debug('Joined conversation:', conv._id);
         });
         
         if (activeConversation) {
@@ -208,13 +211,13 @@ export default function ChatApp() {
       });
 
       socketRef.current.on('disconnect', () => {
-        console.log('❌ Socket disconnected');
+        log.info('Socket disconnected');
       });
 
       socketRef.current.on('newMessage', (msg) => {
-        console.log('📨 New message received:', msg);
-        console.log('🔍 Sender:', msg.senderId, 'Current User:', currentUser.userId);
-        console.log('🔍 Active Conv:', activeConversation?._id, 'Message Conv:', msg.conversationId);
+        log.debug('New message received:', msg);
+        log.debug('Sender:', msg.senderId, 'Current User:', currentUser.userId);
+        log.debug('Active Conv:', activeConversation?._id, 'Message Conv:', msg.conversationId);
         
         // Check if this is our own message
         const isOwnMessage = msg.senderId === currentUser.userId;
@@ -243,14 +246,14 @@ export default function ChatApp() {
           });
         } else if (!isOwnMessage) {
           // Message for a different conversation from someone else - increment unread
-          console.log('✉️ Adding unread count for conversation:', msg.conversationId);
+          log.debug('Adding unread count for conversation:', msg.conversationId);
           setUnreadCounts(prev => {
             const newCount = (prev[msg.conversationId] || 0) + 1;
             const newCounts = {
               ...prev,
               [msg.conversationId]: newCount
             };
-            console.log('📊 Updated unread counts:', newCounts);
+            log.debug('Updated unread counts:', newCounts);
             return newCounts;
           });
         }
@@ -291,7 +294,7 @@ export default function ChatApp() {
   useEffect(() => {
     if (activeConversation && socketRef.current?.connected) {
       socketRef.current.emit('joinConversation', activeConversation._id);
-      console.log('📍 Joined conversation:', activeConversation._id);
+      log.debug('Joined conversation:', activeConversation._id);
     }
   }, [activeConversation]);
 
@@ -341,7 +344,7 @@ export default function ChatApp() {
         setConnectionError(data.message || 'Connection failed');
       }
     } catch (error) {
-      console.error('Connection error:', error);
+      log.error('Connection error:', error);
       setConnectionError('Connection failed. Check your network.');
     } finally {
       setIsConnecting(false);
@@ -354,7 +357,7 @@ export default function ChatApp() {
       const data = await response.json();
       if (data.success) setAllUsers(data.users);
     } catch (error) {
-      console.error('Failed to load users:', error);
+      log.error('Failed to load users:', error);
     }
   };
 
@@ -364,22 +367,22 @@ export default function ChatApp() {
       const data = await response.json();
       if (data.success) {
         setConversations(data.conversations);
-        console.log('📋 Loaded conversations:', data.conversations);
+        log.debug('Loaded conversations:', data.conversations);
         
         // Load unread counts from AsyncStorage
         try {
           const storedUnread = await AsyncStorage.getItem('unreadCounts');
           if (storedUnread) {
             const parsed = JSON.parse(storedUnread);
-            console.log('📬 Loaded unread counts from storage:', parsed);
+            log.debug('Loaded unread counts from storage:', parsed);
             setUnreadCounts(parsed);
           }
         } catch (e) {
-          console.error('Error loading unread counts:', e);
+          log.error('Error loading unread counts:', e);
         }
       }
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      log.error('Error loading conversations:', error);
     } finally {
       setIsLoadingChats(false);
     }
@@ -401,7 +404,7 @@ export default function ChatApp() {
         await loadMessages(data.conversation._id);
         
         // Clear unread count for this conversation
-        console.log('🧹 Clearing unread count for:', data.conversation._id);
+        log.debug('Clearing unread count for:', data.conversation._id);
         setUnreadCounts(prev => {
           const newCounts = { ...prev };
           newCounts[data.conversation._id] = 0;
@@ -413,7 +416,7 @@ export default function ChatApp() {
         }
       }
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      log.error('Error creating conversation:', error);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -441,7 +444,7 @@ export default function ChatApp() {
         setMessages(formattedMessages);
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
+      log.error('Error loading messages:', error);
     }
   };
 
@@ -475,7 +478,7 @@ export default function ChatApp() {
         });
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      log.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message. Please try again.');
     }
   };
@@ -576,7 +579,7 @@ export default function ChatApp() {
         throw new Error(data.message || 'Upload failed');
       }
     } catch (error) {
-      console.error('❌ Image upload error:', error);
+      log.error('Image upload error:', error);
       Alert.alert('Error', 'Failed to send image. Please try again.');
     } finally {
       setIsUploading(false);

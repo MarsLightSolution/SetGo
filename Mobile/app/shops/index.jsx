@@ -16,6 +16,9 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
+import logger from '../../utils/logger';
+
+const log = logger.create('Shops');
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
@@ -89,7 +92,7 @@ export default function AllShopsScreen() {
         });
       }
     } catch (error) {
-      console.error('Error fetching shops:', error);
+      log.error('Error fetching shops:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

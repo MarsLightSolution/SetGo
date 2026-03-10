@@ -15,6 +15,9 @@
  */
 
 import { API_ENDPOINTS } from '../config/api';
+import logger from '../utils/logger';
+
+const log = logger.create('Account');
 
 /**
  * Account Service
@@ -44,11 +47,11 @@ export const accountService = {
       try {
         return JSON.parse(text);
       } catch (e) {
-        console.error('API returned non-JSON response:', text);
+        log.error('API returned non-JSON response:', text);
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('getUserProfile error:', error);
+      log.error('getUserProfile error:', error);
       throw error;
     }
   },
@@ -80,7 +83,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('updateProfileName error:', error);
+      log.error('updateProfileName error:', error);
       throw error;
     }
   },
@@ -119,7 +122,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('verifyEmail error:', error);
+      log.error('verifyEmail error:', error);
       throw error;
     }
   },
@@ -152,7 +155,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('updateDeliveryAddress error:', error);
+      log.error('updateDeliveryAddress error:', error);
       throw error;
     }
   },
@@ -184,7 +187,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('updateBillingAddress error:', error);
+      log.error('updateBillingAddress error:', error);
       throw error;
     }
   },
@@ -216,7 +219,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('sendOTP error:', error);
+      log.error('sendOTP error:', error);
       throw error;
     }
   },
@@ -247,7 +250,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('verifyOTP error:', error);
+      log.error('verifyOTP error:', error);
       throw error;
     }
   },
@@ -279,7 +282,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('updatePassword error:', error);
+      log.error('updatePassword error:', error);
       throw error;
     }
   },
@@ -308,7 +311,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('toggleNewsletter error:', error);
+      log.error('toggleNewsletter error:', error);
       throw error;
     }
   },
@@ -335,7 +338,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('toggleMessages error:', error);
+      log.error('toggleMessages error:', error);
       throw error;
     }
   },
@@ -359,7 +362,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('getUserAds error:', error);
+      log.error('getUserAds error:', error);
       return [];
     }
   },
@@ -391,7 +394,7 @@ export const accountService = {
         throw new Error('Server error: Invalid response format');
       }
     } catch (error) {
-      console.error('deleteUser error:', error);
+      log.error('deleteUser error:', error);
       throw error;
     }
   },

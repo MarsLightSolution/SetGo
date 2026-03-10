@@ -11,6 +11,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../constants/accountSettings';
+import logger from './logger';
+
+const log = logger.create('Storage');
 
 /**
  * Get user data from AsyncStorage
@@ -21,12 +24,12 @@ export const getUserData = async () => {
   try {
     const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
     if (!userData) {
-      console.warn('No user data found in storage');
+      log.warn('No user data found in storage');
       return null;
     }
     return JSON.parse(userData);
   } catch (error) {
-    console.error('Error getting user data from storage:', error);
+    log.error('Error getting user data from storage:', error);
     return null;
   }
 };
@@ -42,10 +45,10 @@ export const getUserData = async () => {
 export const saveUserData = async (userData) => {
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
-    console.log('User data saved successfully');
+    log.info('User data saved successfully');
     return true;
   } catch (error) {
-    console.error('Error saving user data:', error);
+    log.error('Error saving user data:', error);
     return false;
   }
 };
@@ -60,10 +63,10 @@ export const saveUserData = async (userData) => {
 export const clearUserData = async () => {
   try {
     await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
-    console.log('User data cleared successfully');
+    log.info('User data cleared successfully');
     return true;
   } catch (error) {
-    console.error('Error clearing user data:', error);
+    log.error('Error clearing user data:', error);
     return false;
   }
 };

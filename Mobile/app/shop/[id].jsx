@@ -19,6 +19,9 @@ import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/Feather';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 import { useAuthStore } from '../../Store/authStore';
+import logger from '../../utils/logger';
+
+const log = logger.create('ShopProfile');
 
 const { width } = Dimensions.get('window');
 const PRODUCT_CARD_WIDTH = (width - 48) / 2;
@@ -77,7 +80,7 @@ export default function ShopProfileScreen() {
         router.back();
       }
     } catch (error) {
-      console.error('Error fetching shop:', error);
+      log.error('Error fetching shop:', error);
       Toast.show({
         type: 'error',
         text1: 'Failed to load shop',
@@ -116,7 +119,7 @@ export default function ShopProfileScreen() {
         });
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      log.error('Error fetching products:', error);
     } finally {
       setProductsLoading(false);
     }
@@ -178,7 +181,7 @@ export default function ShopProfileScreen() {
         });
       }
     } catch (error) {
-      console.error('Error following shop:', error);
+      log.error('Error following shop:', error);
       Toast.show({
         type: 'error',
         text1: 'Something went wrong',
@@ -196,7 +199,7 @@ export default function ShopProfileScreen() {
         title: shopName,
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      log.error('Error sharing:', error);
     }
   };
 
@@ -226,7 +229,7 @@ export default function ShopProfileScreen() {
     }
 
     Linking.openURL(url).catch((err) =>
-      console.error('Error opening link:', err)
+      log.error('Error opening link:', err)
     );
   };
 

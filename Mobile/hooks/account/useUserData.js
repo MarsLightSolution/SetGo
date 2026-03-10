@@ -9,6 +9,9 @@ import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { getUserData } from '../../utils/storage';
 import { accountService } from '../../services/accountService';
+import logger from '../../utils/logger';
+
+const log = logger.create('UserData');
 
 /**
  * Custom hook for managing user data and initialization
@@ -64,7 +67,7 @@ export const useUserData = () => {
       const ads = await accountService.getUserAds(userId);
       setUserAds(ads);
     } catch (error) {
-      console.error('Load ads error:', error);
+      log.error('Load ads error:', error);
       setUserAds([]);
     }
   };
@@ -104,7 +107,7 @@ export const useUserData = () => {
               ? JSON.parse(storedUserData.deliveryAddress)
               : storedUserData.deliveryAddress;
         } catch (e) {
-          console.log('Could not parse delivery address');
+          log.debug('Could not parse delivery address');
         }
       }
 
@@ -126,7 +129,7 @@ export const useUserData = () => {
         loadUserAds(storedUserData._id);
       }
     } catch (error) {
-      console.error('Initialize app error:', error);
+      log.error('Initialize app error:', error);
       Alert.alert('Error', 'Failed to load user data');
     } finally {
       setInitialLoading(false);

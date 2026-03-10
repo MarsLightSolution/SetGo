@@ -1,4 +1,7 @@
 import { API_ENDPOINTS } from '../config/api';
+import logger from '../utils/logger';
+
+const log = logger.create('Product');
 
 export const productService = {
   async getProducts(params = {}) {
@@ -27,14 +30,14 @@ export const productService = {
       const result = await response.json();
       return result.data || {};
     } catch (error) {
-      console.error('Error fetching products:', error);
+      log.error('Error fetching products:', error);
       throw error;
     }
   },
 
   async getPriorityProducts() {
     try {
-      const response = await fetch(API_ENDPOINTS.GET_PRIORITY, {
+      const response = await fetch(API_ENDPOINTS.PRIORITY_PRODUCTS, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -48,7 +51,7 @@ export const productService = {
       const result = await response.json();
       return result.data || {};
     } catch (error) {
-      console.error('Error fetching priority products:', error);
+      log.error('Error fetching priority products:', error);
       throw error;
     }
   }

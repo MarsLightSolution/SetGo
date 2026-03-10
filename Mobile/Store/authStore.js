@@ -7,6 +7,9 @@ import {
   setUserData,
 } from '../services/secureAuthService';
 import { API_ENDPOINTS } from '../config/api';
+import logger from '../utils/logger';
+
+const log = logger.create('Auth');
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -81,7 +84,7 @@ export const useAuthStore = create((set, get) => ({
 
     try {
       const loginUrl = API_ENDPOINTS.LOGIN;
-      console.log('🔐 Login attempt to:', loginUrl);
+      log.info('🔐 Login attempt to:', loginUrl);
 
       // 1. Login request (credentials: 'include' to receive Set-Cookie)
       const response = await fetch(loginUrl, {
@@ -91,7 +94,7 @@ export const useAuthStore = create((set, get) => ({
         credentials: 'include',
       });
 
-      console.log('🔐 Login response status:', response.status);
+      log.info('🔐 Login response status:', response.status);
 
       const data = await response.json();
 
@@ -168,7 +171,7 @@ export const useAuthStore = create((set, get) => ({
         return { success: false, message: data.message || 'Login failed' };
       }
     } catch (error) {
-      console.error('🔐 Login error:', error.message, error);
+      log.error('🔐 Login error:', error.message, error);
       set({ loading: false });
       return { success: false, message: `Network error: ${error.message}` };
     }

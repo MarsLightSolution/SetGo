@@ -13,6 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api';
+import logger from '../utils/logger';
+
+const log = logger.create('Orders');
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -85,7 +88,7 @@ export default function OrdersScreen() {
       setTotalCredit(totalCredit || 0);
       setTotalDebit(totalDebit || 0);
     } catch (error) {
-      console.error('Failed to fetch transactions:', error);
+      log.error('Failed to fetch transactions:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

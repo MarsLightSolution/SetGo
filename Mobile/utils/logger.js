@@ -1,77 +1,143 @@
 /**
  * Production-safe Logger Utility
  *
- * This logger only outputs in development mode (__DEV__).
- * Use this instead of console.log/warn/error in the codebase.
+ * All console.* calls are automatically stripped from production builds
+ * via babel-plugin-transform-remove-console (configured in babel.config.js).
+ *
+ * This logger adds:
+ * - Module tagging: logger.create('Auth') → prefixes all logs with [Auth]
+ * - Log levels: control verbosity via logger.setLevel()
+ * - Structured output: objects are formatted for readability
  *
  * Usage:
  *   import logger from '../utils/logger';
- *   logger.log('Debug info');
- *   logger.warn('Warning message');
- *   logger.error('Error occurred', error);
+ *
+ *   // Quick logging (no tag)
+ *   logger.log('hello');
+ *   logger.error('something broke', error);
+ *
+ *   // Module-scoped logging (recommended)
+ *   const log = logger.create('PostForm');
+ *   log.info('Submitting form', { title, price });
+ *   log.error('Upload failed', error);
+ *
+ * Log levels (from least to most verbose):
+ *   0 = OFF, 1 = ERROR, 2 = WARN, 3 = INFO, 4 = DEBUG
  */
+
+const LOG_LEVELS = {
+  OFF: 0,
+  ERROR: 1,
+  WARN: 2,
+  INFO: 3,
+  DEBUG: 4,
+};
+
+// Default: show everything in dev
+let currentLevel = LOG_LEVELS.DEBUG;
 
 const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV === 'development';
 
+const formatArgs = (args) =>
+  args.map((arg) => {
+    if (arg instanceof Error) return `${arg.message}\n${arg.stack || ''}`;
+    if (typeof arg === 'object' && arg !== null) {
+      try {
+        return JSON.stringify(arg, null, 2);
+      } catch {
+        return String(arg);
+      }
+    }
+    return arg;
+  });
+
+/**
+ * Create a module-scoped logger
+ * @param {string} module - Module name for log prefix (e.g., 'Auth', 'PostForm', 'API')
+ * @returns {Object} Logger with log/info/warn/error/debug methods
+ */
+const createModuleLogger = (module) => {
+  const prefix = `[${module}]`;
+
+  return {
+    log: (...args) => {
+      if (isDev && currentLevel >= LOG_LEVELS.INFO) {
+        console.log(prefix, ...args);
+      }
+    },
+    info: (...args) => {
+      if (isDev && currentLevel >= LOG_LEVELS.INFO) {
+        console.info(prefix, ...args);
+      }
+    },
+    warn: (...args) => {
+      if (isDev && currentLevel >= LOG_LEVELS.WARN) {
+        console.warn(prefix, ...args);
+      }
+    },
+    error: (...args) => {
+      if (isDev && currentLevel >= LOG_LEVELS.ERROR) {
+        console.error(prefix, ...formatArgs(args));
+      }
+    },
+    debug: (...args) => {
+      if (isDev && currentLevel >= LOG_LEVELS.DEBUG) {
+        console.log(prefix, '🔍', ...args);
+      }
+    },
+  };
+};
+
 const logger = {
   /**
-   * Log informational messages (only in development)
+   * Create a module-scoped logger
+   * @param {string} module - e.g., 'Auth', 'PostForm', 'API', 'Chat'
    */
+  create: createModuleLogger,
+
+  // --- Quick logging (no module prefix) ---
   log: (...args) => {
-    if (isDev) {
+    if (isDev && currentLevel >= LOG_LEVELS.INFO) {
       console.log(...args);
     }
   },
-
-  /**
-   * Log info messages (alias for log)
-   */
   info: (...args) => {
-    if (isDev) {
+    if (isDev && currentLevel >= LOG_LEVELS.INFO) {
       console.info(...args);
     }
   },
-
-  /**
-   * Log warning messages (only in development)
-   */
   warn: (...args) => {
-    if (isDev) {
+    if (isDev && currentLevel >= LOG_LEVELS.WARN) {
       console.warn(...args);
     }
   },
-
-  /**
-   * Log error messages (only in development)
-   * For production error tracking, integrate with Sentry or similar
-   */
   error: (...args) => {
-    if (isDev) {
-      console.error(...args);
+    if (isDev && currentLevel >= LOG_LEVELS.ERROR) {
+      console.error(...formatArgs(args));
     }
-    // TODO: In production, send to error tracking service
-    // if (!isDev) {
-    //   Sentry.captureException(args[0]);
-    // }
   },
-
-  /**
-   * Log debug info with a label prefix
-   */
-  debug: (label, ...args) => {
-    if (isDev) {
-      console.log(`[${label}]`, ...args);
+  debug: (...args) => {
+    if (isDev && currentLevel >= LOG_LEVELS.DEBUG) {
+      console.log('🔍', ...args);
     }
   },
 
+  // --- Log level control ---
   /**
-   * Log API request/response (only in development)
+   * Set the log level at runtime
+   * @param {'OFF'|'ERROR'|'WARN'|'INFO'|'DEBUG'} level
    */
-  api: (method, url, data) => {
-    if (isDev) {
-      console.log(`[API ${method}]`, url, data ? JSON.stringify(data, null, 2) : '');
+  setLevel: (level) => {
+    if (LOG_LEVELS[level] !== undefined) {
+      currentLevel = LOG_LEVELS[level];
     }
   },
+
+  /** Get current log level name */
+  getLevel: () => Object.keys(LOG_LEVELS).find((k) => LOG_LEVELS[k] === currentLevel),
+
+  /** Expose level constants */
+  LEVELS: LOG_LEVELS,
 };
 
 export default logger;

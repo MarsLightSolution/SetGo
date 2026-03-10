@@ -46,6 +46,9 @@ const showErrorToast = (message) => {
 };
 
 import { API_ENDPOINTS } from '../../config/api';
+import logger from '../../utils/logger';
+
+const log = logger.create('RaiseQuery');
 
 export default function RaiseQuery() {
   const router = useRouter();
@@ -94,7 +97,7 @@ export default function RaiseQuery() {
       setUserId(id);
     } catch (error) {
       // Silent error - log for debugging only
-      if (__DEV__) console.log('Error loading userId:', error);
+      if (__DEV__) log.debug('Error loading userId:', error);
       showErrorToast('Failed to load user data');
     }
   };
@@ -139,7 +142,7 @@ export default function RaiseQuery() {
       }
     } catch (error) {
       // Silent error - only show user-friendly message
-      if (__DEV__) console.log('Image picker error:', error);
+      if (__DEV__) log.debug('Image picker error:', error);
       showErrorToast('Failed to pick image. Please try again.');
     }
   };
@@ -259,7 +262,7 @@ export default function RaiseQuery() {
       );
 
       // Silent logging (only in dev mode)
-      if (__DEV__) console.log('Backend response:', data);
+      if (__DEV__) log.debug('Backend response:', data);
 
       if (data.success) {
         setSuccess(true);
@@ -279,7 +282,7 @@ export default function RaiseQuery() {
       }
     } catch (error) {
       // Silent error logging for debugging (only in dev mode)
-      if (__DEV__) console.log('Submit error:', error.code, error.response?.status);
+      if (__DEV__) log.debug('Submit error:', error.code, error.response?.status);
       
       // Show only user-friendly messages
       if (error.code === 'ECONNABORTED') {

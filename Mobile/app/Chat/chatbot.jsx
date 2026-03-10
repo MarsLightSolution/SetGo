@@ -56,6 +56,9 @@ const showWarningToast = (message) => {
 };
 
 import { API_ENDPOINTS } from '../../config/api';
+import logger from '../../utils/logger';
+
+const log = logger.create('Chatbot');
 
 export default function Chatbot() {
   const router = useRouter();
@@ -95,10 +98,10 @@ export default function Chatbot() {
         ]);
       } else {
         setUserId(id);
-        console.log('✅ User ID loaded:', id);
+        log.info('User ID loaded:', id);
       }
     } catch (error) {
-      console.error('❌ Error loading userId:', error);
+      log.error('Error loading userId:', error);
       showErrorToast('Failed to load user session');
     } finally {
       setIsInitializing(false);
@@ -262,7 +265,7 @@ export default function Chatbot() {
         }
       );
 
-      console.log('✅ API Response:', data);
+      log.info('API Response:', data);
 
       if (data.success) {
         setMessages((prev) => [...prev, { sender: 'bot', text: data.answer }]);
@@ -289,7 +292,7 @@ export default function Chatbot() {
         showErrorToast(data.message || 'Request failed');
       }
     } catch (err) {
-      console.error('❌ Chatbot error:', err);
+      log.error('Chatbot error:', err);
       
       let errorMessage = '⚠️ Sorry, something went wrong. ';
       let toastMessage = '';

@@ -12,6 +12,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { API_ENDPOINTS } from '../../config/api';
+import logger from '../../utils/logger';
+
+const log = logger.create('OrderDetail');
 
 export default function OrderDetails() {
   const { orderId } = useLocalSearchParams();
@@ -31,7 +34,7 @@ export default function OrderDetails() {
         setOrder(data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch order details', err);
+      log.error('Failed to fetch order details', err);
     } finally {
       setLoading(false);
     }

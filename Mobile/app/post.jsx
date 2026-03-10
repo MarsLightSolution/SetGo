@@ -58,6 +58,8 @@ import { getAuthToken, getUserId, getUserData } from "../services/secureAuthServ
 import logger from "../utils/logger";
 import { API_ENDPOINTS } from "../config/api";
 
+const log = logger.create('PostForm');
+
 const Form = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -130,23 +132,23 @@ const Form = () => {
         setUserId(storedUserId);
 
         const userData = await getUserData();
-        logger.info("User data loaded:", userData);
+        log.info("User data loaded:", userData);
         if (userData) {
           // Try different possible field names for username
           const name = userData.userName || userData.username || userData.name || userData.fullName || "";
           if (name) {
             setUsername(name);
             setFormData((prev) => ({ ...prev, name: name }));
-            logger.info("Username set to:", name);
+            log.info("Username set to:", name);
           } else {
-            logger.warn("No username found in user data");
+            log.warn("No username found in user data");
           }
           if (userData._id && !storedUserId) {
             setUserId(userData._id);
           }
         }
       } catch (error) {
-        logger.error("Error loading user data:", error);
+        log.error("Error loading user data:", error);
         showErrorToast("Authentication error. Please login again.");
         router.replace("/auth");
       } finally {
@@ -188,7 +190,7 @@ const Form = () => {
         // Check if response is JSON before parsing
         const contentType = res.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-          logger.warn("Shop API did not return JSON, user may not have a shop");
+          log.warn("Shop API did not return JSON, user may not have a shop");
           setHasShop(false);
           setPostToShop(false);
           setLoadingShop(false);
@@ -215,7 +217,7 @@ const Form = () => {
           setPostToShop(false);
         }
       } catch (error) {
-        logger.warn("Error fetching shop (user may not have one):", error.message);
+        log.warn("Error fetching shop (user may not have one):", error.message);
         setHasShop(false);
         setPostToShop(false);
       } finally {
@@ -276,7 +278,7 @@ const Form = () => {
           ]
         );
       } catch (error) {
-        logger.error("Location permission error:", error);
+        log.error("Location permission error:", error);
         setLocationStatus("denied");
       }
     };
@@ -293,7 +295,7 @@ const Form = () => {
           longitude: prev.longitude || location.coords.longitude,
         }));
       } catch (error) {
-        logger.error("Geolocation fetch error:", error);
+        log.error("Geolocation fetch error:", error);
         showErrorToast("Could not get current location");
       }
     };
@@ -333,7 +335,7 @@ const Form = () => {
       );
       return manipulatedImage;
     } catch (error) {
-      logger.error("Image compression error:", error);
+      log.error("Image compression error:", error);
       throw error;
     }
   };
@@ -396,14 +398,14 @@ const Form = () => {
           const totalImages = formData.pictures.length + 1;
           showSuccessToast(`Photo taken (${totalImages}/8)`);
         } catch (error) {
-          logger.warn("Error processing camera image:", error);
+          log.warn("Error processing camera image:", error);
           showErrorToast("Failed to process photo");
         }
 
         setLoading(false);
       }
     } catch (error) {
-      logger.error("Camera error:", error);
+      log.error("Camera error:", error);
       setLoading(false);
       showErrorToast("Error taking photo: " + error.message);
     }
@@ -491,7 +493,7 @@ const Form = () => {
             newImages.push(imageObject);
             newPreviews.push(compressed.uri);
           } catch (error) {
-            logger.warn("Error processing image:", error);
+            log.warn("Error processing image:", error);
             showErrorToast("Failed to process image");
           }
         }
@@ -506,7 +508,7 @@ const Form = () => {
           // Show success feedback
           const totalImages = formData.pictures.length + newImages.length;
           showSuccessToast(`${newImages.length} image${newImages.length > 1 ? 's' : ''} added (${totalImages}/8)`);
-          logger.info(`Images added: ${newImages.length}, Total: ${totalImages}`);
+          log.info(`Images added: ${newImages.length}, Total: ${totalImages}`);
         } else {
           showInfoToast("No images were added");
         }
@@ -514,7 +516,7 @@ const Form = () => {
         setLoading(false);
       }
     } catch (error) {
-      logger.error("Image picker error:", error);
+      log.error("Image picker error:", error);
       setLoading(false);
       showErrorToast("Error picking images: " + error.message);
     }
@@ -626,27 +628,46 @@ const Form = () => {
       setIsSubmitting(true);
       setSubmissionStatus("Preparing images...");
 
+      log.info("=== SUBMIT START ===");
+      log.info("Pictures count:", formData.pictures.length);
+
       // Append pictures - backend expects field name "pictures"
       for (let index = 0; index < formData.pictures.length; index++) {
         const pic = formData.pictures[index];
         setSubmissionStatus(`Processing image ${index + 1} of ${formData.pictures.length}...`);
+        log.info(`Image ${index}:`, {
+          uri: pic.uri?.substring(0, 100),
+          type: pic.type,
+          name: pic.name,
+          hasUri: !!pic.uri,
+        });
 
-        if (Platform.OS === 'web') {
-          const response = await fetch(pic.uri);
-          const blob = await response.blob();
-          const file = new File([blob], pic.name, { type: pic.type });
-          submitData.append("pictures", file);
-        } else {
-          // For React Native, ensure proper URI format
-          const imageUri = pic.uri.startsWith('file://') ? pic.uri : `file://${pic.uri}`;
-          submitData.append("pictures", {
-            uri: imageUri,
-            type: pic.type || 'image/jpeg',
-            name: pic.name || `photo_${index}.jpg`,
-          });
+        try {
+          if (Platform.OS === 'web') {
+            const response = await fetch(pic.uri);
+            const blob = await response.blob();
+            const file = new File([blob], pic.name, { type: pic.type });
+            submitData.append("pictures", file);
+          } else {
+            // For React Native, ensure proper URI format
+            const imageUri = pic.uri.startsWith('file://') ? pic.uri : `file://${pic.uri}`;
+            submitData.append("pictures", {
+              uri: imageUri,
+              type: pic.type || 'image/jpeg',
+              name: pic.name || `photo_${index}.jpg`,
+            });
+          }
+          log.info(`Image ${index} appended to FormData`);
+        } catch (imgError) {
+          log.error(`CRASH at image ${index}:`, imgError.message, imgError);
+          showErrorToast(`Failed to process image ${index + 1}`);
+          setLoading(false);
+          setIsSubmitting(false);
+          return;
         }
       }
 
+      log.info("All images appended, getting auth token...");
       setSubmissionStatus("Uploading to server...");
 
       // Get fresh token before submitting
@@ -656,28 +677,52 @@ const Form = () => {
       const headers = {};
       if (currentToken) {
         headers['Authorization'] = `Bearer ${currentToken}`;
-        logger.info("Auth token present:", currentToken.substring(0, 20) + "...");
+        log.info("Auth token present:", currentToken.substring(0, 20) + "...");
       } else {
-        logger.error("No auth token available!");
+        log.error("No auth token available!");
         showErrorToast("Please login again to post an ad");
         setLoading(false);
         setIsSubmitting(false);
         return;
       }
 
-      logger.info("Submitting form to:", API_ENDPOINTS.ADD_PRODUCT);
+      const endpoint = API_ENDPOINTS.ADD_PRODUCT;
+      log.info("Submitting to:", endpoint);
+      log.info("Form fields:", {
+        user: userId,
+        title: formData.title,
+        category: formData.category,
+        price: formData.price,
+        pictureCount: formData.pictures.length,
+        listingType: hasShop && postToShop ? "shop" : "individual",
+        shopId: hasShop && postToShop ? userShop?._id : "none",
+      });
 
-      const response = await fetch(API_ENDPOINTS.ADD_PRODUCT, {
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        log.error("Upload timed out after 60s");
+        controller.abort();
+      }, 60000);
+
+      log.info("Calling fetch...");
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: headers,
         body: submitData,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
+      log.info("Response received, status:", response.status);
       setSubmissionStatus("Processing response...");
 
       const contentType = response.headers.get("content-type");
+      log.info("Response content-type:", contentType);
+
       if (contentType && contentType.includes("application/json")) {
         const result = await response.json();
+        log.info("Response JSON:", JSON.stringify(result).substring(0, 200));
 
         if (response.ok) {
           setSubmissionStatus("Success!");
@@ -710,19 +755,25 @@ const Form = () => {
           setIsBulkListing(false);
           router.back();
         } else {
-          logger.error("Server returned error:", result);
+          log.error("Server error:", result);
           showErrorToast(result.message || "Failed to publish ad");
         }
       } else {
-        // Try to get error text if not JSON
         const errorText = await response.text();
-        logger.error("Server error (non-JSON):", response.status, errorText);
+        log.error("Non-JSON response:", response.status, errorText?.substring(0, 300));
         showErrorToast(`Server error (${response.status}). Please try again`);
       }
     } catch (error) {
-      logger.error("Submit error:", error.message, error);
-      showErrorToast(`Error: ${error.message || "Network error. Please check your connection"}`);
+      if (error.name === 'AbortError') {
+        log.error("Upload timed out - server may be unreachable");
+        showErrorToast("Upload timed out. Check your connection and try again.");
+      } else {
+        log.error("Submit CRASH:", error.message);
+        log.error("Error stack:", error.stack);
+        showErrorToast(`Error: ${error.message || "Network error. Please check your connection"}`);
+      }
     } finally {
+      log.info("=== SUBMIT END ===");
       setLoading(false);
       setIsSubmitting(false);
       setSubmissionStatus("");
@@ -1061,7 +1112,7 @@ const Form = () => {
                       source={{ uri }}
                       style={styles.imagePreview}
                       resizeMode="cover"
-                      onError={(e) => logger.warn('Image preview error:', e.nativeEvent?.error)}
+                      onError={(e) => log.warn('Image preview error:', e.nativeEvent?.error)}
                     />
                     <View style={styles.imageIndexBadge}>
                       <Text style={styles.imageIndexText}>{idx + 1}</Text>

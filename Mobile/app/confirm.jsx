@@ -5,6 +5,9 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuthStore } from "../Store/authStore";
 import { showErrorToast, showSuccessToast } from "../utils/toastify";
 import { API_ENDPOINTS } from "../config/api";
+import logger from "../utils/logger";
+
+const log = logger.create('Confirm');
 
 
 export default function ConfirmPage() {
@@ -39,12 +42,12 @@ export default function ConfirmPage() {
               }
             } catch (err) {
               showErrorToast("Network error. Please try again");
-              console.error("Auto login error:", err);
+              log.error("Auto login error:", err);
             }
           }, 1500);
         }
       } catch (err) {
-        console.log("Error checking verification:", err);
+        log.info("Error checking verification:", err);
       }
     };
 

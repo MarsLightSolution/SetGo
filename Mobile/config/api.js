@@ -15,6 +15,8 @@
  * ALL files must import from this config. Do NOT use process.env.EXPO_PUBLIC_API_URL directly.
  */
 
+import logger from '../utils/logger';
+
 // Base URL from env (e.g., https://tiwari.shop/api)
 const BASE_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 
@@ -29,7 +31,7 @@ const SOCKET_URL = 'wss://tiwari.shop';
 
 // Validate in development
 if (!BASE_URL && typeof __DEV__ !== 'undefined' && __DEV__) {
-  console.error('EXPO_PUBLIC_API_URL is not set. Create a .env file with your API URL.');
+  logger.error('EXPO_PUBLIC_API_URL is not set. Create a .env file with your API URL.');
 }
 
 // ============================================================
