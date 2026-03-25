@@ -1,9 +1,10 @@
-import { Stack, usePathname } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '../Store/store';
 import { FilterProvider } from '../context/FilterContext';
 import { useAuthStore } from '../Store/authStore';
+import { useOnboardingStore } from '../Store/onboardingStore';
 import BottomTabBar from '../Components/BottomTabBar';
 import ErrorBoundary from '../Components/ErrorBoundary';
 import SplashScreen from '../Components/SplashScreen';
@@ -11,24 +12,38 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import '../i18n';
 
 function AppContent() {
+  const router = useRouter();
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const initialized = useAuthStore((state) => state.initialized);
+  const initOnboarding = useOnboardingStore((state) => state.initialize);
+  const hasSeenOnboarding = useOnboardingStore((state) => state.hasSeenOnboarding);
   const pathname = usePathname();
   const [showSplash, setShowSplash] = useState(true);
   const [appReady, setAppReady] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   useEffect(() => {
+    // Run auth check and onboarding check in parallel
     checkAuth();
+    initOnboarding().then(() => setOnboardingChecked(true));
   }, []);
 
-  // Mark app as ready when auth is initialized
+  // Mark app as ready only when both auth and onboarding have been checked
   useEffect(() => {
-    if (initialized) {
+    if (initialized && onboardingChecked) {
       setAppReady(true);
     }
-  }, [initialized]);
+  }, [initialized, onboardingChecked]);
+
+  // After splash fades and app is ready, redirect first-time users to onboarding
+  useEffect(() => {
+    if (!showSplash && appReady && hasSeenOnboarding === false) {
+      router.replace('/onboarding/language');
+    }
+  }, [showSplash, appReady, hasSeenOnboarding]);
 
   const handleSplashFinish = useCallback(() => {
     setShowSplash(false);
@@ -36,6 +51,7 @@ function AppContent() {
 
   // Define routes where tabs should be hidden
   const hideTabsRoutes = [
+    '/onboarding',
     '/AccountManagement/Accountsetting',
     '/auth',
     '/filters',
@@ -77,6 +93,11 @@ function AppContent() {
           contentStyle: { backgroundColor: '#F9FAFB' }
         }}
       >
+        {/* Onboarding screens — no header, no tabs */}
+        <Stack.Screen name="onboarding/language" options={{ animation: 'fade' }} />
+        <Stack.Screen name="onboarding/slides" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="onboarding/gate" options={{ animation: 'slide_from_right' }} />
+
         <Stack.Screen name="index" />
         <Stack.Screen name="wishlist" />
         <Stack.Screen name="post" />
