@@ -14,11 +14,13 @@ import { useAuthStore } from '../Store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api';
 import logger from '../utils/logger';
+import { useTranslation } from 'react-i18next';
 
 const log = logger.create('Orders');
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('orders');
   const [loading, setLoading] = useState(false);
@@ -115,20 +117,18 @@ export default function OrdersScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Orders & Transactions</Text>
+          <Text style={styles.headerTitle}>{t('orders.title')}</Text>
         </View>
 
         <View style={styles.authRequired}>
           <Ionicons name="lock-closed-outline" size={64} color="#D1D5DB" />
-          <Text style={styles.authRequiredTitle}>Login Required</Text>
-          <Text style={styles.authRequiredText}>
-            Please login to view your orders and transactions
-          </Text>
+          <Text style={styles.authRequiredTitle}>{t('orders.loginRequired')}</Text>
+          <Text style={styles.authRequiredText}>{t('orders.loginMessage')}</Text>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.push('/auth')}
           >
-            <Text style={styles.loginButtonText}>Go to Login</Text>
+            <Text style={styles.loginButtonText}>{t('common.goToLogin')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -139,7 +139,7 @@ export default function OrdersScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Orders & Transactions</Text>
+        <Text style={styles.headerTitle}>{t('orders.title')}</Text>
       </View>
 
       {/* Tabs */}
@@ -149,7 +149,7 @@ export default function OrdersScreen() {
           onPress={() => setActiveTab('orders')}
         >
           <Text style={[styles.tabText, activeTab === 'orders' && styles.tabTextActive]}>
-            Orders
+            {t('orders.tabOrders')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -157,7 +157,7 @@ export default function OrdersScreen() {
           onPress={() => setActiveTab('transactions')}
         >
           <Text style={[styles.tabText, activeTab === 'transactions' && styles.tabTextActive]}>
-            Transactions
+            {t('orders.tabTransactions')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -173,8 +173,8 @@ export default function OrdersScreen() {
           orders.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="bag-outline" size={64} color="#D1D5DB" />
-              <Text style={styles.emptyTitle}>No orders yet</Text>
-              <Text style={styles.emptyText}>Your orders will appear here</Text>
+              <Text style={styles.emptyTitle}>{t('orders.noOrders')}</Text>
+              <Text style={styles.emptyText}>{t('orders.noOrdersSubtitle')}</Text>
             </View>
           ) : (
             orders.map((order) => (
@@ -192,7 +192,7 @@ export default function OrdersScreen() {
                   <Text style={styles.orderDate}>{order.date}</Text>
                 </View>
                 <TouchableOpacity style={styles.viewButton}>
-                  <Text style={styles.viewButtonText}>View Details</Text>
+                  <Text style={styles.viewButtonText}>{t('orders.viewDetails')}</Text>
                   <Ionicons name="chevron-forward" size={16} color="#008235" />
                 </TouchableOpacity>
               </View>
@@ -204,15 +204,13 @@ export default function OrdersScreen() {
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#008235" />
-                <Text style={styles.loadingText}>Loading transactions...</Text>
+                <Text style={styles.loadingText}>{t('orders.loadingTransactions')}</Text>
               </View>
             ) : transactions.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="wallet-outline" size={64} color="#D1D5DB" />
-                <Text style={styles.emptyTitle}>No Transactions Yet</Text>
-                <Text style={styles.emptyText}>
-                  Your transaction history will appear here
-                </Text>
+                <Text style={styles.emptyTitle}>{t('orders.noTransactions')}</Text>
+                <Text style={styles.emptyText}>{t('orders.noTransactionsSubtitle')}</Text>
               </View>
             ) : (
               <>
@@ -220,7 +218,7 @@ export default function OrdersScreen() {
                 <View style={styles.statsContainer}>
                   <View style={[styles.statCard, styles.walletCard]}>
                     <View style={styles.statHeader}>
-                      <Text style={styles.statLabel}>Wallet Balance</Text>
+                      <Text style={styles.statLabel}>{t('orders.walletBalance')}</Text>
                       <Ionicons name="wallet" size={20} color="#008235" />
                     </View>
                     <Text style={styles.statValue}>₼ {walletBalance.toFixed(2)}</Text>
@@ -228,7 +226,7 @@ export default function OrdersScreen() {
 
                   <View style={[styles.statCard, styles.creditCard]}>
                     <View style={styles.statHeader}>
-                      <Text style={styles.statLabel}>Total Credited</Text>
+                      <Text style={styles.statLabel}>{t('orders.totalCredited')}</Text>
                       <Ionicons name="trending-up" size={20} color="#10B981" />
                     </View>
                     <Text style={[styles.statValue, { color: '#10B981' }]}>
@@ -238,7 +236,7 @@ export default function OrdersScreen() {
 
                   <View style={[styles.statCard, styles.debitCard]}>
                     <View style={styles.statHeader}>
-                      <Text style={styles.statLabel}>Total Debited</Text>
+                      <Text style={styles.statLabel}>{t('orders.totalDebited')}</Text>
                       <Ionicons name="trending-down" size={20} color="#EF4444" />
                     </View>
                     <Text style={[styles.statValue, { color: '#EF4444' }]}>
@@ -250,15 +248,15 @@ export default function OrdersScreen() {
                 {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                   <TouchableOpacity style={styles.addMoneyButton}>
-                    <Text style={styles.addMoneyButtonText}>Add Money</Text>
+                    <Text style={styles.addMoneyButtonText}>{t('orders.addMoney')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.withdrawButton}>
-                    <Text style={styles.withdrawButtonText}>Withdraw</Text>
+                    <Text style={styles.withdrawButtonText}>{t('orders.withdraw')}</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Transactions List */}
-                <Text style={styles.sectionTitle}>Recent Transactions</Text>
+                <Text style={styles.sectionTitle}>{t('orders.recentTransactions')}</Text>
                 {transactions.map((txn, index) => (
                   <View key={txn.transactionId} style={styles.transactionCard}>
                     <View style={styles.transactionLeft}>

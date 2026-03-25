@@ -14,9 +14,11 @@ import { useAuthStore } from "../Store/authStore";
 import { useSelector, useDispatch } from "react-redux";
 import { unlike } from "../Store/wishSlice";
 import { IMAGE_BASE_URL } from "../config/api";
+import { useTranslation } from "react-i18next";
 
 export default function WishlistScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const wishlistItems = useSelector((state) => state.wishlist.wishlist);
   const dispatch = useDispatch();
@@ -41,20 +43,18 @@ export default function WishlistScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Wishlist</Text>
+          <Text style={styles.headerTitle}>{t('wishlist.title')}</Text>
         </View>
 
         <View style={styles.authRequired}>
           <Ionicons name="lock-closed-outline" size={64} color="#D1D5DB" />
-          <Text style={styles.authRequiredTitle}>Login Required</Text>
-          <Text style={styles.authRequiredText}>
-            Please login to view and manage your wishlist
-          </Text>
+          <Text style={styles.authRequiredTitle}>{t('wishlist.loginRequired')}</Text>
+          <Text style={styles.authRequiredText}>{t('wishlist.loginMessage')}</Text>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.push("../(auth)")}
           >
-            <Text style={styles.loginButtonText}>Go to Login</Text>
+            <Text style={styles.loginButtonText}>{t('common.goToLogin')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -65,8 +65,8 @@ export default function WishlistScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Wishlist</Text>
-        <Text style={styles.headerSubtitle}>{wishlistItems.length} items saved</Text>
+        <Text style={styles.headerTitle}>{t('wishlist.title')}</Text>
+        <Text style={styles.headerSubtitle}>{t('wishlist.itemsCount', { count: wishlistItems.length })}</Text>
       </View>
 
       <ScrollView
@@ -76,15 +76,13 @@ export default function WishlistScreen() {
         {wishlistItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="heart-outline" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No items in wishlist</Text>
-            <Text style={styles.emptyText}>
-              Start adding items to your wishlist to see them here
-            </Text>
+            <Text style={styles.emptyTitle}>{t('wishlist.empty')}</Text>
+            <Text style={styles.emptyText}>{t('wishlist.emptySubtitle')}</Text>
             <TouchableOpacity
               style={styles.browseButton}
-              onPress={() => router.push("/(tabs)")}
+              onPress={() => router.replace("/")}
             >
-              <Text style={styles.browseButtonText}>Browse Products</Text>
+              <Text style={styles.browseButtonText}>{t('wishlist.browse')}</Text>
             </TouchableOpacity>
           </View>
         ) : (

@@ -9,19 +9,21 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, logout, isAuthenticated } = useAuthStore();
 
 const handleLogout = () => {
   Alert.alert(
-    'Logout',
-    'Are you sure you want to logout?',
+    t('profile.logoutConfirmTitle'),
+    t('profile.logoutConfirmMessage'),
     [
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Yes, Logout',
+        text: t('profile.logoutConfirmYes'),
         style: 'destructive',
         onPress: async () => {
           await logout(); // ✅ Clears tokens from secure storage on BOTH platforms
@@ -34,11 +36,11 @@ const handleLogout = () => {
 };
 
   const menuItems = [
-    { icon: 'document-text-outline', label: 'My Ads', color: '#DCFCE7', route: '/UserInfo/Userinfo' },
-    { icon: 'heart-outline', label: 'Favorites', color: '#FECACA', route: '/(tabs)/wishlist' },
-    { icon: 'chatbubble-outline', label: 'Messages', color: '#DBEAFE', route: '/Chat/chat' },
-    { icon: 'settings-outline', label: 'Settings', color: '#E9D5FF', route: '/AccountManagement/Accountsetting' },
-    { icon: 'help-circle-outline', label: 'Help & Support', color: '#FED7AA', route: '/help' },
+    { icon: 'document-text-outline', label: t('profile.myAds'), color: '#DCFCE7', route: '/UserInfo/Userinfo' },
+    { icon: 'heart-outline', label: t('profile.favorites'), color: '#FECACA', route: '/(tabs)/wishlist' },
+    { icon: 'chatbubble-outline', label: t('profile.messages'), color: '#DBEAFE', route: '/Chat/chat' },
+    { icon: 'settings-outline', label: t('profile.settings'), color: '#E9D5FF', route: '/AccountManagement/Accountsetting' },
+    { icon: 'help-circle-outline', label: t('profile.helpSupport'), color: '#FED7AA', route: '/help' },
   ];
 
   // IF NOT AUTHENTICATED
@@ -46,20 +48,18 @@ const handleLogout = () => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>{t('profile.title')}</Text>
         </View>
 
         <View style={styles.authRequired}>
           <Ionicons name="person-circle-outline" size={80} color="#D1D5DB" />
-          <Text style={styles.authRequiredTitle}>Welcome to SATGO</Text>
-          <Text style={styles.authRequiredText}>
-            Login or create an account to access your profile and start selling
-          </Text>
+          <Text style={styles.authRequiredTitle}>{t('profile.welcomeTitle')}</Text>
+          <Text style={styles.authRequiredText}>{t('profile.welcomeSubtitle')}</Text>
           <TouchableOpacity
             style={styles.authButton}
             onPress={() => router.push('../auth')}
           >
-            <Text style={styles.authButtonText}>Login / Sign Up</Text>
+            <Text style={styles.authButtonText}>{t('profile.loginSignup')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -79,7 +79,7 @@ const handleLogout = () => {
               {user?.userName || user?.name || 'User'}
             </Text>
             <Text style={styles.profileEmail}>{user?.email || 'tiwariraj1202@gmail.com'}</Text>
-            <Text style={styles.profileMember}>Member since 2024</Text>
+            <Text style={styles.profileMember}>{t('profile.memberSince', { year: 2024 })}</Text>
           </View>
         </View>
       </View>
@@ -103,10 +103,10 @@ const handleLogout = () => {
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>Version 1.0.0</Text>
+        <Text style={styles.versionText}>{t('common.version')}</Text>
       </ScrollView>
     </View>
   );

@@ -20,11 +20,13 @@ import { BlurView } from 'expo-blur';
 import { validateLoginForm, validateSignupForm } from '../utils/validation';
 import logger from '../utils/logger';
 import { API_ENDPOINTS } from '../config/api';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
 export default function AuthScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { login } = useAuthStore();
 
   const [showLogin, setShowLogin] = useState(true);
@@ -162,7 +164,7 @@ export default function AuthScreen() {
                       color={showLogin ? '#FFFFFF' : '#6B7280'}
                       style={styles.tabIcon}
                     />
-                    <Text style={[styles.tabText, showLogin && styles.tabTextActive]}>Login</Text>
+                    <Text style={[styles.tabText, showLogin && styles.tabTextActive]}>{t('auth.loginTab')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
@@ -182,7 +184,7 @@ export default function AuthScreen() {
                       style={styles.tabIcon}
                     />
                     <Text style={[styles.tabText, !showLogin && styles.tabTextActive]}>
-                      Sign Up
+                      {t('auth.signupTab')}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -192,14 +194,14 @@ export default function AuthScreen() {
               {showLogin ? (
                 <View style={styles.form}>
                   <View style={styles.formHeader}>
-                    <Text style={styles.formTitle}>Welcome Back! 👋</Text>
-                    <Text style={styles.formSubtitle}>Login to continue your journey</Text>
+                    <Text style={styles.formTitle}>{t('auth.loginTitle')}</Text>
+                    <Text style={styles.formSubtitle}>{t('auth.loginSubtitle')}</Text>
                   </View>
 
                   {/* Email */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>
-                      <Ionicons name="mail-outline" size={14} color="#374151" /> Email
+                      <Ionicons name="mail-outline" size={14} color="#374151" /> {t('auth.emailLabel')}
                     </Text>
                     <View style={styles.inputWrapper}>
                       <Ionicons name="mail" size={20} color="#008235" style={styles.inputIcon} />
@@ -207,7 +209,7 @@ export default function AuthScreen() {
                         style={styles.input}
                         value={email}
                         onChangeText={setEmail}
-                        placeholder="yourmail@example.com"
+                        placeholder={t('auth.emailPlaceholder')}
                         placeholderTextColor="#9CA3AF"
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -219,7 +221,7 @@ export default function AuthScreen() {
                   {/* Password */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>
-                      <Ionicons name="lock-closed-outline" size={14} color="#374151" /> Password
+                      <Ionicons name="lock-closed-outline" size={14} color="#374151" /> {t('auth.passwordLabel')}
                     </Text>
                     <View style={styles.inputWrapper}>
                       <Ionicons name="lock-closed" size={20} color="#008235" style={styles.inputIcon} />
@@ -227,7 +229,7 @@ export default function AuthScreen() {
                         style={styles.passwordInput}
                         value={password}
                         onChangeText={setPassword}
-                        placeholder="Enter your password"
+                        placeholder={t('auth.passwordPlaceholder')}
                         placeholderTextColor="#9CA3AF"
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
@@ -253,7 +255,7 @@ export default function AuthScreen() {
                         <ActivityIndicator color="#FFF" size="small" />
                       ) : (
                         <>
-                          <Text style={styles.buttonText}>Login Now</Text>
+                          <Text style={styles.buttonText}>{t('auth.loginButton')}</Text>
                           <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
                         </>
                       )}
@@ -264,19 +266,19 @@ export default function AuthScreen() {
                         <View style={styles.featureIconContainer}>
                           <Ionicons name="heart" size={16} color="#008235" />
                         </View>
-                        <Text style={styles.featureText}>Save your favorites</Text>
+                        <Text style={styles.featureText}>{t('auth.benefit1')}</Text>
                       </View>
                       <View style={styles.featureItem}>
                         <View style={styles.featureIconContainer}>
                           <Ionicons name="chatbubbles" size={16} color="#008235" />
                         </View>
-                        <Text style={styles.featureText}>Connect with community</Text>
+                        <Text style={styles.featureText}>{t('auth.benefit2')}</Text>
                       </View>
                       <View style={styles.featureItem}>
                         <View style={styles.featureIconContainer}>
                           <Ionicons name="create" size={16} color="#008235" />
                         </View>
-                        <Text style={styles.featureText}>Create & share content</Text>
+                        <Text style={styles.featureText}>{t('auth.benefit3')}</Text>
                       </View>
                     </View>
                 </View>
@@ -284,14 +286,14 @@ export default function AuthScreen() {
                 //SIGNUP FORM
                 <View style={styles.form}>
                   <View style={styles.formHeader}>
-                    <Text style={styles.formTitle}>Create Account ✨</Text>
-                    <Text style={styles.formSubtitle}>Join our growing community</Text>
+                    <Text style={styles.formTitle}>{t('auth.signupTitle')}</Text>
+                    <Text style={styles.formSubtitle}>{t('auth.signupSubtitle')}</Text>
                   </View>
 
                   {/* Username */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>
-                      <Ionicons name="person-outline" size={14} color="#374151" /> Username
+                      <Ionicons name="person-outline" size={14} color="#374151" /> {t('auth.usernameLabel')}
                     </Text>
                     <View style={styles.inputWrapper}>
                       <Ionicons name="person" size={20} color="#008235" style={styles.inputIcon} />
@@ -299,7 +301,7 @@ export default function AuthScreen() {
                         style={styles.input}
                         value={username}
                         onChangeText={setUsername}
-                        placeholder="Choose a unique username"
+                        placeholder={t('auth.usernamePlaceholder')}
                         placeholderTextColor="#9CA3AF"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -310,7 +312,7 @@ export default function AuthScreen() {
                   {/* Email */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>
-                      <Ionicons name="mail-outline" size={14} color="#374151" /> Email
+                      <Ionicons name="mail-outline" size={14} color="#374151" /> {t('auth.emailLabel')}
                     </Text>
                     <View style={styles.inputWrapper}>
                       <Ionicons name="mail" size={20} color="#008235" style={styles.inputIcon} />
@@ -318,7 +320,7 @@ export default function AuthScreen() {
                         style={styles.input}
                         value={email}
                         onChangeText={setEmail}
-                        placeholder="yourmail@example.com"
+                        placeholder={t('auth.emailPlaceholder')}
                         placeholderTextColor="#9CA3AF"
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -330,7 +332,7 @@ export default function AuthScreen() {
                   {/* Password */}
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>
-                      <Ionicons name="lock-closed-outline" size={14} color="#374151" /> Password
+                      <Ionicons name="lock-closed-outline" size={14} color="#374151" /> {t('auth.passwordLabel')}
                     </Text>
                     <View style={styles.inputWrapper}>
                       <Ionicons name="lock-closed" size={20} color="#008235" style={styles.inputIcon} />
@@ -338,7 +340,7 @@ export default function AuthScreen() {
                         style={styles.passwordInput}
                         value={password}
                         onChangeText={setPassword}
-                        placeholder="Create a strong password"
+                        placeholder={t('auth.newPasswordPlaceholder')}
                         placeholderTextColor="#9CA3AF"
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
@@ -364,16 +366,16 @@ export default function AuthScreen() {
                         <ActivityIndicator color="#FFF" size="small" />
                       ) : (
                         <>
-                          <Text style={styles.buttonText}>Create Account</Text>
+                          <Text style={styles.buttonText}>{t('auth.signupButton')}</Text>
                           <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
                         </>
                       )}
                     </LinearGradient>
                   </TouchableOpacity>
                      <Text style={styles.terms}>
-                      By signing up, you agree to our{' '}
-                      <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-                      <Text style={styles.termsLink}>Privacy Policy</Text>
+                      {t('auth.termsPrefix')}{' '}
+                      <Text style={styles.termsLink}>{t('auth.termsLink')}</Text> {t('common.and')}{' '}
+                      <Text style={styles.termsLink}>{t('auth.privacyLink')}</Text>
                     </Text>
                 </View>
               )}
