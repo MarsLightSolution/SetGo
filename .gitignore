@@ -168,7 +168,12 @@ backups/
 *.orig
 
 # ==========================================
+# CI/CD & GitHub internal
+# ==========================================
+.github/
+
+# ==========================================
 # Docs (generated/internal)
 # ==========================================
 CONTRIBUTING.md
-README.md
+PRODUCTION_DEPLOYMENT_SUMMARY.md
