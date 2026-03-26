@@ -21,7 +21,7 @@ jspm_packages/
 .npm/
 
 # Optional eslint cache
-.eslintcachegit
+.eslintcache
 
 # dotenv environment variables
 .env
@@ -36,6 +36,17 @@ jspm_packages/
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Security - Keys & Certificates (NEVER commit private keys)
+keys/
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+secrets/
+credentials.json
 
 # Build output
 dist/
