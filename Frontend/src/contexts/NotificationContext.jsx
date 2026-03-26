@@ -33,8 +33,9 @@ export const NotificationProvider = ({ children }) => {
         console.log('Connected to notification server');
         setIsConnected(true);
         
-        // Join user to receive notifications
-        socketInstance.emit('join-user', userEmail || userId);
+        // Join user's personal notification room (prefer MongoDB userId so it
+        // matches what order/concern/chat controllers emit to)
+        socketInstance.emit('join-user', userId || userEmail);
       });
 
       socketInstance.on('disconnect', () => {

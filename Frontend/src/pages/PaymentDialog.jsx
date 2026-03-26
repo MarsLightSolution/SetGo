@@ -155,6 +155,39 @@ const PaymentDialog = ({
   };
 
   /**
+   * Creates an order record after successful payment
+   */
+  const createOrder = async (transactionId) => {
+    const payload = {
+      buyerId: userId,
+      sellerId: product.owner?._id || product.owner,
+      productId: product._id,
+      total: price,
+      transactionId,
+      address: {
+        name: user.fullName,
+        email: user.email,
+        city: user.city,
+        address: user.address,
+        zipCode: user.postalCode,
+      },
+    };
+
+    const res = await fetch(`${import.meta.env.VITE_SERVER}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    console.log("Order creation response:", { status: res.status, data });
+    return data;
+  };
+
+  /**
    * Wallet-only payment (when full amount is covered by wallet)
    * Uses direct wallet transfer endpoint
    */
@@ -196,7 +229,7 @@ const PaymentDialog = ({
         `${import.meta.env.VITE_SERVER}/api/transaction/transferFund`,
         {
           method: "POST",
-          headers: { 
+            headers: { 
             "Content-Type": "application/json",
             "Authorization": `Bearer ${authToken}`,
           },
@@ -232,15 +265,22 @@ const PaymentDialog = ({
       
       if (isSuccess) {
         console.log("Wallet payment completed successfully!", data);
+
+        // Create order after successful wallet payment
+        const orderData = await createOrder(txnId).catch((e) => {
+          console.error("Order creation failed:", e);
+          return {};
+        });
+
         setStatus("SUCCESS");
-        
+
         // Notify parent component
         onPaymentSuccess?.(price);
 
         // Navigate after showing success
         setTimeout(() => {
           // Try different possible orderId field names from backend response
-          const orderId = data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
+          const orderId = orderData?.data?._id || data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
           
           console.log("Navigating... orderId:", orderId);
           
@@ -362,15 +402,22 @@ const PaymentDialog = ({
         // Payment completed without redirect (wallet-only or instant payment)
         else {
           console.log("Payment completed successfully!", data);
+
+          // Create order after successful online payment
+          const orderData = await createOrder(data.transactionId || `txn_${orderTimestamp}`).catch((e) => {
+            console.error("Order creation failed:", e);
+            return {};
+          });
+
           setStatus("SUCCESS");
-          
+
           // Notify parent component
           onPaymentSuccess?.(price);
 
           // Navigate to order page after delay
           setTimeout(() => {
             // Try different possible orderId field names from backend response
-            const orderId = data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
+            const orderId = orderData?.data?._id || data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
             
             console.log("Navigating... orderId:", orderId);
             

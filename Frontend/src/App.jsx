@@ -6,19 +6,7 @@ import Navbar from './components/common/Navbar'
 import Footer from './components/common/Footer'
 import ProtectedRoute from './Hooks/ProtectedRoute'
 import PublicRoute from './Hooks/PublicRoute'
-import CheckoutPage from './components/Checkout/Checkout'
-import MyOrders from './components/Order/MyOrders'
-import OrderDetail from './components/Order/OrderDetail'
-import SellerAdminDashboard from './components/Admin/SellerAdmin'
-import AdminOrders from './components/Admin/Adminpanel'
-import AdminRoute from './components/Admin/AdminRoute' 
-import Dashboard from './components/common/Dashboard'
-import CreateShop from "./pages/CreateShop";
-import MyShop from "./pages/MyShop";
-import AllShops from "./pages/AllShops";
-import ShopProfile from "./pages/ShopProfile";
-import EditShop from "./pages/EditShop";
-import AdminLogin from './pages/admin/Adminlogin'
+import ErrorBoundary from './components/common/ErrorBoundary'
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
 const Register = lazy(() => import('./pages/Register'))
@@ -61,6 +49,7 @@ const MyShop = lazy(() => import('./pages/MyShop'))
 const AllShops = lazy(() => import('./pages/AllShops'))
 const ShopProfile = lazy(() => import('./pages/ShopProfile'))
 const EditShop = lazy(() => import('./pages/EditShop'))
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 // Scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation()
