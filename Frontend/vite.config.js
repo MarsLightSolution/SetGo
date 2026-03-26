@@ -7,6 +7,8 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), '');
 
+  const appUrl = env.VITE_APP_URL || 'https://tiwari.shop';
+
   // Derive allowed hosts from VITE_FRONTEND env var — no hardcoding needed
   const allowedHosts = [];
   if (env.VITE_FRONTEND) {
@@ -24,6 +26,13 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      // Inject VITE_APP_URL into index.html with fallback so build never fails
+      {
+        name: 'html-env-inject',
+        transformIndexHtml(html) {
+          return html.replace(/%VITE_APP_URL%/g, appUrl);
+        },
+      },
     ],
 
     resolve: {
