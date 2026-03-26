@@ -7,7 +7,7 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), '');
 
-  const appUrl = env.VITE_APP_URL || 'https://tiwari.shop';
+  const appUrl = env.VITE_APP_URL || 'https://satgo.com';
 
   // Derive allowed hosts from VITE_FRONTEND env var — no hardcoding needed
   const allowedHosts = [];
