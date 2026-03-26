@@ -1,5 +1,5 @@
 /**
- * Image Optimization Script for SetGo Frontend
+ * Image Optimization Script for Satgo Frontend
  *
  * This script compresses and optimizes images for production deployment
  * Reduces bundle size by 60-80% while maintaining visual quality
@@ -228,7 +228,7 @@ async function optimizeImage(filePath) {
  * Main execution
  */
 async function main() {
-  console.log('\n🎨 SetGo Image Optimization Tool');
+  console.log('\n🎨 Satgo Image Optimization Tool');
   console.log('='.repeat(50));
   console.log(`Quality Settings: JPEG=${CONFIG.quality.jpeg} PNG=${CONFIG.quality.png} WebP=${CONFIG.quality.webp}`);
   console.log(`Generate WebP: ${CONFIG.generateWebP ? 'Yes' : 'No'}`);

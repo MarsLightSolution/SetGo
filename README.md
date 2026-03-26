@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 SetGo - Local Marketplace Platform
+# 🚀 Satgo - Local Marketplace Platform
 
 **Buy, Sell & Connect Locally with Confidence**
 
@@ -16,9 +16,9 @@
 
 ---
 
-## 📖 About SetGo
+## 📖 About Satgo
 
-SetGo is a modern, feature-rich local marketplace platform that connects buyers and sellers in their communities. Built with security, performance, and user experience at its core, SetGo makes buying and selling locally simple, safe, and enjoyable.
+Satgo is a modern, feature-rich local marketplace platform that connects buyers and sellers in their communities. Built with security, performance, and user experience at its core, Satgo makes buying and selling locally simple, safe, and enjoyable.
 
 ### ✨ Key Features
 
@@ -33,7 +33,7 @@ SetGo is a modern, feature-rich local marketplace platform that connects buyers 
 - 👤 **User Profiles** - Customizable user profiles with ratings and reviews
 - 🛡️ **Admin Dashboard** - Comprehensive admin panel for platform management
 
-### 🎯 Why SetGo?
+### 🎯 Why Satgo?
 
 - **Security First**: Rate limiting, input validation, CORS, Helmet.js, MongoDB injection prevention
 - **Performance Optimized**: Code splitting, lazy loading, Vite build optimizations
@@ -93,7 +93,7 @@ SetGo is a modern, feature-rich local marketplace platform that connects buyers 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/MarsLightSolution/SetGo.git
-   cd SetGo
+   cd satgo
    ```
 
 2. **Setup Backend**
@@ -165,7 +165,7 @@ VITE_SOCKET=http://localhost:8080
 ## 📁 Project Structure
 
 ```
-SetGo/
+satgo/
 ├── backend/
 │   ├── config/           # Configuration files
 │   ├── controller/       # Route controllers
@@ -195,7 +195,7 @@ SetGo/
 
 ## 🔐 Security Features
 
-SetGo implements industry-standard security practices:
+Satgo implements industry-standard security practices:
 
 - ✅ **Rate Limiting** - Prevents brute force and DDoS attacks
 - ✅ **Input Validation** - Joi schemas for all user inputs
@@ -352,7 +352,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-**SetGo** is developed and maintained by [Mars Light Solution](https://github.com/MarsLightSolution).
+**Satgo** is developed and maintained by [Mars Light Solution](https://github.com/MarsLightSolution).
 
 - **Lead Developer**: [Raj Tiwari](https://github.com/MarsLightSolution)
 - **Contributors**: [View all contributors](https://github.com/MarsLightSolution/SetGo/graphs/contributors)
@@ -404,6 +404,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Made with ❤️ by [Mars Light Solution](https://github.com/MarsLightSolution)
 
-[⬆ Back to Top](#-setgo---local-marketplace-platform)
+[⬆ Back to Top](#-satgo---local-marketplace-platform)
 
 </div>

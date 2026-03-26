@@ -37,7 +37,7 @@ const transporter = nodemailer.createTransport({
 async function sendMail(to, subject, text) {
   try {
     await transporter.sendMail({
-      from: `"SetGo Support" <${process.env.MAIL_USER}>`,
+      from: `"Satgo Support" <${process.env.MAIL_USER}>`,
       to,
       subject,
       text,
@@ -293,7 +293,7 @@ exports.addAdminResponse = async (req, res) => {
       await sendMail(
         userEmail,
         "Admin Response to Your Concern",
-        `Dear ${concern.userId.name || "User"},\n\nAdmin has replied to your concern:\n\n"${message}"\n\nConcern ID: ${concernId}\nIssue Type: ${concern.issueType}\n\nRegards,\nSetGo Support`
+        `Dear ${concern.userId.name || "User"},\n\nAdmin has replied to your concern:\n\n"${message}"\n\nConcern ID: ${concernId}\nIssue Type: ${concern.issueType}\n\nRegards,\nSatgo Support`
       );
     }
     */
@@ -472,8 +472,8 @@ exports.closeConcernWithMessage = async (req, res) => {
     if (userEmail) {
       await sendMail(
         userEmail,
-        "Your Concern Has Been Closed - SetGo Support",
-        `Dear ${concern.userId.name || "User"},\n\nYour concern regarding "${concern.issueType}" has been closed by our support team.\n\n📝 Admin's Final Message:\n"${adminMessage}"\n\n🆔 Concern ID: ${concernId}\n📅 Closed At: ${new Date().toLocaleString()}\n\nIf you have any further questions, please don't hesitate to raise a new concern.\n\nThank you for your patience,\nSetGo Support Team`
+        "Your Concern Has Been Closed - Satgo Support",
+        `Dear ${concern.userId.name || "User"},\n\nYour concern regarding "${concern.issueType}" has been closed by our support team.\n\n📝 Admin's Final Message:\n"${adminMessage}"\n\n🆔 Concern ID: ${concernId}\n📅 Closed At: ${new Date().toLocaleString()}\n\nIf you have any further questions, please don't hesitate to raise a new concern.\n\nThank you for your patience,\nSatgo Support Team`
       );
       logger.info(`${endpoint}: Closure email sent to ${userEmail}`);
     }

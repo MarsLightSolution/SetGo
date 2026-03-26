@@ -1,8 +1,8 @@
-# 🚀 SetGo Frontend - Production Deployment Guide
+# 🚀 Satgo Frontend - Production Deployment Guide
 
 ## Overview
 
-This guide covers all steps needed to deploy the SetGo frontend to production with optimal performance, security, and SEO.
+This guide covers all steps needed to deploy the Satgo frontend to production with optimal performance, security, and SEO.
 
 **Estimated Bundle Size Reduction**: 60-80%
 **Estimated Load Time Improvement**: 40-60%
@@ -57,7 +57,7 @@ node scripts/optimize-images.js
 
 ### Step 2: Update Environment Variables
 
-Update [`.env.production`](d:\project\SetGo main\SetGo\Frontend\.env.production) with your actual production URLs:
+Update [`.env.production`](d:\project\Satgo main\Satgo\Frontend\.env.production) with your actual production URLs:
 
 ```env
 # Backend API URL (your production backend)
@@ -79,7 +79,7 @@ VITE_SOCKET=https://api.tiwari.shop
 
 ### Step 3: Update Meta Tags (if needed)
 
-If your domain is different from `tiwari.shop`, update [index.html](d:\project\SetGo main\SetGo\Frontend\index.html):
+If your domain is different from `tiwari.shop`, update [index.html](d:\project\Satgo main\Satgo\Frontend\index.html):
 
 ```html
 <!-- Line 22: Update canonical URL -->
@@ -273,7 +273,7 @@ aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
 npm run build
 
 # Upload dist folder to server
-scp -r dist/* user@your-server:/var/www/setgo
+scp -r dist/* user@your-server:/var/www/satgo
 
 # Nginx configuration
 server {
@@ -283,7 +283,7 @@ server {
     ssl_certificate /path/to/cert.pem;
     ssl_certificate_key /path/to/key.pem;
 
-    root /var/www/setgo;
+    root /var/www/satgo;
     index index.html;
 
     # SPA routing

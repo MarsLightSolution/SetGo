@@ -15,7 +15,7 @@ function generateApiKey() {
   return `sk_${crypto.randomBytes(32).toString('hex')}`;
 }
 
-console.log('\n🔐 SECURE CREDENTIAL GENERATOR FOR SETGO BACKEND\n');
+console.log('\n🔐 SECURE CREDENTIAL GENERATOR FOR SATGO BACKEND\n');
 console.log('=' .repeat(70));
 console.log('\n⚠️  IMPORTANT: Replace these values in your .env file immediately!\n');
 console.log('=' .repeat(70));
