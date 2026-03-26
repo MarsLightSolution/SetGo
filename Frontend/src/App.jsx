@@ -49,7 +49,7 @@ const MyShop = lazy(() => import('./pages/MyShop'))
 const AllShops = lazy(() => import('./pages/AllShops'))
 const ShopProfile = lazy(() => import('./pages/ShopProfile'))
 const EditShop = lazy(() => import('./pages/EditShop'))
-const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
+const AdminLogin = lazy(() => import('./pages/admin/Adminlogin'))
 // Scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation()
