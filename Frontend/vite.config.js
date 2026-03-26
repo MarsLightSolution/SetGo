@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
       {
         name: 'html-env-inject',
         transformIndexHtml(html) {
-          return html.replace(/%VITE_APP_URL%/g, appUrl);
+          return html.replace(/__APP_URL__/g, appUrl);
         },
       },
     ],
