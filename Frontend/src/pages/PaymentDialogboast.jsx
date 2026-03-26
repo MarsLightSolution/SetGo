@@ -1,129 +1,205 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 
-const LOTTIES = {
-  LOADING: "https://lottie.host/b929aa99-cfcf-4ce7-bdf5-61cad2c3f6f8/wL9y4hrffB.lottie",
-  SUCCESS: "https://lottie.host/4d55262c-ea7c-48e2-9743-3d432f018cab/ziPzpGQKjj.lottie",
-  FAILURE: "https://lottie.host/8eb74ef8-201e-44fc-a8a2-48f1737f298a/c0sZhMohd4.lottie",
+// Simple CSS-based status indicators (no external dependencies)
+const StatusIndicator = ({ status }) => {
+  if (status === "LOADING") {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 border-4 border-lime-200 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-lime-500 rounded-full border-t-transparent animate-spin"></div>
+        </div>
+        <p className="mt-4 text-gray-600 font-medium">Processing payment...</p>
+      </div>
+    );
+  }
+
+  if (status === "SUCCESS") {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 animate-fadeIn">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+          <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p className="mt-4 text-green-600 font-semibold">Payment Successful!</p>
+      </div>
+    );
+  }
+
+  if (status === "FAILURE") {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 animate-fadeIn">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <p className="mt-4 text-red-600 font-semibold">Payment Failed</p>
+      </div>
+    );
+  }
+
+  return null;
 };
-const orderTimestamp = Date.now().toString();
 
-const LottieWrap = ({ type }) => (
-  <motion.div
-    key={type}
-    initial={{ opacity: 0, scale: 0.85 }}
-    animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.85 }}
-    transition={{ duration: 0.35 }}
-    className="flex justify-center w-full"
-  >
-    <DotLottieReact src={LOTTIES[type]} loop autoplay style={{ width: "100%", height: 280 }} />
-  </motion.div>
-);
-
-const PaymentDialogboast = ({ product, user, owner, onClose, onPaymentSuccess }) => {
+const PaymentDialogboast = ({ 
+  product, 
+  user, 
+  owner,
+  onClose,
+  onPaymentSuccess
+}) => {
   if (!product || !user || !owner) return null;
 
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
-  const [onlineMethod, setOnlineMethod] = useState("");
+  const [customAmount, setCustomAmount] = useState(""); // Custom wallet amount
   const [status, setStatus] = useState("READY");
-  const [orderId, setOrderId] = useState(null); // For socket subscription
+  const [errorMessage, setErrorMessage] = useState("");
+  const [authToken, setAuthToken] = useState(null);
+  const [userId, setUserId] = useState(null);
+  
   const navigate = useNavigate();
-  const price = 50 ?? 0;
-  const walletDeduction = useWallet ? Math.min(walletBalance, price) : 0;
-  const remainder = price - walletDeduction;
-  const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
+  const price = 50; // Fixed $50 for gallery boost
+  const orderTimestamp = Date.now().toString();
+
+  // Authenticate user and get userId from localStorage
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    const storedUserId = localStorage.getItem("userId");
+
+    if (!accessToken || !storedUserId) {
+      setErrorMessage("Authentication required. Please log in again.");
+      setStatus("FAILURE");
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+      return;
+    }
+
+    setAuthToken(accessToken);
+    setUserId(storedUserId);
+  }, [navigate]);
 
   useEffect(() => {
     setWalletBalance(user.walletBalance ?? 0);
   }, [user]);
 
-  useEffect(() => {
-    if (!orderId) return;
+  // Calculate actual wallet amount to use
+  const walletAmountToUse = useMemo(() => {
+    if (!useWallet) return 0;
+    
+    if (customAmount === "") {
+      // Use maximum possible (either full balance or price, whichever is lower)
+      return Math.min(walletBalance, price);
+    }
+    
+    const amount = parseFloat(customAmount);
+    if (isNaN(amount) || amount <= 0) return 0;
+    
+    // Ensure amount doesn't exceed wallet balance or price
+    return Math.min(amount, walletBalance, price);
+  }, [useWallet, customAmount, walletBalance, price]);
 
-    const socket = io(`${import.meta.env.VITE_SERVER}`, { withCredentials: true });
-    socket.emit("subscribePayment", orderId);
-
-    socket.on("paymentUpdate", (data) => {
-      if (data.status === "PAID" && data.orderId === orderId) {
-        setStatus("SUCCESS");
-        onPaymentSuccess?.(price);
-        setTimeout(() => {
-          socket.disconnect();
-          onClose();
-        }, 1800);
-      }
-    });
-
-    return () => {
-      socket.off("paymentUpdate");
-      socket.disconnect();
-    };
-  }, [orderId, onClose, onPaymentSuccess, price]);
-
-  const Radio = ({ value, label }) => (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input
-        type="radio"
-        name="onlineMethod"
-        value={value}
-        checked={onlineMethod === value}
-        onChange={() => setOnlineMethod(value)}
-        disabled={remainder === 0 || status !== "READY"}
-      />
-      <span>{label}</span>
-    </label>
-  );
+  // Calculate remaining amount to pay online
+  const remainingAmount = useMemo(() => {
+    return Math.max(0, price - walletAmountToUse);
+  }, [price, walletAmountToUse]);
 
   const payLabel = useMemo(() => {
-    if (status === "LOADING") return "Processing…";
-    if (status === "SUCCESS") return "Paid";
+    if (status === "LOADING") return "Processing Payment…";
+    if (status === "SUCCESS") return "Payment Successful";
     if (status === "FAILURE") return "Retry Payment";
-    if (remainder === 0) return `Pay ₼ ${price} with Wallet`;
-    if (!onlineMethod) return "Select payment method";
-    return `Pay ₼ ${remainder} via ${onlineMethod}`;
-  }, [status, price, remainder, onlineMethod]);
+    if (remainingAmount === 0) return `Pay ₼ ${price} with Wallet`;
+    return `Pay ₼ ${price}`;
+  }, [status, price, remainingAmount]);
 
-  const isPayDisabled = status === "LOADING" || (status === "READY" && remainder > 0 && !onlineMethod);
+  const isPayDisabled = status === "LOADING" || !authToken || !userId;
 
   const handlePay = async () => {
     if (status === "FAILURE") {
       setStatus("READY");
+      setErrorMessage("");
       return;
     }
     if (isPayDisabled) return;
 
-    if (remainder === 0) {
+    // If full amount covered by wallet, use wallet transfer
+    if (remainingAmount === 0) {
       await walletTransfer();
     } else {
-      await onlineTransfer();
+      await processPayment();
     }
   };
 
+  // Handler for custom amount input
+  const handleCustomAmountChange = (e) => {
+    const value = e.target.value;
+    
+    // Allow empty string or valid numbers
+    if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+      setCustomAmount(value);
+    }
+  };
+
+  // Quick select buttons for wallet amount
+  const handleQuickSelect = (percentage) => {
+    const maxUsable = Math.min(walletBalance, price);
+    const amount = (maxUsable * percentage).toFixed(2);
+    setCustomAmount(amount);
+  };
+
+  /**
+   * Wallet-only payment (when full amount is covered by wallet)
+   */
   const walletTransfer = async () => {
+    if (!authToken || !userId) {
+      setStatus("FAILURE");
+      setErrorMessage("Authentication required. Please log in again.");
+      setTimeout(() => navigate("/login"), 2000);
+      return;
+    }
+
     setStatus("LOADING");
+    setErrorMessage("");
+
+    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
     const payload = {
-      senderId: user._id,
+      senderId: userId,
       receiverId: owner,
       type: "transfer",
       amount: price,
-      description: `Payment for order ${orderTimestamp}`,
+      description: `Payment for gallery boost ${orderTimestamp}`,
       transactionId: txnId,
-      referenceId: `order_${orderTimestamp}`,
+      referenceId: `boost_${orderTimestamp}`,
       source: "wallet",
     };
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/transaction/transferFund`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER}/api/transaction/transferFund`,
+        {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
       const data = await res.json().catch(() => ({}));
+
+      if (res.status === 401 || res.status === 403) {
+        setStatus("FAILURE");
+        setErrorMessage("Session expired. Please log in again.");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("userId");
+        setTimeout(() => navigate("/login"), 2000);
+        return;
+      }
 
       if (res.ok) {
         setStatus("SUCCESS");
@@ -131,125 +207,318 @@ const PaymentDialogboast = ({ product, user, owner, onClose, onPaymentSuccess })
         setTimeout(onClose, 1800);
       } else {
         setStatus("FAILURE");
+        setErrorMessage(data.message || "Payment failed. Please try again.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Wallet transfer error:", err);
       setStatus("FAILURE");
+      setErrorMessage("Network error. Please check your connection.");
     }
   };
 
-  const onlineTransfer = async () => {
-    setStatus("LOADING");
-    const orderTimestamp = Date.now().toString();
-    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
+  /**
+   * Online payment or wallet + online payment
+   */
+  const processPayment = async () => {
+    if (!authToken || !userId) {
+      setStatus("FAILURE");
+      setErrorMessage("Authentication required. Please log in again.");
+      setTimeout(() => navigate("/login"), 2000);
+      return;
+    }
 
+    setStatus("LOADING");
+    setErrorMessage("");
+
+    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
     const payload = {
-      userId: user._id,
+      userId: userId,
       receiverId: owner,
       type: "transfer",
       amount: price,
-      description: `Payment for order ${orderTimestamp}`,
+      description: `Payment for gallery boost ${orderTimestamp}`,
       transactionId: txnId,
-      referenceId: `order_${orderTimestamp}`,
+      referenceId: `boost_${orderTimestamp}`,
       source: "online",
       product: product._id,
+      walletUsed: useWallet,
+      walletAmount: walletAmountToUse,
     };
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/payment/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER}/api/payment/create`,
+        {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await res.json().catch(() => ({}));
+
+      if (res.status === 401 || res.status === 403) {
+        setStatus("FAILURE");
+        setErrorMessage("Session expired. Please log in again.");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("userId");
+        setTimeout(() => navigate("/login"), 2000);
+        return;
+      }
+
       if (data.success === true) {
-        setOrderId(data.orderId);
+        // Store minimal info before redirect
+        localStorage.setItem('pendingPayment', JSON.stringify({
+          orderId: data.orderId,
+          transactionId: data.transactionId,
+          timestamp: Date.now(),
+        }));
+
+        // Redirect to payment gateway
         window.location.href = data.url;
       } else {
         setStatus("FAILURE");
+        setErrorMessage(data.message || "Payment failed. Please try again.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Payment error:", err);
       setStatus("FAILURE");
+      setErrorMessage("Network error. Please check your connection.");
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white max-w-md w-full rounded-xl shadow-lg p-6 relative">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white max-w-md w-full rounded-xl shadow-lg p-6 relative max-h-[90vh] overflow-y-auto">
         <button
-          className="absolute top-3 right-3 text-xl text-gray-500 hover:text-red-600"
+          className="absolute top-3 right-3 text-xl text-gray-500 hover:text-red-600 transition-colors"
           disabled={status === "LOADING"}
           onClick={onClose}
+          aria-label="Close dialog"
         >
           &times;
         </button>
+
         <h2 className="text-xl font-bold mb-4 text-center">Complete Payment</h2>
-        <section className="border rounded p-4 mb-4">
-          <p className="font-semibold">Order Summary</p>
-          <div className="flex justify-between mt-2">
-            <span>Boost Ad</span>
-            <span className="font-bold text-green-600">₼ {price}</span>
+
+        {/* Order Summary */}
+        <section className="border rounded-lg p-4 mb-4 bg-gray-50">
+          <p className="font-semibold mb-3 text-gray-700">Order Summary</p>
+          <div className="flex justify-between items-center py-2">
+            <span className="text-gray-600">Boost Ad</span>
+            <span className="font-bold text-green-600 text-lg">₼ {price}</span>
           </div>
-          <div className="flex justify-between mt-1">
-            <span>Wallet Balance</span>
-            <span className={`font-semibold ${walletBalance ? "text-green-600" : "text-red-500"}`}>
+          <div className="flex justify-between items-center py-2 border-t">
+            <span className="text-gray-600">Wallet Balance</span>
+            <span 
+              className={`font-semibold ${
+                walletBalance > 0 ? "text-green-600" : "text-red-500"
+              }`}
+            >
               ₼ {walletBalance}
             </span>
           </div>
+          
+          {/* Payment Breakdown */}
+          {useWallet && walletAmountToUse > 0 && (
+            <>
+              <div className="flex justify-between items-center py-2 border-t text-sm">
+                <span className="text-gray-600">Wallet Payment</span>
+                <span className="font-semibold text-lime-600">
+                  - ₼ {walletAmountToUse.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-t">
+                <span className="text-gray-700 font-medium">Online Payment</span>
+                <span className="font-bold text-blue-600 text-lg">
+                  ₼ {remainingAmount.toFixed(2)}
+                </span>
+              </div>
+            </>
+          )}
         </section>
-        <label className="flex items-center gap-2 mb-4 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={useWallet}
-            onChange={(e) => setUseWallet(e.target.checked)}
-            disabled={!walletBalance || status !== "READY"}
-          />
-          <span>Use Wallet {walletBalance > 0 && `(up to ₼ ${walletBalance})`}</span>
-        </label>
-        {useWallet && (
-          <div className="bg-green-50 text-green-700 text-sm p-3 rounded mb-4">
-            {remainder === 0
-              ? "Full amount will be paid from wallet."
-              : `₼ ${walletDeduction} will be deducted from wallet. Remaining ₼ ${remainder} to pay online.`}
+
+        {/* Wallet Checkbox */}
+        {walletBalance > 0 && (
+          <div className="mb-4">
+            <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={useWallet}
+                onChange={(e) => {
+                  setUseWallet(e.target.checked);
+                  if (!e.target.checked) {
+                    setCustomAmount("");
+                  }
+                }}
+                disabled={status !== "READY"}
+                className="w-4 h-4 text-lime-500"
+              />
+              <span className="text-gray-700 font-medium">
+                Use Wallet Balance {walletBalance > 0 && `(up to ₼ ${Math.min(walletBalance, price)})`}
+              </span>
+            </label>
+
+            {/* Custom Amount Input */}
+            {useWallet && (
+              <div className="mt-3 p-4 bg-gradient-to-r from-lime-50 to-green-50 rounded-lg border border-lime-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter Amount to Use from Wallet
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
+                    ₼
+                  </span>
+                  <input
+                    type="text"
+                    value={customAmount}
+                    onChange={handleCustomAmountChange}
+                    placeholder={`Max: ${Math.min(walletBalance, price).toFixed(2)}`}
+                    disabled={status !== "READY"}
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                </div>
+                
+                {/* Quick Select Buttons */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSelect(0.25)}
+                    disabled={status !== "READY"}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-lime-700 bg-white border border-lime-300 rounded hover:bg-lime-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    25%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSelect(0.5)}
+                    disabled={status !== "READY"}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-lime-700 bg-white border border-lime-300 rounded hover:bg-lime-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    50%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSelect(0.75)}
+                    disabled={status !== "READY"}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-lime-700 bg-white border border-lime-300 rounded hover:bg-lime-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    75%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSelect(1)}
+                    disabled={status !== "READY"}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-lime-700 bg-white border border-lime-300 rounded hover:bg-lime-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Max
+                  </button>
+                </div>
+
+                {/* Validation Message */}
+                {customAmount && parseFloat(customAmount) > Math.min(walletBalance, price) && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Amount exceeds available balance or price
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
-        {remainder > 0 && (
-          <>
-            <p className="font-semibold mb-2">Choose Online Method</p>
-            <div className="flex flex-col gap-2 mb-4">
-              <Radio value="CARD" label="Credit / Debit Card" />
+
+        {/* Wallet Usage Info */}
+        {useWallet && walletAmountToUse > 0 && (
+          <div className="bg-blue-50 text-blue-700 text-sm p-3 rounded-lg mb-4 border border-blue-200">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <p>
+                {walletAmountToUse >= price
+                  ? `Full amount (₼ ${walletAmountToUse.toFixed(2)}) will be paid from your wallet.`
+                  : `₼ ${walletAmountToUse.toFixed(2)} will be deducted from wallet. Remaining ₼ ${remainingAmount.toFixed(2)} will be paid online.`}
+              </p>
             </div>
-          </>
+          </div>
         )}
-        <AnimatePresence mode="wait">
-          {status !== "READY" && (
-            <div className="flex items-center justify-center mb-4">
-              <LottieWrap type={status} />
+
+        {/* Payment Method Info */}
+        {(!useWallet || remainingAmount > 0) && (
+          <div className="bg-gradient-to-r from-lime-50 to-green-50 rounded-lg p-4 mb-4 border border-lime-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-2 rounded-lg shadow-sm">
+                <svg className="w-6 h-6 text-lime-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800">Secure Payment</p>
+                <p className="text-xs text-gray-600">
+                  Powered by Azericard Gateway
+                </p>
+              </div>
             </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
+
+        {/* Status Indicator */}
+        {status !== "READY" && (
+          <StatusIndicator status={status} />
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4 border border-red-200">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p>{errorMessage}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Pay Button */}
         {status !== "SUCCESS" && (
           <button
             disabled={isPayDisabled}
             onClick={handlePay}
-            className={`w-full ${isPayDisabled
+            className={`w-full ${
+              isPayDisabled
                 ? "bg-gray-300 cursor-not-allowed"
                 : status === "FAILURE"
-                  ? "bg-indigo-600 hover:bg-indigo-700"
-                  : "bg-lime-500 hover:bg-lime-600"
-              } text-white font-semibold py-2 rounded`}
+                ? "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800"
+                : "bg-lime-500 hover:bg-lime-600 active:bg-lime-700"
+            } text-white font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg transform active:scale-[0.98]`}
           >
             {payLabel}
           </button>
         )}
-        <div className="text-xs text-center text-gray-500 mt-4">
-          100% Secured Payments | Verified Merchant | PCI DSS Certified
+
+        {/* Security Badge */}
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-4 pt-4 border-t">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+          </svg>
+          <span>Secured Payment • PCI DSS Certified</span>
         </div>
+
+        {/* Add required CSS for animations */}
+        <style jsx>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+          }
+        `}</style>
       </div>
     </div>
   );
-  
 };
+
 export default PaymentDialogboast;

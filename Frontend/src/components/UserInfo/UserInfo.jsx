@@ -8,7 +8,6 @@
   import { toast, ToastContainer } from "react-toastify"
   import "react-toastify/dist/ReactToastify.css"
   import PaymentDialogboast from "../../pages/PaymentDialogboast"
-  // i18n import
   import { useTranslation } from "react-i18next"
   import SafeImage from "../common/SafeImage"
 

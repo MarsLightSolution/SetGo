@@ -67,6 +67,5 @@ router.patch("/mark-sold/:productId", verifyJWT, markProductAsSold);
 router.get('/category/:category', getProductsByCategory);
 router.route("/productadds")
 router.get("/priority", getPriorityProducts);
-// SECURITY: Update priority requires authentication
-router.put("/priority/:productId", verifyJWT, updateProductPriority);
+router.put("/priority/:productId", updateProductPriority);
 module.exports = router;

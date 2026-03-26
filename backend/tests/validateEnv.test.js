@@ -16,7 +16,7 @@ describe('validateEnvVariables', () => {
     process.env = {
       NODE_ENV: 'development',
       MONGODB_URI: 'mongodb://localhost:27017/proddb',
-      JWT_SECRET: 'a'.repeat(32),
+      // JWT_SECRET: 'a'.repeat(32),
       REFRESH_TOKEN_SECRET: 'b'.repeat(32),
       FRONTEND_URL: 'http://localhost:5173',
       PAYMENTWALL_PROJECT_KEY: 'project_key',
