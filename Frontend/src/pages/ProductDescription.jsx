@@ -9,8 +9,6 @@ import {
   Inventory as InventoryIcon,
   ChevronRight as ChevronRightIcon,
 } from "@mui/icons-material";
-import leftadImage from "../assets/images/ad01.png";
-import rightadImage from "../assets/images/ad02.png";
 import UserIcon from "../assets/icons/user.svg";
 import SaveIcon from "../assets/icons/save.svg";
 import EyeIcon from "../assets/icons/eye.svg";
@@ -49,6 +47,7 @@ const ProductDetail = () => {
   const isWishlisted = wishlist.some((item) => item._id === product?._id);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [sidebarAds, setSidebarAds] = useState({ left: [], right: [], banner: [], inline: [] });
 
   // ============= REVIEW STATES =============
   const [reviewSummary, setReviewSummary] = useState(null);
@@ -91,6 +90,13 @@ const ProductDetail = () => {
       toast.success(t("productDetail.addedToWatchlist"));
     }
   };
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_SERVER}/api/ads/public`)
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setSidebarAds(d.ads) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userData");
@@ -520,13 +526,26 @@ const ProductDetail = () => {
         <div className="w-full flex justify-center">
           <div className="w-full max-w-screen-xl px-4 flex flex-wrap gap-4 items-start">
             {/* Left Ad (Desktop only) */}
-            <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
-              <img
-                src={leftadImage}
-                alt={t("home.leftAdAlt")}
-                className="w-full h-[550px] object-cover rounded"
-              />
-            </div>
+            {sidebarAds.left.length > 0 && (
+              <div className="hidden lg:block w-[160px] flex-shrink-0 self-stretch">
+                <div className="sticky top-[180px] flex flex-col gap-3 z-30">
+                  {sidebarAds.left.map((ad) =>
+                    ad.link ? (
+                      <a key={ad._id} href={ad.link} target={ad.linkTarget || "_blank"} rel="noopener noreferrer"
+                        onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}>
+                        <img src={`${import.meta.env.VITE_SERVER}${ad.image}`} alt={ad.title}
+                          className="w-full h-[550px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                          onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })} />
+                      </a>
+                    ) : (
+                      <img key={ad._id} src={`${import.meta.env.VITE_SERVER}${ad.image}`} alt={ad.title}
+                        className="w-full h-[550px] object-cover rounded-xl shadow-md"
+                        onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })} />
+                    )
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Main Content */}
             <div className="flex-1 w-full lg:w-auto">
@@ -1325,13 +1344,26 @@ const ProductDetail = () => {
             </div>
 
             {/* Right Ad (Desktop only) */}
-            <div className="hidden lg:block w-[160px] sticky top-[180px] h-fit z-30">
-              <img
-                src={rightadImage}
-                alt={t("home.rightAdAlt")}
-                className="w-full h-[550px] object-cover rounded"
-              />
-            </div>
+            {sidebarAds.right.length > 0 && (
+              <div className="hidden lg:block w-[160px] flex-shrink-0 self-stretch">
+                <div className="sticky top-[180px] flex flex-col gap-3 z-30">
+                  {sidebarAds.right.map((ad) =>
+                    ad.link ? (
+                      <a key={ad._id} href={ad.link} target={ad.linkTarget || "_blank"} rel="noopener noreferrer"
+                        onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}>
+                        <img src={`${import.meta.env.VITE_SERVER}${ad.image}`} alt={ad.title}
+                          className="w-full h-[550px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                          onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })} />
+                      </a>
+                    ) : (
+                      <img key={ad._id} src={`${import.meta.env.VITE_SERVER}${ad.image}`} alt={ad.title}
+                        className="w-full h-[550px] object-cover rounded-xl shadow-md"
+                        onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })} />
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

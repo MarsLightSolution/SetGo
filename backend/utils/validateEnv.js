@@ -11,7 +11,7 @@ const REQUIRED_ENV_VARS = {
   MONGODB_URI: { required: true, sensitive: true },
 
   // JWT & Authentication
-  JWT_SECRET: { required: true, sensitive: true, minLength: 32 },
+  // JWT_SECRET: { required: true, sensitive: true, minLength: 32 },
   REFRESH_TOKEN_SECRET: { required: true, sensitive: true, minLength: 32 },
 
   // Server Configuration

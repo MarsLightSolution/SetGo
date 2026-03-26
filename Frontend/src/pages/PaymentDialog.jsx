@@ -46,11 +46,11 @@ const StatusIndicator = ({ status }) => {
   return null;
 };
 
-const PaymentDialog = ({
-  product,
-  user,
+const PaymentDialog = ({ 
+  product, 
+  user, 
   onClose,
-  onPaymentSuccess
+  onPaymentSuccess 
 }) => {
   const { t } = useTranslation();
   if (!product || !user) return null;
@@ -65,6 +65,7 @@ const PaymentDialog = ({
 
   const navigate = useNavigate();
   const price = product.price ?? 0;
+  const orderTimestamp = Date.now().toString();
 
   // Authenticate user and get userId from localStorage
   useEffect(() => {
@@ -111,11 +112,12 @@ const PaymentDialog = ({
   }, [price, walletAmountToUse]);
 
   const payLabel = useMemo(() => {
-    if (status === "LOADING") return t("payment.processingPaymentLabel");
-    if (status === "SUCCESS") return t("payment.paymentSuccessfulLabel");
-    if (status === "FAILURE") return t("payment.retryPayment");
-    return t("payment.payAmount", { amount: price });
-  }, [status, price, t]);
+    if (status === "LOADING") return "Processing Payment…";
+    if (status === "SUCCESS") return "Payment Successful";
+    if (status === "FAILURE") return "Retry Payment";
+    if (useWallet && remainingAmount === 0) return `Pay ₼ ${price} with Wallet`;
+    return `Pay ₼ ${price}`;
+  }, [status, price, useWallet, remainingAmount]);
 
   const isPayDisabled = status === "LOADING";
 
@@ -127,7 +129,12 @@ const PaymentDialog = ({
     }
     if (isPayDisabled) return;
 
-    await processPayment();
+    // If full amount covered by wallet, use wallet transfer
+    if (useWallet && walletAmountToUse >= price) {
+      await walletTransfer();
+    } else {
+      await processPayment();
+    }
   };
 
   // Handler for custom amount input
@@ -148,7 +155,161 @@ const PaymentDialog = ({
   };
 
   /**
-   * ✅ SECURE: Unified payment processing
+   * Creates an order record after successful payment
+   */
+  const createOrder = async (transactionId) => {
+    const payload = {
+      buyerId: userId,
+      sellerId: product.owner?._id || product.owner,
+      productId: product._id,
+      total: price,
+      transactionId,
+      address: {
+        name: user.fullName,
+        email: user.email,
+        city: user.city,
+        address: user.address,
+        zipCode: user.postalCode,
+      },
+    };
+
+    const res = await fetch(`${import.meta.env.VITE_SERVER}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    console.log("Order creation response:", { status: res.status, data });
+    return data;
+  };
+
+  /**
+   * Wallet-only payment (when full amount is covered by wallet)
+   * Uses direct wallet transfer endpoint
+   */
+  const walletTransfer = async () => {
+    if (!authToken || !userId) {
+      setStatus("FAILURE");
+      setErrorMessage("Authentication required. Please log in again.");
+      setTimeout(() => navigate("/login"), 2000);
+      return;
+    }
+
+    setStatus("LOADING");
+    setErrorMessage("");
+
+    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
+    const payload = {
+      senderId: userId,
+      receiverId: product.owner?._id || product.owner, // Product owner ID
+      type: "purchase",
+      amount: price,
+      description: `Payment for product: ${product.title || product._id}`,
+      transactionId: txnId,
+      referenceId: `order_${orderTimestamp}`,
+      source: "wallet",
+      productId: product._id,
+      orderData: {
+        address: {
+          name: user.fullName,
+          email: user.email,
+          city: user.city,
+          address: user.address,
+          zipCode: user.postalCode,
+        },
+      },
+    };
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER}/api/transaction/transferFund`,
+        {
+          method: "POST",
+            headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 401 || res.status === 403) {
+        setStatus("FAILURE");
+        setErrorMessage("Session expired. Please log in again.");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("userId");
+        setTimeout(() => navigate("/login"), 2000);
+        return;
+      }
+
+      // Log the full response for debugging
+      console.log("Wallet transfer response:", { status: res.status, ok: res.ok, data });
+
+      if (res.status === 401 || res.status === 403) {
+        setStatus("FAILURE");
+        setErrorMessage("Session expired. Please log in again.");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("userId");
+        setTimeout(() => navigate("/login"), 2000);
+        return;
+      }
+
+      // Check for success - be more lenient with success conditions
+      const isSuccess = res.ok || res.status === 200 || res.status === 201 || data.success === true;
+      
+      if (isSuccess) {
+        console.log("Wallet payment completed successfully!", data);
+
+        // Create order after successful wallet payment
+        const orderData = await createOrder(txnId).catch((e) => {
+          console.error("Order creation failed:", e);
+          return {};
+        });
+
+        setStatus("SUCCESS");
+
+        // Notify parent component
+        onPaymentSuccess?.(price);
+
+        // Navigate after showing success
+        setTimeout(() => {
+          // Try different possible orderId field names from backend response
+          const orderId = orderData?.data?._id || data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
+          
+          console.log("Navigating... orderId:", orderId);
+          
+          // Close dialog first
+          onClose?.();
+          
+          // Then navigate
+          setTimeout(() => {
+            if (orderId) {
+              navigate(`/order/${orderId}`);
+            } else {
+              navigate("/orders");
+            }
+          }, 100);
+        }, 1500);
+      } else {
+        console.log("Payment failed:", data);
+        setStatus("FAILURE");
+        setErrorMessage(data.message || data.error || "Payment failed. Please try again.");
+      }
+    } catch (err) {
+      console.error("Wallet transfer error:", err);
+      setStatus("FAILURE");
+      setErrorMessage("Network error. Please check your connection.");
+    }
+  };
+
+  /**
+   * Online payment or wallet + online payment
    * Backend will:
    * - Authenticate user via JWT token from localStorage
    * - Fetch product details from database (including owner)
@@ -171,7 +332,7 @@ const PaymentDialog = ({
     setStatus("LOADING");
     setErrorMessage("");
 
-    // ✅ SECURITY: Minimal payload with userId from localStorage
+    // SECURITY: Minimal payload with userId from localStorage
     const payload = {
       buyerId: userId,  // From localStorage (backend still validates token)
       productId: product._id,  // Backend fetches full product details
@@ -187,24 +348,24 @@ const PaymentDialog = ({
         
       },
     };
-    console.log(payload);
-    
-   try {
-    const res = await fetch(
-      `${import.meta.env.VITE_SERVER}/api/payments/initiate`,
-      {
-        method: "POST",
-        credentials: 'include',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-      // console.log(res);
-      
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER}/api/payment/create`,
+        {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`, // SECURITY: JWT token from localStorage
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await res.json().catch(() => ({}));
+      
+      // Log full response for debugging
+      console.log("Payment API response:", { status: res.status, ok: res.ok, data });
 
       // Handle unauthorized/authentication errors
       if (res.status === 401 || res.status === 403) {
@@ -222,43 +383,64 @@ const PaymentDialog = ({
       console.log(data.completed);
       
 
-      if (data.success === true) {
-        // If payment completed without redirect (wallet-only payment)
-        if (data.completed === true) {
-          console.log("Payment completed successfully");
-          setStatus("SUCCESS");
+      // Check for success - be more lenient
+      const isSuccess = res.ok || res.status === 200 || res.status === 201 || data.success === true;
 
-          // Notify parent component
-          onPaymentSuccess?.(price);
-
-          // Navigate to order page
-          setTimeout(() => {
-            if (data.orderId) {
-              navigate(`/order/${data.orderId}`);
-            } else {
-              onClose();
-            }
-          }, 2300);
-        }
+      if (isSuccess) {
         // If payment requires redirect (online payment or wallet + online)
-        else if (data.url) {
+        if (data.url) {
           // Store minimal info in localStorage before redirect
           localStorage.setItem('pendingPayment', JSON.stringify({
-            orderId: data.orderId,
+            orderId: data.orderId || data.order?._id,
             transactionId: data.transactionId,
             timestamp: Date.now(),
           }));
 
           // Redirect to payment gateway
           window.location.href = data.url;
-        } else {
-          setStatus("FAILURE");
-          setErrorMessage(t("payment.invalidResponse"));
+        } 
+        // Payment completed without redirect (wallet-only or instant payment)
+        else {
+          console.log("Payment completed successfully!", data);
+
+          // Create order after successful online payment
+          const orderData = await createOrder(data.transactionId || `txn_${orderTimestamp}`).catch((e) => {
+            console.error("Order creation failed:", e);
+            return {};
+          });
+
+          setStatus("SUCCESS");
+
+          // Notify parent component
+          onPaymentSuccess?.(price);
+
+          // Navigate to order page after delay
+          setTimeout(() => {
+            // Try different possible orderId field names from backend response
+            const orderId = orderData?.data?._id || data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
+            
+            console.log("Navigating... orderId:", orderId);
+            
+            // Close dialog first
+            onClose?.();
+            
+            // Then navigate
+            setTimeout(() => {
+              if (orderId) {
+                navigate(`/order/${orderId}`);
+              } else {
+                // If no orderId, navigate to orders list
+                console.log("No orderId in response, navigating to orders page");
+                navigate("/orders");
+              }
+            }, 100);
+          }, 1500);
         }
       } else {
+        console.log("Payment failed:", data);
         setStatus("FAILURE");
         setErrorMessage(
-          data.message || t("payment.paymentFailedRetry")
+          data.message || data.error || "Payment failed. Please try again."
         );
       }
     } catch (err) {
@@ -335,7 +517,7 @@ const PaymentDialog = ({
                 className="w-4 h-4 text-lime-500"
               />
               <span className="text-gray-700 font-medium">
-                {t("payment.useWalletBalance")}
+                Use Wallet Balance {walletBalance > 0 && `(up to ₼ ${Math.min(walletBalance, price)})`}
               </span>
             </label>
 

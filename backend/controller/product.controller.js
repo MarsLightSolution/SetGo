@@ -942,23 +942,21 @@ const updateProductPriority = asyncHandler(async (req, res) => {
   }
 
   const product = await Product.findById(productId);
+  
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
 
-  // If priority is not set yet, default to 0
-  const currentPriority = product.priority || 0;
-
-  // Toggle between 0 and 1
-  product.priority = currentPriority === 1 ? 0 : 1;
-
+  // Toggle boolean
+  product.priority = !product.priority;
   await product.save();
+
+  const action = product.priority ? "boosted" : "unboosted";
 
   return res
     .status(200)
-    .json(new ApiResponse(200, product, `Product priority toggled to ${product.priority}`));
+    .json(new ApiResponse(200, product, `Product ${action} successfully`));
 });
-
 // ✅ NEW: Get products by shop ID
 const getProductsByShop = asyncHandler(async (req, res) => {
   const { shopId } = req.params;

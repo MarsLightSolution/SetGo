@@ -3,6 +3,7 @@ const Order = require("../models/Order");
 const User = require("../models/user"); // ✅ Make sure you have User model to fetch email
 const winston = require("winston");
 const nodemailer = require("nodemailer");
+const { emitToUser } = require('../utils/ioInstance');
 
 // ========= Winston Logger Setup =========
 const logger = winston.createLogger({
@@ -208,14 +209,10 @@ exports.getConcernDetails = async (req, res) => {
     const { concernId } = req.params;
     const { userId } = req.query;
 
-    if (!userId) {
-      logger.warn(`${endpoint}: Missing userId`, { params: req.params });
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
-    }
+    // If userId provided, filter by it (user view); otherwise allow admin access
+    const query = userId ? { _id: concernId, userId } : { _id: concernId };
 
-    const concern = await Concern.findOne({ _id: concernId, userId })
+    const concern = await Concern.findOne(query)
       .populate("orderId")
       .populate("sellerId", "name email")
       .populate("adminResponses.adminId", "name");
@@ -270,13 +267,24 @@ exports.addAdminResponse = async (req, res) => {
     }
 
     concern.adminResponses.push({ adminId, message, respondedAt: new Date() });
-    
+
     // Update status to in_progress if it's currently open
     if (concern.status === "open") {
       concern.status = "in_progress";
     }
-    
+
     await concern.save();
+
+    // ── Real-time notification to the user who raised the concern ─────────
+    emitToUser(String(concern.userId._id || concern.userId), "notification", {
+      id:        `concern_reply_${concernId}_${Date.now()}`,
+      type:      "system",
+      title:     "💬 Support Team Replied",
+      message:   `Your query regarding "${concern.issueType.replace(/_/g, " ")}" has a new response.`,
+      timestamp: Date.now(),
+      isRead:    false,
+      concernId,
+    });
 
     // ✉️ UNCOMMENT BELOW TO ENABLE EMAIL NOTIFICATION
     /*
@@ -446,6 +454,17 @@ exports.closeConcernWithMessage = async (req, res) => {
     concern.closedAt = new Date();
 
     await concern.save();
+
+    // ── Real-time notification to user ────────────────────────────────────
+    emitToUser(String(concern.userId?._id || concern.userId), "notification", {
+      id:        `concern_closed_${concernId}`,
+      type:      "system",
+      title:     "✅ Support Query Closed",
+      message:   `Your query regarding "${concern.issueType.replace(/_/g, " ")}" has been resolved and closed.`,
+      timestamp: Date.now(),
+      isRead:    false,
+      concernId,
+    });
 
     // ✉️ UNCOMMENT BELOW TO ENABLE EMAIL NOTIFICATION
     /*

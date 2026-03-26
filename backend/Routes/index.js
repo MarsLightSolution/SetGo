@@ -22,4 +22,6 @@ router.use("/chatbot", require("./ChatbotRoutes.js"));
 router.use("/concern", require("./concernRoutes.js"));
 router.use("/reviews", require("./reviewRoutes.js"));
 router.use("/api/shops", shopRoutes);
- module.exports = router;
+router.use("/api/ads", require("./adRoutes.js"));
+router.use("/api/notifications", require("./notificationRoutes.js"));
+module.exports = router;

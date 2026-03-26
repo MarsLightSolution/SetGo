@@ -1,673 +1,741 @@
 "use client"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import io from "socket.io-client"
 import { useLocation } from "react-router-dom"
-import { FaCamera } from "react-icons/fa"
+import { FaCamera, FaTimes, FaBars, FaPaperPlane, FaCheck, FaCheckDouble, FaExclamationTriangle } from "react-icons/fa"
 import imageCompression from "browser-image-compression"
 import heic2any from "heic2any"
+
 export default function ChatApp() {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [allUsers, setAllUsers] = useState([])
-  const [conversations, setConversations] = useState([])
+  const [currentUser, setCurrentUser]           = useState(null)
+  const [allUsers, setAllUsers]                 = useState([])
+  const [conversations, setConversations]       = useState([])
   const [activeConversation, setActiveConversation] = useState(null)
-  const [connectionUsername, setConnectionUsername] = useState("")
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
-  const [connectionError, setConnectionError] = useState("")
-  const [apiStatus, setApiStatus] = useState("checking")
-  const location = useLocation()
+  const [messages, setMessages]                 = useState([])
+  const [newMessage, setNewMessage]             = useState("")
+  const [isTyping, setIsTyping]                 = useState(false)
+  const [sidebarOpen, setSidebarOpen]           = useState(false)
+  const [isConnected, setIsConnected]           = useState(false)
+  const [uploadState, setUploadState]           = useState("idle") // idle | processing | uploading | error
+  const [lightboxImage, setLightboxImage]       = useState(null)
+  const [loadingMessages, setLoadingMessages]   = useState(false)
+
+  const location              = useLocation()
   const focusedConversationId = location.state?.conversationId
-  const focusedReceiver = location.state?.receiverUsername
-  const [messages, setMessages] = useState([])
-  const [newMessage, setNewMessage] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef(null)
-  const fileInputRef = useRef(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const API_BASE = `${import.meta.env.VITE_SERVER}/api/chat`
+
+  const API_BASE   = `${import.meta.env.VITE_SERVER}/api/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
-  const messagesContainerRef = useRef(null)
-  const socketRef = useRef(null)
-  const [initialLoad, setInitialLoad] = useState(true)
-  // Auto-focus conversation after currentUser and conversations are ready
+
+  // ─── Refs ─────────────────────────────────────────────────────────────────
+  const messagesContainerRef  = useRef(null)
+  const fileInputRef          = useRef(null)
+  const socketRef             = useRef(null)
+  const activeConvRef         = useRef(null)   // avoids stale closure in socket handler
+  const currentUserRef        = useRef(null)
+  const typingTimeoutRef      = useRef(null)
+  const isFirstLoad           = useRef(true)
+
+  // Keep refs in sync
+  useEffect(() => { activeConvRef.current  = activeConversation }, [activeConversation])
+  useEffect(() => { currentUserRef.current = currentUser },        [currentUser])
+
+  // ─── Auto-connect ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!currentUser || conversations.length === 0) return
-
-    if (focusedConversationId) {
-      const targetConversation = conversations.find((c) => c._id === focusedConversationId)
-
-      if (targetConversation) {
-        setActiveConversation(targetConversation)
-
-        // Wait for messages to load, then join socket
-        loadMessages(targetConversation._id).then(() => {
-          if (socketRef.current) {
-            socketRef.current.emit("joinConversation", targetConversation._id)
-          }
-        })
-      }
-    }
-  }, [currentUser, conversations, focusedConversationId])
-
-  // Socket setup
-  useEffect(() => {
-    if (isConnected && currentUser) {
-         socketRef.current = io(SOCKET_URL, {
-  path: "/socket.io/",
-  transports: ["websocket"],
-  withCredentials: true,
-})
-
-      socketRef.current.on("newMessage", (msg) => {
-        if (msg.conversationId === activeConversation?._id) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: msg._id || Date.now(),
-              text: msg.text,
-              sender: msg.senderId === currentUser.userId ? "me" : "other",
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              senderName: msg.senderName,
-              fileUrl: msg.fileUrl,
-              messageType: msg.messageType,
-            },
-          ])
-        }
-      })
-
-      socketRef.current.on("typing", ({ conversationId, userId }) => {
-        if (conversationId === activeConversation?._id && userId !== currentUser.userId) {
-          setIsTyping(true)
-          setTimeout(() => setIsTyping(false), 2000)
-        }
-      })
-
-      return () => {
-        socketRef.current.disconnect()
-      }
-    }
-  }, [isConnected, currentUser, activeConversation])
-
-const scrollToBottom = (smooth = false) => {
-  if (!messagesContainerRef.current) return
-  messagesContainerRef.current.scrollTo({
-    top: messagesContainerRef.current.scrollHeight,
-    behavior: smooth ? "smooth" : "auto",
-  })
-}
-
-useEffect(() => {
-  if (messages.length === 0) return
-
-  const container = messagesContainerRef.current
-  if (!container) return
-
-  const images = container.querySelectorAll("img") || []
-  let remaining = images.length
-
-  const doScroll = () => {
-    // 👉 if it's first load OR conversation just changed → jump instantly
-    if (initialLoad || activeConversation) {
-      scrollToBottom(false)
-      setInitialLoad(false)
-    } else {
-      scrollToBottom(true)
-    }
-  }
-
-  if (remaining === 0) {
-    doScroll()
-  } else {
-    images.forEach((img) => {
-      if (img.complete) {
-        remaining--
-        if (remaining === 0) doScroll()
-      } else {
-        img.onload = () => {
-          remaining--
-          if (remaining === 0) doScroll()
-        }
-      }
-    })
-  }
-}, [messages, activeConversation]) // ✅ added activeConversation
-
-
-  // API check
-  useEffect(() => {
-    checkApiConnection()
+    const stored = localStorage.getItem("userName")
+    if (stored) connectUser(stored)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const checkApiConnection = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/users`)
-      if (response.ok) {
-        setApiStatus("connected")
-        setConnectionError("")
-      } else {
-        throw new Error(`API responded with status: ${response.status}`)
+  // ─── Auto-focus conversation from route state ─────────────────────────────
+  useEffect(() => {
+    if (!currentUser || !conversations.length || !focusedConversationId) return
+    const target = conversations.find(c => c._id === focusedConversationId)
+    if (target) selectConversation(target)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, conversations, focusedConversationId])
+
+  // ─── Socket — init ONCE per session, never on conversation change ──────────
+  useEffect(() => {
+    if (!isConnected || !currentUser) return
+
+    const socket = io(SOCKET_URL, {
+      path: "/socket.io/",
+      transports: ["websocket"],
+      withCredentials: true,
+    })
+    socketRef.current = socket
+
+    socket.on("newMessage", (msg) => {
+      const conv = activeConvRef.current
+      const user = currentUserRef.current
+      if (!conv || !user || msg.conversationId !== conv._id) return
+      // Skip own messages — already added optimistically
+      if (msg.senderId === user.userId) return
+
+      setMessages(prev => [...prev, {
+        id:          msg._id || Date.now(),
+        text:        msg.text,
+        sender:      "other",
+        timestamp:   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        senderName:  msg.senderName,
+        fileUrl:     msg.fileUrl,
+        messageType: msg.messageType,
+        fileName:    msg.fileName,
+      }])
+    })
+
+    socket.on("typing", ({ conversationId, userId }) => {
+      const conv = activeConvRef.current
+      const user = currentUserRef.current
+      if (conversationId === conv?._id && userId !== user?.userId) {
+        setIsTyping(true)
+        clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2500)
       }
-    } catch (error) {
-      setApiStatus("error")
-      setConnectionError("Cannot connect to chat server. Please check if the backend is running.")
+    })
+
+    return () => {
+      socket.disconnect()
+      clearTimeout(typingTimeoutRef.current)
     }
-  }
+  }, [isConnected, currentUser]) // ← no activeConversation dep — fixes reconnect bug
 
-  // User connection
+  // ─── Join socket room whenever active conversation changes ─────────────────
+  useEffect(() => {
+    if (activeConversation && socketRef.current) {
+      socketRef.current.emit("joinConversation", activeConversation._id)
+    }
+  }, [activeConversation])
+
+  // ─── Scroll helpers ────────────────────────────────────────────────────────
+  const scrollToBottom = useCallback((smooth = false) => {
+    const el = messagesContainerRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" })
+  }, [])
+
+  useEffect(() => {
+    if (!messages.length) return
+    // Wait one tick for the DOM to paint, then scroll
+    const t = setTimeout(() => scrollToBottom(!isFirstLoad.current), 60)
+    isFirstLoad.current = false
+    return () => clearTimeout(t)
+  }, [messages.length, scrollToBottom])
+
+  // ─── API helpers ──────────────────────────────────────────────────────────
   const connectUser = async (username) => {
-    // Prefer passed username, otherwise from state
-    const finalUsername = username || connectionUsername
-    if (!finalUsername || !finalUsername.trim()) return
-
-    setIsConnecting(true)
-    setConnectionError("")
-
+    const name = (username || "").trim()
+    if (!name) return
     try {
-      const response = await fetch(`${API_BASE}/connect`, {
+      const res  = await fetch(`${API_BASE}/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: finalUsername,
-          displayName: finalUsername,
-        }),
+        body: JSON.stringify({ username: name, displayName: name }),
       })
-
-      const data = await response.json()
+      const data = await res.json()
       if (data.success) {
         setCurrentUser(data.user)
         setIsConnected(true)
-
-        // Store userId in localStorage for auto-reconnect
-        localStorage.setItem("chatUserId", data.user.userId)
-        localStorage.setItem("chatUsername", finalUsername)
-
-        await loadAllUsers()
-        await loadConversations(data.user.userId)
-      } else {
-        setConnectionError(data.message || "Failed to connect")
+        localStorage.setItem("chatUserId",   data.user.userId)
+        localStorage.setItem("chatUsername", name)
+        await Promise.all([loadAllUsers(), loadConversations(data.user.userId)])
       }
-    } catch (error) {
-      setConnectionError("Connection failed. Check server.")
-    } finally {
-      setIsConnecting(false)
+    } catch {
+      console.error("Chat connect failed")
     }
   }
 
-  // Auto-connect on page load
-  useEffect(() => {
-    const storedUsername = localStorage.getItem("userName")
-
-    if (storedUsername) {
-      // Call connectUser with stored username
-      connectUser(storedUsername)
-    }
-  }, [])
-
   const loadAllUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE}/users`)
-      const data = await response.json()
+      const res  = await fetch(`${API_BASE}/users`)
+      const data = await res.json()
       if (data.success) setAllUsers(data.users)
-    } catch (error) {
-      setConnectionError("Failed to load users")
-    }
+    } catch {}
   }
 
   const loadConversations = async (userId) => {
     try {
-      const response = await fetch(`${API_BASE}/conversations/${userId}`, {
-        credentials: "include",
-      })
-      const data = await response.json()
+      const res  = await fetch(`${API_BASE}/conversations/${userId}`, { credentials: "include" })
+      const data = await res.json()
+      if (data.success) setConversations(data.conversations)
+    } catch {}
+  }
 
+  const loadMessages = async (conversationId) => {
+    if (!currentUser) return
+    setLoadingMessages(true)
+    isFirstLoad.current = true
+    try {
+      const res  = await fetch(`${API_BASE}/messages/${conversationId}`)
+      const data = await res.json()
       if (data.success) {
-        setConversations(data.conversations)
+        setMessages(data.messages.reverse().map(msg => ({
+          id:          msg._id,
+          text:        msg.text,
+          sender:      msg.senderId === currentUser.userId ? "me" : "other",
+          timestamp:   new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          senderName:  msg.senderName,
+          fileUrl:     msg.fileUrl,
+          messageType: msg.messageType,
+          fileName:    msg.fileName,
+        })))
       }
-    } catch (error) {
-      console.log("Error loading conversations:", error)
-    }
+    } catch {}
+    finally { setLoadingMessages(false) }
+  }
+
+  const selectConversation = async (conv) => {
+    setActiveConversation(conv)
+    setMessages([])
+    setSidebarOpen(false)
+    await loadMessages(conv._id)
   }
 
   const startConversation = async (otherUser) => {
     if (!currentUser) return
     try {
-      const response = await fetch(`${API_BASE}/conversations`, {
+      const res  = await fetch(`${API_BASE}/conversations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ participants: [currentUser.userId, otherUser.userId] }),
       })
-      const data = await response.json()
-      if (data.success) {
-        setActiveConversation(data.conversation)
-        await loadMessages(data.conversation._id)
-
-        if (socketRef.current) {
-          socketRef.current.emit("joinConversation", data.conversation._id)
-        }
-      }
-    } catch (error) {
-      console.log("Error creating conversation:", error)
-    }
+      const data = await res.json()
+      if (data.success) await selectConversation(data.conversation)
+    } catch {}
   }
 
-  const loadMessages = async (conversationId) => {
-    if (!currentUser) return // ✅ don’t map messages until user is ready
-
-    try {
-      const response = await fetch(`${API_BASE}/messages/${conversationId}`)
-      const data = await response.json()
-
-      if (data.success) {
-        const formattedMessages = data.messages.reverse().map((msg) => ({
-          id: msg._id,
-          text: msg.text,
-          sender: msg.senderId === currentUser.userId ? "me" : "other", // ✅ works only when currentUser set
-          timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          senderName: msg.senderName,
-          fileUrl: msg.fileUrl,
-          messageType: msg.messageType,
-          fileName: msg.fileName,
-        }))
-        setMessages(formattedMessages)
-      }
-    } catch (error) {
-      console.log("Error loading messages:", error)
-    }
-  }
-
+  // ─── Send text message (optimistic) ──────────────────────────────────────
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    if (!newMessage.trim() || !activeConversation || !currentUser) return
+    const text = newMessage.trim()
+    if (!text || !activeConversation || !currentUser) return
+
+    const tempId = `temp-${Date.now()}`
+    setNewMessage("")
+
+    // ✅ Add to UI immediately
+    setMessages(prev => [...prev, {
+      id:          tempId,
+      text,
+      sender:      "me",
+      timestamp:   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      senderName:  currentUser.userName,
+      messageType: "text",
+      sending:     true,
+    }])
 
     try {
-      const response = await fetch(`${API_BASE}/messages`, {
+      const res  = await fetch(`${API_BASE}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: activeConversation._id,
-          senderId: currentUser.userId,
-          text: newMessage,
+          senderId:       currentUser.userId,
+          text,
         }),
       })
+      const data = await res.json()
 
-      const data = await response.json()
       if (data.success) {
-        const newMsg = {
-          id: data.message._id,
-          text: data.message.text,
-          sender: "me",
+        // Confirm optimistic message
+        setMessages(prev => prev.map(m => m.id === tempId ? {
+          ...m,
+          id:        data.message._id,
           timestamp: new Date(data.message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          senderName: data.message.senderName,
-        }
-        // Make sure socket exists before sending
-        if (socketRef.current && activeConversation) {
-          socketRef.current.emit("sendMessage", {
-            conversationId: activeConversation._id,
-            senderId: currentUser.userId,
-            text: data.message.text,
-            fileUrl: data.message.fileUrl,
-            messageType: data.message.messageType,
-            senderName: data.message.senderName,
-          })
-        }
+          sending:   false,
+        } : m))
 
-        setNewMessage("")
+        socketRef.current?.emit("sendMessage", {
+          conversationId: activeConversation._id,
+          senderId:       currentUser.userId,
+          recipientId:    getOtherParticipant(activeConversation)?.userId,
+          text:           data.message.text,
+          fileUrl:        data.message.fileUrl,
+          messageType:    data.message.messageType,
+          senderName:     data.message.senderName,
+          _id:            data.message._id,
+        })
+      } else {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, failed: true, sending: false } : m))
       }
-    } catch (error) {
-      console.log("Error sending message:", error)
+    } catch {
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, failed: true, sending: false } : m))
     }
   }
-const handleFileChange = async (e) => {
-  let file = e.target.files[0];
-  if (!file || !activeConversation || !currentUser) return;
 
-  try {
-    // 🟢 HEIC → JPEG conversion (cover all cases)
-    const isHeic =
-      file.type === "image/heic" ||
-      file.type === "image/heif" ||
-      file.name.toLowerCase().endsWith(".heic");
+  // ─── Send image (optimistic with local preview) ────────────────────────────
+  const handleFileChange = async (e) => {
+    let file = e.target.files[0]
+    if (!file || !activeConversation || !currentUser) return
+    e.target.value = "" // reset so same file can be re-selected
 
-    if (isHeic) {
-      let converted = await heic2any({
-        blob: file,
-        toType: "image/jpeg",
-        quality: 0.9,
-      });
+    const tempId    = `temp-img-${Date.now()}`
+    const localUrl  = URL.createObjectURL(file)
 
-      // Sometimes heic2any returns an array of Blobs
-      if (Array.isArray(converted)) {
-        converted = converted[0];
+    // ✅ Show image immediately from local blob
+    setMessages(prev => [...prev, {
+      id:          tempId,
+      sender:      "me",
+      timestamp:   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      senderName:  currentUser.userName,
+      messageType: "image",
+      localUrl,          // blob preview
+      fileUrl:     null, // server URL — filled after upload
+      sending:     true,
+    }])
+    setUploadState("processing")
+
+    try {
+      // HEIC → JPEG
+      const isHeic = file.type === "image/heic" || file.type === "image/heif" || file.name.toLowerCase().endsWith(".heic")
+      if (isHeic) {
+        let converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 })
+        if (Array.isArray(converted)) converted = converted[0]
+        file = new File([converted], file.name.replace(/\.heic$/i, ".jpg"), { type: "image/jpeg", lastModified: Date.now() })
       }
 
-      file = new File([converted], file.name.replace(/\.heic$/i, ".jpg"), {
-        type: "image/jpeg",
-        lastModified: Date.now(),
-      });
-    }
+      // Compress
+      setUploadState("uploading")
+      if (file.type.startsWith("image/")) {
+        file = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1200, useWebWorker: true })
+      }
 
-    // 🟢 Compression (only for images)
-    if (file.type.startsWith("image/")) {
-      file = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1200,
-        useWebWorker: true,
-      });
-    }
+      const formData = new FormData()
+      formData.append("file",           file)
+      formData.append("conversationId", activeConversation._id)
+      formData.append("senderId",       currentUser.userId)
 
-    // 🟢 Prepare form data
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("conversationId", activeConversation._id);
-    formData.append("senderId", currentUser.userId);
+      const res = await fetch(`${API_BASE}/upload`, { method: "POST", body: formData })
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
 
-    // 🟢 Upload to API
-    const response = await fetch(`${API_BASE}/upload`, {
-      method: "POST",
-      body: formData,
-    });
+      const data = await res.json()
+      if (!data.success) throw new Error(data.message || "Upload failed")
 
-    if (!response.ok) {
-      throw new Error(`Upload failed with status ${response.status}`);
-    }
+      // ✅ Replace blob URL with real server URL
+      setMessages(prev => prev.map(m => m.id === tempId ? {
+        ...m,
+        id:      data.message._id,
+        fileUrl: data.message.fileUrl,
+        sending: false,
+      } : m))
+      setUploadState("idle")
 
-    const data = await response.json();
-
-    if (data.success) {
-      // ✅ Let socket notify others
       socketRef.current?.emit("sendMessage", {
         conversationId: activeConversation._id,
-        senderId: currentUser.userId,
-        text: data.message.text,
-        fileUrl: data.message.fileUrl, // should now end in .jpg
-        messageType: data.message.messageType,
-        senderName: data.message.senderName,
-      });
-    } else {
-      throw new Error(data.message || "File upload failed");
+        senderId:       currentUser.userId,
+        recipientId:    getOtherParticipant(activeConversation)?.userId,
+        text:           data.message.text,
+        fileUrl:        data.message.fileUrl,
+        messageType:    data.message.messageType,
+        senderName:     data.message.senderName,
+        _id:            data.message._id,
+        fileName:       data.message.fileName,
+      })
+    } catch (err) {
+      console.error("Upload error:", err)
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, failed: true, sending: false } : m))
+      setUploadState("error")
     }
-  } catch (error) {
-    console.error("❌ Error processing/uploading file:", error);
-    alert("Failed to send image. Please try again.");
   }
-};
 
-  const handleImageUpload = () => {
-    fileInputRef.current?.click()
+  // ─── Typing indicator emit ─────────────────────────────────────────────────
+  const handleInputChange = (e) => {
+    setNewMessage(e.target.value)
+    if (!socketRef.current || !activeConversation || !currentUser) return
+    socketRef.current.emit("typing", {
+      conversationId: activeConversation._id,
+      userId:         currentUser.userId,
+    })
   }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  const getOtherParticipant = (conv) =>
+    conv?.participants?.find(p => p.userId !== currentUser?.userId)
+
+  const getOnlineUser = (conv) => {
+    const other = getOtherParticipant(conv)
+    return allUsers.find(u => u.userId === other?.userId)
+  }
+
+  const avatarLetter = (name) => (name || "U").charAt(0).toUpperCase()
+
+  const chatUsers = allUsers
+    .filter(u => u.userId !== currentUser?.userId)
+    .filter(u => conversations.some(c => c.participants.some(p => p.userId === u.userId)))
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ──────────────────────────────────────────────────────────────────────────
   return (
- <div className="h-[85vh] md:h-[86vh] lg:h-[80vh] flex justify-center bg-gray-100 pt-1 md:pt-0">
+    <div className="h-[85vh] md:h-[86vh] lg:h-[80vh] flex justify-center bg-gray-100 pt-1 md:pt-0">
+      <div className="w-full max-w-5xl h-full bg-white shadow-2xl overflow-hidden flex relative rounded-none md:rounded-2xl">
 
-
- 
-
-  <div className="w-full max-w-5xl h-full bg-white shadow-2xl overflow-hidden flex relative">
-
-        {/* Sidebar */}
-<div
-  className={`
-    absolute inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 flex flex-col shadow-xl transform transition-transform duration-300
-    ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-    lg:relative lg:translate-x-0
-  `}
->
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-gray-100 flex flex-col bg-white">
+        {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+        <aside
+          className={`
+            absolute inset-y-0 left-0 z-40 w-72 flex flex-col bg-white border-r border-gray-100 shadow-xl
+            transform transition-transform duration-300 ease-in-out
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+            lg:relative lg:translate-x-0
+          `}
+        >
+          {/* Sidebar header */}
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-600 to-teal-600">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-lime-700">ChatFlow</h1>
-              {/* Close button (mobile only) */}
+              <div>
+                <h1 className="text-lg font-bold text-white tracking-tight">Messages</h1>
+                {currentUser && (
+                  <p className="text-xs text-emerald-100 mt-0.5 truncate max-w-[180px]">
+                    {currentUser.userName}
+                  </p>
+                )}
+              </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition"
+                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition"
               >
-                ✕
+                <FaTimes size={13} />
               </button>
             </div>
-            <p className="text-sm text-gray-500 mt-1">
-              You are logged in as <span className="font-medium text-gray-700">{currentUser?.userName}</span>
-            </p>
           </div>
 
-          {/* User List */}
-          <div className="flex-1 overflow-y-auto p-2">
-            <h3 className="text-xs font-semibold text-gray-500 px-2 mb-3 uppercase tracking-wide">Chats</h3>
-            <div className="space-y-1">
-              {allUsers
-                .filter((user) => user.userId !== currentUser?.userId)
-                .filter((user) => conversations.some((conv) => conv.participants.some((p) => p.userId === user.userId)))
-                .map((user) => (
-                  <div
+          {/* Chat list */}
+          <div className="flex-1 overflow-y-auto py-2">
+            {chatUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center px-6 py-10">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3">
+                  <span className="text-2xl">💬</span>
+                </div>
+                <p className="text-sm font-semibold text-gray-700">No conversations yet</p>
+                <p className="text-xs text-gray-400 mt-1">Start chatting with a seller or buyer</p>
+              </div>
+            ) : (
+              chatUsers.map(user => {
+                const conv = conversations.find(c => c.participants.some(p => p.userId === user.userId))
+                const isActive = activeConversation && conv?._id === activeConversation._id
+                return (
+                  <button
                     key={user.userId}
-                    className="group flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 rounded-xl transition-all duration-200 relative"
-                    onClick={() => {
-                      startConversation(user)
-                      setSidebarOpen(false) // close sidebar on mobile
-                    }}
+                    onClick={() => startConversation(user)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 transition-all duration-150 text-left
+                      ${isActive
+                        ? "bg-emerald-50 border-r-4 border-emerald-500"
+                        : "hover:bg-gray-50 border-r-4 border-transparent"
+                      }`}
                   >
                     {/* Avatar */}
-                    <div className="relative">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-lime-500 to-lime-600 flex items-center justify-center text-white font-bold shadow-sm">
-                        {user.userName?.charAt(0)?.toUpperCase() || "U"}
+                    <div className="relative shrink-0">
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-base font-bold shadow-sm
+                        ${isActive ? "bg-gradient-to-br from-emerald-500 to-teal-600" : "bg-gradient-to-br from-lime-500 to-emerald-500"}`}>
+                        {avatarLetter(user.userName)}
                       </div>
-                      <span
-                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                          user.isOnline ? "bg-green-600" : "bg-gray-400"
-                        }`}
-                      ></span>
+                      <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white
+                        ${user.isOnline ? "bg-emerald-500" : "bg-gray-300"}`} />
                     </div>
 
-                    {/* User Info */}
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{user.userName}</p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {user.isOnline ? "Online" : `Last seen ${new Date(user.lastSeen).toLocaleDateString()}`}
+                      <p className={`text-sm font-semibold truncate ${isActive ? "text-emerald-700" : "text-gray-800"}`}>
+                        {user.userName}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate mt-0.5">
+                        {conv?.lastMessage
+                          ? conv.lastMessage.length > 30
+                            ? conv.lastMessage.slice(0, 30) + "…"
+                            : conv.lastMessage
+                          : user.isOnline ? "Online" : "Tap to chat"}
                       </p>
                     </div>
 
-                    {/* Optional Last Message Time */}
-                    <div className="text-xs text-gray-400 whitespace-nowrap">
-                      {user.lastSeen &&
-                        new Date(user.lastSeen).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                    </div>
-                  </div>
-                ))}
-            </div>
+                    {/* Time */}
+                    {conv?.lastMessageTime && (
+                      <span className="text-[10px] text-gray-400 shrink-0">
+                        {new Date(conv.lastMessageTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </button>
+                )
+              })
+            )}
           </div>
-        </div>
+        </aside>
 
         {/* Backdrop for mobile */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)}></div>
+          <div
+            className="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
 
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Mobile Topbar */}
-          {/* Mobile Topbar */}
-<div className="lg:hidden sticky top-0 z-20 p-4 border-b bg-white flex items-center justify-between">
-    <button onClick={() => setSidebarOpen(true)} className="text-gray-600 hover:text-lime-600">
-      ☰
-    </button>
-    <h2 className="font-bold text-lg text-gray-800">ChatFlow</h2>
-    <div className="w-6"></div>
-  </div>
-
+        {/* ── Main Chat Area ──────────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
 
           {activeConversation ? (
             <>
-              {/* Chat Header */}
-              <div className="sticky top-0 z-10 p-3 lg:p-4 border-b border-gray-200 bg-white flex items-center space-x-3">
-                {/* Profile Avatar */}
-                <div className="relative">
-                  <div
-                    className="h-10 w-10 lg:h-12 lg:w-12 rounded-full flex items-center justify-center text-white font-bold"
-                    style={{
-                      backgroundColor: "#84cc16", // 🎨 set avatar color here (example: indigo-600)
-                    }}
-                  >
-                    {activeConversation.participants
-                      .find((p) => p.userId !== currentUser?.userId)
-                      ?.userName?.charAt(0)
-                      ?.toUpperCase() || "U"}
-                  </div>
+              {/* Chat header */}
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white shadow-sm">
+                {/* Mobile menu button */}
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition"
+                >
+                  <FaBars size={16} />
+                </button>
 
-                  {/* Online status dot */}
-                  <div className="absolute bottom-0 right-0 w-3 h-3 lg:w-3.5 lg:h-3.5 bg-green-600 rounded-full border-2 border-white"></div>
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                    {avatarLetter(getOtherParticipant(activeConversation)?.userName)}
+                  </div>
+                  {getOnlineUser(activeConversation)?.isOnline && (
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
+                  )}
                 </div>
 
-                {/* User Info */}
-                <div>
-                  <h2 className="text-sm lg:text-base font-semibold text-gray-900">
-                    {activeConversation.participants.find((p) => p.userId !== currentUser?.userId)?.userName ||
-                      "Unknown User"}
-                  </h2>
-                  <p className="text-xs lg:text-sm text-gray-500">
-  Online • <span className="text-green-600">Active now</span>
-</p>
-
+                {/* Name / status */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-gray-900 truncate">
+                    {getOtherParticipant(activeConversation)?.userName || "Unknown"}
+                  </p>
+                  <p className="text-xs text-emerald-600">
+                    {isTyping ? "typing…" : getOnlineUser(activeConversation)?.isOnline ? "Online" : "Offline"}
+                  </p>
                 </div>
               </div>
-             {/* Messages area (scrollable) */}
-      <div
-  ref={messagesContainerRef}
-  className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white"
->
 
-        {messages.map((message) => (
-          <div key={message.id}
-                    className={`flex animate-in fade-in duration-300 ${
-                      message.sender === "me" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`flex items-end gap-3 max-w-[80%] sm:max-w-xs lg:max-w-md ${
-                        message.sender === "me" ? "flex-row-reverse" : ""
-                      }`}
-                    >
-                      {message.sender === "other" && (
-                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-lime-500 to-lime-600 flex items-center justify-center text-white text-sm font-semibold shadow-md">
-                          {message.senderName?.charAt(0)?.toUpperCase() || "U"}
-                        </div>
-                      )}
-                      <div
-                        className={`px-4 py-3 rounded-2xl shadow-md transition-all duration-300 ${
-                          message.sender === "me"
-                            ? "bg-gradient-to-r from-lime-500 to-lime-600 text-white rounded-br-md shadow-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/40"
-                            : "bg-white border border-gray-200 text-gray-800 rounded-bl-md hover:border-gray-300 hover:shadow-md"
-                        }`}
-                      >
-                        {message.messageType === "image" ? (
-                          <img
-                            src={`${import.meta.env.VITE_SERVER}${message.fileUrl}`}
-                            alt={message.fileName || "Shared image"}
-                            className="max-w-[180px] sm:max-w-[220px] max-h-[220px] object-cover rounded-xl mb-2 shadow-sm hover:shadow-md transition"
-                          />
-                        ) : message.messageType === "document" ? (
-                          <a
-                            href={message.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition"
-                          >
-                            📄 {message.fileName}
-                          </a>
-                        ) : (
-                          <p className="text-sm leading-relaxed font-medium">{message.text}</p>
-                        )}
-
-                        <p
-                          className={`text-xs mt-2 font-medium ${
-                            message.sender === "me" ? "text-white/70" : "text-gray-500"
-                          }`}
-                        >
-                          {message.timestamp}
-                        </p>
-                      </div>
+              {/* Messages */}
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50"
+                style={{ scrollBehavior: "auto" }}
+              >
+                {loadingMessages ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-gray-400">Loading messages…</p>
                     </div>
                   </div>
-                ))}
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3 shadow-sm">
+                      <span className="text-3xl">👋</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-700">Say hello!</p>
+                    <p className="text-xs text-gray-400 mt-1">Be the first to send a message</p>
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <MessageBubble
+                      key={msg.id}
+                      msg={msg}
+                      serverUrl={import.meta.env.VITE_SERVER}
+                      onImageClick={setLightboxImage}
+                    />
+                  ))
+                )}
 
-                {/* Typing Indicator */}
+                {/* Typing indicator */}
                 {isTyping && (
-                  <div className="flex justify-start animate-in fade-in duration-300">
-                    <div className="flex items-end gap-3 max-w-xs lg:max-w-md">
-                      <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-semibold shadow-md">
-                        U
-                      </div>
-                      <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-white border border-gray-200 shadow-md">
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.15s]"></div>
-                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.3s]"></div>
-                        </div>
+                  <div className="flex items-end gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                      {avatarLetter(getOtherParticipant(activeConversation)?.userName)}
+                    </div>
+                    <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-white border border-gray-200 shadow-sm">
+                      <div className="flex gap-1 items-center h-3">
+                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                       </div>
                     </div>
                   </div>
                 )}
-
-                <div ref={messagesEndRef} />
               </div>
 
-              {/* Input (always at bottom) */}
-              <div className="sticky bottom-0 z-20 p-2 lg:p-3 border-t border-gray-200 bg-white">
-                <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-                  {/* Hidden File Input */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
+              {/* Upload progress bar */}
+              {(uploadState === "processing" || uploadState === "uploading") && (
+                <div className="px-4 py-2 bg-emerald-50 border-t border-emerald-100 flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <p className="text-xs text-emerald-700 font-medium">
+                    {uploadState === "processing" ? "Processing image…" : "Uploading…"}
+                  </p>
+                </div>
+              )}
 
-                  {/* Upload Button */}
+              {/* Input bar */}
+              <div className="px-3 py-3 border-t border-gray-100 bg-white">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                  <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+
+                  {/* Camera button */}
                   <button
                     type="button"
-                    onClick={handleImageUpload}
-                    className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadState === "processing" || uploadState === "uploading"}
+                    className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-400
+                      hover:text-emerald-600 hover:bg-emerald-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <FaCamera className="w-5 h-5" />
+                    <FaCamera size={17} />
                   </button>
 
-                  {/* Message Input */}
+                  {/* Text input */}
                   <div className="flex-1">
                     <input
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      className="w-full px-4 py-3 bg-gray-100 border border-transparent rounded-full text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition text-sm lg:text-base"
+                      onChange={handleInputChange}
+                      placeholder="Type a message…"
+                      className="w-full px-4 py-2.5 bg-gray-100 rounded-full text-sm text-gray-800 placeholder-gray-400
+                        focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition-all duration-200"
                     />
                   </div>
 
-                  {/* Send Button */}
+                  {/* Send button */}
                   <button
                     type="submit"
                     disabled={!newMessage.trim()}
-                    className="flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold hover:scale-105 transition-all duration-200 shadow-md disabled:opacity-40 disabled:hover:scale-100"
+                    className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full
+                      bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md
+                      hover:shadow-lg hover:scale-105 transition-all duration-200
+                      disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    ➤
+                    <FaPaperPlane size={14} />
                   </button>
                 </form>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
-              <div className="text-center animate-in fade-in-0 slide-in-from-bottom-4 duration-700 p-4">
-                <div className="relative mx-auto mb-6 lg:mb-8">
-                  <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl flex items-center justify-center shadow-xl">
-                    💬
+            /* Empty state */
+            <div className="flex-1 flex flex-col">
+              {/* Mobile topbar */}
+              <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition"
+                >
+                  <FaBars size={16} />
+                </button>
+                <h2 className="font-bold text-gray-800">Messages</h2>
+              </div>
+
+              <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+                <div className="text-center px-6">
+                  <div className="relative mx-auto mb-6 w-24 h-24">
+                    <div className="w-24 h-24 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl flex items-center justify-center shadow-lg">
+                      <span className="text-4xl">💬</span>
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-lime-400 to-emerald-500 rounded-full animate-pulse shadow" />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 lg:w-8 lg:h-8 bg-gradient-to-r from-lime-500 to-emerald-500 rounded-full animate-pulse shadow-lg"></div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">Your Messages</h3>
+                  <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
+                    Select a conversation from the sidebar to start chatting
+                  </p>
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="lg:hidden mt-5 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold rounded-full shadow-md hover:shadow-lg transition"
+                  >
+                    Open Conversations
+                  </button>
                 </div>
-                <h3 className="text-lg lg:text-2xl font-bold text-gray-800 mb-2 lg:mb-3">Start a Conversation</h3>
-                <p className="text-gray-600 text-sm lg:text-lg max-w-md mx-auto leading-relaxed">
-                  Select someone from the sidebar to begin chatting and connect instantly
-                </p>
               </div>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Image Lightbox ─────────────────────────────────────────────────── */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+            onClick={() => setLightboxImage(null)}
+          >
+            <FaTimes size={16} />
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Full size"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Message Bubble Component ─────────────────────────────────────────────────
+function MessageBubble({ msg, serverUrl, onImageClick }) {
+  const isMe        = msg.sender === "me"
+  const imageSource = msg.localUrl
+    ? msg.localUrl  // immediate local preview
+    : msg.fileUrl
+      ? `${serverUrl}${msg.fileUrl}`
+      : null
+
+  return (
+    <div className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+      {/* Avatar (other only) */}
+      {!isMe && (
+        <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold shadow-sm self-end mb-0.5">
+          {(msg.senderName || "U").charAt(0).toUpperCase()}
+        </div>
+      )}
+
+      {/* Bubble */}
+      <div className={`max-w-[72%] sm:max-w-xs lg:max-w-sm ${isMe ? "items-end" : "items-start"} flex flex-col`}>
+        <div
+          className={`relative px-3.5 py-2.5 rounded-2xl shadow-sm transition-shadow duration-200
+            ${isMe
+              ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-br-sm"
+              : "bg-white border border-gray-100 text-gray-800 rounded-bl-sm"
+            }
+            ${msg.failed ? "opacity-60" : ""}
+          `}
+        >
+          {/* Image message */}
+          {msg.messageType === "image" && imageSource ? (
+            <div className="relative">
+              <img
+                src={imageSource}
+                alt="Shared image"
+                className={`max-w-[220px] max-h-[240px] w-full object-cover rounded-xl cursor-pointer
+                  hover:opacity-95 transition ${msg.sending ? "opacity-80" : ""}`}
+                onClick={() => !msg.sending && onImageClick(imageSource)}
+                onLoad={() => {}} // triggers re-render for scroll
+              />
+              {msg.sending && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-xl">
+                  <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+          ) : msg.messageType === "document" ? (
+            <a
+              href={msg.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center gap-2 text-sm font-medium ${isMe ? "text-white" : "text-emerald-600"} hover:underline`}
+            >
+              <span>📄</span> {msg.fileName || "Document"}
+            </a>
+          ) : (
+            <p className="text-sm leading-relaxed break-words">{msg.text}</p>
+          )}
+        </div>
+
+        {/* Timestamp + status */}
+        <div className={`flex items-center gap-1 mt-1 px-1 ${isMe ? "flex-row-reverse" : ""}`}>
+          <span className="text-[10px] text-gray-400">{msg.timestamp}</span>
+          {isMe && (
+            <span className="text-[10px]">
+              {msg.failed   ? <FaExclamationTriangle className="text-red-400" size={9} /> :
+               msg.sending  ? <FaCheck className="text-gray-300" size={9} /> :
+                              <FaCheckDouble className="text-emerald-500" size={9} />}
+            </span>
           )}
         </div>
       </div>

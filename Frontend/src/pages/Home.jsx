@@ -7,8 +7,6 @@ import { like, unlike } from "../slices/wishSlice"
 import { resetFilters, setCategoryFilter as setCategory } from "../slices/FilterSlice"
 import { useNavigate } from "react-router-dom"
 import bannerImage from "../assets/images/banner1.png"
-import leftadImage from "../assets/images/ad01.png"
-import rightadImage from "../assets/images/ad02.png"
 import { useNotifications } from "../Hooks/useNotifications"
 import { Image as ImageIcon } from "lucide-react"
 import { motion } from "framer-motion"
@@ -395,6 +393,10 @@ const Home = () => {
   const [shops, setShops] = useState([])
   const [shopsLoading, setShopsLoading] = useState(false)
 
+  // Sidebar / banner ads from admin panel
+  const [sidebarAds, setSidebarAds] = useState({ left: [], right: [], banner: [], inline: [] })
+  const [bannerIndex, setBannerIndex] = useState(0)
+
   const hasActiveFilters = () => {
     return (
       (priceRange && priceRange[0] > 0) ||
@@ -543,6 +545,31 @@ const Home = () => {
     fetchShops()
   }, [])
 
+  // Fetch sidebar/banner ads from admin panel
+  const fetchSidebarAds = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/ads/public`)
+      const data = await res.json()
+      if (data.success) setSidebarAds(data.ads)
+    } catch {
+      // silently fail — fallback to nothing
+    }
+  }
+
+  useEffect(() => {
+    fetchSidebarAds()
+  }, [])
+
+  // Auto-advance banner carousel
+  useEffect(() => {
+    const banners = sidebarAds.banner
+    if (!banners || banners.length <= 1) return
+    const timer = setInterval(() => {
+      setBannerIndex((prev) => (prev + 1) % banners.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [sidebarAds.banner])
+
   const fetchGalleryData = async () => {
     setGalleryLoading(true)
     try {
@@ -603,30 +630,137 @@ const Home = () => {
     <div className="min-h-screen bg-gray-100 pt-4 sm:pt-6">
       <div className="w-full flex justify-center">
         <div className="w-full max-w-screen-xl px-3 sm:px-4 flex gap-4 items-start">
-          {/* Left Ad */}
-          <div className="hidden xl:block w-[140px] flex-shrink-0 sticky top-[100px] h-fit z-30">
-            <img
-              src={leftadImage || "/placeholder.svg"}
-              alt={t("home.leftAdAlt")}
-              className="w-full h-[500px] object-cover rounded"
-            />
-          </div>
+          {/* Left Ad — outer column stretches full row height so sticky has room to scroll */}
+          {sidebarAds.left.length > 0 && (
+            <div className="hidden xl:block w-[140px] flex-shrink-0 self-stretch">
+              <div className="sticky top-[100px] flex flex-col gap-3 z-30">
+                {sidebarAds.left.map((ad) =>
+                  ad.link ? (
+                    <a
+                      key={ad._id}
+                      href={ad.link}
+                      target={ad.linkTarget || "_blank"}
+                      rel="noopener noreferrer"
+                      onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}
+                    >
+                      <img
+                        src={`${import.meta.env.VITE_SERVER}${ad.image}`}
+                        alt={ad.title}
+                        className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                        onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                      />
+                    </a>
+                  ) : (
+                    <img
+                      key={ad._id}
+                      src={`${import.meta.env.VITE_SERVER}${ad.image}`}
+                      alt={ad.title}
+                      className="w-full h-[500px] object-cover rounded-xl shadow-md"
+                      onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Main Content */}
           <div className="flex-1 min-w-0 flex flex-col gap-3">
-            {/* Banner */}
-            <div className="relative">
-              <img
-                src={bannerImage || "/placeholder.svg"}
-                alt={t("home.bannerAlt")}
-                className="w-full h-[140px] sm:h-[180px] md:h-[220px] object-cover rounded-xl shadow"
-              />
-              <div className="absolute bottom-3 left-4 sm:bottom-4 sm:left-6 z-10">
-                <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-lg text-xs sm:text-sm font-medium shadow-lg">
-                  {t("home.joinNow")}
-                </button>
-              </div>
-            </div>
+            {/* ── Hero Banner Carousel ── */}
+            {(() => {
+              const banners = sidebarAds.banner
+              const hasBanners = banners && banners.length > 0
+
+              const trackClick = (ad) =>
+                fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })
+              const trackImpression = (ad) =>
+                fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })
+
+              return (
+                <div
+                  className="relative w-full rounded-2xl shadow-xl overflow-hidden group"
+                  style={{ height: "260px" }}
+                >
+                  {hasBanners ? (
+                    banners.map((ad, i) => {
+                      const offset = i - bannerIndex
+                      return (
+                        <div
+                          key={ad._id}
+                          className="absolute inset-0 transition-transform duration-700 ease-in-out"
+                          style={{ transform: `translateX(${offset * 100}%)` }}
+                        >
+                          {ad.link ? (
+                            <a
+                              href={ad.link}
+                              target={ad.linkTarget || "_blank"}
+                              rel="noopener noreferrer"
+                              className="block w-full h-full"
+                              onClick={() => trackClick(ad)}
+                            >
+                              <img src={`${import.meta.env.VITE_SERVER}${ad.image}`} alt={ad.title} className="w-full h-full object-cover" onLoad={() => trackImpression(ad)} />
+                            </a>
+                          ) : (
+                            <img src={`${import.meta.env.VITE_SERVER}${ad.image}`} alt={ad.title} className="w-full h-full object-cover" onLoad={() => trackImpression(ad)} />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
+                          {ad.title && (
+                            <p className="absolute bottom-5 left-6 text-white font-bold text-base sm:text-lg drop-shadow-lg pointer-events-none tracking-wide">
+                              {ad.title}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="absolute inset-0">
+                      <img src={bannerImage} alt={t("home.bannerAlt")} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-900/65 via-green-800/30 to-transparent" />
+                      <div className="absolute inset-0 flex flex-col justify-center pl-7 sm:pl-12">
+                        <p className="text-white text-xl sm:text-3xl font-extrabold drop-shadow tracking-tight">{t("home.bannerAlt")}</p>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => navigate("/register")}
+                          className="mt-4 w-fit bg-green-500 hover:bg-green-400 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg transition-colors"
+                        >
+                          {t("home.joinNow")}
+                        </motion.button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Arrows */}
+                  {hasBanners && banners.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setBannerIndex((p) => (p - 1 + banners.length) % banners.length)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/65 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm"
+                        aria-label="Previous"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setBannerIndex((p) => (p + 1) % banners.length)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/65 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm"
+                        aria-label="Next"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                        {banners.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setBannerIndex(i)}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${i === bannerIndex ? "w-6 bg-white shadow" : "w-1.5 bg-white/45 hover:bg-white/70"}`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Filter Status */}
             {hasActiveFilters() && (
@@ -878,14 +1012,39 @@ const Home = () => {
             />
           </div>
 
-          {/* Right Ad */}
-          <div className="hidden xl:block w-[140px] flex-shrink-0 sticky top-[100px] h-fit z-30">
-            <img
-              src={rightadImage || "/placeholder.svg"}
-              alt={t("home.rightAdAlt")}
-              className="w-full h-[500px] object-cover rounded"
-            />
-          </div>
+          {/* Right Ad — same two-layer sticky pattern */}
+          {sidebarAds.right.length > 0 && (
+            <div className="hidden xl:block w-[140px] flex-shrink-0 self-stretch">
+              <div className="sticky top-[100px] flex flex-col gap-3 z-30">
+                {sidebarAds.right.map((ad) =>
+                  ad.link ? (
+                    <a
+                      key={ad._id}
+                      href={ad.link}
+                      target={ad.linkTarget || "_blank"}
+                      rel="noopener noreferrer"
+                      onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}
+                    >
+                      <img
+                        src={`${import.meta.env.VITE_SERVER}${ad.image}`}
+                        alt={ad.title}
+                        className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                        onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                      />
+                    </a>
+                  ) : (
+                    <img
+                      key={ad._id}
+                      src={`${import.meta.env.VITE_SERVER}${ad.image}`}
+                      alt={ad.title}
+                      className="w-full h-[500px] object-cover rounded-xl shadow-md"
+                      onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

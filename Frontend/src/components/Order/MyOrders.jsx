@@ -15,7 +15,10 @@ const MyOrders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const { data } = await axios.get(`${import.meta.env.VITE_SERVER}/Orders/user/${userId}`);
+        const token = localStorage.getItem("accessToken");
+        const { data } = await axios.get(`${import.meta.env.VITE_SERVER}/Orders/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if(data.success){
         setOrders(data.data);
         }

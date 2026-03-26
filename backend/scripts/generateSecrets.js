@@ -22,7 +22,7 @@ console.log('=' .repeat(70));
 
 console.log('\n📝 JWT SECRETS (High Priority):');
 console.log('-'.repeat(70));
-console.log(`JWT_SECRET=${generateSecret(64)}`);
+// console.log(`JWT_SECRET=${generateSecret(64)}`);
 console.log(`REFRESH_TOKEN_SECRET=${generateSecret(64)}`);
 
 console.log('\n🔑 SESSION & COOKIE SECRETS:');

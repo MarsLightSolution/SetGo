@@ -11,6 +11,7 @@ const {
   fundsReleasedTemplate
 } = require("../services/templates.js");
 const logger = require('../utils/logger');
+const { emitToUser } = require('../utils/ioInstance');
 
 const placeOrder = async (req, res) => {
   logger.debug('placeOrder called', { body: req.body });
@@ -62,6 +63,32 @@ const placeOrder = async (req, res) => {
     logger.debug('saving order to DB', { orderPreview: { product: newOrder.product, amount: newOrder.amount } });
 
     await order.save();
+
+    // ── Real-time notifications ───────────────────────────────────────────
+    const productName = product.title?.en || product.title || "item";
+
+    // Notify buyer: order confirmed
+    emitToUser(buyerId, "notification", {
+      id:        `order_placed_buyer_${order._id}`,
+      type:      "order",
+      title:     "🛒 Order Placed Successfully!",
+      message:   `Your order for "${productName}" has been confirmed. Amount: ${total} AZN`,
+      timestamp: Date.now(),
+      isRead:    false,
+      orderId:   order._id,
+    });
+
+    // Notify seller: new sale
+    emitToUser(sellerId, "notification", {
+      id:        `order_placed_seller_${order._id}`,
+      type:      "order",
+      title:     "🎉 New Order Received!",
+      message:   `${address.name} ordered "${productName}". Amount: ${total} AZN`,
+      timestamp: Date.now(),
+      isRead:    false,
+      orderId:   order._id,
+    });
+
     try {
     await sendEmail(
       buyer.email,
@@ -76,7 +103,7 @@ const placeOrder = async (req, res) => {
     );
   } catch (mailErr) {
     logger.error('Email sending failed', { message: mailErr.message });
-    // don’t throw, just log
+    // don't throw, just log
   }
 
     res.json({ success: true, data: order });
@@ -164,6 +191,20 @@ const uploadTrackingId = async (req, res) => {
     order.status = "shipped";
 
     await order.save();
+
+    // ── Real-time notification to buyer ───────────────────────────────────
+    const shippedProductName =
+      order.productId?.title?.en || order.productId?.title || "your item";
+
+    emitToUser(String(order.buyerId._id || order.buyerId), "notification", {
+      id:        `order_shipped_${orderId}`,
+      type:      "order",
+      title:     "📦 Your Order Has Been Shipped!",
+      message:   `"${shippedProductName}" is on its way. Tracking ID: ${trackingId}`,
+      timestamp: Date.now(),
+      isRead:    false,
+      orderId:   orderId,
+    });
 
     // Buyer & Seller objects for email template
     const buyer = { name: order.buyerId.username, email: order.buyerId.email };
