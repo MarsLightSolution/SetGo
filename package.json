@@ -1,0 +1,16 @@
+{
+  "name": "setgo-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SetGo monorepo — Frontend, Backend, Payment Microservice",
+  "scripts": {
+    "build": "bash scripts/build-only.sh",
+    "deploy": "bash scripts/deploy-production.sh",
+    "deploy:tag": "bash scripts/deploy-production.sh $npm_config_tag"
+  },
+  "workspaces": [
+    "Frontend",
+    "backend",
+    "payment-microservice"
+  ]
+}
