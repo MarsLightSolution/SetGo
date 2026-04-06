@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import SkeletonLoader from '../../Components/SkeletonLoader';
 import PaymentDialog from '../../Components/PaymentDialog';
 import logger from '../../utils/logger';
+import { getAuthToken } from '../../services/secureAuthService';
 
 // New Components
 import { ReviewSection } from '../../Components/reviews';
@@ -216,10 +217,22 @@ export default function ProductDetail() {
 
   // Check follow status
   useEffect(() => {
-    if (user && ownerId && user._id !== ownerId) {
+    if (!user || !product) return;
+    const shopProduct = product.listingType === 'shop' && product.shop;
+    if (shopProduct && product.shop._id) {
+      // Check shop follow status via shop details
+      fetch(API_ENDPOINTS.GET_SHOP(product.shop._id))
+        .then((r) => r.json())
+        .then((data) => {
+          const shop = data?.shop || data;
+          const followers = shop?.followers || [];
+          setIsFollowing(followers.some((f) => (f._id || f) === user._id));
+        })
+        .catch(() => {});
+    } else if (ownerId && user._id !== ownerId) {
       checkFollowStatus(user._id, ownerId);
     }
-  }, [user, ownerId]);
+  }, [user, ownerId, product]);
 
   const checkFollowStatus = useCallback(async (followerId, followingId) => {
     try {
@@ -425,23 +438,44 @@ export default function ProductDetail() {
     setFollowLoading(true);
 
     try {
-      const endpoint = isFollowing
-        ? API_ENDPOINTS.UNFOLLOW(ownerId)
-        : API_ENDPOINTS.FOLLOW(ownerId);
+      if (isShopProduct && product?.shop?._id) {
+        // Shop follow/unfollow uses a single toggle endpoint with auth header, no body
+        const token = await getAuthToken();
+        const res = await fetch(API_ENDPOINTS.FOLLOW_SHOP(product.shop._id), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ followerId: user._id }),
-      });
+        const result = await res.json();
 
-      const result = await res.json();
-
-      if (res.ok && result.success !== false) {
-        await checkFollowStatus(user._id, ownerId);
-        Alert.alert('Success', isFollowing ? 'Unfollowed successfully' : 'Followed successfully');
+        if (res.ok && result.success !== false) {
+          setIsFollowing(result.isFollowing);
+          Alert.alert('Success', result.isFollowing ? 'Followed successfully' : 'Unfollowed successfully');
+        } else {
+          Alert.alert('Error', result.message || 'Follow/Unfollow failed');
+        }
       } else {
-        Alert.alert('Error', result.message || 'Follow/Unfollow failed');
+        const endpoint = isFollowing
+          ? API_ENDPOINTS.UNFOLLOW(ownerId)
+          : API_ENDPOINTS.FOLLOW(ownerId);
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ followerId: user._id }),
+        });
+
+        const result = await res.json();
+
+        if (res.ok && result.success !== false) {
+          await checkFollowStatus(user._id, ownerId);
+          Alert.alert('Success', isFollowing ? 'Unfollowed successfully' : 'Followed successfully');
+        } else {
+          Alert.alert('Error', result.message || 'Follow/Unfollow failed');
+        }
       }
     } catch (err) {
       logger.error('Follow/Unfollow error:', err);
@@ -449,7 +483,7 @@ export default function ProductDetail() {
     } finally {
       setFollowLoading(false);
     }
-  }, [isAuthenticated, ownerId, isFollowing, user, checkFollowStatus, router]);
+  }, [isAuthenticated, ownerId, isFollowing, isShopProduct, product?.shop?._id, user, checkFollowStatus, router]);
 
   const handleShare = useCallback(async () => {
     try {
