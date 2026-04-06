@@ -1,0 +1,1 @@
+import{j as r,N as e}from"./react-vendor-CDrKGpjQ.js";import"./vendor-CKxkW2mp.js";import"./socket-vendor-MrWWbjYA.js";function n({children:o}){const t=JSON.parse(localStorage.getItem("userData"));return t?t.Role!=="admin"?r.jsx(e,{to:"/"}):o:r.jsx(e,{to:"/login"})}export{n as default};
