@@ -26,8 +26,10 @@ const API_URL = `${BASE_URL}/api`;
 // Image/static assets URL - same as BASE_URL since images are served through nginx at /api/*
 const IMAGE_BASE_URL = BASE_URL;
 
-// WebSocket URL
-const SOCKET_URL = 'wss://tiwari.shop';
+// WebSocket URL — set EXPO_PUBLIC_SOCKET_URL in .env
+// Local dev:  ws://10.137.164.234:8080
+// Production: wss://tiwari.shop
+const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'wss://tiwari.shop';
 
 // Validate in development
 if (!BASE_URL && typeof __DEV__ !== 'undefined' && __DEV__) {

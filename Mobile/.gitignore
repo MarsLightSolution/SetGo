@@ -57,6 +57,8 @@ ios/
 # ==============================
 .idea/
 .vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 *.iml
 *.suo
 *.ntvs*
@@ -123,3 +125,4 @@ nul
 # ==============================
 *.md
 !README.md
+docs/
