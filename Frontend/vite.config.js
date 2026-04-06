@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => {
           // Manual chunking strategy for better caching
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom')) return 'react-vendor';
+              if (id.includes('react') || id.includes('react-dom') || id.includes('@emotion')) return 'react-vendor';
               if (id.includes('@mui') || id.includes('@material-ui')) return 'mui-vendor';
               if (id.includes('leaflet')) return 'leaflet-vendor';
               if (id.includes('socket.io')) return 'socket-vendor';
