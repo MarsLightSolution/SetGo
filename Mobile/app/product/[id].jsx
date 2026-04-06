@@ -23,6 +23,7 @@ import SkeletonLoader from '../../Components/SkeletonLoader';
 import PaymentDialog from '../../Components/PaymentDialog';
 import logger from '../../utils/logger';
 import { getAuthToken } from '../../services/secureAuthService';
+import { useProductDetail, useRelatedProducts, useInvalidateShop } from '../../hooks/useProductQuery';
 
 // New Components
 import { ReviewSection } from '../../Components/reviews';
@@ -115,100 +116,47 @@ export default function ProductDetail() {
   const { wishlist } = useSelector((state) => state.wishlist);
   const { user, isAuthenticated, updateUser } = useAuthStore();
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: product,
+    isPending: loading,
+    isError,
+    error: productError,
+    refetch: refetchProduct,
+  } = useProductDetail(id);
+
   const [refreshing, setRefreshing] = useState(false);
-  const [relatedProducts, setRelatedProducts] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [error, setError] = useState(null);
+
+  const invalidateShop = useInvalidateShop();
 
   const isWishlisted = useMemo(
     () => wishlist.some((item) => item._id === product?._id),
     [wishlist, product?._id]
   );
 
-  // Fetch product with optimization
-  useEffect(() => {
-    if (id) {
-      fetchProductById();
-    }
-  }, [id]);
+  // Related products — enabled once we have the product category
+  const categoryName = product?.category ? getLocalizedText(product.category) : null;
+  const { data: relatedProducts = [] } = useRelatedProducts(categoryName, id);
 
-  const fetchProductById = useCallback(async (showLoader = true) => {
-    if (showLoader) setLoading(true);
-    setError(null);
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const res = await fetch(
-        `${API_ENDPOINTS.GET_PRODUCT(id)}?lang=en`,
-        { signal: controller.signal }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch product: ${res.status}`);
-      }
-
-      const result = await res.json();
-
-      if (result.success === false || !result.data) {
-        throw new Error(result.message || 'Product not found');
-      }
-
-      setProduct(result.data);
-      setError(null);
-    } catch (error) {
-      logger.error('Error fetching product:', error);
-
-      if (error.name === 'AbortError') {
-        setError('Request timeout. Please check your connection.');
-        Alert.alert('Error', 'Request timeout. Please try again.');
-      } else {
-        setError(error.message || 'Failed to load product');
-        Alert.alert('Error', error.message || 'Failed to load product');
-      }
-      setProduct(null);
-    } finally {
-      if (showLoader) setLoading(false);
-      setRefreshing(false);
-    }
-  }, [id]);
-
-  // Pull to refresh handler
-  const onRefresh = useCallback(() => {
+  // Pull to refresh — invalidates cache and re-fetches
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    fetchProductById(false);
-  }, [fetchProductById]);
+    await refetchProduct();
+    setRefreshing(false);
+  }, [refetchProduct]);
 
-  // Fetch related products
-  const fetchRelatedProducts = useCallback(async (categoryObj) => {
-    const categoryName = getLocalizedText(categoryObj);
-    if (!categoryName) return;
-
-    try {
-      const res = await fetch(
-        `${API_ENDPOINTS.PRODUCTS_BY_CATEGORY(categoryName)}?lang=en&limit=4`
-      );
-      const json = await res.json();
-      const filtered = json.data?.filter((p) => p._id !== id).slice(0, 4);
-      setRelatedProducts(filtered || []);
-    } catch (err) {
-      logger.error('Failed to fetch related products', err);
-    }
-  }, [id]);
-
+  // Show error alert when product fetch fails
   useEffect(() => {
-    if (product?.category) {
-      setTimeout(() => fetchRelatedProducts(product.category), 100);
+    if (isError && productError) {
+      const msg = productError.name === 'AbortError'
+        ? 'Request timeout. Please check your connection.'
+        : productError.message || 'Failed to load product';
+      Alert.alert('Error', msg);
     }
-  }, [product?.category, fetchRelatedProducts]);
+  }, [isError, productError]);
 
   const ownerId = useMemo(
     () => product?.owner?._id || product?.owner || null,
@@ -352,9 +300,9 @@ export default function ProductDetail() {
     setShowPaymentDialog(false);
 
     setTimeout(() => {
-      fetchProductById(false);
+      refetchProduct();
     }, 500);
-  }, [refreshUserData, fetchProductById]);
+  }, [refreshUserData, refetchProduct]);
 
   const handleSendMessage = useCallback(async () => {
     if (!isAuthenticated) {
@@ -453,6 +401,7 @@ export default function ProductDetail() {
 
         if (res.ok && result.success !== false) {
           setIsFollowing(result.isFollowing);
+          invalidateShop(product.shop._id); // keep cached shop followers in sync
           Alert.alert('Success', result.isFollowing ? 'Followed successfully' : 'Unfollowed successfully');
         } else {
           Alert.alert('Error', result.message || 'Follow/Unfollow failed');
@@ -517,7 +466,7 @@ export default function ProductDetail() {
         <StatusBar barStyle="dark-content" backgroundColor="#f3f4f6" />
         <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
         <Text style={styles.errorText}>
-          {error || 'Product not found'}
+          {productError?.message || 'Product not found'}
         </Text>
         <TouchableOpacity
           style={styles.backButton}
@@ -527,7 +476,7 @@ export default function ProductDetail() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.backButton, styles.retryButton]}
-          onPress={() => fetchProductById()}
+          onPress={() => refetchProduct()}
         >
           <Ionicons name="refresh-outline" size={18} color="#fff" />
           <Text style={styles.backButtonText}>Retry</Text>
