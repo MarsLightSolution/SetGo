@@ -20,7 +20,7 @@ export const useOnboardingStore = create((set) => ({
       AsyncStorage.getItem(LANGUAGE_KEY),
     ]);
     const resolvedLang = lang || 'en';
-    changeLanguage(resolvedLang);
+    try { changeLanguage(resolvedLang); } catch (_) {}
     set({
       hasSeenOnboarding: seen === 'true',
       language: resolvedLang,

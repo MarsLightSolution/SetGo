@@ -18,6 +18,8 @@ function AppContent() {
   const router = useRouter();
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const initialized = useAuthStore((state) => state.initialized);
+  const sessionExpired = useAuthStore((state) => state.sessionExpired);
+  const setSessionExpired = useAuthStore((state) => state.setSessionExpired);
   const initOnboarding = useOnboardingStore((state) => state.initialize);
   const hasSeenOnboarding = useOnboardingStore((state) => state.hasSeenOnboarding);
   const pathname = usePathname();
@@ -28,8 +30,24 @@ function AppContent() {
   useEffect(() => {
     // Run auth check and onboarding check in parallel
     checkAuth();
-    initOnboarding().then(() => setOnboardingChecked(true));
+    initOnboarding()
+      .then(() => setOnboardingChecked(true))
+      .catch(() => setOnboardingChecked(true)); // always unblock even if i18n/storage fails
   }, []);
+
+  // Redirect to auth when the session expires (token refresh failed)
+  useEffect(() => {
+    if (sessionExpired && appReady && !showSplash) {
+      setSessionExpired(false); // reset flag before navigating
+      Toast.show({
+        type: 'info',
+        text1: 'Session Expired',
+        text2: 'Please log in again to continue.',
+        visibilityTime: 4000,
+      });
+      router.replace('/auth');
+    }
+  }, [sessionExpired, appReady, showSplash]);
 
   // Mark app as ready only when both auth and onboarding have been checked
   useEffect(() => {
@@ -103,6 +121,15 @@ function AppContent() {
         <Stack.Screen name="post" />
         <Stack.Screen name="orders" />
         <Stack.Screen name="profile" />
+
+        {/* Chat screen — deep-linkable from product detail */}
+        <Stack.Screen
+          name="chat"
+          options={{
+            animation: 'slide_from_right',
+            presentation: 'card'
+          }}
+        />
 
         {/* Product detail screen */}
         <Stack.Screen
