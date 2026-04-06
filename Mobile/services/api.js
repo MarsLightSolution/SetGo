@@ -1,7 +1,12 @@
 // services/api.js
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
-import { getAuthToken, setAuthToken, getRefreshToken } from './secureAuthService';
+import {
+  getAuthToken,
+  setAuthToken,
+  getRefreshToken,
+  isTokenExpiringSoon,
+} from './secureAuthService';
 import { BASE_URL, API_ENDPOINTS } from '../config/api';
 import logger from '../utils/logger';
 
@@ -32,112 +37,129 @@ axiosRetry(api, {
   shouldResetTimeout: true,
 });
 
-// Request Interceptor - Add Auth Token
+// ==================== REFRESH LOGIC ====================
+
+// Single in-flight refresh promise — all callers share it to avoid duplicate requests
+let refreshPromise = null;
+
+/**
+ * Call the refresh endpoint and persist the new access token.
+ * Returns the new token string on success, throws on failure.
+ */
+const performRefresh = async () => {
+  const refreshToken = await getRefreshToken();
+
+  const response = await fetch(API_ENDPOINTS.REFRESH_TOKEN, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Send in both Cookie header and body — works regardless of backend expectation
+      ...(refreshToken ? { Cookie: `refreshToken=${refreshToken}` } : {}),
+    },
+    // Also pass in body so backends that read from body work too
+    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+    credentials: 'include',
+  });
+
+  if (!response.ok) throw new Error('Refresh failed');
+
+  const data = await response.json();
+  if (!data.success || !data.accessToken) throw new Error('Invalid refresh response');
+
+  const newToken = data.accessToken.replace(/^Bearer\s+/i, '');
+  await setAuthToken(newToken); // also persists expiry via parseJwtExpiry
+  return newToken;
+};
+
+/**
+ * Ensure a fresh token. If a refresh is already in-flight, the caller
+ * joins that promise instead of firing a second request.
+ */
+const getOrRefreshToken = async (forceRefresh = false) => {
+  if (refreshPromise) return await refreshPromise;
+
+  if (!forceRefresh && !(await isTokenExpiringSoon())) {
+    return await getAuthToken();
+  }
+
+  refreshPromise = performRefresh().finally(() => {
+    refreshPromise = null;
+  });
+
+  return await refreshPromise;
+};
+
+/**
+ * Signal session expiry to the rest of the app.
+ * Calls authStore without creating a circular import by requiring lazily.
+ */
+const signalSessionExpired = () => {
+  try {
+    const { useAuthStore } = require('../Store/authStore');
+    const store = useAuthStore.getState();
+    store.logout();
+    store.setSessionExpired(true);
+  } catch {
+    // authStore not ready — clear session directly as fallback
+    const { clearSession } = require('./secureAuthService');
+    clearSession().catch(() => {});
+  }
+};
+
+// ==================== REQUEST INTERCEPTOR ====================
+// Proactively refresh the token if it expires within 5 minutes
+// so requests never fail mid-flight due to an expired token.
+
+const AUTH_SKIP_URLS = ['/login', '/refreshAccessToken', '/signup'];
+
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await getAuthToken();
+      const url = config.url || '';
+      if (AUTH_SKIP_URLS.some((u) => url.includes(u))) return config;
+
+      const token = await getOrRefreshToken().catch(async (err) => {
+        // Proactive refresh failed → session expired
+        log.warn('Proactive token refresh failed:', err?.message);
+        signalSessionExpired();
+        return null;
+      });
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (err) {
-      // Continue without token if retrieval fails
+      // Continue without token — the 401 interceptor will catch it if needed
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// --- Refresh Token Logic ---
-let isRefreshing = false;
-let failedQueue = [];
+// ==================== RESPONSE INTERCEPTOR ====================
+// Safety net: if a 401 slips through (e.g., server-side token invalidation),
+// attempt a forced refresh once. If that also fails, sign the user out.
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
-// Response Interceptor - 401 Auto-Refresh
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
 
-    // Only handle 401 and not already retried
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't try to refresh for auth endpoints themselves
       const url = originalRequest.url || '';
-      if (url.includes('/login') || url.includes('/refreshAccessToken') || url.includes('/signup')) {
+      if (AUTH_SKIP_URLS.some((u) => url.includes(u))) {
         return Promise.reject(error);
       }
 
-      if (isRefreshing) {
-        // Queue this request while refresh is in progress
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        });
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        // Try to refresh using stored refresh token as cookie
-        const refreshToken = await getRefreshToken();
-
-        const refreshResponse = await fetch(API_ENDPOINTS.REFRESH_TOKEN, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(refreshToken ? { Cookie: `refreshToken=${refreshToken}` } : {}),
-          },
-          credentials: 'include',
-        });
-
-        if (!refreshResponse.ok) {
-          throw new Error('Refresh failed');
-        }
-
-        const data = await refreshResponse.json();
-
-        if (data.success && data.accessToken) {
-          // Strip "Bearer " prefix if present
-          const newToken = data.accessToken.replace(/^Bearer\s+/i, '');
-          await setAuthToken(newToken);
-
-          // Update the failed request and queued requests
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          processQueue(null, newToken);
-
-          return api(originalRequest);
-        } else {
-          throw new Error('Invalid refresh response');
-        }
+        const newToken = await getOrRefreshToken(true); // force refresh
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
-
-        // Force logout — import dynamically to avoid circular dependency
-        try {
-          const { useAuthStore } = require('../Store/authStore');
-          useAuthStore.getState().logout();
-        } catch (e) {
-          // Fallback: clear session directly
-          const { clearSession } = require('./secureAuthService');
-          clearSession();
-        }
-
+        signalSessionExpired();
         return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     }
 

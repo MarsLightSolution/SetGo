@@ -16,6 +16,7 @@ const SECURE_KEYS = {
   AUTH_TOKEN: 'auth_token',
   REFRESH_TOKEN: 'refresh_token',
   USER_ID: 'user_id',
+  TOKEN_EXPIRY: 'token_expiry', // Unix ms timestamp when access token expires
 };
 
 // Non-sensitive data can use AsyncStorage
@@ -37,10 +38,32 @@ const isSecureStoreAvailable = async () => {
   }
 };
 
+// ==================== JWT HELPERS ====================
+
+/**
+ * Parse the expiry timestamp from a JWT without any external library.
+ * Returns a Unix timestamp in milliseconds, or null if parsing fails.
+ * @param {string} token - The JWT access token
+ * @returns {number|null}
+ */
+export const parseJwtExpiry = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    // Convert URL-safe base64 → standard base64
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = atob(base64);
+    const decoded = JSON.parse(jsonPayload);
+    return decoded.exp ? decoded.exp * 1000 : null; // seconds → milliseconds
+  } catch {
+    return null;
+  }
+};
+
 // ==================== TOKEN MANAGEMENT ====================
 
 /**
- * Store authentication token securely
+ * Store authentication token securely and persist its expiry timestamp.
  * @param {string} token - The JWT access token
  */
 export const setAuthToken = async (token) => {
@@ -55,6 +78,11 @@ export const setAuthToken = async (token) => {
     } else {
       // Fallback for web/unsupported platforms (less secure)
       await AsyncStorage.setItem(SECURE_KEYS.AUTH_TOKEN, token);
+    }
+    // Always persist expiry so proactive refresh can work without re-decoding JWT
+    const expiry = parseJwtExpiry(token);
+    if (expiry) {
+      await setTokenExpiry(expiry);
     }
   } catch (error) {
     throw new Error(`Failed to store auth token: ${error.message}`);
@@ -91,6 +119,70 @@ export const removeAuthToken = async () => {
     }
   } catch (error) {
     // Silently fail on removal errors
+  }
+};
+
+// ==================== TOKEN EXPIRY MANAGEMENT ====================
+
+/**
+ * Persist token expiry timestamp (Unix ms).
+ * Called automatically by setAuthToken — no need to call manually.
+ */
+export const setTokenExpiry = async (expiresAtMs) => {
+  try {
+    const secureAvailable = await isSecureStoreAvailable();
+    const value = String(expiresAtMs);
+    if (secureAvailable) {
+      await SecureStore.setItemAsync(SECURE_KEYS.TOKEN_EXPIRY, value);
+    } else {
+      await AsyncStorage.setItem(SECURE_KEYS.TOKEN_EXPIRY, value);
+    }
+  } catch {
+    // Non-critical — expiry just won't be tracked
+  }
+};
+
+/**
+ * Retrieve token expiry timestamp in Unix ms, or null.
+ */
+export const getTokenExpiry = async () => {
+  try {
+    const secureAvailable = await isSecureStoreAvailable();
+    const raw = secureAvailable
+      ? await SecureStore.getItemAsync(SECURE_KEYS.TOKEN_EXPIRY)
+      : await AsyncStorage.getItem(SECURE_KEYS.TOKEN_EXPIRY);
+    return raw ? parseInt(raw, 10) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Remove expiry on logout */
+export const removeTokenExpiry = async () => {
+  try {
+    const secureAvailable = await isSecureStoreAvailable();
+    if (secureAvailable) {
+      await SecureStore.deleteItemAsync(SECURE_KEYS.TOKEN_EXPIRY);
+    } else {
+      await AsyncStorage.removeItem(SECURE_KEYS.TOKEN_EXPIRY);
+    }
+  } catch {
+    // Silently fail
+  }
+};
+
+/**
+ * Returns true if the stored access token expires within `bufferMs` milliseconds.
+ * Defaults to a 5-minute buffer so refresh happens proactively.
+ * Returns false if no expiry is stored (can't tell → optimistic).
+ */
+export const isTokenExpiringSoon = async (bufferMs = 5 * 60 * 1000) => {
+  try {
+    const expiry = await getTokenExpiry();
+    if (!expiry) return false;
+    return Date.now() >= expiry - bufferMs;
+  } catch {
+    return false;
   }
 };
 
@@ -315,6 +407,7 @@ export const clearSession = async () => {
       removeRefreshToken(),
       removeUserId(),
       removeUserData(),
+      removeTokenExpiry(),
     ]);
   } catch (error) {
     // Attempt individual removals if parallel fails
@@ -322,6 +415,7 @@ export const clearSession = async () => {
     await removeRefreshToken().catch(() => {});
     await removeUserId().catch(() => {});
     await removeUserData().catch(() => {});
+    await removeTokenExpiry().catch(() => {});
   }
 };
 
@@ -378,6 +472,12 @@ export default {
   setAuthToken,
   getAuthToken,
   removeAuthToken,
+  // Token Expiry
+  setTokenExpiry,
+  getTokenExpiry,
+  removeTokenExpiry,
+  isTokenExpiringSoon,
+  parseJwtExpiry,
   // Refresh Token
   setRefreshToken,
   getRefreshToken,

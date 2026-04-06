@@ -16,6 +16,10 @@ export const useAuthStore = create((set, get) => ({
   isAuthenticated: false,
   loading: false,
   initialized: false,
+  sessionExpired: false,
+
+  /** Called by api.js when a token refresh fails. Triggers redirect in _layout. */
+  setSessionExpired: (value) => set({ sessionExpired: value }),
 
   /**
    * Initialize auth state - call this on app startup
