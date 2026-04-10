@@ -50,6 +50,10 @@ const AllShops = lazy(() => import('./pages/AllShops'))
 const ShopProfile = lazy(() => import('./pages/ShopProfile'))
 const EditShop = lazy(() => import('./pages/EditShop'))
 const AdminLogin = lazy(() => import('./pages/admin/Adminlogin'))
+const About = lazy(() => import('./pages/About'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const RefundPolicy = lazy(() => import('./pages/RefundPolicy'))
+const Contact = lazy(() => import('./pages/Contact'))
 // Scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation()
@@ -67,15 +71,16 @@ const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-500"></div>
   </div>
 )
-function App() {
+function AppContent() {
+  const { pathname } = useLocation()
+  const isAdmin = pathname === "/Adminpanel"
+
   return (
-    <ErrorBoundary>
-      <NotificationProvider>
-        <div className="min-h-screen flex flex-col">
-          <ScrollToTop />
-          <Navbar />
-          <main className="flex-1">
-          <Suspense fallback={<LoadingSpinner />}>
+    <div className={isAdmin ? "" : "min-h-screen flex flex-col"}>
+      <ScrollToTop />
+      {!isAdmin && <Navbar />}
+      <main className={isAdmin ? "" : "flex-1 min-h-0"}>
+        <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route path='/' element={<Home />} />
             <Route path='/register' element={<PublicRoute><Register /></PublicRoute>} />
@@ -123,12 +128,24 @@ function App() {
               </AdminRoute>
             } />
             <Route path="/adminlogin" element={<AdminLogin />} />
+            <Route path="/about"          element={<About />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/refund-policy"  element={<RefundPolicy />} />
+            <Route path="/contact"        element={<Contact />} />
           </Routes>
         </Suspense>
-          </main>
-          <Footer />
-      </div>
-    </NotificationProvider>
+      </main>
+      {!isAdmin && <Footer />}
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </ErrorBoundary>
   )
 }

@@ -16,21 +16,23 @@ export default function ChatApp() {
   const [isTyping, setIsTyping]                 = useState(false)
   const [sidebarOpen, setSidebarOpen]           = useState(false)
   const [isConnected, setIsConnected]           = useState(false)
-  const [uploadState, setUploadState]           = useState("idle") // idle | processing | uploading | error
+  const [uploadState, setUploadState]           = useState("idle")
   const [lightboxImage, setLightboxImage]       = useState(null)
   const [loadingMessages, setLoadingMessages]   = useState(false)
+  const [sidebarAds, setSidebarAds]             = useState({ left: [], right: [] })
 
   const location              = useLocation()
   const focusedConversationId = location.state?.conversationId
 
   const API_BASE   = `${import.meta.env.VITE_SERVER}/api/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
+  const SERVER_URL = `${import.meta.env.VITE_SERVER}`
 
   // ─── Refs ─────────────────────────────────────────────────────────────────
   const messagesContainerRef  = useRef(null)
   const fileInputRef          = useRef(null)
   const socketRef             = useRef(null)
-  const activeConvRef         = useRef(null)   // avoids stale closure in socket handler
+  const activeConvRef         = useRef(null)
   const currentUserRef        = useRef(null)
   const typingTimeoutRef      = useRef(null)
   const isFirstLoad           = useRef(true)
@@ -38,6 +40,18 @@ export default function ChatApp() {
   // Keep refs in sync
   useEffect(() => { activeConvRef.current  = activeConversation }, [activeConversation])
   useEffect(() => { currentUserRef.current = currentUser },        [currentUser])
+
+  // ─── Fetch sidebar ads (same endpoint as Home page) ──────────────────────
+  useEffect(() => {
+    const fetchAds = async () => {
+      try {
+        const res  = await fetch(`${SERVER_URL}/api/ads/public`)
+        const data = await res.json()
+        if (data.success) setSidebarAds(data.ads)
+      } catch {}
+    }
+    fetchAds()
+  }, [SERVER_URL])
 
   // ─── Auto-connect ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -54,7 +68,7 @@ export default function ChatApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, conversations, focusedConversationId])
 
-  // ─── Socket — init ONCE per session, never on conversation change ──────────
+  // ─── Socket — init ONCE per session ───────────────────────────────────────
   useEffect(() => {
     if (!isConnected || !currentUser) return
 
@@ -69,7 +83,6 @@ export default function ChatApp() {
       const conv = activeConvRef.current
       const user = currentUserRef.current
       if (!conv || !user || msg.conversationId !== conv._id) return
-      // Skip own messages — already added optimistically
       if (msg.senderId === user.userId) return
 
       setMessages(prev => [...prev, {
@@ -98,9 +111,9 @@ export default function ChatApp() {
       socket.disconnect()
       clearTimeout(typingTimeoutRef.current)
     }
-  }, [isConnected, currentUser]) // ← no activeConversation dep — fixes reconnect bug
+  }, [isConnected, currentUser])
 
-  // ─── Join socket room whenever active conversation changes ─────────────────
+  // ─── Join socket room on conversation change ───────────────────────────────
   useEffect(() => {
     if (activeConversation && socketRef.current) {
       socketRef.current.emit("joinConversation", activeConversation._id)
@@ -116,7 +129,6 @@ export default function ChatApp() {
 
   useEffect(() => {
     if (!messages.length) return
-    // Wait one tick for the DOM to paint, then scroll
     const t = setTimeout(() => scrollToBottom(!isFirstLoad.current), 60)
     isFirstLoad.current = false
     return () => clearTimeout(t)
@@ -213,7 +225,6 @@ export default function ChatApp() {
     const tempId = `temp-${Date.now()}`
     setNewMessage("")
 
-    // ✅ Add to UI immediately
     setMessages(prev => [...prev, {
       id:          tempId,
       text,
@@ -237,7 +248,6 @@ export default function ChatApp() {
       const data = await res.json()
 
       if (data.success) {
-        // Confirm optimistic message
         setMessages(prev => prev.map(m => m.id === tempId ? {
           ...m,
           id:        data.message._id,
@@ -267,26 +277,24 @@ export default function ChatApp() {
   const handleFileChange = async (e) => {
     let file = e.target.files[0]
     if (!file || !activeConversation || !currentUser) return
-    e.target.value = "" // reset so same file can be re-selected
+    e.target.value = ""
 
-    const tempId    = `temp-img-${Date.now()}`
-    const localUrl  = URL.createObjectURL(file)
+    const tempId   = `temp-img-${Date.now()}`
+    const localUrl = URL.createObjectURL(file)
 
-    // ✅ Show image immediately from local blob
     setMessages(prev => [...prev, {
       id:          tempId,
       sender:      "me",
       timestamp:   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       senderName:  currentUser.userName,
       messageType: "image",
-      localUrl,          // blob preview
-      fileUrl:     null, // server URL — filled after upload
+      localUrl,
+      fileUrl:     null,
       sending:     true,
     }])
     setUploadState("processing")
 
     try {
-      // HEIC → JPEG
       const isHeic = file.type === "image/heic" || file.type === "image/heif" || file.name.toLowerCase().endsWith(".heic")
       if (isHeic) {
         let converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 })
@@ -294,7 +302,6 @@ export default function ChatApp() {
         file = new File([converted], file.name.replace(/\.heic$/i, ".jpg"), { type: "image/jpeg", lastModified: Date.now() })
       }
 
-      // Compress
       setUploadState("uploading")
       if (file.type.startsWith("image/")) {
         file = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1200, useWebWorker: true })
@@ -311,7 +318,6 @@ export default function ChatApp() {
       const data = await res.json()
       if (!data.success) throw new Error(data.message || "Upload failed")
 
-      // ✅ Replace blob URL with real server URL
       setMessages(prev => prev.map(m => m.id === tempId ? {
         ...m,
         id:      data.message._id,
@@ -367,10 +373,46 @@ export default function ChatApp() {
   // RENDER
   // ──────────────────────────────────────────────────────────────────────────
   return (
-    <div className="h-[85vh] md:h-[86vh] lg:h-[80vh] flex justify-center bg-gray-100 pt-1 md:pt-0">
-      <div className="w-full max-w-5xl h-full bg-white shadow-2xl overflow-hidden flex relative rounded-none md:rounded-2xl">
+    <div className="flex items-start justify-center gap-4 bg-gray-100 px-3 xl:px-6 py-3">
 
-        {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      {/* ── Left Ad Column ────────────────────────────────────────────────── */}
+      {sidebarAds.left.length > 0 && (
+        <div className="hidden xl:block w-[140px] flex-shrink-0 self-stretch">
+          <div className="sticky top-[155px] flex flex-col gap-3">
+            {sidebarAds.left.map((ad) =>
+              ad.link ? (
+                <a
+                  key={ad._id}
+                  href={ad.link}
+                  target={ad.linkTarget || "_blank"}
+                  rel="noopener noreferrer"
+                  onClick={() => fetch(`${SERVER_URL}/api/ads/${ad._id}/click`, { method: "POST" })}
+                >
+                  <img
+                    src={`${SERVER_URL}${ad.image}`}
+                    alt={ad.title}
+                    className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                    onLoad={() => fetch(`${SERVER_URL}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                  />
+                </a>
+              ) : (
+                <img
+                  key={ad._id}
+                  src={`${SERVER_URL}${ad.image}`}
+                  alt={ad.title}
+                  className="w-full h-[500px] object-cover rounded-xl shadow-md"
+                  onLoad={() => fetch(`${SERVER_URL}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                />
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Chat Panel ────────────────────────────────────────────────────── */}
+      <div className="flex-1 max-w-4xl h-[calc(100vh-160px)] bg-white shadow-2xl overflow-hidden flex relative rounded-none md:rounded-2xl">
+
+        {/* ── Sidebar ───────────────────────────────────────────────────── */}
         <aside
           className={`
             absolute inset-y-0 left-0 z-40 w-72 flex flex-col bg-white border-r border-gray-100 shadow-xl
@@ -380,12 +422,12 @@ export default function ChatApp() {
           `}
         >
           {/* Sidebar header */}
-          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-600 to-teal-600">
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-green-600 to-green-700">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-lg font-bold text-white tracking-tight">Messages</h1>
                 {currentUser && (
-                  <p className="text-xs text-emerald-100 mt-0.5 truncate max-w-[180px]">
+                  <p className="text-xs text-green-100 mt-0.5 truncate max-w-[180px]">
                     {currentUser.userName}
                   </p>
                 )}
@@ -403,7 +445,7 @@ export default function ChatApp() {
           <div className="flex-1 overflow-y-auto py-2">
             {chatUsers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-6 py-10">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3">
+                <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-3">
                   <span className="text-2xl">💬</span>
                 </div>
                 <p className="text-sm font-semibold text-gray-700">No conversations yet</p>
@@ -419,23 +461,23 @@ export default function ChatApp() {
                     onClick={() => startConversation(user)}
                     className={`w-full flex items-center gap-3 px-4 py-3 transition-all duration-150 text-left
                       ${isActive
-                        ? "bg-emerald-50 border-r-4 border-emerald-500"
+                        ? "bg-green-50 border-r-4 border-green-600"
                         : "hover:bg-gray-50 border-r-4 border-transparent"
                       }`}
                   >
                     {/* Avatar */}
                     <div className="relative shrink-0">
                       <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-base font-bold shadow-sm
-                        ${isActive ? "bg-gradient-to-br from-emerald-500 to-teal-600" : "bg-gradient-to-br from-lime-500 to-emerald-500"}`}>
+                        ${isActive ? "bg-gradient-to-br from-green-600 to-green-700" : "bg-gradient-to-br from-green-500 to-green-600"}`}>
                         {avatarLetter(user.userName)}
                       </div>
                       <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white
-                        ${user.isOnline ? "bg-emerald-500" : "bg-gray-300"}`} />
+                        ${user.isOnline ? "bg-green-500" : "bg-gray-300"}`} />
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold truncate ${isActive ? "text-emerald-700" : "text-gray-800"}`}>
+                      <p className={`text-sm font-semibold truncate ${isActive ? "text-green-700" : "text-gray-800"}`}>
                         {user.userName}
                       </p>
                       <p className="text-xs text-gray-400 truncate mt-0.5">
@@ -468,14 +510,13 @@ export default function ChatApp() {
           />
         )}
 
-        {/* ── Main Chat Area ──────────────────────────────────────────────── */}
+        {/* ── Main Chat Area ─────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
 
           {activeConversation ? (
             <>
               {/* Chat header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white shadow-sm">
-                {/* Mobile menu button */}
                 <button
                   onClick={() => setSidebarOpen(true)}
                   className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition"
@@ -485,11 +526,11 @@ export default function ChatApp() {
 
                 {/* Avatar */}
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                     {avatarLetter(getOtherParticipant(activeConversation)?.userName)}
                   </div>
                   {getOnlineUser(activeConversation)?.isOnline && (
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
                   )}
                 </div>
 
@@ -498,7 +539,7 @@ export default function ChatApp() {
                   <p className="text-sm font-bold text-gray-900 truncate">
                     {getOtherParticipant(activeConversation)?.userName || "Unknown"}
                   </p>
-                  <p className="text-xs text-emerald-600">
+                  <p className="text-xs text-green-600">
                     {isTyping ? "typing…" : getOnlineUser(activeConversation)?.isOnline ? "Online" : "Offline"}
                   </p>
                 </div>
@@ -513,13 +554,13 @@ export default function ChatApp() {
                 {loadingMessages ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-3 border-green-600 border-t-transparent rounded-full animate-spin" />
                       <p className="text-sm text-gray-400">Loading messages…</p>
                     </div>
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3 shadow-sm">
+                    <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mb-3 shadow-sm">
                       <span className="text-3xl">👋</span>
                     </div>
                     <p className="text-sm font-semibold text-gray-700">Say hello!</p>
@@ -530,7 +571,7 @@ export default function ChatApp() {
                     <MessageBubble
                       key={msg.id}
                       msg={msg}
-                      serverUrl={import.meta.env.VITE_SERVER}
+                      serverUrl={SERVER_URL}
                       onImageClick={setLightboxImage}
                     />
                   ))
@@ -539,14 +580,14 @@ export default function ChatApp() {
                 {/* Typing indicator */}
                 {isTyping && (
                   <div className="flex items-end gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                       {avatarLetter(getOtherParticipant(activeConversation)?.userName)}
                     </div>
                     <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-white border border-gray-200 shadow-sm">
                       <div className="flex gap-1 items-center h-3">
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                       </div>
                     </div>
                   </div>
@@ -555,9 +596,9 @@ export default function ChatApp() {
 
               {/* Upload progress bar */}
               {(uploadState === "processing" || uploadState === "uploading") && (
-                <div className="px-4 py-2 bg-emerald-50 border-t border-emerald-100 flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                  <p className="text-xs text-emerald-700 font-medium">
+                <div className="px-4 py-2 bg-green-50 border-t border-green-100 flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <p className="text-xs text-green-700 font-medium">
                     {uploadState === "processing" ? "Processing image…" : "Uploading…"}
                   </p>
                 </div>
@@ -574,7 +615,7 @@ export default function ChatApp() {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadState === "processing" || uploadState === "uploading"}
                     className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-400
-                      hover:text-emerald-600 hover:bg-emerald-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      hover:text-green-600 hover:bg-green-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <FaCamera size={17} />
                   </button>
@@ -586,7 +627,7 @@ export default function ChatApp() {
                       onChange={handleInputChange}
                       placeholder="Type a message…"
                       className="w-full px-4 py-2.5 bg-gray-100 rounded-full text-sm text-gray-800 placeholder-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition-all duration-200"
+                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition-all duration-200"
                     />
                   </div>
 
@@ -595,7 +636,7 @@ export default function ChatApp() {
                     type="submit"
                     disabled={!newMessage.trim()}
                     className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full
-                      bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md
+                      bg-gradient-to-br from-green-600 to-green-700 text-white shadow-md
                       hover:shadow-lg hover:scale-105 transition-all duration-200
                       disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
@@ -621,10 +662,10 @@ export default function ChatApp() {
               <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
                 <div className="text-center px-6">
                   <div className="relative mx-auto mb-6 w-24 h-24">
-                    <div className="w-24 h-24 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl flex items-center justify-center shadow-lg">
+                    <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-green-50 rounded-3xl flex items-center justify-center shadow-lg">
                       <span className="text-4xl">💬</span>
                     </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-lime-400 to-emerald-500 rounded-full animate-pulse shadow" />
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-full animate-pulse shadow" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">Your Messages</h3>
                   <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
@@ -632,7 +673,7 @@ export default function ChatApp() {
                   </p>
                   <button
                     onClick={() => setSidebarOpen(true)}
-                    className="lg:hidden mt-5 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold rounded-full shadow-md hover:shadow-lg transition"
+                    className="lg:hidden mt-5 px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm font-semibold rounded-full shadow-md hover:shadow-lg transition"
                   >
                     Open Conversations
                   </button>
@@ -643,7 +684,41 @@ export default function ChatApp() {
         </div>
       </div>
 
-      {/* ── Image Lightbox ─────────────────────────────────────────────────── */}
+      {/* ── Right Ad Column ───────────────────────────────────────────────── */}
+      {sidebarAds.right.length > 0 && (
+        <div className="hidden xl:block w-[140px] flex-shrink-0 self-stretch">
+          <div className="sticky top-[155px] flex flex-col gap-3">
+            {sidebarAds.right.map((ad) =>
+              ad.link ? (
+                <a
+                  key={ad._id}
+                  href={ad.link}
+                  target={ad.linkTarget || "_blank"}
+                  rel="noopener noreferrer"
+                  onClick={() => fetch(`${SERVER_URL}/api/ads/${ad._id}/click`, { method: "POST" })}
+                >
+                  <img
+                    src={`${SERVER_URL}${ad.image}`}
+                    alt={ad.title}
+                    className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                    onLoad={() => fetch(`${SERVER_URL}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                  />
+                </a>
+              ) : (
+                <img
+                  key={ad._id}
+                  src={`${SERVER_URL}${ad.image}`}
+                  alt={ad.title}
+                  className="w-full h-[500px] object-cover rounded-xl shadow-md"
+                  onLoad={() => fetch(`${SERVER_URL}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                />
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Image Lightbox ────────────────────────────────────────────────── */}
       {lightboxImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
@@ -671,7 +746,7 @@ export default function ChatApp() {
 function MessageBubble({ msg, serverUrl, onImageClick }) {
   const isMe        = msg.sender === "me"
   const imageSource = msg.localUrl
-    ? msg.localUrl  // immediate local preview
+    ? msg.localUrl
     : msg.fileUrl
       ? `${serverUrl}${msg.fileUrl}`
       : null
@@ -680,7 +755,7 @@ function MessageBubble({ msg, serverUrl, onImageClick }) {
     <div className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
       {/* Avatar (other only) */}
       {!isMe && (
-        <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold shadow-sm self-end mb-0.5">
+        <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white text-xs font-bold shadow-sm self-end mb-0.5">
           {(msg.senderName || "U").charAt(0).toUpperCase()}
         </div>
       )}
@@ -690,7 +765,7 @@ function MessageBubble({ msg, serverUrl, onImageClick }) {
         <div
           className={`relative px-3.5 py-2.5 rounded-2xl shadow-sm transition-shadow duration-200
             ${isMe
-              ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-br-sm"
+              ? "bg-gradient-to-br from-green-600 to-green-700 text-white rounded-br-sm"
               : "bg-white border border-gray-100 text-gray-800 rounded-bl-sm"
             }
             ${msg.failed ? "opacity-60" : ""}
@@ -705,7 +780,6 @@ function MessageBubble({ msg, serverUrl, onImageClick }) {
                 className={`max-w-[220px] max-h-[240px] w-full object-cover rounded-xl cursor-pointer
                   hover:opacity-95 transition ${msg.sending ? "opacity-80" : ""}`}
                 onClick={() => !msg.sending && onImageClick(imageSource)}
-                onLoad={() => {}} // triggers re-render for scroll
               />
               {msg.sending && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-xl">
@@ -718,7 +792,7 @@ function MessageBubble({ msg, serverUrl, onImageClick }) {
               href={msg.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-2 text-sm font-medium ${isMe ? "text-white" : "text-emerald-600"} hover:underline`}
+              className={`flex items-center gap-2 text-sm font-medium ${isMe ? "text-white" : "text-green-600"} hover:underline`}
             >
               <span>📄</span> {msg.fileName || "Document"}
             </a>
@@ -734,7 +808,7 @@ function MessageBubble({ msg, serverUrl, onImageClick }) {
             <span className="text-[10px]">
               {msg.failed   ? <FaExclamationTriangle className="text-red-400" size={9} /> :
                msg.sending  ? <FaCheck className="text-gray-300" size={9} /> :
-                              <FaCheckDouble className="text-emerald-500" size={9} />}
+                              <FaCheckDouble className="text-green-600" size={9} />}
             </span>
           )}
         </div>

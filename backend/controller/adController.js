@@ -166,7 +166,8 @@ const getPublicAds = async (_req, res) => {
 
     const grouped = { left: [], right: [], banner: [], inline: [] };
     ads.forEach((ad) => {
-      if (grouped[ad.position]) grouped[ad.position].push(ad);
+      const pos = normalizePosition(ad.position);
+      if (grouped[pos]) grouped[pos].push(ad);
     });
 
     res.json({ success: true, ads: grouped });

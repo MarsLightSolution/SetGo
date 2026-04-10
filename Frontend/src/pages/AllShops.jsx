@@ -1,39 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  CardMedia,
-  TextField,
-  MenuItem,
-  InputAdornment,
-  CircularProgress,
-  Pagination,
-  Chip,
-  Avatar,
-} from "@mui/material";
-import {
-  Search as SearchIcon,
-  Store as StoreIcon,
-  LocationOn as LocationIcon,
-  Verified as VerifiedIcon,
-  Inventory as InventoryIcon,
-} from "@mui/icons-material";
-import { useTranslation } from "react-i18next";
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { Search, Store, MapPin, Package, ChevronLeft, ChevronRight, BadgeCheck } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 const AllShops = () => {
-  const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
 
-  const [shops, setShops] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [shops, setShops] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [category, setCategory] = useState("all")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [searchTimeout, setSearchTimeout] = useState(null)
 
   const categories = [
     { value: "all", label: "All Categories" },
@@ -46,248 +26,223 @@ const AllShops = () => {
     { value: "Services", label: t("home.category.service") || "Services" },
     { value: "General", label: "General" },
     { value: "Other", label: t("home.category.other") || "Other" },
-  ];
+  ]
 
-  // Get localized text
   const getLocalizedText = (field) => {
-    if (!field) return "";
-    const lang = i18n.language || "en";
-    return field[lang] || field.en || "";
-  };
+    if (!field) return ""
+    const lang = i18n.language || "en"
+    return field[lang] || field.en || ""
+  }
 
-  // Fetch shops
   useEffect(() => {
     const fetchShops = async () => {
-      setLoading(true);
+      setLoading(true)
       try {
-        const params = new URLSearchParams({
-          page,
-          limit: 12,
-        });
-
-        if (category !== "all") {
-          params.append("category", category);
-        }
-        if (search.trim()) {
-          params.append("search", search.trim());
-        }
-
-        const res = await fetch(
-          `${import.meta.env.VITE_SERVER}/api/shops?${params}`,
-          { method: "GET" }
-        );
-        const data = await res.json();
-
+        const params = new URLSearchParams({ page, limit: 12 })
+        if (category !== "all") params.append("category", category)
+        if (search.trim()) params.append("search", search.trim())
+        const res = await fetch(`${import.meta.env.VITE_SERVER}/api/shops?${params}`)
+        const data = await res.json()
         if (data.success) {
-          setShops(data.data || []);
-          setTotalPages(data.pagination?.totalPages || 1);
+          setShops(data.data || [])
+          setTotalPages(data.pagination?.totalPages || 1)
         }
-      } catch (error) {
-        console.error("Error fetching shops:", error);
+      } catch (err) {
+        console.error("Error fetching shops:", err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
+    fetchShops()
+  }, [page, category, search])
 
-    fetchShops();
-  }, [page, category, search]);
-
-  // Debounced search
-  const [searchTimeout, setSearchTimeout] = useState(null);
   const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearch(value);
-    
-    if (searchTimeout) clearTimeout(searchTimeout);
-    setSearchTimeout(
-      setTimeout(() => {
-        setPage(1);
-      }, 500)
-    );
-  };
+    const value = e.target.value
+    setSearch(value)
+    if (searchTimeout) clearTimeout(searchTimeout)
+    setSearchTimeout(setTimeout(() => setPage(1), 500))
+  }
 
-  const handleCategoryChange = (e) => {
-    setCategory(e.target.value);
-    setPage(1);
-  };
-
-  const handlePageChange = (event, value) => {
-    setPage(value);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const handlePageChange = (val) => {
+    setPage(val)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
 
   return (
-    <>
-      <Box className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <Box className="bg-gradient-to-r from-green-600 to-green-500 py-8 px-4">
-          <Box className="max-w-6xl mx-auto">
-            <Typography variant="h4" className="text-white font-bold mb-2">
-              Browse Shops
-            </Typography>
-            <Typography variant="body1" className="text-green-100">
-              Discover shops and find great products
-            </Typography>
-          </Box>
-        </Box>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-green-700 to-green-500 text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <h1 className="text-3xl font-bold mb-1">Browse Shops</h1>
+          <p className="text-green-100">Discover shops and find great products</p>
+        </div>
+      </div>
 
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Filters */}
-        <Box className="max-w-6xl mx-auto px-4 py-6">
-          <Box className="flex flex-col sm:flex-row gap-4 mb-6">
-            <TextField
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
               placeholder="Search shops..."
               value={search}
               onChange={handleSearchChange}
-              size="small"
-              className="flex-1"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon className="text-gray-400" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ bgcolor: "white" }}
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
-            <TextField
-              select
-              value={category}
-              onChange={handleCategoryChange}
-              size="small"
-              sx={{ minWidth: 180, bgcolor: "white" }}
-            >
-              {categories.map((cat) => (
-                <MenuItem key={cat.value} value={cat.value}>
-                  {cat.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Box>
+          </div>
+          <select
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(1) }}
+            className="px-3 py-2.5 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[180px]"
+          >
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
+            ))}
+          </select>
+        </div>
 
-          {/* Loading */}
-          {loading ? (
-            <Box className="flex justify-center py-20">
-              <CircularProgress color="success" />
-            </Box>
-          ) : shops.length === 0 ? (
-            /* No shops */
-            <Box className="text-center py-20">
-              <StoreIcon sx={{ fontSize: 80, color: "#ccc", mb: 2 }} />
-              <Typography variant="h6" className="text-gray-500">
-                No shops found
-              </Typography>
-              <Typography variant="body2" className="text-gray-400">
-                Try different search or category
-              </Typography>
-            </Box>
-          ) : (
-            /* Shops Grid */
-            <>
-              <Grid container spacing={3}>
-                {shops.map((shop) => (
-                  <Grid item xs={12} sm={6} md={4} key={shop._id}>
-                    <Card
-                      className="h-full cursor-pointer hover:shadow-lg transition-shadow"
-                      onClick={() => navigate(`/shop/${shop.slug}`)}
-                    >
-                      {/* Banner */}
-                      <Box
-                        className="h-28 bg-gradient-to-r from-green-500 to-green-400"
-                        sx={{
-                          backgroundImage: shop.banner
-                            ? `url(${import.meta.env.VITE_SERVER}${shop.banner})`
-                            : undefined,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                        }}
-                      />
-
-                      <CardContent className="relative pt-8">
-                        {/* Logo */}
-                        <Avatar
-                          src={shop.logo ? `${import.meta.env.VITE_SERVER}${shop.logo}` : undefined}
-                          sx={{
-                            width: 64,
-                            height: 64,
-                            position: "absolute",
-                            top: -32,
-                            left: 16,
-                            border: "3px solid white",
-                            boxShadow: 1,
-                            bgcolor: "#16a34a",
-                          }}
-                        >
-                          <StoreIcon />
-                        </Avatar>
-
-                        {/* Shop Info */}
-                        <Box className="ml-0 mt-4 overflow-hidden">
-                          <Box className="flex items-center gap-1 flex-wrap min-w-0">
-                            <Typography variant="h6" className="font-semibold text-gray-800" noWrap>
-                              {getLocalizedText(shop.shopName)}
-                            </Typography>
-                            {shop.isVerified && (
-                              <VerifiedIcon sx={{ color: "#1976d2", fontSize: 18 }} />
-                            )}
-                          </Box>
-
-                          <Chip
-                            label={shop.category}
-                            size="small"
-                            variant="outlined"
-                            className="mt-1"
-                          />
-
-                          {/* Stats */}
-                          <Box className="flex items-center gap-4 mt-3 text-gray-500">
-                            <Box className="flex items-center gap-1">
-                              <InventoryIcon fontSize="small" />
-                              <Typography variant="body2">
-                                {shop.totalProducts || 0} {shop.totalProducts === 1 ? (t("product") || "product") : (t("products") || "products")}
-                              </Typography>
-                            </Box>
-                            {shop.address?.city && (
-                              <Box className="flex items-center gap-1">
-                                <LocationIcon fontSize="small" />
-                                <Typography variant="body2">{shop.address.city}</Typography>
-                              </Box>
-                            )}
-                          </Box>
-
-                          {/* Description */}
-                          {getLocalizedText(shop.description) && (
-                            <Typography
-                              variant="body2"
-                              className="text-gray-500 mt-2 line-clamp-2"
-                            >
-                              {getLocalizedText(shop.description)}
-                            </Typography>
-                          )}
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Box className="flex justify-center mt-8">
-                  <Pagination
-                    count={totalPages}
-                    page={page}
-                    onChange={handlePageChange}
-                    color="primary"
-                    size="large"
+        {/* Loading */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-pulse">
+                <div className="h-28 bg-gray-200" />
+                <div className="p-4 pt-10">
+                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+                  <div className="h-3 bg-gray-200 rounded w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : shops.length === 0 ? (
+          <div className="text-center py-20">
+            <Store className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">No shops found</p>
+            <p className="text-gray-400 text-sm mt-1">Try different search or category</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {shops.map((shop) => (
+                <div
+                  key={shop._id}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/shop/${shop.slug}`)}
+                >
+                  {/* Banner */}
+                  <div
+                    className="h-28 bg-gradient-to-r from-green-500 to-green-400"
+                    style={shop.banner ? {
+                      backgroundImage: `url(${import.meta.env.VITE_SERVER}${shop.banner})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    } : {}}
                   />
-                </Box>
-              )}
-            </>
-          )}
-        </Box>
-      </Box>
-    </>
-  );
-};
 
-export default AllShops;
+                  {/* Content with overlapping logo */}
+                  <div className="relative px-4 pb-4 pt-0">
+                    {/* Logo */}
+                    <div className="w-16 h-16 rounded-full border-4 border-white shadow-sm overflow-hidden bg-green-600 flex items-center justify-center -mt-8 mb-2">
+                      {shop.logo ? (
+                        <img
+                          src={`${import.meta.env.VITE_SERVER}${shop.logo}`}
+                          alt={getLocalizedText(shop.shopName)}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Store className="w-8 h-8 text-white" />
+                      )}
+                    </div>
+
+                    {/* Name + verified */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="font-semibold text-gray-800 text-sm truncate">
+                        {getLocalizedText(shop.shopName)}
+                      </span>
+                      {shop.isVerified && (
+                        <BadgeCheck className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      )}
+                    </div>
+
+                    {/* Category */}
+                    <span className="inline-block mt-1 text-xs px-2 py-0.5 border border-gray-200 rounded-full text-gray-500">
+                      {shop.category}
+                    </span>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 mt-2 text-gray-400 text-xs">
+                      <span className="flex items-center gap-1">
+                        <Package className="w-3.5 h-3.5" />
+                        {shop.totalProducts || 0} products
+                      </span>
+                      {shop.address?.city && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {shop.address.city}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    {getLocalizedText(shop.description) && (
+                      <p className="text-xs text-gray-400 mt-2 line-clamp-2">
+                        {getLocalizedText(shop.description)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .reduce((acc, p, idx, arr) => {
+                    if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...")
+                    acc.push(p)
+                    return acc
+                  }, [])
+                  .map((p, i) =>
+                    p === "..." ? (
+                      <span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-sm">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                          p === page
+                            ? "bg-green-600 text-white"
+                            : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default AllShops

@@ -395,6 +395,7 @@ const Home = () => {
 
   // Sidebar / banner ads from admin panel
   const [sidebarAds, setSidebarAds] = useState({ left: [], right: [], banner: [], inline: [] })
+  const [adsLoading, setAdsLoading] = useState(true)
   const [bannerIndex, setBannerIndex] = useState(0)
 
   const hasActiveFilters = () => {
@@ -553,6 +554,8 @@ const Home = () => {
       if (data.success) setSidebarAds(data.ads)
     } catch {
       // silently fail — fallback to nothing
+    } finally {
+      setAdsLoading(false)
     }
   }
 
@@ -630,34 +633,38 @@ const Home = () => {
     <div className="min-h-screen bg-gray-100 pt-4 sm:pt-6">
       <div className="w-full flex justify-center">
         <div className="w-full max-w-screen-xl px-3 sm:px-4 flex gap-4 items-start">
-          {/* Left Ad — outer column stretches full row height so sticky has room to scroll */}
-          {sidebarAds.left.length > 0 && (
+          {/* Left Ad — always reserve column so layout doesn't shift when ads load */}
+          {(adsLoading || sidebarAds.left.length > 0) && (
             <div className="hidden xl:block w-[140px] flex-shrink-0 self-stretch">
-              <div className="sticky top-[100px] flex flex-col gap-3 z-30">
-                {sidebarAds.left.map((ad) =>
-                  ad.link ? (
-                    <a
-                      key={ad._id}
-                      href={ad.link}
-                      target={ad.linkTarget || "_blank"}
-                      rel="noopener noreferrer"
-                      onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}
-                    >
+              <div className="sticky top-[155px] flex flex-col gap-3 z-30">
+                {adsLoading ? (
+                  <div className="w-full h-[500px] rounded-xl bg-gray-200 animate-pulse" />
+                ) : (
+                  sidebarAds.left.map((ad) =>
+                    ad.link ? (
+                      <a
+                        key={ad._id}
+                        href={ad.link}
+                        target={ad.linkTarget || "_blank"}
+                        rel="noopener noreferrer"
+                        onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}
+                      >
+                        <img
+                          src={`${import.meta.env.VITE_SERVER}${ad.image}`}
+                          alt={ad.title}
+                          className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                          onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                        />
+                      </a>
+                    ) : (
                       <img
+                        key={ad._id}
                         src={`${import.meta.env.VITE_SERVER}${ad.image}`}
                         alt={ad.title}
-                        className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                        className="w-full h-[500px] object-cover rounded-xl shadow-md"
                         onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
                       />
-                    </a>
-                  ) : (
-                    <img
-                      key={ad._id}
-                      src={`${import.meta.env.VITE_SERVER}${ad.image}`}
-                      alt={ad.title}
-                      className="w-full h-[500px] object-cover rounded-xl shadow-md"
-                      onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
-                    />
+                    )
                   )
                 )}
               </div>
@@ -1012,34 +1019,38 @@ const Home = () => {
             />
           </div>
 
-          {/* Right Ad — same two-layer sticky pattern */}
-          {sidebarAds.right.length > 0 && (
+          {/* Right Ad — always reserve column so layout doesn't shift when ads load */}
+          {(adsLoading || sidebarAds.right.length > 0) && (
             <div className="hidden xl:block w-[140px] flex-shrink-0 self-stretch">
-              <div className="sticky top-[100px] flex flex-col gap-3 z-30">
-                {sidebarAds.right.map((ad) =>
-                  ad.link ? (
-                    <a
-                      key={ad._id}
-                      href={ad.link}
-                      target={ad.linkTarget || "_blank"}
-                      rel="noopener noreferrer"
-                      onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}
-                    >
+              <div className="sticky top-[155px] flex flex-col gap-3 z-30">
+                {adsLoading ? (
+                  <div className="w-full h-[500px] rounded-xl bg-gray-200 animate-pulse" />
+                ) : (
+                  sidebarAds.right.map((ad) =>
+                    ad.link ? (
+                      <a
+                        key={ad._id}
+                        href={ad.link}
+                        target={ad.linkTarget || "_blank"}
+                        rel="noopener noreferrer"
+                        onClick={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/click`, { method: "POST" })}
+                      >
+                        <img
+                          src={`${import.meta.env.VITE_SERVER}${ad.image}`}
+                          alt={ad.title}
+                          className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                          onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
+                        />
+                      </a>
+                    ) : (
                       <img
+                        key={ad._id}
                         src={`${import.meta.env.VITE_SERVER}${ad.image}`}
                         alt={ad.title}
-                        className="w-full h-[500px] object-cover rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                        className="w-full h-[500px] object-cover rounded-xl shadow-md"
                         onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
                       />
-                    </a>
-                  ) : (
-                    <img
-                      key={ad._id}
-                      src={`${import.meta.env.VITE_SERVER}${ad.image}`}
-                      alt={ad.title}
-                      className="w-full h-[500px] object-cover rounded-xl shadow-md"
-                      onLoad={() => fetch(`${import.meta.env.VITE_SERVER}/api/ads/${ad._id}/impression`, { method: "POST" })}
-                    />
+                    )
                   )
                 )}
               </div>
