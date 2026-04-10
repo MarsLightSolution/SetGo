@@ -288,8 +288,8 @@ export default function HomeScreen() {
         ) : shopsError ? (
           <View style={styles.shopsError}>
             <Icon name="alert-circle" size={24} color="#EF4444" />
-            <Text style={styles.errorText}>Error: {shopsError}</Text>
-            <TouchableOpacity onPress={fetchShops} style={styles.retryButton}>
+            <Text style={styles.errorText}>Failed to load shops</Text>
+            <TouchableOpacity onPress={() => queryClient.invalidateQueries({ queryKey: feedKeys.shops() })} style={styles.retryButton}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
