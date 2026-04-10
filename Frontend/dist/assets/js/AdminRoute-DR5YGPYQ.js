@@ -1,0 +1,1 @@
+import{j as e,ai as r}from"./index-eta8oHsc.js";function s({children:a}){const t=JSON.parse(localStorage.getItem("userData"));return t?t.Role!=="admin"?e.jsx(r,{to:"/"}):a:e.jsx(r,{to:"/login"})}export{s as default};

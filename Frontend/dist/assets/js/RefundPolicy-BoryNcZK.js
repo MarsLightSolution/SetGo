@@ -1,0 +1,17 @@
+import{j as e}from"./index-eta8oHsc.js";const r=[{number:"1",title:"Platform Role",body:"SatGo acts solely as an intermediary platform between buyers and sellers. SatGo does not sell products and is not a party to sales transactions concluded between users."},{number:"2",title:"Private Sales",body:`For private sales conducted through the platform, SatGo does not issue refunds.
+
+Any refund agreements, cancellations, or disputes must be resolved directly between the buyer and the seller.`},{number:"3",title:"Online Payments and Buyer Protection",highlight:!0,body:`For transactions completed through online payment on the platform, buyer protection is provided.
+
+The buyer's payment is temporarily held and released to the seller only after the buyer confirms receipt of the product.
+
+If a dispute or unresolved issue arises before confirmation, the buyer and seller are expected to communicate directly through the platform in order to resolve the matter.
+
+During this period, the funds remain temporarily held until the matter is resolved between the parties.
+
+SatGo does not guarantee product quality, condition, authenticity, or delivery and is not responsible for fulfillment of transactions.`},{number:"4",title:"Wallet and Deposited Funds",body:`SatGo may provide users with an internal wallet feature to deposit funds, make payments within the platform, and request withdrawals.
+
+Funds deposited into the user wallet are intended solely for use within the platform.
+
+The SatGo wallet does not constitute a bank account, financial institution account, or payment account. Stored balances do not earn interest and are not insured.
+
+Withdrawal requests may be subject to identity verification, security checks, and fraud prevention procedures.`},{number:"5",title:"Paid Platform Services",body:"Payments made for paid platform features, including listing promotions, visibility enhancements, boosts, or other activated services, are non-refundable once the service has been activated."}];function a(){return e.jsxs("div",{className:"min-h-screen bg-gray-50",children:[e.jsx("div",{className:"bg-gradient-to-br from-green-700 to-green-500 text-white",children:e.jsxs("div",{className:"max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center",children:[e.jsx("h1",{className:"text-4xl font-bold mb-4",children:"Refund Policy"}),e.jsx("p",{className:"text-green-100 text-lg max-w-2xl mx-auto",children:"Understand how refunds, cancellations, and buyer protection work on SatGo."})]})}),e.jsxs("div",{className:"max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-5",children:[r.map(t=>e.jsxs("div",{className:`rounded-2xl border shadow-sm p-7 ${t.highlight?"bg-green-50 border-green-200":"bg-white border-gray-100"}`,children:[e.jsxs("h2",{className:"text-base font-bold text-gray-900 mb-3 flex items-center gap-3",children:[e.jsx("span",{className:`w-7 h-7 text-white text-xs font-bold rounded-lg flex items-center justify-center shrink-0 ${t.highlight?"bg-green-700":"bg-green-600"}`,children:t.number}),t.title,t.highlight&&e.jsx("span",{className:"ml-1 text-xs font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full",children:"Buyer Protection"})]}),e.jsx("div",{className:"text-sm text-gray-600 leading-relaxed whitespace-pre-line pl-10",children:t.body})]},t.number)),e.jsx("p",{className:"text-center text-xs text-gray-400 pb-4",children:"Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282"})]})]})}export{a as default};
