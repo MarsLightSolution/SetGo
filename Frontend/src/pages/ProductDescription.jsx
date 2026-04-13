@@ -14,7 +14,7 @@ import SaveIcon from "../assets/icons/save.svg";
 import EyeIcon from "../assets/icons/eye.svg";
 import { useDispatch, useSelector } from "react-redux";
 import { like, unlike } from "../slices/wishSlice";
-import { toast } from "react-toastify";
+import { toast } from "react-hot-toast";
 import { GoogleMap, MarkerF, InfoWindowF } from "@react-google-maps/api";
 import { GoogleMapsLoader } from "../components/common/GoogleMap";
 import ShareModal from "../components/Popups/ShareModal";
@@ -84,7 +84,7 @@ const ProductDetail = () => {
 
     if (isWishlisted) {
       dispatch(unlike(product));
-      toast.info(t("productDetail.removedFromWatchlist"));
+      toast(t("productDetail.removedFromWatchlist"));
     } else {
       dispatch(like(product));
       toast.success(t("productDetail.addedToWatchlist"));
@@ -289,7 +289,7 @@ const ProductDetail = () => {
       if (!res.ok) {
         const errorData = await res.json();
         if (errorData.message?.includes("already marked")) {
-          toast.info("You've already marked this as helpful");
+          toast("You've already marked this as helpful");
         } else {
           throw new Error("Failed to mark review as helpful");
         }

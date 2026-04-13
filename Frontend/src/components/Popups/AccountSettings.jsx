@@ -10,7 +10,7 @@ import NewPasswordModal from "../Settings/NewPasswordModal"; // Assuming this is
 import useUserProfile from "../../Hooks/useUserProfile"; // Assuming this hook exists
 import axios from "axios";
 import Cookies from "js-cookie";
-import { toast, ToastContainer } from "react-toastify"; // Using react-toastify directly here
+import { toast } from "react-hot-toast";
 // import { useTranslation } from 'react-i18next';
 // i18n import
 import { useTranslation } from 'react-i18next';
@@ -151,7 +151,7 @@ function AccountSettings() {
 
   const handleEmailSave = async () => {
     if (newEmail !== repeatEmail || !emailPassword) {
-      toast.warning(t("accountSettings.emailMatchWarning")); // Translated
+      toast(t("accountSettings.emailMatchWarning"), { icon: '⚠️' }); // Translated
       return;
     }
 
@@ -187,7 +187,6 @@ function AccountSettings() {
   animate={{ opacity: 1, y: 0 }}
   transition={{ duration: 0.3 }}
 >
-  <ToastContainer position="top-right" autoClose={3000} />
 
   {loading && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">

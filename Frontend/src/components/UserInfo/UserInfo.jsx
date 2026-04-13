@@ -5,8 +5,7 @@
   import bannerImage from "../../assets/images/banner1.png"
   import nodataImage from "../../assets/images/nodata.png"
     import { FaEdit, FaEye, FaPause, FaRocket, FaTrash, FaPlay } from "react-icons/fa" // Added FaPlay import for paused state
-  import { toast, ToastContainer } from "react-toastify"
-  import "react-toastify/dist/ReactToastify.css"
+  import { toast } from "react-hot-toast"
   import PaymentDialogboast from "../../pages/PaymentDialogboast"
   import { useTranslation } from "react-i18next"
   import SafeImage from "../common/SafeImage"
@@ -255,7 +254,6 @@
 
     return (
       <div className="min-h-screen bg-gray-50 text-gray-800">
-        <ToastContainer />
         {confirmAdId && (
           <ConfirmDialog
             onConfirm={() =>

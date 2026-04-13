@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-hot-toast";
 
 // i18n import
 import { useTranslation } from "react-i18next";
@@ -68,7 +68,6 @@ function EmailSettings() {
   animate={{ opacity: 1, y: 0 }}
   transition={{ duration: 0.3 }}
 >
-  <ToastContainer position="top-right" autoClose={3000} />
 
   {/* Content Wrapper (same as profile + account settings) */}
   <div className="flex-1 py-10 px-4">
