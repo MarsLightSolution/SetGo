@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -15,27 +15,33 @@ import {
     Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
-import logger from '../../utils/logger';
-
-const log = logger.create('Shops');
+import { IMAGE_BASE_URL } from '../../config/api';
+import { useShopsList } from '../../hooks/useShopQuery';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
 
 export default function AllShopsScreen() {
   const router = useRouter();
-  const [shops, setShops] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [committedSearch, setCommittedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [pagination, setPagination] = useState({
+  const [page, setPage] = useState(1);
+
+  const {
+    data,
+    isFetching: loading,
+    isRefetching,
+    refetch,
+  } = useShopsList(page, committedSearch, selectedCategory);
+
+  const shops = data?.shops || [];
+  const pagination = data?.pagination || {
     currentPage: 1,
     totalPages: 1,
     hasNextPage: false,
     hasPrevPage: false,
-  });
+  };
 
   const categories = [
     'All',
@@ -57,67 +63,29 @@ export default function AllShopsScreen() {
     return field.en || field.az || field.ru || '';
   };
 
-  // Fetch shops
-  const fetchShops = async (page = 1, search = '', category = '') => {
-    try {
-      setLoading(true);
-
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '12',
-      });
-
-      if (search) {
-        params.append('search', search);
-      }
-
-      if (category && category !== 'All') {
-        params.append('category', category);
-      }
-
-      const response = await fetch(
-        `${API_ENDPOINTS.GET_SHOPS}?${params.toString()}`,
-        { method: 'GET' }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        setShops(data.data || []);
-        setPagination({
-          currentPage: data.pagination?.currentPage || 1,
-          totalPages: data.pagination?.totalPages || 1,
-          hasNextPage: data.pagination?.hasNextPage || false,
-          hasPrevPage: data.pagination?.hasPrevPage || false,
-        });
-      }
-    } catch (error) {
-      log.error('Error fetching shops:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchShops(1, searchText, selectedCategory);
-  }, [selectedCategory]);
-
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchShops(1, searchText, selectedCategory);
-  }, [searchText, selectedCategory]);
+    refetch();
+  }, [refetch]);
 
   const handleSearch = () => {
-    fetchShops(1, searchText, selectedCategory);
+    setPage(1);
+    setCommittedSearch(searchText);
   };
 
   const handleCategorySelect = (category) => {
+    setPage(1);
     setSelectedCategory(category === 'All' ? '' : category);
   };
 
   const handlePageChange = (newPage) => {
-    fetchShops(newPage, searchText, selectedCategory);
+    setPage(newPage);
+  };
+
+  const handleClearFilters = () => {
+    setSearchText('');
+    setCommittedSearch('');
+    setSelectedCategory('');
+    setPage(1);
   };
 
   // Shop Card Component
@@ -246,9 +214,7 @@ export default function AllShopsScreen() {
       <TouchableOpacity
         style={styles.clearFiltersButton}
         onPress={() => {
-          setSearchText('');
-          setSelectedCategory('');
-          fetchShops(1, '', '');
+          handleClearFilters();
         }}
       >
         <Text style={styles.clearFiltersText}>Clear Filters</Text>
@@ -287,11 +253,7 @@ export default function AllShopsScreen() {
         </Text>
         {(searchText || selectedCategory) && (
           <TouchableOpacity
-            onPress={() => {
-              setSearchText('');
-              setSelectedCategory('');
-              fetchShops(1, '', '');
-            }}
+            onPress={handleClearFilters}
           >
             <Text style={styles.clearText}>Clear all</Text>
           </TouchableOpacity>
@@ -390,7 +352,8 @@ export default function AllShopsScreen() {
             <TouchableOpacity
               onPress={() => {
                 setSearchText('');
-                fetchShops(1, '', selectedCategory);
+                setCommittedSearch('');
+                setPage(1);
               }}
             >
               <Icon name="x" size={20} color="#9CA3AF" />
@@ -417,7 +380,7 @@ export default function AllShopsScreen() {
           ListEmptyComponent={EmptyState}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }
           showsVerticalScrollIndicator={false}
         />

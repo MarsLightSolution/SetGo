@@ -14,11 +14,11 @@ import {
   StatusBar,
   Animated,
 } from 'react-native';
-import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { getAuthToken, getUserId, getUserData } from '../../services/secureAuthService';
+import { useUserAds } from '../../hooks/useUserQuery';
 
 const { width } = Dimensions.get('window');
 // ==================== API CONFIGURATION ====================
@@ -40,39 +40,33 @@ const ApiService = {
     };
   },
 
-  fetchUserAds: async (userId) => {
-    const headers = await ApiService.getHeaders();
-    const response = await axios.get(
-      API_ENDPOINTS.USER_ADS(userId),
-      { headers }
-    );
-    return response.data;
-  },
-
   toggleAdStatus: async (id) => {
     const headers = await ApiService.getHeaders();
-    await axios.patch(
-      API_ENDPOINTS.MARK_SOLD(id),
-      {},
-      { headers }
-    );
+    const res = await fetch(API_ENDPOINTS.MARK_SOLD(id), {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) throw Object.assign(new Error('Failed'), { status: res.status });
   },
 
   boostAd: async (id) => {
     const headers = await ApiService.getHeaders();
-    await axios.put(
-      API_ENDPOINTS.UPDATE_PRIORITY(id),
-      {},
-      { headers }
-    );
+    const res = await fetch(API_ENDPOINTS.UPDATE_PRIORITY(id), {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) throw Object.assign(new Error('Failed'), { status: res.status });
   },
 
   deleteAd: async (id) => {
     const headers = await ApiService.getHeaders();
-    await axios.delete(
-      API_ENDPOINTS.DELETE_PRODUCT(id),
-      { headers }
-    );
+    const res = await fetch(API_ENDPOINTS.DELETE_PRODUCT(id), {
+      method: 'DELETE',
+      headers,
+    });
+    if (!res.ok) throw Object.assign(new Error('Failed'), { status: res.status });
   },
 };
 
@@ -371,8 +365,7 @@ const EmptyState = ({ onPlaceAd }) => (
 export default function UserProfile() {
   const navigation = useNavigation();
   const router = useRouter();
-  const [ads, setAds] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState(null);
   const [expandedAdId, setExpandedAdId] = useState(null);
   const [confirmAdId, setConfirmAdId] = useState(null);
   const [confirmAction, setConfirmAction] = useState('pause');
@@ -380,51 +373,47 @@ export default function UserProfile() {
   const [userCreatedAt, setUserCreatedAt] = useState('');
   const scrollViewRef = useRef(null);
 
+  const {
+    data: ads = [],
+    isLoading: loading,
+    refetch: refetchAds,
+    error: adsError,
+  } = useUserAds(userId);
+
   useEffect(() => {
-    loadUserData();
-    fetchUserAds();
+    const init = async () => {
+      try {
+        const [id, userData] = await Promise.all([getUserId(), getUserData()]);
+        setUserId(id || null);
+        setUserName(userData?.userName || userData?.name || 'User');
+        setUserCreatedAt(userData?.createdAt || new Date().toISOString());
+        if (!id) {
+          Alert.alert('Authentication Required', 'Please log in to view your ads.');
+        }
+      } catch {
+        // silent
+      }
+    };
+    init();
   }, []);
 
-  const loadUserData = async () => {
-    try {
-      const userData = await getUserData();
-      setUserName(userData?.userName || userData?.name || 'User');
-      setUserCreatedAt(userData?.createdAt || new Date().toISOString());
-    } catch (error) {
-      // Failed to load user data
-    }
-  };
-
-  const fetchUserAds = async () => {
-    try {
-      const [userId, token] = await Promise.all([getUserId(), getAuthToken()]);
-
-      if (!userId || !token) {
-        setAds([]);
-        Alert.alert('Authentication Required', 'Please log in to view your ads.');
-        return;
-      }
-
-      const data = await ApiService.fetchUserAds(userId);
-      setAds(Array.isArray(data.data) ? data.data : []);
-    } catch (err) {
-      setAds([]);
-      if (err.response?.status === 401) {
+  // Show auth error from hook
+  useEffect(() => {
+    if (adsError) {
+      if (adsError.status === 401) {
         Alert.alert('Session Expired', 'Please log in again.', [
           { text: 'OK', onPress: () => navigation.navigate('Login') },
         ]);
       } else {
         Alert.alert('Error', 'Failed to load ads. Please try again.');
       }
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [adsError]);
 
   const handleAction = async (id, action, actionFn, successMessage) => {
     try {
       await actionFn(id);
-      await fetchUserAds();
+      await refetchAds();
       Alert.alert('Success', successMessage);
     } catch (err) {
       if (err.response?.status === 401) {

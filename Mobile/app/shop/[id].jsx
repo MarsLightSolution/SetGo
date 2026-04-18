@@ -20,6 +20,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 import { useAuthStore } from '../../Store/authStore';
 import logger from '../../utils/logger';
+import { useShopProfile, useShopProducts } from '../../hooks/useShopQuery';
 
 const log = logger.create('ShopProfile');
 
@@ -30,19 +31,34 @@ export default function ShopProfileScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  
-  const [shop, setShop] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [productsLoading, setProductsLoading] = useState(false);
+
+  const [productsPage, setProductsPage] = useState(1);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    hasNextPage: false,
-  });
+  const [followerCount, setFollowerCount] = useState(null);
+
+  const {
+    data: shop,
+    isLoading: loading,
+    isRefetching,
+    refetch: refetchShop,
+  } = useShopProfile(id);
+
+  const {
+    data: productsData,
+    isFetching: productsLoading,
+  } = useShopProducts(shop?._id, productsPage);
+
+  const products = productsData?.products || shop?.products || [];
+  const pagination = productsData?.pagination || { currentPage: 1, totalPages: 1, hasNextPage: false };
+  // Sync follower count from shop data on first load
+  const displayFollowerCount = followerCount !== null ? followerCount : (shop?.followerCount || 0);
+
+  // Initialise follow state from cached shop data
+  useEffect(() => {
+    if (shop && user?._id) {
+      setIsFollowing(shop.followers?.includes(user._id) ?? false);
+    }
+  }, [shop?._id]);
 
   // Get localized text helper
   const getLocalizedText = (field) => {
@@ -51,90 +67,9 @@ export default function ShopProfileScreen() {
     return field.en || field.az || field.ru || '';
   };
 
-  // Fetch shop details
-  const fetchShop = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(API_ENDPOINTS.GET_SHOP(id), {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setShop(data.data);
-        setProducts(data.data.products || []);
-        setFollowerCount(data.data.followerCount || 0);
-
-        // Check if current user is following
-        const userId = user?._id;
-        if (userId && data.data.followers?.includes(userId)) {
-          setIsFollowing(true);
-        }
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Shop not found',
-        });
-        router.back();
-      }
-    } catch (error) {
-      log.error('Error fetching shop:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to load shop',
-      });
-      router.back();
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Fetch shop products
-  const fetchProducts = async (page = 1) => {
-    if (!shop?._id) return;
-
-    try {
-      setProductsLoading(true);
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '12',
-      });
-
-      const response = await fetch(
-        `${API_ENDPOINTS.SHOP_PRODUCTS(shop._id)}?${params}`,
-        { method: 'GET' }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        setProducts(data.data || []);
-        setPagination({
-          currentPage: data.pagination?.currentPage || 1,
-          totalPages: data.pagination?.totalPages || 1,
-          hasNextPage: data.pagination?.hasNextPage || false,
-        });
-      }
-    } catch (error) {
-      log.error('Error fetching products:', error);
-    } finally {
-      setProductsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (id) {
-      fetchShop();
-    }
-  }, [id]);
-
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchShop();
-  }, [id]);
+    refetchShop();
+  }, [refetchShop]);
 
   // Handle follow/unfollow
   const handleFollow = async () => {
@@ -169,7 +104,7 @@ export default function ShopProfileScreen() {
 
       if (data.success) {
         setIsFollowing(data.isFollowing);
-        setFollowerCount(data.followerCount);
+        setFollowerCount(data.followerCount ?? displayFollowerCount);
         Toast.show({
           type: 'success',
           text1: data.message,
@@ -303,7 +238,7 @@ export default function ShopProfileScreen() {
     <View style={styles.container}>
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -387,7 +322,7 @@ export default function ShopProfileScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{followerCount}</Text>
+              <Text style={styles.statNumber}>{displayFollowerCount}</Text>
               <Text style={styles.statLabel}>Followers</Text>
             </View>
             <View style={styles.statDivider} />
@@ -577,7 +512,7 @@ export default function ShopProfileScreen() {
           {pagination.hasNextPage && (
             <TouchableOpacity
               style={styles.loadMoreButton}
-              onPress={() => fetchProducts(pagination.currentPage + 1)}
+              onPress={() => setProductsPage((p) => p + 1)}
             >
               <Text style={styles.loadMoreText}>Load More</Text>
               <Icon name="chevron-down" size={16} color="#008235" />
