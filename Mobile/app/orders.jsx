@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -11,28 +11,27 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_ENDPOINTS } from '../config/api';
-import logger from '../utils/logger';
 import { useTranslation } from 'react-i18next';
-
-const log = logger.create('Orders');
+import { useTransactions } from '../hooks/useOrderQuery';
 
 export default function OrdersScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('orders');
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
-  // Transaction state
-  const [transactions, setTransactions] = useState([]);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [totalCredit, setTotalCredit] = useState(0);
-  const [totalDebit, setTotalDebit] = useState(0);
+  const userId = user?.id || user?._id;
+  const {
+    data: txData,
+    isFetching,
+    isRefetching,
+    refetch,
+  } = useTransactions(userId, isAuthenticated && activeTab === 'transactions');
 
-  // API endpoints imported at top of file
+  const transactions = txData?.transactions || [];
+  const walletBalance = txData?.walletBalance || 0;
+  const totalCredit = txData?.totalCredit || 0;
+  const totalDebit = txData?.totalDebit || 0;
 
   const orders = [
     {
@@ -61,55 +60,8 @@ export default function OrdersScreen() {
     },
   ];
 
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
-      const userId = user?.id || user?._id || await AsyncStorage.getItem('userId');
-      
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(
-        API_ENDPOINTS.USER_TRANSACTIONS(userId),
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const json = await response.json();
-      const { transactions, walletBalance, totalCredit, totalDebit } = json.data || {};
-
-      setTransactions(transactions || []);
-      setWalletBalance(walletBalance || 0);
-      setTotalCredit(totalCredit || 0);
-      setTotalDebit(totalDebit || 0);
-    } catch (error) {
-      log.error('Failed to fetch transactions:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthenticated && activeTab === 'transactions') {
-      fetchTransactions();
-    }
-  }, [isAuthenticated, activeTab]);
-
   const onRefresh = () => {
-    setRefreshing(true);
-    if (activeTab === 'transactions') {
-      fetchTransactions();
-    } else {
-      setRefreshing(false);
-    }
+    if (activeTab === 'transactions') refetch();
   };
 
   // IF NOT AUTHENTICATED
@@ -162,10 +114,10 @@ export default function OrdersScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
         }
       >
         {activeTab === 'orders' ? (
@@ -201,7 +153,7 @@ export default function OrdersScreen() {
         ) : (
           // TRANSACTIONS TAB
           <>
-            {loading ? (
+            {isFetching && transactions.length === 0 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#008235" />
                 <Text style={styles.loadingText}>{t('orders.loadingTransactions')}</Text>

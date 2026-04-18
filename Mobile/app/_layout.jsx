@@ -8,10 +8,13 @@ import { useOnboardingStore } from '../Store/onboardingStore';
 import BottomTabBar from '../Components/BottomTabBar';
 import ErrorBoundary from '../Components/ErrorBoundary';
 import SplashScreen from '../Components/SplashScreen';
+import OfflineBanner from '../Components/OfflineBanner';
 import { useEffect, useState, useCallback } from 'react';
 import { View, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { queryClient, asyncStoragePersister } from '../services/queryClient';
 import '../i18n';
 
 function AppContent() {
@@ -104,6 +107,7 @@ function AppContent() {
         backgroundColor="#008235"
         translucent={false}
       />
+      <OfflineBanner />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -259,25 +263,30 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <Provider store={store}>
-          <PersistGate
-            loading={
-              <View style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: '#ffffff'
-              }}>
-                <SplashScreen onFinish={() => {}} />
-              </View>
-            }
-            persistor={persistor}
-          >
-            <FilterProvider>
-              <AppContent />
-            </FilterProvider>
-          </PersistGate>
-        </Provider>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{ persister: asyncStoragePersister }}
+        >
+          <Provider store={store}>
+            <PersistGate
+              loading={
+                <View style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: '#ffffff'
+                }}>
+                  <SplashScreen onFinish={() => {}} />
+                </View>
+              }
+              persistor={persistor}
+            >
+              <FilterProvider>
+                <AppContent />
+              </FilterProvider>
+            </PersistGate>
+          </Provider>
+        </PersistQueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

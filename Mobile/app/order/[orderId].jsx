@@ -1,5 +1,5 @@
 // app/order/[orderId].js
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,39 +8,15 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
-import { API_ENDPOINTS } from '../../config/api';
-import logger from '../../utils/logger';
-
-const log = logger.create('OrderDetail');
+import { useOrderDetail } from '../../hooks/useOrderQuery';
 
 export default function OrderDetails() {
   const { orderId } = useLocalSearchParams();
-  const router = useRouter();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: order, isLoading } = useOrderDetail(orderId);
 
-  useEffect(() => {
-    fetchOrderDetails();
-  }, [orderId]);
-
-  const fetchOrderDetails = async () => {
-    try {
-      const res = await fetch(API_ENDPOINTS.ORDER_DETAIL(orderId));
-      const data = await res.json();
-      if (data.success) {
-        setOrder(data.data);
-      }
-    } catch (err) {
-      log.error('Failed to fetch order details', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#16a34a" />

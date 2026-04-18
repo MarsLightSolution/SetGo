@@ -16,35 +16,42 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import { API_ENDPOINTS, IMAGE_BASE_URL } from '../config/api';
+import { IMAGE_BASE_URL } from '../config/api';
 import { useFilters } from '../context/FilterContext';
-import { productService } from '../services/productService';
 import { useAuthStore } from '../Store/authStore';
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../Store/wishSlice';
 import logger from '../utils/logger';
+import { useFeedProducts, useGalleryProducts, useShops } from '../hooks/useFeedQuery';
+import { useQueryClient } from '@tanstack/react-query';
+import { feedKeys } from '../hooks/useFeedQuery';
 
 export default function HomeScreen() {
   const router = useRouter();
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { filters, updateFilters } = useFilters();
-  const [latestAds, setLatestAds] = useState([]);
-  const [galleryAds, setGalleryAds] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-  });
 
-  // Shops state
-  const [shops, setShops] = useState([]);
-  const [shopsLoading, setShopsLoading] = useState(false);
-  const [shopsError, setShopsError] = useState(null);
+  // Query hooks — cached, auto-refresh in background
+  const {
+    data: feedData,
+    isPending: loading,
+  } = useFeedProducts(filters);
+
+  const { data: galleryData } = useGalleryProducts();
+  const { data: shops = [], isPending: shopsLoading, isError: shopsError } = useShops();
+
+  const latestAds = feedData?.products || [];
+  const galleryAds = galleryData?.products || [];
+  const pagination = {
+    currentPage: feedData?.currentPage || 1,
+    totalPages: feedData?.totalPages || 1,
+    hasNextPage: feedData?.hasNextPage || false,
+    hasPrevPage: feedData?.hasPrevPage || false,
+  };
 
   // Chatbot animation
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -52,6 +59,13 @@ export default function HomeScreen() {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Pull-to-refresh: invalidate all feed caches so queries re-fetch
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['feed'] });
+    setRefreshing(false);
+  }, [queryClient]);
 
   // Chatbot button animation
   useEffect(() => {
@@ -85,105 +99,6 @@ export default function HomeScreen() {
     return field.en || field.az || field.ru || '';
   }, []);
 
-  // Fetch products
-  const fetchProducts = useCallback(async (page = 1) => {
-    try {
-      setLoading(true);
-
-      const params = {
-        page,
-        limit: 12,
-        ...filters,
-      };
-
-      Object.keys(params).forEach((key) => {
-        if (params[key] === '' || params[key] === null || params[key] === undefined) {
-          delete params[key];
-        }
-      });
-
-      const data = await productService.getProducts(params);
-
-      setLatestAds(data.products || []);
-      setPagination({
-        currentPage: data.currentPage || 1,
-        totalPages: data.totalPages || 1,
-        hasNextPage: data.hasNextPage || false,
-        hasPrevPage: data.hasPrevPage || false,
-      });
-    } catch (error) {
-      logger.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [filters]);
-
-  // Fetch gallery products
-  const fetchGalleryProducts = useCallback(async () => {
-    try {
-      const data = await productService.getPriorityProducts();
-      setGalleryAds(data.products || []);
-    } catch (error) {
-      logger.error('Error fetching gallery:', error);
-    }
-  }, []);
-
-  // Fetch shops - WITH DEBUG LOGGING
-  const fetchShops = useCallback(async () => {
-    logger.log('=== FETCHING SHOPS ===');
-    setShopsLoading(true);
-    setShopsError(null);
-
-    try {
-      const url = `${API_ENDPOINTS.GET_SHOPS}?limit=10`;
-      logger.log('Fetching from:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      logger.log('Response status:', response.status);
-      
-      const data = await response.json();
-      logger.log('Shops API Response:', JSON.stringify(data, null, 2));
-
-      if (data.success) {
-        logger.log('Shops found:', data.data?.length || 0);
-        setShops(data.data || []);
-      } else {
-        logger.log('API returned success: false');
-        setShopsError(data.message || 'Failed to fetch shops');
-      }
-    } catch (error) {
-      logger.error('Error fetching shops:', error);
-      setShopsError(error.message);
-    } finally {
-      setShopsLoading(false);
-    }
-  }, []);
-
-  // Initial load
-  useEffect(() => {
-    fetchProducts();
-    fetchGalleryProducts();
-    fetchShops();
-  }, []);
-
-  // Fetch when filters change
-  useEffect(() => {
-    fetchProducts();
-  }, [filters]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchProducts();
-    fetchGalleryProducts();
-    fetchShops();
-  }, [fetchProducts, fetchGalleryProducts, fetchShops]);
 
   const handleSearch = useCallback(() => {
     updateFilters({ searchQuery: searchText });
@@ -373,8 +288,8 @@ export default function HomeScreen() {
         ) : shopsError ? (
           <View style={styles.shopsError}>
             <Icon name="alert-circle" size={24} color="#EF4444" />
-            <Text style={styles.errorText}>Error: {shopsError}</Text>
-            <TouchableOpacity onPress={fetchShops} style={styles.retryButton}>
+            <Text style={styles.errorText}>Failed to load shops</Text>
+            <TouchableOpacity onPress={() => queryClient.invalidateQueries({ queryKey: feedKeys.shops() })} style={styles.retryButton}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
