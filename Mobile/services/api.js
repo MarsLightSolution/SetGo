@@ -8,6 +8,7 @@ import {
   isTokenExpiringSoon,
 } from './secureAuthService';
 import { BASE_URL, API_ENDPOINTS } from '../config/api';
+import { captureException } from './errorReporter';
 import logger from '../utils/logger';
 
 const log = logger.create('API');
@@ -163,17 +164,18 @@ api.interceptors.response.use(
       }
     }
 
-    // Log non-401 errors in development
     if (error.response) {
-      log.warn('API Error:', {
-        status: error.response.status,
-        url: error.config?.url,
-      });
+      log.warn('API Error:', { status: error.response.status, url: error.config?.url });
+      // Report 5xx server errors to our error logger
+      if (error.response.status >= 500) {
+        captureException(error, {
+          type: 'api',
+          module: 'API',
+          extra: { status: error.response.status, url: error.config?.url, method: error.config?.method },
+        });
+      }
     } else if (error.request) {
-      log.warn('API No Response:', {
-        message: error.message,
-        url: error.config?.url,
-      });
+      log.warn('API No Response:', { message: error.message, url: error.config?.url });
     }
 
     return Promise.reject(error);

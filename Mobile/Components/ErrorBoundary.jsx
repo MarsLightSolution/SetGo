@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import logger from '../utils/logger';
+import { captureException } from '../services/errorReporter';
 
 /**
  * Error Boundary Component
@@ -42,15 +43,14 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
-
     this.setState({ errorInfo });
 
-    // TODO: Send to error reporting service (Sentry, Bugsnag, etc.)
-    // if (!__DEV__) {
-    //   Sentry.captureException(error, { extra: errorInfo });
-    // }
+    captureException(error, {
+      type: 'boundary',
+      module: 'ErrorBoundary',
+      extra: { componentStack: errorInfo?.componentStack?.slice(0, 1000) },
+    });
   }
 
   handleRetry = () => {
