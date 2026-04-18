@@ -24,6 +24,8 @@ import PaymentDialog from '../../Components/PaymentDialog';
 import logger from '../../utils/logger';
 import { getAuthToken } from '../../services/secureAuthService';
 import { useProductDetail, useRelatedProducts, useInvalidateShop } from '../../hooks/useProductQuery';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { enqueue, flush } from '../../services/mutationQueue';
 
 // New Components
 import { ReviewSection } from '../../Components/reviews';
@@ -131,6 +133,26 @@ export default function ProductDetail() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   const invalidateShop = useInvalidateShop();
+  const { isOffline, wasOffline } = useNetworkStatus();
+
+  // Flush queued follow mutations when connection is restored
+  useEffect(() => {
+    if (!wasOffline || !user) return;
+    const token_ref = { value: null };
+    getAuthToken().then((t) => { token_ref.value = t; });
+
+    flush({
+      SHOP_FOLLOW_TOGGLE: async ({ shopId }) => {
+        const token = token_ref.value || await getAuthToken();
+        const res = await fetch(API_ENDPOINTS.FOLLOW_SHOP(shopId), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Flush failed');
+        invalidateShop(shopId);
+      },
+    });
+  }, [wasOffline, user]);
 
   const isWishlisted = useMemo(
     () => wishlist.some((item) => item._id === product?._id),
@@ -387,7 +409,14 @@ export default function ProductDetail() {
 
     try {
       if (isShopProduct && product?.shop?._id) {
-        // Shop follow/unfollow uses a single toggle endpoint with auth header, no body
+        // Offline — queue for when connection returns, optimistically update UI
+        if (isOffline) {
+          await enqueue('SHOP_FOLLOW_TOGGLE', { shopId: product.shop._id });
+          setIsFollowing((prev) => !prev);
+          Alert.alert('Saved offline', 'Follow action will sync when you reconnect.');
+          return;
+        }
+
         const token = await getAuthToken();
         const res = await fetch(API_ENDPOINTS.FOLLOW_SHOP(product.shop._id), {
           method: 'POST',
@@ -401,7 +430,7 @@ export default function ProductDetail() {
 
         if (res.ok && result.success !== false) {
           setIsFollowing(result.isFollowing);
-          invalidateShop(product.shop._id); // keep cached shop followers in sync
+          invalidateShop(product.shop._id);
           Alert.alert('Success', result.isFollowing ? 'Followed successfully' : 'Unfollowed successfully');
         } else {
           Alert.alert('Error', result.message || 'Follow/Unfollow failed');
@@ -432,7 +461,7 @@ export default function ProductDetail() {
     } finally {
       setFollowLoading(false);
     }
-  }, [isAuthenticated, ownerId, isFollowing, isShopProduct, product?.shop?._id, user, checkFollowStatus, router]);
+  }, [isAuthenticated, ownerId, isFollowing, isShopProduct, isOffline, product?.shop?._id, user, checkFollowStatus, invalidateShop, router]);
 
   const handleShare = useCallback(async () => {
     try {

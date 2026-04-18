@@ -8,6 +8,7 @@ import { useOnboardingStore } from '../Store/onboardingStore';
 import BottomTabBar from '../Components/BottomTabBar';
 import ErrorBoundary from '../Components/ErrorBoundary';
 import SplashScreen from '../Components/SplashScreen';
+import OfflineBanner from '../Components/OfflineBanner';
 import { useEffect, useState, useCallback } from 'react';
 import { View, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -106,6 +107,7 @@ function AppContent() {
         backgroundColor="#008235"
         translucent={false}
       />
+      <OfflineBanner />
       <Stack
         screenOptions={{
           headerShown: false,
