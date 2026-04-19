@@ -910,14 +910,14 @@ const Form = () => {
                 style={styles.picker}
               >
                 <Picker.Item label="Select a category" value="" />
-                <Picker.Item label="Cars & Motorcycles" value="Cars & Motorcycles" />
-                <Picker.Item label="Real Estate" value="Real Estate" />
-                <Picker.Item label="Jobs" value="Jobs" />
-                <Picker.Item label="Household & Furniture" value="Household & Furniture" />
-                <Picker.Item label="Electronics" value="Electronics" />
-                <Picker.Item label="Leisure, Hobby & Neighborhood" value="Leisure, Hobby & Neighborhood" />
-                <Picker.Item label="Service" value="Service" />
-                <Picker.Item label="Other" value="Other" />
+                <Picker.Item label={t('post.categories.cars')} value="Cars & Motorcycles" />
+                <Picker.Item label={t('post.categories.realEstate')} value="Real Estate" />
+                <Picker.Item label={t('post.categories.jobs')} value="Jobs" />
+                <Picker.Item label={t('post.categories.household')} value="Household & Furniture" />
+                <Picker.Item label={t('post.categories.electronics')} value="Electronics" />
+                <Picker.Item label={t('post.categories.leisure')} value="Leisure, Hobby & Neighborhood" />
+                <Picker.Item label={t('post.categories.service')} value="Service" />
+                <Picker.Item label={t('post.categories.other')} value="Other" />
               </Picker>
             </View>
             {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
