@@ -208,5 +208,26 @@
       "cancelled": "Ləğv edildi",
       "pending": "Gözləyir"
     }
+  },
+
+  "confirm": {
+    "checkEmail": "{{email}} ünvanına təsdiq linki göndərdik.\nDavam etmək üçün e-poçtunuzu yoxlayın.",
+    "confirmed": "E-poçt təsdiqləndi! Girişə yönləndirilirsiniz…"
+  },
+
+  "filters": {
+    "title": "Filtrlər",
+    "reset": "Sıfırla",
+    "apply": "Filtrləri tətbiq et",
+    "category": "Kateqoriya",
+    "priceRange": "Qiymət aralığı",
+    "minPrice": "Min qiymət",
+    "maxPrice": "Maks qiymət",
+    "condition": "Vəziyyət",
+    "location": "Yer",
+    "useMyLocation": "Mənim yerimdan istifadə et",
+    "city": "Şəhər",
+    "postalCode": "Poçt kodu",
+    "searchRadius": "Axtarış radiusu: {{km}} km"
   }
 }

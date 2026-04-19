@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from "../Store/authStore";
 import { showErrorToast, showSuccessToast } from "../utils/toastify";
 import { API_ENDPOINTS } from "../config/api";
@@ -12,6 +12,7 @@ const log = logger.create('Confirm');
 
 export default function ConfirmPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { email, password } = useLocalSearchParams();
   const [verified, setVerified] = useState(false);
 
@@ -62,12 +63,9 @@ export default function ConfirmPage() {
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#007AFF" />
       {!verified ? (
-        <Text style={styles.text}>
-          We've sent a confirmation link to {email}.{"\n"} Please check your
-          email to continue.
-        </Text>
+        <Text style={styles.text}>{t('confirm.checkEmail', { email })}</Text>
       ) : (
-        <Text style={styles.text}>Email confirmed! Redirecting to login…</Text>
+        <Text style={styles.text}>{t('confirm.confirmed')}</Text>
       )}
     </View>
   );

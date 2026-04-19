@@ -208,5 +208,26 @@
       "cancelled": "Cancelled",
       "pending": "Pending"
     }
+  },
+
+  "confirm": {
+    "checkEmail": "We've sent a confirmation link to {{email}}.\nPlease check your email to continue.",
+    "confirmed": "Email confirmed! Redirecting to login…"
+  },
+
+  "filters": {
+    "title": "Filters",
+    "reset": "Reset",
+    "apply": "Apply Filters",
+    "category": "Category",
+    "priceRange": "Price Range",
+    "minPrice": "Min Price",
+    "maxPrice": "Max Price",
+    "condition": "Condition",
+    "location": "Location",
+    "useMyLocation": "Use my current location",
+    "city": "City",
+    "postalCode": "Postal Code",
+    "searchRadius": "Search Radius: {{km}} km"
   }
 }

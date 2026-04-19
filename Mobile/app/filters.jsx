@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import { useFilters } from '../context/FilterContext';
 import { CATEGORIES, CONDITIONS } from '../constants/Categories';
 
 export default function FilterScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { filters, updateFilters, resetFilters } = useFilters();
   
   const [localFilters, setLocalFilters] = useState(filters);
@@ -47,16 +49,16 @@ export default function FilterScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Icon name="x" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Filters</Text>
+        <Text style={styles.headerTitle}>{t('filters.title')}</Text>
         <TouchableOpacity onPress={handleResetFilters}>
-          <Text style={styles.resetText}>Reset</Text>
+          <Text style={styles.resetText}>{t('filters.reset')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
         {/* Category Filter */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Category</Text>
+          <Text style={styles.sectionTitle}>{t('filters.category')}</Text>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
@@ -82,10 +84,10 @@ export default function FilterScreen() {
 
         {/* Price Range */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Price Range</Text>
+          <Text style={styles.sectionTitle}>{t('filters.priceRange')}</Text>
           <View style={styles.priceInputs}>
             <View style={styles.priceInputContainer}>
-              <Text style={styles.priceLabel}>Min Price</Text>
+              <Text style={styles.priceLabel}>{t('filters.minPrice')}</Text>
               <TextInput
                 style={styles.priceInput}
                 placeholder="0"
@@ -99,7 +101,7 @@ export default function FilterScreen() {
             </View>
             <Text style={styles.priceSeparator}>-</Text>
             <View style={styles.priceInputContainer}>
-              <Text style={styles.priceLabel}>Max Price</Text>
+              <Text style={styles.priceLabel}>{t('filters.maxPrice')}</Text>
               <TextInput
                 style={styles.priceInput}
                 placeholder="10000"
@@ -116,7 +118,7 @@ export default function FilterScreen() {
 
         {/* Condition Filter */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Condition</Text>
+          <Text style={styles.sectionTitle}>{t('filters.condition')}</Text>
           <View style={styles.conditionButtons}>
             {CONDITIONS.map((cond) => (
               <TouchableOpacity
@@ -145,10 +147,10 @@ export default function FilterScreen() {
 
         {/* Location Filter */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location</Text>
+          <Text style={styles.sectionTitle}>{t('filters.location')}</Text>
           
           <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>Use my current location</Text>
+            <Text style={styles.switchLabel}>{t('filters.useMyLocation')}</Text>
             <Switch
               value={useLocation}
               onValueChange={setUseLocation}
@@ -177,7 +179,7 @@ export default function FilterScreen() {
           {useLocation && (
             <View style={styles.radiusContainer}>
               <Text style={styles.radiusLabel}>
-                Search Radius: {localFilters.radius} km
+                {t('filters.searchRadius', { km: localFilters.radius })}
               </Text>
               <View style={styles.sliderContainer}>
                 <Text style={styles.sliderValue}>0 km</Text>
@@ -193,7 +195,7 @@ export default function FilterScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
-          <Text style={styles.applyButtonText}>Apply Filters</Text>
+          <Text style={styles.applyButtonText}>{t('filters.apply')}</Text>
         </TouchableOpacity>
       </View>
     </View>
