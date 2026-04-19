@@ -11,38 +11,19 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
-const SLIDES = [
-  {
-    id: '1',
-    icon: 'cart',
-    iconBg: '#E8F5E9',
-    iconColor: '#008235',
-    title: 'Buy & Sell Near You',
-    body: 'Find great deals on cars, electronics, furniture and more — from people nearby.',
-  },
-  {
-    id: '2',
-    icon: 'storefront',
-    iconBg: '#E3F2FD',
-    iconColor: '#1976D2',
-    title: 'Run Your Own Shop',
-    body: 'Create a shop, list your products and reach more customers every day.',
-  },
-  {
-    id: '3',
-    icon: 'chatbubbles',
-    iconBg: '#FFF3E0',
-    iconColor: '#E65100',
-    title: 'Chat. Agree. Done.',
-    body: 'Message sellers directly, negotiate prices and pay safely through the app.',
-  },
+const SLIDE_META = [
+  { id: '1', icon: 'cart',        iconBg: '#E8F5E9', iconColor: '#008235', titleKey: 'onboarding.slide1Title', bodyKey: 'onboarding.slide1Body' },
+  { id: '2', icon: 'storefront',  iconBg: '#E3F2FD', iconColor: '#1976D2', titleKey: 'onboarding.slide2Title', bodyKey: 'onboarding.slide2Body' },
+  { id: '3', icon: 'chatbubbles', iconBg: '#FFF3E0', iconColor: '#E65100', titleKey: 'onboarding.slide3Title', bodyKey: 'onboarding.slide3Body' },
 ];
 
 export default function SlidesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { language } = useLocalSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
@@ -65,16 +46,15 @@ export default function SlidesScreen() {
     }
   }).current;
 
+  const SLIDES = SLIDE_META.map((s) => ({ ...s, title: t(s.titleKey), body: t(s.bodyKey) }));
+
   const renderSlide = ({ item }) => (
     <View style={styles.slide}>
-      {/* Coloured icon area */}
       <View style={[styles.iconArea, { backgroundColor: item.iconBg }]}>
         <View style={styles.iconCircle}>
           <Ionicons name={item.icon} size={80} color={item.iconColor} />
         </View>
       </View>
-
-      {/* Content */}
       <View style={styles.content}>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.body}>{item.body}</Text>
@@ -98,7 +78,7 @@ export default function SlidesScreen() {
             ))}
           </View>
           <TouchableOpacity onPress={goToGate} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.skip}>Skip</Text>
+            <Text style={styles.skip}>{t('common.skip')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -120,7 +100,7 @@ export default function SlidesScreen() {
         <View style={styles.footer}>
           <TouchableOpacity style={styles.button} onPress={handleNext} activeOpacity={0.85}>
             <Text style={styles.buttonText}>
-              {activeIndex === SLIDES.length - 1 ? 'Get Started' : 'Next'}
+              {activeIndex === SLIDES.length - 1 ? t('onboarding.getStarted') : t('common.next')}
             </Text>
             <Ionicons name="arrow-forward" size={18} color="#ffffff" />
           </TouchableOpacity>

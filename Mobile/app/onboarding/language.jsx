@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -20,6 +21,7 @@ const LANGUAGES = [
 
 export default function LanguageScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [selected, setSelected] = useState('en');
 
   // Staggered fade-in for each language card
@@ -61,8 +63,8 @@ export default function LanguageScreen() {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.title}>Welcome to SetGo</Text>
-        <Text style={styles.subtitle}>Choose your language to get started</Text>
+        <Text style={styles.title}>SetGo</Text>
+        <Text style={styles.subtitle}>{t('onboarding.chooseLanguage')}</Text>
       </View>
 
       {/* Language options */}
@@ -108,7 +110,7 @@ export default function LanguageScreen() {
         onPress={handleContinue}
         activeOpacity={0.85}
       >
-        <Text style={styles.buttonText}>Continue</Text>
+        <Text style={styles.buttonText}>{t('common.continue')}</Text>
         <Ionicons name="arrow-forward" size={18} color="#ffffff" />
       </TouchableOpacity>
     </SafeAreaView>

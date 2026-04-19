@@ -13,9 +13,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useOnboardingStore } from '../../Store/onboardingStore';
 import { useAuthStore } from '../../Store/authStore';
+import { useTranslation } from 'react-i18next';
 
 export default function GateScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { language } = useLocalSearchParams();
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -67,7 +69,7 @@ export default function GateScreen() {
             <Ionicons name="leaf" size={36} color="#ffffff" />
           </LinearGradient>
           <Text style={styles.appName}>SetGo</Text>
-          <Text style={styles.tagline}>Your local marketplace</Text>
+          <Text style={styles.tagline}>{t('onboarding.tagline')}</Text>
         </View>
 
         {/* Action card */}
@@ -80,7 +82,7 @@ export default function GateScreen() {
               onPress={handleSignUp}
               activeOpacity={0.85}
             >
-              <Text style={styles.signupText}>Sign Up — It's Free</Text>
+              <Text style={styles.signupText}>{t('onboarding.signUp')}</Text>
             </TouchableOpacity>
 
             {/* Log In */}
@@ -89,7 +91,7 @@ export default function GateScreen() {
               onPress={handleLogIn}
               activeOpacity={0.85}
             >
-              <Text style={styles.loginText}>Log In</Text>
+              <Text style={styles.loginText}>{t('onboarding.logIn')}</Text>
             </TouchableOpacity>
 
             {/* Divider */}
@@ -101,8 +103,8 @@ export default function GateScreen() {
 
             {/* Guest */}
             <TouchableOpacity onPress={handleGuest} activeOpacity={0.7}>
-              <Text style={styles.guestText}>Continue as Guest →</Text>
-              <Text style={styles.guestSub}>You can sign up anytime</Text>
+              <Text style={styles.guestText}>{t('onboarding.continueAsGuest')} →</Text>
+              <Text style={styles.guestSub}>{t('onboarding.guestNote')}</Text>
             </TouchableOpacity>
 
           </View>
