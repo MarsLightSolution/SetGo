@@ -210,6 +210,45 @@
     }
   },
 
+  "shop": {
+    "loading": "Загрузка магазина...",
+    "notFound": "Магазин не найден",
+    "goBack": "Назад",
+    "products": "Товары",
+    "followers": "Подписчики",
+    "views": "Просмотры",
+    "following": "Вы подписаны",
+    "follow": "Подписаться",
+    "share": "Поделиться",
+    "about": "О магазине",
+    "socialLinks": "Социальные сети",
+    "productsCount": "Товары ({{count}})",
+    "noProducts": "Товаров пока нет",
+    "noTitle": "Нет названия"
+  },
+
+  "shops": {
+    "title": "Все магазины",
+    "searchPlaceholder": "Поиск магазинов...",
+    "noShops": "Магазины не найдены",
+    "adjustSearch": "Попробуйте изменить запрос или фильтры",
+    "clearFilters": "Сбросить фильтры",
+    "previous": "Назад",
+    "next": "Вперёд",
+    "page": "Страница {{current}} из {{total}}"
+  },
+
+  "orderDetail": {
+    "confirmed": "Заказ подтверждён!",
+    "orderId": "ID заказа: {{id}}",
+    "successMessage": "Ваш заказ успешно оформлен и оплата подтверждена.",
+    "details": "Детали заказа",
+    "totalAmount": "Итого",
+    "transactionId": "ID транзакции",
+    "status": "Статус",
+    "paid": "ОПЛАЧЕН"
+  },
+
   "chat": {
     "title": "Сообщения",
     "connecting": "Подключение...",

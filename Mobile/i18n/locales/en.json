@@ -210,6 +210,45 @@
     }
   },
 
+  "shop": {
+    "loading": "Loading shop...",
+    "notFound": "Shop not found",
+    "goBack": "Go Back",
+    "products": "Products",
+    "followers": "Followers",
+    "views": "Views",
+    "following": "Following",
+    "follow": "Follow",
+    "share": "Share",
+    "about": "About",
+    "socialLinks": "Social Links",
+    "productsCount": "Products ({{count}})",
+    "noProducts": "No products yet",
+    "noTitle": "No title"
+  },
+
+  "shops": {
+    "title": "Browse Shops",
+    "searchPlaceholder": "Search shops...",
+    "noShops": "No Shops Found",
+    "adjustSearch": "Try adjusting your search or filters",
+    "clearFilters": "Clear Filters",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{current}} of {{total}}"
+  },
+
+  "orderDetail": {
+    "confirmed": "Order Confirmed!",
+    "orderId": "Order ID: {{id}}",
+    "successMessage": "Your order has been successfully placed and payment confirmed.",
+    "details": "Order Details",
+    "totalAmount": "Total Amount",
+    "transactionId": "Transaction ID",
+    "status": "Status",
+    "paid": "PAID"
+  },
+
   "chat": {
     "title": "Messages",
     "connecting": "Connecting...",

@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useOrderDetail } from '../../hooks/useOrderQuery';
 
 export default function OrderDetails() {
   const { orderId } = useLocalSearchParams();
+  const { t } = useTranslation();
   const { data: order, isLoading } = useOrderDetail(orderId);
 
   if (isLoading) {
@@ -29,27 +31,25 @@ export default function OrderDetails() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.successCard}>
           <Ionicons name="checkmark-circle" size={80} color="#16a34a" />
-          <Text style={styles.successTitle}>Order Confirmed!</Text>
-          <Text style={styles.orderId}>Order ID: {orderId}</Text>
-          <Text style={styles.successMessage}>
-            Your order has been successfully placed and payment confirmed.
-          </Text>
+          <Text style={styles.successTitle}>{t('orderDetail.confirmed')}</Text>
+          <Text style={styles.orderId}>{t('orderDetail.orderId', { id: orderId })}</Text>
+          <Text style={styles.successMessage}>{t('orderDetail.successMessage')}</Text>
         </View>
         
         {order && (
           <View style={styles.detailsCard}>
-            <Text style={styles.cardTitle}>Order Details</Text>
+            <Text style={styles.cardTitle}>{t('orderDetail.details')}</Text>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Total Amount</Text>
+              <Text style={styles.detailLabel}>{t('orderDetail.totalAmount')}</Text>
               <Text style={styles.detailValue}>₼{order.total}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Transaction ID</Text>
+              <Text style={styles.detailLabel}>{t('orderDetail.transactionId')}</Text>
               <Text style={styles.detailValue}>{order.transactionId}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status</Text>
-              <Text style={styles.statusPaid}>PAID</Text>
+              <Text style={styles.detailLabel}>{t('orderDetail.status')}</Text>
+              <Text style={styles.statusPaid}>{t('orderDetail.paid')}</Text>
             </View>
           </View>
         )}

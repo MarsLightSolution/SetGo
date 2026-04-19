@@ -210,6 +210,45 @@
     }
   },
 
+  "shop": {
+    "loading": "Mağaza yüklənir...",
+    "notFound": "Mağaza tapılmadı",
+    "goBack": "Geri qayıt",
+    "products": "Məhsullar",
+    "followers": "İzləyicilər",
+    "views": "Baxışlar",
+    "following": "İzlənilir",
+    "follow": "İzlə",
+    "share": "Paylaş",
+    "about": "Haqqında",
+    "socialLinks": "Sosial keçidlər",
+    "productsCount": "Məhsullar ({{count}})",
+    "noProducts": "Hələ məhsul yoxdur",
+    "noTitle": "Başlıq yoxdur"
+  },
+
+  "shops": {
+    "title": "Mağazalara bax",
+    "searchPlaceholder": "Mağaza axtar...",
+    "noShops": "Mağaza tapılmadı",
+    "adjustSearch": "Axtarışı və ya filtrləri düzəldin",
+    "clearFilters": "Filtrləri sıfırla",
+    "previous": "Əvvəlki",
+    "next": "Növbəti",
+    "page": "Səhifə {{current}} / {{total}}"
+  },
+
+  "orderDetail": {
+    "confirmed": "Sifariş təsdiqləndi!",
+    "orderId": "Sifariş ID: {{id}}",
+    "successMessage": "Sifarişiniz uğurla yerləşdirildi və ödəniş təsdiqləndi.",
+    "details": "Sifariş detalları",
+    "totalAmount": "Ümumi məbləğ",
+    "transactionId": "Əməliyyat ID",
+    "status": "Status",
+    "paid": "ÖDƏNİLDİ"
+  },
+
   "chat": {
     "title": "Mesajlar",
     "connecting": "Qoşulur...",

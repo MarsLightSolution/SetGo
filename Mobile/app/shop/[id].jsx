@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 import { useAuthStore } from '../../Store/authStore';
 import logger from '../../utils/logger';
@@ -30,6 +31,7 @@ const PRODUCT_CARD_WIDTH = (width - 48) / 2;
 export default function ShopProfileScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
 
   const [productsPage, setProductsPage] = useState(1);
@@ -193,7 +195,7 @@ export default function ShopProfileScreen() {
         />
         <View style={styles.productContent}>
           <Text style={styles.productTitle} numberOfLines={2}>
-            {title || 'No title'}
+            {title || t('shop.noTitle')}
           </Text>
           <Text style={styles.productPrice}>₼ {product.price || 0}</Text>
           {product.condition && (
@@ -211,7 +213,7 @@ export default function ShopProfileScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#008235" />
-        <Text style={styles.loadingText}>Loading shop...</Text>
+        <Text style={styles.loadingText}>{t('shop.loading')}</Text>
       </View>
     );
   }
@@ -220,12 +222,12 @@ export default function ShopProfileScreen() {
     return (
       <View style={styles.errorContainer}>
         <Icon name="alert-circle" size={48} color="#EF4444" />
-        <Text style={styles.errorText}>Shop not found</Text>
+        <Text style={styles.errorText}>{t('shop.notFound')}</Text>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={styles.backButtonText}>{t('shop.goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -318,17 +320,17 @@ export default function ShopProfileScreen() {
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{shop.totalProducts || 0}</Text>
-              <Text style={styles.statLabel}>Products</Text>
+              <Text style={styles.statLabel}>{t('shop.products')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{displayFollowerCount}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
+              <Text style={styles.statLabel}>{t('shop.followers')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{shop.totalViews || 0}</Text>
-              <Text style={styles.statLabel}>Views</Text>
+              <Text style={styles.statLabel}>{t('shop.views')}</Text>
             </View>
           </View>
 
@@ -352,7 +354,7 @@ export default function ShopProfileScreen() {
                   isFollowing && styles.followingButtonText,
                 ]}
               >
-                {isFollowing ? 'Following' : 'Follow'}
+                {isFollowing ? t('shop.following') : t('shop.follow')}
               </Text>
             </TouchableOpacity>
 
@@ -361,14 +363,14 @@ export default function ShopProfileScreen() {
               onPress={handleShare}
             >
               <Icon name="share-2" size={18} color="#6B7280" />
-              <Text style={styles.shareButtonText}>Share</Text>
+              <Text style={styles.shareButtonText}>{t('shop.share')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Description */}
           {shopDescription && (
             <View style={styles.descriptionSection}>
-              <Text style={styles.sectionTitle}>About</Text>
+              <Text style={styles.sectionTitle}>{t('shop.about')}</Text>
               <Text style={styles.descriptionText}>{shopDescription}</Text>
             </View>
           )}
@@ -424,7 +426,7 @@ export default function ShopProfileScreen() {
             shop.socialLinks?.whatsapp ||
             shop.socialLinks?.website) && (
             <View style={styles.socialSection}>
-              <Text style={styles.sectionTitle}>Social Links</Text>
+              <Text style={styles.sectionTitle}>{t('shop.socialLinks')}</Text>
               <View style={styles.socialButtons}>
                 {shop.socialLinks?.instagram && (
                   <TouchableOpacity
@@ -485,7 +487,7 @@ export default function ShopProfileScreen() {
         <View style={styles.productsSection}>
           <View style={styles.productsSectionHeader}>
             <Text style={styles.sectionTitle}>
-              Products ({shop.totalProducts || 0})
+              {t('shop.productsCount', { count: shop.totalProducts || 0 })}
             </Text>
           </View>
 
@@ -504,7 +506,7 @@ export default function ShopProfileScreen() {
           ) : (
             <View style={styles.emptyProducts}>
               <Icon name="package" size={48} color="#D1D5DB" />
-              <Text style={styles.emptyText}>No products yet</Text>
+              <Text style={styles.emptyText}>{t('shop.noProducts')}</Text>
             </View>
           )}
 

@@ -15,6 +15,7 @@ import {
     Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import { IMAGE_BASE_URL } from '../../config/api';
 import { useShopsList } from '../../hooks/useShopQuery';
 
@@ -23,6 +24,7 @@ const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
 
 export default function AllShopsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [searchText, setSearchText] = useState('');
   const [committedSearch, setCommittedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -207,17 +209,15 @@ export default function AllShopsScreen() {
   const EmptyState = () => (
     <View style={styles.emptyState}>
       <Icon name="shopping-bag" size={64} color="#D1D5DB" />
-      <Text style={styles.emptyTitle}>No Shops Found</Text>
-      <Text style={styles.emptySubtitle}>
-        Try adjusting your search or filters
-      </Text>
+      <Text style={styles.emptyTitle}>{t('shops.noShops')}</Text>
+      <Text style={styles.emptySubtitle}>{t('shops.adjustSearch')}</Text>
       <TouchableOpacity
         style={styles.clearFiltersButton}
         onPress={() => {
           handleClearFilters();
         }}
       >
-        <Text style={styles.clearFiltersText}>Clear Filters</Text>
+        <Text style={styles.clearFiltersText}>{t('shops.clearFilters')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -287,12 +287,12 @@ export default function AllShopsScreen() {
               !pagination.hasPrevPage && styles.paginationTextDisabled,
             ]}
           >
-            Previous
+            {t('shops.previous')}
           </Text>
         </TouchableOpacity>
 
         <Text style={styles.paginationInfo}>
-          Page {pagination.currentPage} of {pagination.totalPages}
+          {t('shops.page', { current: pagination.currentPage, total: pagination.totalPages })}
         </Text>
 
         <TouchableOpacity
@@ -309,7 +309,7 @@ export default function AllShopsScreen() {
               !pagination.hasNextPage && styles.paginationTextDisabled,
             ]}
           >
-            Next
+            {t('shops.next')}
           </Text>
           <Icon
             name="chevron-right"
@@ -332,7 +332,7 @@ export default function AllShopsScreen() {
           >
             <Icon name="arrow-left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Browse Shops</Text>
+          <Text style={styles.headerTitle}>{t('shops.title')}</Text>
           <View style={styles.headerPlaceholder} />
         </View>
 
@@ -341,7 +341,7 @@ export default function AllShopsScreen() {
           <Icon name="search" size={20} color="#9CA3AF" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search shops..."
+            placeholder={t('shops.searchPlaceholder')}
             placeholderTextColor="#9CA3AF"
             value={searchText}
             onChangeText={setSearchText}

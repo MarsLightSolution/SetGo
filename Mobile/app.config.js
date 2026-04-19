@@ -31,23 +31,16 @@ export default ({ config }) => {
         NSPhotoLibraryUsageDescription: 'SetGo needs photo library access to select product images',
         NSLocationWhenInUseUsageDescription: 'SetGo needs your location to show nearby products',
         NSPhotoLibraryAddUsageDescription: 'SetGo needs permission to save photos to your library',
-        // Allow HTTP connections for iOS
         NSAppTransportSecurity: {
-          NSAllowsArbitraryLoads: true,
-          NSAllowsArbitraryLoadsInWebContent: true,
+          NSAllowsArbitraryLoads: false,
           NSExceptionDomains: {
-            localhost: {
-              NSExceptionAllowsInsecureHTTPLoads: true,
+            'tiwari.shop': {
+              NSExceptionAllowsInsecureHTTPLoads: false,
               NSIncludesSubdomains: true,
             },
-            '10.219.164.234': {
-              NSExceptionAllowsInsecureHTTPLoads: true,
-              NSIncludesSubdomains: true,
-            },
-            '51.20.123.49': {
-              NSExceptionAllowsInsecureHTTPLoads: true,
-              NSIncludesSubdomains: true,
-            },
+            ...(process.env.NODE_ENV !== 'production' ? {
+              localhost: { NSExceptionAllowsInsecureHTTPLoads: true, NSIncludesSubdomains: true },
+            } : {}),
           },
         },
       },
