@@ -10,11 +10,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
 import { useTranslation } from 'react-i18next';
+import { useUnreadCount } from '../hooks/useNotificationQuery';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { user, logout, isAuthenticated } = useAuthStore();
+  const { data: unreadCount = 0 } = useUnreadCount(isAuthenticated);
 
 const handleLogout = () => {
   Alert.alert(
@@ -82,6 +84,17 @@ const handleLogout = () => {
             <Text style={styles.profileMember}>{t('profile.memberSince', { year: 2024 })}</Text>
           </View>
         </View>
+        <TouchableOpacity
+          style={styles.bellBtn}
+          onPress={() => router.push('/notifications')}
+        >
+          <Ionicons name="notifications-outline" size={24} color="#fff" />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -124,7 +137,18 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 50,
     paddingBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
+  bellBtn: { position: 'relative', padding: 4 },
+  badge: {
+    position: 'absolute', top: 0, right: 0,
+    backgroundColor: '#EF4444', borderRadius: 8,
+    minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   headerTitle: {
     color: '#FFFFFF',
     fontSize: 24,

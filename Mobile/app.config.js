@@ -109,6 +109,14 @@ export default ({ config }) => {
       'expo-router',
       'expo-font',
       'expo-web-browser',
+      [
+        'expo-notifications',
+        {
+          icon: './assets/images/icon.png',
+          color: '#008235',
+          sounds: [],
+        },
+      ],
     ],
 
     // Environment variables and extra config

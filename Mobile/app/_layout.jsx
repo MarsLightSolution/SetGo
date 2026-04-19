@@ -16,6 +16,7 @@ import Toast from 'react-native-toast-message';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from '../services/queryClient';
 import { fetchAndCacheRemoteConfig, getMinRequiredVersion } from '../services/remoteConfig';
+import { registerPushToken, onForegroundNotification, onNotificationResponse } from '../services/pushNotifications';
 import Constants from 'expo-constants';
 import '../i18n';
 
@@ -78,6 +79,19 @@ function AppContent() {
       setAppReady(true);
     }
   }, [initialized, onboardingChecked]);
+
+  // Register push token and subscribe to notifications when app is ready and user is logged in
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  useEffect(() => {
+    if (!appReady || !isAuthenticated) return;
+    registerPushToken();
+    const removeFg = onForegroundNotification(() => {});
+    const removeTap = onNotificationResponse((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.route) router.push(data.route);
+    });
+    return () => { removeFg(); removeTap(); };
+  }, [appReady, isAuthenticated]);
 
   // After splash fades and app is ready, redirect first-time users to onboarding
   useEffect(() => {
@@ -260,6 +274,12 @@ function AppContent() {
         <Stack.Screen
           name="update-required"
           options={{ animation: 'fade', presentation: 'fullScreenModal' }}
+        />
+
+        {/* Notifications */}
+        <Stack.Screen
+          name="notifications"
+          options={{ animation: 'slide_from_right', presentation: 'card' }}
         />
 
         {/* Shop screens */}
