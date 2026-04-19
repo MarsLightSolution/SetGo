@@ -15,7 +15,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from '../services/queryClient';
+import { fetchAndCacheRemoteConfig, getMinRequiredVersion } from '../services/remoteConfig';
+import Constants from 'expo-constants';
 import '../i18n';
+
+function _isVersionLower(current, minimum) {
+  const parse = (v) => v.split('.').map(Number);
+  const [ca, cb, cc] = parse(current);
+  const [ma, mb, mc] = parse(minimum);
+  if (ca !== ma) return ca < ma;
+  if (cb !== mb) return cb < mb;
+  return cc < mc;
+}
 
 function AppContent() {
   const router = useRouter();
@@ -31,6 +42,15 @@ function AppContent() {
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   useEffect(() => {
+    // Fetch remote config in background; on version mismatch redirect to update screen
+    fetchAndCacheRemoteConfig().then(async () => {
+      const minVersion = await getMinRequiredVersion();
+      const appVersion = Constants.expoConfig?.version || '0.0.0';
+      if (_isVersionLower(appVersion, minVersion)) {
+        router.replace('/update-required');
+      }
+    });
+
     // Run auth check and onboarding check in parallel
     checkAuth();
     initOnboarding()
@@ -234,6 +254,12 @@ function AppContent() {
             animation: 'slide_from_right',
             presentation: 'card'
           }}
+        />
+
+        {/* Force update screen */}
+        <Stack.Screen
+          name="update-required"
+          options={{ animation: 'fade', presentation: 'fullScreenModal' }}
         />
 
         {/* Shop screens */}
