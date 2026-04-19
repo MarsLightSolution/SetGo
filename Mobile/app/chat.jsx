@@ -22,6 +22,7 @@ import io from 'socket.io-client';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../Store/authStore';
 import { API_ENDPOINTS, SOCKET_URL, IMAGE_BASE_URL } from '../config/api';
 import logger from '../utils/logger';
@@ -123,6 +124,7 @@ const MessageItem = React.memo(({ item, onImagePress }) => {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
   const authUser = useAuthStore(state => state.user);
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -521,7 +523,7 @@ export default function ChatScreen() {
     return (
       <SafeAreaView style={styles.center}>
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={styles.connectingText}>Connecting...</Text>
+        <Text style={styles.connectingText}>{t('chat.connecting')}</Text>
       </SafeAreaView>
     );
   }
@@ -530,8 +532,8 @@ export default function ChatScreen() {
     return (
       <SafeAreaView style={styles.center}>
         <Ionicons name="chatbubbles-outline" size={64} color={theme.border} />
-        <Text style={styles.emptyTitle}>Login required</Text>
-        <Text style={styles.emptySubtitle}>Please login to use messages</Text>
+        <Text style={styles.emptyTitle}>{t('chat.loginRequired')}</Text>
+        <Text style={styles.emptySubtitle}>{t('chat.loginToUse')}</Text>
       </SafeAreaView>
     );
   }
@@ -549,7 +551,7 @@ export default function ChatScreen() {
           // ── Conversation List ──────────────────────────────────────────────
           <>
             <View style={styles.listHeader}>
-              <Text style={styles.listTitle}>Messages</Text>
+              <Text style={styles.listTitle}>{t('chat.title')}</Text>
               {currentUser && (
                 <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
                   <Text style={styles.avatarText}>
@@ -618,8 +620,8 @@ export default function ChatScreen() {
                 ) : (
                   <View style={styles.center}>
                     <Ionicons name="chatbubbles-outline" size={72} color={theme.border} />
-                    <Text style={styles.emptyTitle}>No conversations yet</Text>
-                    <Text style={styles.emptySubtitle}>Start a chat from a product listing</Text>
+                    <Text style={styles.emptyTitle}>{t('chat.noConversations')}</Text>
+                    <Text style={styles.emptySubtitle}>{t('chat.startFromListing')}</Text>
                   </View>
                 )
               }
@@ -710,7 +712,7 @@ export default function ChatScreen() {
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Type a message"
+                  placeholder={t('chat.typeMessage')}
                   placeholderTextColor={theme.tertiaryText}
                   value={newMessage}
                   onChangeText={handleInputChange}

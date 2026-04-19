@@ -210,6 +210,16 @@
     }
   },
 
+  "chat": {
+    "title": "Messages",
+    "connecting": "Connecting...",
+    "loginRequired": "Login required",
+    "loginToUse": "Please login to use messages",
+    "noConversations": "No conversations yet",
+    "startFromListing": "Start a chat from a product listing",
+    "typeMessage": "Type a message"
+  },
+
   "confirm": {
     "checkEmail": "We've sent a confirmation link to {{email}}.\nPlease check your email to continue.",
     "confirmed": "Email confirmed! Redirecting to login…"

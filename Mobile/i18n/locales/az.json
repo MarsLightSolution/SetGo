@@ -210,6 +210,16 @@
     }
   },
 
+  "chat": {
+    "title": "Mesajlar",
+    "connecting": "Qoşulur...",
+    "loginRequired": "Giriş tələb olunur",
+    "loginToUse": "Mesajları istifadə etmək üçün daxil olun",
+    "noConversations": "Hələ söhbət yoxdur",
+    "startFromListing": "Məhsul siyahısından söhbət başladın",
+    "typeMessage": "Mesaj yazın"
+  },
+
   "confirm": {
     "checkEmail": "{{email}} ünvanına təsdiq linki göndərdik.\nDavam etmək üçün e-poçtunuzu yoxlayın.",
     "confirmed": "E-poçt təsdiqləndi! Girişə yönləndirilirsiniz…"
