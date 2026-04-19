@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
+const User = require('../models/user');
 const authMiddleware = require('../middlewares/auth.middlewares'); // Using existing auth middleware
 const logger = require('../utils/logger');
 
@@ -215,6 +216,22 @@ router.post('/', authMiddleware, async (req, res) => {
       message: 'Failed to create notification',
       error: error.message
     });
+  }
+});
+
+// Register / update Expo push token for the authenticated user
+router.post('/push-token', authMiddleware, async (req, res) => {
+  try {
+    const { token, platform } = req.body;
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'token is required' });
+    }
+    const userId = req.user._id;
+    await User.findByIdAndUpdate(userId, { pushToken: token, pushPlatform: platform || 'unknown' });
+    res.json({ success: true, message: 'Push token registered' });
+  } catch (error) {
+    logger.error('Error registering push token', { message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to register push token' });
   }
 });
 
