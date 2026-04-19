@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
 import { useTranslation } from 'react-i18next';
-import { useTransactions } from '../hooks/useOrderQuery';
+import { useTransactions, useUserOrders } from '../hooks/useOrderQuery';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -21,47 +21,40 @@ export default function OrdersScreen() {
   const [activeTab, setActiveTab] = useState('orders');
 
   const userId = user?.id || user?._id;
+
   const {
     data: txData,
-    isFetching,
-    isRefetching,
-    refetch,
+    isFetching: txFetching,
+    isRefetching: txRefetching,
+    refetch: refetchTx,
   } = useTransactions(userId, isAuthenticated && activeTab === 'transactions');
+
+  const {
+    data: orders = [],
+    isFetching: ordersFetching,
+    isRefetching: ordersRefetching,
+    refetch: refetchOrders,
+  } = useUserOrders(userId, isAuthenticated && activeTab === 'orders');
 
   const transactions = txData?.transactions || [];
   const walletBalance = txData?.walletBalance || 0;
   const totalCredit = txData?.totalCredit || 0;
   const totalDebit = txData?.totalDebit || 0;
 
-  const orders = [
-    {
-      id: '1',
-      title: 'iPhone 14 Pro',
-      price: '₼ 85000',
-      status: 'Delivered',
-      date: '2025-09-28',
-      statusColor: '#10B981',
-    },
-    {
-      id: '2',
-      title: 'Travel Bag',
-      price: '₼ 899',
-      status: 'In Transit',
-      date: '2025-09-29',
-      statusColor: '#3B82F6',
-    },
-    {
-      id: '3',
-      title: 'Bike',
-      price: '₼ 5600',
-      status: 'Processing',
-      date: '2025-09-30',
-      statusColor: '#F59E0B',
-    },
-  ];
+  const isFetching = activeTab === 'orders' ? ordersFetching : txFetching;
+  const isRefetching = activeTab === 'orders' ? ordersRefetching : txRefetching;
+
+  const STATUS_COLORS = {
+    delivered: '#10B981',
+    'in transit': '#3B82F6',
+    processing: '#F59E0B',
+    cancelled: '#EF4444',
+    pending: '#6B7280',
+  };
 
   const onRefresh = () => {
-    if (activeTab === 'transactions') refetch();
+    if (activeTab === 'transactions') refetchTx();
+    else refetchOrders();
   };
 
   // IF NOT AUTHENTICATED
@@ -122,33 +115,49 @@ export default function OrdersScreen() {
       >
         {activeTab === 'orders' ? (
           // ORDERS TAB
-          orders.length === 0 ? (
+          ordersFetching && orders.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#008235" />
+            </View>
+          ) : orders.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="bag-outline" size={64} color="#D1D5DB" />
               <Text style={styles.emptyTitle}>{t('orders.noOrders')}</Text>
               <Text style={styles.emptyText}>{t('orders.noOrdersSubtitle')}</Text>
             </View>
           ) : (
-            orders.map((order) => (
-              <View key={order.id} style={styles.orderCard}>
-                <View style={styles.orderHeader}>
-                  <Text style={styles.orderTitle}>{order.title}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: `${order.statusColor}20` }]}>
-                    <Text style={[styles.statusText, { color: order.statusColor }]}>
-                      {order.status}
+            orders.map((order) => {
+              const rawStatus = (order.status || 'pending').toLowerCase();
+              const statusColor = STATUS_COLORS[rawStatus] || '#6B7280';
+              const title = typeof order.product?.title === 'object'
+                ? order.product?.title?.en
+                : (order.product?.title || order.title || 'Order');
+              return (
+                <View key={order._id || order.id} style={styles.orderCard}>
+                  <View style={styles.orderHeader}>
+                    <Text style={styles.orderTitle}>{title}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+                      <Text style={[styles.statusText, { color: statusColor }]}>
+                        {order.status}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.orderDetails}>
+                    <Text style={styles.orderPrice}>₼ {order.amount || order.price || 0}</Text>
+                    <Text style={styles.orderDate}>
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
                     </Text>
                   </View>
+                  <TouchableOpacity
+                    style={styles.viewButton}
+                    onPress={() => router.push(`/order/${order._id || order.id}`)}
+                  >
+                    <Text style={styles.viewButtonText}>{t('orders.viewDetails')}</Text>
+                    <Ionicons name="chevron-forward" size={16} color="#008235" />
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.orderDetails}>
-                  <Text style={styles.orderPrice}>{order.price}</Text>
-                  <Text style={styles.orderDate}>{order.date}</Text>
-                </View>
-                <TouchableOpacity style={styles.viewButton}>
-                  <Text style={styles.viewButtonText}>{t('orders.viewDetails')}</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#008235" />
-                </TouchableOpacity>
-              </View>
-            ))
+              );
+            })
           )
         ) : (
           // TRANSACTIONS TAB

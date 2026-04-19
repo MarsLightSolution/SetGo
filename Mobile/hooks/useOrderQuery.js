@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../config/api';
 export const orderKeys = {
   transactions: (userId) => ['orders', 'transactions', userId],
   detail: (orderId) => ['orders', 'detail', orderId],
+  userOrders: (userId) => ['orders', 'user', userId],
 };
 
 // ==================== FETCHERS ====================
@@ -18,6 +19,15 @@ const fetchTransactions = async (userId) => {
   });
   const json = await response.json();
   return json.data || { transactions: [], walletBalance: 0, totalCredit: 0, totalDebit: 0 };
+};
+
+const fetchUserOrders = async (userId) => {
+  const res = await fetch(API_ENDPOINTS.USER_ORDERS(userId), {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await res.json();
+  return Array.isArray(data.data) ? data.data : (data.orders || []);
 };
 
 const fetchOrderDetail = async (orderId) => {
@@ -52,6 +62,17 @@ export const useOrderDetail = (orderId) =>
     queryFn: () => fetchOrderDetail(orderId),
     enabled: !!orderId,
     staleTime: 10 * 60 * 1000,
+  });
+
+/**
+ * Fetches orders placed by a user. Stale for 3 min.
+ */
+export const useUserOrders = (userId, enabled = true) =>
+  useQuery({
+    queryKey: orderKeys.userOrders(userId),
+    queryFn: () => fetchUserOrders(userId),
+    enabled: !!userId && enabled,
+    staleTime: 3 * 60 * 1000,
   });
 
 /**
