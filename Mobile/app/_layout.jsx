@@ -282,6 +282,12 @@ function AppContent() {
           options={{ animation: 'slide_from_right', presentation: 'card' }}
         />
 
+        {/* Admin screens */}
+        <Stack.Screen
+          name="admin/error-logs"
+          options={{ animation: 'slide_from_right', presentation: 'card' }}
+        />
+
         {/* Shop screens */}
         <Stack.Screen
           name="shops/index"

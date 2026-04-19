@@ -123,6 +123,11 @@ export const API_ENDPOINTS = {
   CONCERN_CLOSE: (id) => `${BASE_URL}/concern/${id}/close`,
   CONCERN_REOPEN: (id) => `${BASE_URL}/concern/${id}/reopen`,
 
+  // --- Error logs (logRoutes.js) - root level ---
+  ERROR_LOG_REPORT: `${BASE_URL}/logs/error`,
+  ERROR_LOG_LIST: `${BASE_URL}/logs/error/db`,
+  ERROR_LOG_RESOLVE: (id) => `${BASE_URL}/logs/error/${id}/resolve`,
+
   // --- Redis (redisRoutes.js) - root level ---
   REDIS_CLEAR: `${BASE_URL}/redis/clear-cache`,
 

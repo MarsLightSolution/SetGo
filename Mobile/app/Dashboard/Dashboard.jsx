@@ -44,6 +44,8 @@ export default function DashboardScreen() {
     </TouchableOpacity>
   ), []);
 
+  const isAdmin = user?.role === 'admin';
+
   const quickActions = [
     { icon: 'add-circle-outline',  label: 'Post Ad',        route: '/post',              color: '#008235' },
     { icon: 'storefront-outline',  label: 'My Ads',         route: '/UserInfo/Userinfo', color: '#3B82F6' },
@@ -51,6 +53,7 @@ export default function DashboardScreen() {
     { icon: 'chatbubble-outline',  label: 'Messages',       route: '/chat',              color: '#8B5CF6' },
     { icon: 'settings-outline',    label: 'Settings',       route: '/AccountManagement/Accountsetting', color: '#6B7280' },
     { icon: 'person-outline',      label: 'Profile',        route: '/profile',           color: '#EC4899' },
+    ...(isAdmin ? [{ icon: 'bug-outline', label: 'Error Logs', route: '/admin/error-logs', color: '#EF4444' }] : []),
   ];
 
   return (
