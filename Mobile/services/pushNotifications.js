@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { getAuthToken } from './secureAuthService';
 import { API_ENDPOINTS } from '../config/api';
 import logger from '../utils/logger';
@@ -17,9 +18,15 @@ Notifications.setNotificationHandler({
 
 /**
  * Requests push permission and registers the Expo push token with the backend.
- * Safe to call on every login — backend should upsert by userId+token.
+ * Skipped in Expo Go (SDK 53+) and simulators — requires a dev/production build.
  */
 export async function registerPushToken() {
+  // Expo Go doesn't support remote push since SDK 53
+  if (Constants.appOwnership === 'expo') {
+    log.info('Skipping push token registration in Expo Go');
+    return null;
+  }
+
   if (!Device.isDevice) return null;
 
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -44,7 +51,12 @@ export async function registerPushToken() {
   }
 
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId || projectId === 'your-project-id') {
+      log.info('Skipping push token — EAS_PROJECT_ID not set');
+      return null;
+    }
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     const pushToken = tokenData.data;
 
     const authToken = await getAuthToken();
