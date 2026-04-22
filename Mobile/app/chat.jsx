@@ -17,6 +17,7 @@ import {
   Animated,
   Keyboard,
   Modal,
+  AppState,
 } from 'react-native';
 import io from 'socket.io-client';
 import * as ImagePicker from 'expo-image-picker';
@@ -142,17 +143,20 @@ export default function ChatScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [lightboxUri, setLightboxUri] = useState(null);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   const flatListRef = useRef(null);
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const activeConvRef = useRef(null);
   const currentUserRef = useRef(null);
+  const conversationsRef = useRef([]);
   const initialLoadRef = useRef(true);
 
   // Keep refs in sync to avoid stale closures in socket handlers
   useEffect(() => { activeConvRef.current = activeConversation; }, [activeConversation]);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   // ─── Request permissions on mount ────────────────────────────────────────
   useEffect(() => {
@@ -195,11 +199,18 @@ export default function ChatScreen() {
 
     socket.on('connect', () => {
       log.info('Socket connected');
+      // Join personal room + broadcast online
+      socket.emit('join-user', currentUser.userId);
+      socket.emit('userOnline', currentUser.userId);
       // Rejoin all conversations on reconnect
-      conversations.forEach(c => socket.emit('joinConversation', c._id));
+      conversationsRef.current.forEach(c => socket.emit('joinConversation', c._id));
       if (activeConvRef.current) {
         socket.emit('joinConversation', activeConvRef.current._id);
       }
+    });
+
+    socket.on('disconnect', () => {
+      log.info('Socket disconnected');
     });
 
     socket.on('newMessage', (msg) => {
@@ -208,7 +219,6 @@ export default function ChatScreen() {
       if (!me) return;
 
       if (msg.conversationId === conv?._id) {
-        // Skip own messages — already added optimistically
         if (msg.senderId === me.userId) return;
         setMessages(prev => {
           if (prev.some(m => m.id === msg._id)) return prev;
@@ -230,6 +240,16 @@ export default function ChatScreen() {
       }
     });
 
+    // Background notification — user is NOT in the active conversation
+    socket.on('new-message', (notification) => {
+      const me = currentUserRef.current;
+      if (!me || notification.senderId === me.userId) return;
+      setUnreadCounts(prev => ({
+        ...prev,
+        [notification.conversationId]: (prev[notification.conversationId] || 0) + 1,
+      }));
+    });
+
     socket.on('typing', ({ conversationId, userId }) => {
       const me = currentUserRef.current;
       if (conversationId === activeConvRef.current?._id && userId !== me?.userId) {
@@ -239,7 +259,26 @@ export default function ChatScreen() {
       }
     });
 
+    socket.on('stopTyping', ({ conversationId, userId }) => {
+      const me = currentUserRef.current;
+      if (conversationId === activeConvRef.current?._id && userId !== me?.userId) {
+        setIsTyping(false);
+        clearTimeout(typingTimeoutRef.current);
+      }
+    });
+
+    socket.on('userOnline', ({ userId }) => {
+      setOnlineUsers(prev => new Set([...prev, userId]));
+    });
+
+    socket.on('userOffline', ({ userId }) => {
+      setOnlineUsers(prev => { const s = new Set(prev); s.delete(userId); return s; });
+    });
+
     return () => {
+      if (currentUserRef.current) {
+        socket.emit('userOffline', currentUserRef.current.userId);
+      }
       socket.disconnect();
       clearTimeout(typingTimeoutRef.current);
     };
@@ -251,6 +290,21 @@ export default function ChatScreen() {
       socketRef.current.emit('joinConversation', activeConversation._id);
     }
   }, [activeConversation]);
+
+  // ─── AppState: userOnline / userOffline on foreground / background ────────
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      const socket = socketRef.current;
+      const me = currentUserRef.current;
+      if (!socket?.connected || !me) return;
+      if (state === 'active') {
+        socket.emit('userOnline', me.userId);
+      } else if (state === 'background' || state === 'inactive') {
+        socket.emit('userOffline', me.userId);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // ─── Keyboard scroll ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -346,13 +400,14 @@ export default function ChatScreen() {
   const startConversation = async (otherUser) => {
     if (!currentUser) return;
     try {
-      const res = await fetch(API_ENDPOINTS.CHAT_CREATE_CONVERSATION, {
+      const res = await fetch(API_ENDPOINTS.CHAT_GET_OR_CREATE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participants: [currentUser.userId, otherUser.userId] }),
+        body: JSON.stringify({ senderId: currentUser.userId, receiverId: otherUser.userId }),
       });
       const data = await res.json();
-      if (data.success) await openConversation(data.conversation);
+      const conv = data.conversation || data.data;
+      if (conv) await openConversation(conv);
     } catch (err) {
       log.error('Start conversation error:', err);
     }
@@ -365,6 +420,11 @@ export default function ChatScreen() {
 
     const tempId = `temp-${Date.now()}`;
     setNewMessage('');
+    clearTimeout(stopTypingTimeoutRef.current);
+    socketRef.current?.emit('stopTyping', {
+      conversationId: activeConversation._id,
+      userId: currentUser.userId,
+    });
 
     setMessages(prev => [...prev, {
       id: tempId,
@@ -495,13 +555,25 @@ export default function ChatScreen() {
   };
 
   // ─── Typing emit ─────────────────────────────────────────────────────────
+  const stopTypingTimeoutRef = useRef(null);
+
   const handleInputChange = (text) => {
     setNewMessage(text);
     if (!socketRef.current?.connected || !activeConversation || !currentUser) return;
+
     socketRef.current.emit('typing', {
       conversationId: activeConversation._id,
       userId: currentUser.userId,
     });
+
+    // Emit stopTyping after 1.5s of no keystroke
+    clearTimeout(stopTypingTimeoutRef.current);
+    stopTypingTimeoutRef.current = setTimeout(() => {
+      socketRef.current?.emit('stopTyping', {
+        conversationId: activeConversation._id,
+        userId: currentUser.userId,
+      });
+    }, 1500);
   };
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -578,10 +650,13 @@ export default function ChatScreen() {
                     onPress={() => startConversation(item)}
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.convAvatar, { backgroundColor: theme.primaryDark }]}>
-                      <Text style={styles.convAvatarText}>
-                        {item.userName?.charAt(0)?.toUpperCase() || 'U'}
-                      </Text>
+                    <View style={styles.convAvatarWrap}>
+                      <View style={[styles.convAvatar, { backgroundColor: theme.primaryDark }]}>
+                        <Text style={styles.convAvatarText}>
+                          {item.userName?.charAt(0)?.toUpperCase() || 'U'}
+                        </Text>
+                      </View>
+                      {onlineUsers.has(item.userId) && <View style={styles.onlineDot} />}
                     </View>
 
                     <View style={styles.convInfo}>
@@ -837,6 +912,13 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.border,
   },
   convItemUnread: { backgroundColor: '#F0FFF4' },
+  convAvatarWrap: { position: 'relative' },
+  onlineDot: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 12, height: 12, borderRadius: 6,
+    backgroundColor: '#22C55E',
+    borderWidth: 2, borderColor: '#fff',
+  },
   convAvatar: {
     width: 52,
     height: 52,
