@@ -34,12 +34,13 @@ export default ({ config }) => {
         NSAppTransportSecurity: {
           NSAllowsArbitraryLoads: false,
           NSExceptionDomains: {
-            'tiwari.shop': {
-              NSExceptionAllowsInsecureHTTPLoads: false,
-              NSIncludesSubdomains: true,
+            '192.168.1.3': {
+              NSExceptionAllowsInsecureHTTPLoads: true,
+              NSIncludesSubdomains: false,
             },
             ...(process.env.NODE_ENV !== 'production' ? {
               localhost: { NSExceptionAllowsInsecureHTTPLoads: true, NSIncludesSubdomains: true },
+              '192.168.1.3': { NSExceptionAllowsInsecureHTTPLoads: true, NSIncludesSubdomains: false },
             } : {}),
           },
         },

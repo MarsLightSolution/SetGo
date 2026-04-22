@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'setgo_remote_config';
-const HARDCODED_API_URL = 'https://tiwari.shop/api';
+const HARDCODED_API_URL = 'http://192.168.1.3:8080';
 const HARDCODED_MIN_VERSION = '1.0.0';
 
 let _cached = null;

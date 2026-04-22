@@ -2,34 +2,29 @@
  * API Configuration - Single Source of Truth
  *
  * IMPORTANT: Set your API URL in the .env file:
- * EXPO_PUBLIC_API_URL=https://tiwari.shop/api
+ * EXPO_PUBLIC_API_URL=http://192.168.1.3:8080
+ * EXPO_PUBLIC_SOCKET_URL=ws://192.168.1.3:8080
  *
  * Backend routing:
- * - nginx proxies tiwari.shop/api/* -> Node.js app
  * - Express root-level routes (no prefix): /login, /signup, /userdata, /Orders, etc.
  * - Express /api router routes (with /api prefix): /api/products/*, /api/shops/*, /api/chat/*
- * - Full URL examples:
- *   Root route:  tiwari.shop/api/login          = BASE_URL + /login
- *   API route:   tiwari.shop/api/api/products/.. = BASE_URL + /api/products/..
  *
  * ALL files must import from this config. Do NOT use process.env.EXPO_PUBLIC_API_URL directly.
  */
 
 import logger from '../utils/logger';
 
-// Base URL from env (e.g., https://tiwari.shop/api)
-const BASE_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
+// Base URL from env (e.g., http://192.168.1.3:8080)
+const BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.3:8080').replace(/\/$/, '');
 
-// API-prefixed URL for Express /api router routes (e.g., https://tiwari.shop/api/api)
+// API-prefixed URL for Express /api router routes
 const API_URL = `${BASE_URL}/api`;
 
-// Image/static assets URL - same as BASE_URL since images are served through nginx at /api/*
+// Image/static assets URL
 const IMAGE_BASE_URL = BASE_URL;
 
 // WebSocket URL — set EXPO_PUBLIC_SOCKET_URL in .env
-// Local dev:  ws://10.137.164.234:8080
-// Production: wss://tiwari.shop
-const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'wss://tiwari.shop';
+const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'ws://192.168.1.3:8080';
 
 // Validate in development
 if (!BASE_URL && typeof __DEV__ !== 'undefined' && __DEV__) {
