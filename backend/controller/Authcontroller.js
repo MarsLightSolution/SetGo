@@ -186,7 +186,7 @@ module.exports.login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    // 8️⃣ Set HttpOnly cookie
+    // 8️⃣ Set HttpOnly cookie (for web clients)
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -199,6 +199,7 @@ module.exports.login = async (req, res) => {
     return res.json({
       success: true,
       accessToken: "Bearer " + accessToken,
+      refreshToken, // also in body for React Native (can't read HttpOnly cookies)
       userId: user._id,
       userName: user.username,
       role: user.role,
@@ -215,7 +216,8 @@ module.exports.login = async (req, res) => {
  * REFRESH‑ACCESS‑TOKEN ENDPOINT
  *******************************************************************/
 module.exports.refreshAccessToken = async (req, res) => {
-  const token = req.cookies.refreshToken;
+  // Accept from cookie (web) or body (React Native — can't read HttpOnly cookies)
+  const token = req.cookies.refreshToken || req.body?.refreshToken;
   if (!token) return res.status(401).json({ message: "Refresh token not found" });
 
   try {
@@ -241,13 +243,14 @@ module.exports.refreshAccessToken = async (req, res) => {
  * JWT PROTECTION MIDDLEWARE (expects Bearer header)
  *******************************************************************/
 module.exports.verifyJWT = (req, res, next) => {
-  const authHeader = req.cookies.refreshToken;
-  if (!authHeader) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: "Access token missing or invalid" });
   }
 
+  const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(authHeader, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     req.user = decoded;
     logger.info(`[verifyJWT] Valid token for user id: ${decoded.id}`);
     next();
