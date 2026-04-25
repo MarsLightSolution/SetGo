@@ -23,7 +23,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
-import { API_ENDPOINTS, SOCKET_URL, IMAGE_BASE_URL } from '../../config/api';
+import { API_ENDPOINTS, BASE_URL, IMAGE_BASE_URL } from '../../config/api';
+import { getUserData } from '../../services/secureAuthService';
 import logger from '../../utils/logger';
 
 const log = logger.create('Chat');
@@ -166,32 +167,28 @@ export default function ChatApp() {
 
   const autoConnect = async () => {
     try {
-      let storedUsername = await AsyncStorage.getItem('userName');
-      
-      if (!storedUsername) {
-        const userJson = await AsyncStorage.getItem('user');
-        if (userJson) {
-          try {
-            const userObj = JSON.parse(userJson);
-            storedUsername = userObj.userName;
-          } catch (e) {
-            log.error('Error parsing user JSON:', e);
-          }
+      const userData = await getUserData();
+      if (userData) {
+        const identifier = userData.email || userData.username || userData._id;
+        const displayName = userData.profileName || userData.userName || userData.username || 'User';
+        if (identifier) {
+          log.info('Auto-connecting with identifier:', identifier);
+          connectUser(identifier, displayName);
+        } else {
+          setIsLoadingChats(false);
         }
-      }
-      
-      if (storedUsername) {
-        log.info('Auto-connecting with username:', storedUsername);
-        connectUser(storedUsername);
+      } else {
+        setIsLoadingChats(false);
       }
     } catch (error) {
       log.error('Error auto-connecting:', error);
+      setIsLoadingChats(false);
     }
   };
 
   useEffect(() => {
     if (isConnected && currentUser) {
-      socketRef.current = io(SOCKET_URL, { 
+      socketRef.current = io(BASE_URL, {
         withCredentials: true,
         transports: ['websocket', 'polling']
       });
@@ -214,7 +211,7 @@ export default function ChatApp() {
         log.info('Socket disconnected');
       });
 
-      socketRef.current.on('newMessage', (msg) => {
+      const handleNewMessage = (msg) => {
         log.debug('New message received:', msg);
         log.debug('Sender:', msg.senderId, 'Current User:', currentUser.userId);
         log.debug('Active Conv:', activeConversation?._id, 'Message Conv:', msg.conversationId);
@@ -257,9 +254,11 @@ export default function ChatApp() {
             return newCounts;
           });
         }
-      });
+      };
 
-      socketRef.current.on('typing', ({ conversationId, userId }) => {
+      socketRef.current.on('newMessage', handleNewMessage);
+
+      const handleTyping = ({ conversationId, userId }) => {
         if (conversationId === activeConversation?._id && userId !== currentUser.userId) {
           setIsTyping(true);
           
@@ -271,16 +270,19 @@ export default function ChatApp() {
             setIsTyping(false);
           }, 2000);
         }
-      });
+      };
+
+      socketRef.current.on('typing', handleTyping);
 
       return () => {
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
+        socketRef.current.off('typing', handleTyping);
         socketRef.current?.disconnect();
       };
     }
-  }, [isConnected, currentUser, activeConversation, conversations]);
+  }, [isConnected, currentUser]);
 
   useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
@@ -314,7 +316,7 @@ export default function ChatApp() {
     };
   }, []);
 
-  const connectUser = async (username) => {
+  const connectUser = async (username, displayName) => {
     if (!username?.trim()) return;
     setIsConnecting(true);
     setConnectionError('');
@@ -323,7 +325,7 @@ export default function ChatApp() {
       const response = await fetch(API_ENDPOINTS.CHAT_CONNECT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, displayName: username }),
+        body: JSON.stringify({ username, displayName: displayName || username }),
       });
 
       const data = await response.json();
@@ -544,9 +546,6 @@ export default function ChatApp() {
       const response = await fetch(API_ENDPOINTS.CHAT_UPLOAD, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
       });
 
       const responseText = await response.text();

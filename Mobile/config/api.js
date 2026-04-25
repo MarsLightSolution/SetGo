@@ -24,7 +24,7 @@ const API_URL = `${BASE_URL}/api`;
 const IMAGE_BASE_URL = BASE_URL;
 
 // WebSocket URL — set EXPO_PUBLIC_SOCKET_URL in .env
-const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'ws://192.168.1.3:8080';
+const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'http://192.168.1.3:8080';
 
 // Validate in development
 if (!BASE_URL && typeof __DEV__ !== 'undefined' && __DEV__) {

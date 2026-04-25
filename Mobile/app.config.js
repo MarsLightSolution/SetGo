@@ -103,14 +103,8 @@ export default ({ config }) => {
       'expo-router',
       'expo-font',
       'expo-web-browser',
-      [
-        'expo-notifications',
-        {
-          icon: './assets/images/icon.png',
-          color: '#008235',
-          sounds: [],
-        },
-      ],
+      // NOTE: expo-notifications plugin removed — not compatible with Expo Go SDK 53+
+      // For development builds or production EAS builds, configure separately
     ],
 
     // Environment variables and extra config

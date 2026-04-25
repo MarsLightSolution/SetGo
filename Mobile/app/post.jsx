@@ -23,6 +23,7 @@ import Icon from "react-native-vector-icons/Feather";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
+import { useTranslation } from 'react-i18next';
 
 // Toast helper functions
 const showSuccessToast = (message) => {
@@ -63,6 +64,7 @@ const log = logger.create('PostForm');
 const Form = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const maxDescriptionLength = 1000;
 
   // Auth check state

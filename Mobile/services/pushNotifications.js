@@ -8,13 +8,18 @@ import logger from '../utils/logger';
 
 const log = logger.create('PushNotifications');
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Initialize notification handler only if available (skipped in Expo Go SDK 53+)
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (error) {
+  log.warn('Notification handler unavailable in this environment');
+}
 
 /**
  * Requests push permission and registers the Expo push token with the backend.
@@ -80,16 +85,34 @@ export async function registerPushToken() {
 
 /**
  * Subscribe to foreground notifications. Returns the remove() function.
+ * Skipped in Expo Go (SDK 53+).
  */
 export function onForegroundNotification(handler) {
-  const sub = Notifications.addNotificationReceivedListener(handler);
-  return () => sub.remove();
+  if (Constants.appOwnership === 'expo') {
+    return () => {}; // No-op in Expo Go
+  }
+  try {
+    const sub = Notifications.addNotificationReceivedListener(handler);
+    return () => sub.remove();
+  } catch (error) {
+    log.warn('Foreground notification listener unavailable');
+    return () => {};
+  }
 }
 
 /**
  * Subscribe to notification tap (background/killed). Returns the remove() function.
+ * Skipped in Expo Go (SDK 53+).
  */
 export function onNotificationResponse(handler) {
-  const sub = Notifications.addNotificationResponseReceivedListener(handler);
-  return () => sub.remove();
+  if (Constants.appOwnership === 'expo') {
+    return () => {}; // No-op in Expo Go
+  }
+  try {
+    const sub = Notifications.addNotificationResponseReceivedListener(handler);
+    return () => sub.remove();
+  } catch (error) {
+    log.warn('Notification response listener unavailable');
+    return () => {};
+  }
 }
