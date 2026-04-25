@@ -473,11 +473,39 @@ export default function UserProfile() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <ProfileCard 
-          userName={userName} 
-          adsCount={ads.length} 
-          userCreatedAt={userCreatedAt} 
+        <ProfileCard
+          userName={userName}
+          adsCount={ads.length}
+          userCreatedAt={userCreatedAt}
         />
+
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            onPress={() => router.push('/wishlist')}
+            activeOpacity={0.75}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: '#fef3c7' }]}>
+              <Icon name="heart" size={20} color="#f59e0b" />
+            </View>
+            <Text style={styles.quickActionLabel}>Favourites</Text>
+            <Icon name="angle-right" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <View style={styles.quickActionDivider} />
+
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            onPress={() => router.push('/Chat/chat')}
+            activeOpacity={0.75}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: '#dcfce7' }]}>
+              <Icon name="comments" size={20} color="#16a34a" />
+            </View>
+            <Text style={styles.quickActionLabel}>Messages</Text>
+            <Icon name="angle-right" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.adsSection}>
           <View style={styles.adsSectionHeader}>
@@ -666,6 +694,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#16a34a',
     fontWeight: '500',
+  },
+
+  // Quick Actions
+  quickActions: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  quickActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 14,
+  },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  quickActionDivider: {
+    height: 1,
+    backgroundColor: '#f3f4f6',
+    marginHorizontal: 20,
   },
 
   // Ads Section

@@ -39,8 +39,8 @@ const handleLogout = () => {
 
   const menuItems = [
     { icon: 'document-text-outline', label: t('profile.myAds'), color: '#DCFCE7', route: '/UserInfo/Userinfo' },
-    { icon: 'heart-outline', label: t('profile.favorites'), color: '#FECACA', route: '/(tabs)/wishlist' },
-    { icon: 'chatbubble-outline', label: t('profile.messages'), color: '#DBEAFE', route: '/chat' },
+    { icon: 'heart-outline', label: t('profile.favorites'), color: '#FECACA', route: '/wishlist' },
+    { icon: 'chatbubble-outline', label: t('profile.messages'), color: '#DBEAFE', route: '/Chat/chat' },
     { icon: 'settings-outline', label: t('profile.settings'), color: '#E9D5FF', route: '/AccountManagement/Accountsetting' },
     { icon: 'help-circle-outline', label: t('profile.helpSupport'), color: '#FED7AA', route: '/help' },
   ];
