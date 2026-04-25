@@ -21,13 +21,16 @@ try {
   log.warn('Notification handler unavailable in this environment');
 }
 
+// Detect Expo Go across SDK versions
+const isExpoGo = () =>
+  Constants.executionEnvironment === 'storeClient';
+
 /**
  * Requests push permission and registers the Expo push token with the backend.
  * Skipped in Expo Go (SDK 53+) and simulators — requires a dev/production build.
  */
 export async function registerPushToken() {
-  // Expo Go doesn't support remote push since SDK 53
-  if (Constants.appOwnership === 'expo') {
+  if (isExpoGo()) {
     log.info('Skipping push token registration in Expo Go');
     return null;
   }
@@ -88,8 +91,8 @@ export async function registerPushToken() {
  * Skipped in Expo Go (SDK 53+).
  */
 export function onForegroundNotification(handler) {
-  if (Constants.appOwnership === 'expo') {
-    return () => {}; // No-op in Expo Go
+  if (isExpoGo()) {
+    return () => {};
   }
   try {
     const sub = Notifications.addNotificationReceivedListener(handler);
@@ -105,8 +108,8 @@ export function onForegroundNotification(handler) {
  * Skipped in Expo Go (SDK 53+).
  */
 export function onNotificationResponse(handler) {
-  if (Constants.appOwnership === 'expo') {
-    return () => {}; // No-op in Expo Go
+  if (isExpoGo()) {
+    return () => {};
   }
   try {
     const sub = Notifications.addNotificationResponseReceivedListener(handler);

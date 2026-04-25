@@ -5,6 +5,9 @@ import {
   clearSession,
   migrateFromAsyncStorage,
   setUserData,
+  isTokenExpiringSoon,
+  getRefreshToken,
+  setAuthToken,
 } from '../services/secureAuthService';
 import { API_ENDPOINTS } from '../config/api';
 import logger from '../utils/logger';
@@ -35,6 +38,32 @@ export const useAuthStore = create((set, get) => ({
       const session = await getSession();
 
       if (session.isAuthenticated && session.userData) {
+        // If access token is expired, attempt silent refresh before marking authenticated
+        const expiring = await isTokenExpiringSoon(0); // 0 buffer = already expired
+        if (expiring) {
+          try {
+            const refreshToken = await getRefreshToken();
+            if (!refreshToken) throw new Error('No refresh token');
+            const res = await fetch(API_ENDPOINTS.REFRESH_TOKEN, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken }),
+              credentials: 'include',
+            });
+            const data = await res.json();
+            if (res.ok && data.success && data.accessToken) {
+              const newToken = data.accessToken.replace(/^Bearer\s+/i, '');
+              await setAuthToken(newToken);
+            } else {
+              throw new Error('Refresh failed');
+            }
+          } catch {
+            // Refresh failed — session is dead, clear it
+            await clearSession();
+            set({ isAuthenticated: false, user: null, loading: false, initialized: true });
+            return;
+          }
+        }
         set({
           isAuthenticated: true,
           user: session.userData,
@@ -114,17 +143,8 @@ export const useAuthStore = create((set, get) => ({
           return { success: false, message: 'Invalid server response' };
         }
 
-        // 3. Extract refresh token from Set-Cookie header (if available)
-        // On React Native, HttpOnly cookies are managed by the native cookie jar,
-        // but we also store it locally as a fallback for the refresh interceptor.
-        let refreshToken = null;
-        const setCookie = response.headers.get('set-cookie');
-        if (setCookie) {
-          const match = setCookie.match(/refreshToken=([^;]+)/);
-          if (match) {
-            refreshToken = match[1];
-          }
-        }
+        // 3. Get refresh token from response body (React Native can't read HttpOnly cookies)
+        const refreshToken = data.refreshToken || null;
 
         // 4. Create initial user object
         const basicUser = {

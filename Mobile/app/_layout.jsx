@@ -111,9 +111,7 @@ function AppContent() {
     '/auth',
     '/filters',
     '/checkout',
-    '/chat',
     '/UserInfo/Userinfo',
-    '/Chat/chat',
     '/Chat/chatbot',
     '/Chat/raiseQuery',
     '/UserInfo/EditForm',
@@ -320,23 +318,23 @@ export default function RootLayout() {
           persistOptions={{ persister: asyncStoragePersister }}
         >
           <Provider store={store}>
-            <PersistGate
-              loading={
-                <View style={{
-                  flex: 1,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: '#ffffff'
-                }}>
-                  <SplashScreen onFinish={() => {}} />
-                </View>
-              }
-              persistor={persistor}
-            >
-              <FilterProvider>
+            <FilterProvider>
+              <PersistGate
+                loading={
+                  <View style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: '#ffffff'
+                  }}>
+                    <SplashScreen onFinish={() => {}} />
+                  </View>
+                }
+                persistor={persistor}
+              >
                 <AppContent />
-              </FilterProvider>
-            </PersistGate>
+              </PersistGate>
+            </FilterProvider>
           </Provider>
         </PersistQueryClientProvider>
       </ErrorBoundary>
