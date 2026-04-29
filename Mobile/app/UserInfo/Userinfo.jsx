@@ -14,15 +14,13 @@ import {
   StatusBar,
   Animated,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { getAuthToken, getUserId, getUserData } from '../../services/secureAuthService';
 import { useUserAds } from '../../hooks/useUserQuery';
+import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 
 const { width } = Dimensions.get('window');
-// ==================== API CONFIGURATION ====================
-import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 
 const getImageUrl = (path) => {
   if (!path) return '';
@@ -363,7 +361,6 @@ const EmptyState = ({ onPlaceAd }) => (
 
 // ==================== MAIN COMPONENT ====================
 export default function UserProfile() {
-  const navigation = useNavigation();
   const router = useRouter();
   const [userId, setUserId] = useState(null);
   const [expandedAdId, setExpandedAdId] = useState(null);
@@ -402,7 +399,7 @@ export default function UserProfile() {
     if (adsError) {
       if (adsError.status === 401) {
         Alert.alert('Session Expired', 'Please log in again.', [
-          { text: 'OK', onPress: () => navigation.navigate('Login') },
+          { text: 'OK', onPress: () => router.replace('/auth') },
         ]);
       } else {
         Alert.alert('Error', 'Failed to load ads. Please try again.');
@@ -418,7 +415,7 @@ export default function UserProfile() {
     } catch (err) {
       if (err.response?.status === 401) {
         Alert.alert('Session Expired', 'Please log in again.', [
-          { text: 'OK', onPress: () => navigation.navigate('Login') },
+          { text: 'OK', onPress: () => router.replace('/auth') },
         ]);
       } else {
         Alert.alert('Error', `Failed to ${action}. Please try again.`);
@@ -454,7 +451,7 @@ export default function UserProfile() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
-      <CustomHeader userName={userName} onBack={() => navigation.goBack()} />
+      <CustomHeader userName={userName} onBack={() => router.back()} />
 
       <ConfirmDialog
         visible={confirmAdId !== null}
@@ -516,7 +513,7 @@ export default function UserProfile() {
           </View>
 
           {ads.length === 0 ? (
-            <EmptyState onPlaceAd={() => navigation.navigate('Form')} />
+            <EmptyState onPlaceAd={() => router.push('/post')} />
           ) : (
             <ScrollView
               ref={scrollViewRef}
@@ -541,7 +538,7 @@ export default function UserProfile() {
                     setConfirmAction('delete');
                     setConfirmAdId(id);
                   }}
-                  onPreview={(id) => navigation.navigate('ProductDetail', { id })}
+                  onPreview={(id) => router.push(`/product/${id}`)}
                   expandedAdId={expandedAdId}
                   onToggleExpand={(id) => setExpandedAdId(expandedAdId === id ? null : id)}
                 />

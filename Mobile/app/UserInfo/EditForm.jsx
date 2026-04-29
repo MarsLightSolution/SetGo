@@ -11,16 +11,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 import logger from '../../utils/logger';
 
 const log = logger.create('EditForm');
 
 export default function EditForm() {
-  const route = useRoute();
-  const navigation = useNavigation();
+  const router = useRouter();
   const { id } = useLocalSearchParams(); // ✅ catches id from ?id=123
 
   const [formData, setFormData] = useState({
@@ -158,7 +156,7 @@ export default function EditForm() {
       if (!res.ok) throw new Error("Failed to update product");
 
       Alert.alert("Success", "Ad updated successfully!");
-      navigation.navigate("UserInfo");
+      router.back();
     } catch (err) {
       log.error("Update error:", err);
       Alert.alert("Error", "Failed to update ad.");

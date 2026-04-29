@@ -80,7 +80,7 @@ export default function ShopProfileScreen() {
         type: 'info',
         text1: 'Please login first',
       });
-      router.push('/login');
+      router.push('/auth');
       return;
     }
 
@@ -100,7 +100,7 @@ export default function ShopProfileScreen() {
           type: 'error',
           text1: 'Please login first',
         });
-        router.push('/login');
+        router.push('/auth');
         return;
       }
 

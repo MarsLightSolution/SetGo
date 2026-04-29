@@ -29,7 +29,7 @@ const handleLogout = () => {
         style: 'destructive',
         onPress: async () => {
           await logout(); // ✅ Clears tokens from secure storage on BOTH platforms
-          router.replace('../auth');
+          router.replace('/auth');
         },
       },
     ],
@@ -42,7 +42,7 @@ const handleLogout = () => {
     { icon: 'heart-outline', label: t('profile.favorites'), color: '#FECACA', route: '/wishlist' },
     { icon: 'chatbubble-outline', label: t('profile.messages'), color: '#DBEAFE', route: '/Chat/chat' },
     { icon: 'settings-outline', label: t('profile.settings'), color: '#E9D5FF', route: '/AccountManagement/Accountsetting' },
-    { icon: 'help-circle-outline', label: t('profile.helpSupport'), color: '#FED7AA', route: '/help' },
+    { icon: 'help-circle-outline', label: t('profile.helpSupport'), color: '#FED7AA', route: '/Chat/raiseQuery' },
   ];
 
   // IF NOT AUTHENTICATED
@@ -59,7 +59,7 @@ const handleLogout = () => {
           <Text style={styles.authRequiredText}>{t('profile.welcomeSubtitle')}</Text>
           <TouchableOpacity
             style={styles.authButton}
-            onPress={() => router.push('../auth')}
+            onPress={() => router.push('/auth')}
           >
             <Text style={styles.authButtonText}>{t('profile.loginSignup')}</Text>
           </TouchableOpacity>
