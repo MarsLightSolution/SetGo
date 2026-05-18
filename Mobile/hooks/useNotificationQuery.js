@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { API_ENDPOINTS } from '../config/api';
+import { useEffect } from 'react';
+import { API_ENDPOINTS, SOCKET_URL } from '../config/api';
 import { getAuthToken } from '../services/secureAuthService';
+import io from 'socket.io-client';
 
 const notifKeys = {
   list: () => ['notifications', 'list'],
@@ -25,6 +27,24 @@ const fetchUnreadCount = async () => {
   const data = await res.json();
   return data.data?.unreadCount || 0;
 };
+
+// Listens for real-time `notification` socket events and invalidates the query cache
+export function useNotificationSocket(enabled = true) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!enabled) return;
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+    });
+    socket.on('notification', () => {
+      qc.invalidateQueries({ queryKey: notifKeys.list() });
+      qc.invalidateQueries({ queryKey: notifKeys.unread() });
+    });
+    return () => socket.disconnect();
+  }, [enabled, qc]);
+}
 
 export const useNotifications = (enabled = true) =>
   useQuery({

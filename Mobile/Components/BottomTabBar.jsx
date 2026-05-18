@@ -1,26 +1,24 @@
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../Store/authStore';
+import { useUnreadCount } from '../hooks/useNotificationQuery';
 
 export default function BottomTabBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data: unreadCount = 0 } = useUnreadCount(isAuthenticated);
 
-  // Hide tab bar on these routes
   const hiddenRoutes = ['/auth', '/filters'];
-  if (hiddenRoutes.includes(pathname)) {
-    return null;
-  }
+  if (hiddenRoutes.includes(pathname)) return null;
 
   const isActive = (path) => pathname === path;
 
   return (
     <View style={styles.container}>
       {/* Home */}
-      <TouchableOpacity
-        style={styles.tab}
-        onPress={() => router.push('/')}
-      >
+      <TouchableOpacity style={styles.tab} onPress={() => router.push('/')}>
         <Ionicons
           name={isActive('/') ? 'home' : 'home-outline'}
           size={24}
@@ -29,10 +27,7 @@ export default function BottomTabBar() {
       </TouchableOpacity>
 
       {/* Wishlist */}
-      <TouchableOpacity
-        style={styles.tab}
-        onPress={() => router.push('/wishlist')}
-      >
+      <TouchableOpacity style={styles.tab} onPress={() => router.push('/wishlist')}>
         <Ionicons
           name={isActive('/wishlist') ? 'heart' : 'heart-outline'}
           size={24}
@@ -41,20 +36,14 @@ export default function BottomTabBar() {
       </TouchableOpacity>
 
       {/* Post (Center) */}
-      <TouchableOpacity
-        style={styles.centerButton}
-        onPress={() => router.push('/post')}
-      >
+      <TouchableOpacity style={styles.centerButton} onPress={() => router.push('/post')}>
         <View style={styles.centerButtonInner}>
           <Ionicons name="add" size={30} color="#FFFFFF" />
         </View>
       </TouchableOpacity>
 
       {/* Orders */}
-      <TouchableOpacity
-        style={styles.tab}
-        onPress={() => router.push('/Chat/chat')}
-      >
+      <TouchableOpacity style={styles.tab} onPress={() => router.push('/orders')}>
         <Ionicons
           name={isActive('/orders') ? 'receipt' : 'receipt-outline'}
           size={24}
@@ -62,16 +51,16 @@ export default function BottomTabBar() {
         />
       </TouchableOpacity>
 
-      {/* Profile */}
-      <TouchableOpacity
-        style={styles.tab}
-        onPress={() => router.push('/profile')}
-      >
-        <Ionicons
-          name={isActive('/profile') ? 'person' : 'person-outline'}
-          size={24}
-          color={isActive('/profile') ? '#4ADE80' : '#9CA3AF'}
-        />
+      {/* Profile — with unread notification dot */}
+      <TouchableOpacity style={styles.tab} onPress={() => router.push('/profile')}>
+        <View style={styles.iconWrap}>
+          <Ionicons
+            name={isActive('/profile') ? 'person' : 'person-outline'}
+            size={24}
+            color={isActive('/profile') ? '#4ADE80' : '#9CA3AF'}
+          />
+          {unreadCount > 0 && <View style={styles.badge} />}
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -95,6 +84,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconWrap: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   centerButton: {
     flex: 1,

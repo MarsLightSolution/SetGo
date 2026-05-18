@@ -42,7 +42,7 @@ export default function NotificationsScreen() {
   const handlePress = (item) => {
     if (!item.isRead) markRead.mutate(item._id);
     if (item.metadata?.productId) router.push(`/product/${item.metadata.productId}`);
-    else if (item.metadata?.conversationId) router.push('/chat');
+    else if (item.metadata?.conversationId) router.push('/Chat/chat');
   };
 
   const renderItem = ({ item }) => {

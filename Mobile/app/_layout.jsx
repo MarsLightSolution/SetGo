@@ -17,6 +17,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { queryClient, asyncStoragePersister } from '../services/queryClient';
 import { fetchAndCacheRemoteConfig, getMinRequiredVersion } from '../services/remoteConfig';
 import { registerPushToken, onForegroundNotification, onNotificationResponse } from '../services/pushNotifications';
+import { useNotificationSocket } from '../hooks/useNotificationQuery';
 import Constants from 'expo-constants';
 import '../i18n';
 
@@ -80,8 +81,10 @@ function AppContent() {
     }
   }, [initialized, onboardingChecked]);
 
-  // Register push token and subscribe to notifications when app is ready and user is logged in
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  // Real-time notification updates via Socket
+  useNotificationSocket(isAuthenticated);
   useEffect(() => {
     if (!appReady || !isAuthenticated) return;
     registerPushToken();
