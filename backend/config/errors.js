@@ -317,19 +317,98 @@ const ERRORS = {
       code: 'PROD_6001',
       status: 404,
       message: 'Product not found.',
-      reason: 'getProductById / deleteProduct / updateProduct — Product.findById returned null',
+      reason: 'getProductById / deleteProduct / updateProduct / markProductAsSold — Product.findById returned null',
     },
     IMAGE_REQUIRED: {
       code: 'PROD_6002',
       status: 400,
       message: 'Image is required.',
-      reason: 'createAd — no image file in multipart upload',
+      reason: 'createAd / addProduct — no image file in multipart upload',
     },
     TITLE_REQUIRED: {
       code: 'PROD_6003',
       status: 400,
       message: 'Title is required.',
       reason: 'createAd — title missing from request body',
+    },
+    INVALID_ID: {
+      code: 'PROD_6004',
+      status: 400,
+      message: 'Invalid product ID.',
+      reason: 'getProductById / deleteProduct / updateProduct / markProductAsSold — ID is not a valid MongoDB ObjectId',
+    },
+    TERMS_REQUIRED: {
+      code: 'PROD_6005',
+      status: 400,
+      message: 'You must accept the terms and conditions.',
+      reason: 'addProduct — termsAccepted field is false or missing in request body',
+    },
+    MIN_ONE_PICTURE: {
+      code: 'PROD_6006',
+      status: 400,
+      message: 'At least one picture is required.',
+      reason: 'addProduct — no images uploaded in multipart request',
+    },
+    MAX_PICTURES_ADD: {
+      code: 'PROD_6007',
+      status: 400,
+      message: 'You can upload a maximum of 20 pictures.',
+      reason: 'addProduct — more than 20 files received in multipart upload',
+    },
+    MAX_PICTURES_UPDATE: {
+      code: 'PROD_6008',
+      status: 400,
+      message: 'You can upload a maximum of 8 pictures.',
+      reason: 'updateProduct — more than 8 files received in multipart upload',
+    },
+    INVALID_POSTAL_CODE: {
+      code: 'PROD_6009',
+      status: 400,
+      message: 'Invalid or unknown postal code.',
+      reason: 'addProduct — postal code lookup returned no results or invalid format',
+    },
+    SHOP_NOT_FOUND: {
+      code: 'PROD_6010',
+      status: 400,
+      message: 'Shop not found.',
+      reason: 'addProduct — shopId provided but Shop.findById returned null',
+    },
+    CATEGORY_REQUIRED: {
+      code: 'PROD_6011',
+      status: 400,
+      message: 'Category is required.',
+      reason: 'getProductsByCategory — category param missing from GET /api/products/category/:category',
+    },
+    INVALID_SHOP_ID: {
+      code: 'PROD_6012',
+      status: 400,
+      message: 'Invalid shop ID.',
+      reason: 'getProductsByShop — shopId is not a valid MongoDB ObjectId',
+    },
+    UPDATE_FAILED: {
+      code: 'PROD_6013',
+      status: 400,
+      message: 'Failed to update product.',
+      reason: 'updateProduct — Mongoose validation or save error during product update',
+    },
+  },
+
+  // ──────────────────────────────────────────
+  // USERS  (10xxx)
+  // Source: controller/userController.js
+  // ──────────────────────────────────────────
+  USER: {
+    INVALID_ID: {
+      code: 'USER_10001',
+      status: 400,
+      message: 'Invalid user ID.',
+      reason: 'getUserById / updateUser — userId is not a valid MongoDB ObjectId',
+    },
+    NOT_FOUND: {
+      code: 'USER_10002',
+      status: 404,
+      message: 'User not found.',
+      reason: 'getUserById / updateUser — User.findById returned null',
     },
   },
 
