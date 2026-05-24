@@ -6,7 +6,6 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const redisClient = require("../utils/redisClient");
 const logger = require("../utils/logger");
 require("dotenv").config();
 
@@ -23,9 +22,6 @@ module.exports.signup = async (req, res) => {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: "Invalid email format" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters long" });
     }
     if (!/^[a-zA-Z0-9]+$/.test(username)) {
       return res.status(400).json({ error: "Username can only contain alphanumeric characters" });
@@ -140,58 +136,33 @@ module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // const redisKey = `login:${email}`;
-
-    // 1️⃣ Try fetching user from Redis first
-    // const cachedUserData = await redisClient.get(redisKey);
-
-    let user;
-
-    // if (cachedUserData) {
-    //   console.log("✅ User found in Redis cache");
-    //   user = JSON.parse(cachedUserData);
-    // } else {
-    //   // 2️⃣ Fallback to MongoDB if not in Redis
-    user = await User.findOne({ email });
+    // 1. Fetch user
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "The email address you entered is incorrect." });
     }
 
-    // // Only cache what's needed (avoid full sensitive object)
-    // const safeToCache = {
-    //   _id: user._id,
-    //   username: user.username,
-    //   email: user.email,
-    //   password: user.password, // hashed
-    //   role: user.role
-    // };
-
-    // Save to Redis for 24 hours
-    // await redisClient.set(redisKey, JSON.stringify(safeToCache), {
-    //   EX: 60 * 60 * 24 // 24 hours
-    // });
-    // console.log("💾 User data cached in Redis");
-    // 3️⃣ Compare password
+    // 2. Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       logger.warn(`[Login] Incorrect password for ${email}`);
       return res.status(400).json({ message: "The password you entered is incorrect." });
     }
 
-    // 6️⃣ Generate tokens
-    const accessToken = generateAccessToken(user);
+    // 3. Generate tokens
+    const accessToken  = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // 7️⃣ Save refresh token
-    user.refreshToken = refreshToken;
+    // 4. Add refresh token for this device (keeps other devices active)
+    user.refreshTokens = [...(user.refreshTokens || []), refreshToken];
     await user.save({ validateBeforeSave: false });
 
-    // 8️⃣ Set HttpOnly cookie (for web clients)
+    // 5. Set HttpOnly cookie (web) — mobile reads token from response body
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     logger.info(`[Login] User logged in: ${email}`);
@@ -199,7 +170,7 @@ module.exports.login = async (req, res) => {
     return res.json({
       success: true,
       accessToken: "Bearer " + accessToken,
-      refreshToken, // also in body for React Native (can't read HttpOnly cookies)
+      refreshToken,
       userId: user._id,
       userName: user.username,
       role: user.role,
@@ -224,39 +195,31 @@ module.exports.refreshAccessToken = async (req, res) => {
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
 
     const user = await User.findById(decoded.id);
-    if (!user || user.refreshToken !== token) {
+    if (!user || !user.refreshTokens?.includes(token)) {
       logger.warn(`[RefreshToken] Invalid refresh token for user id ${decoded.id}`);
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    const newAccessToken = generateAccessToken(user);
+    // Rotate: remove old token, issue new one for this device
+    user.refreshTokens = user.refreshTokens.filter(t => t !== token);
+    const newAccessToken  = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+    user.refreshTokens.push(newRefreshToken);
+    await user.save({ validateBeforeSave: false });
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     logger.info(`[RefreshToken] Access token refreshed for user id ${decoded.id}`);
 
-    return res.json({ success: true, accessToken: "Bearer " + newAccessToken });
+    return res.json({ success: true, accessToken: "Bearer " + newAccessToken, refreshToken: newRefreshToken });
   } catch (err) {
     logger.error(`[RefreshToken] Error: ${err.stack}`);
     return res.status(403).json({ message: "Refresh token expired or invalid" });
-  }
-};
-
-/********************************************************************
- * JWT PROTECTION MIDDLEWARE (expects Bearer header)
- *******************************************************************/
-module.exports.verifyJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: "Access token missing or invalid" });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    req.user = decoded;
-    logger.info(`[verifyJWT] Valid token for user id: ${decoded.id}`);
-    next();
-  } catch (err) {
-    logger.error(`[verifyJWT] Invalid or expired token: ${err.stack}`);
-    return res.status(403).json({ message: "Access token expired or invalid" });
   }
 };
 
@@ -265,26 +228,23 @@ module.exports.verifyJWT = (req, res, next) => {
  *******************************************************************/
 module.exports.logout = async (req, res) => {
   try {
-    const token = req.cookies.refreshToken;
+    // Accept token from cookie (web) or body (mobile — can't use HttpOnly cookies)
+    const token = req.cookies.refreshToken || req.body?.refreshToken;
     if (!token) return res.status(200).json({ message: "Logged out successfully" });
 
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
     } catch {
-      // even if invalid, clear cookie for good measure
       res.clearCookie("refreshToken");
       return res.status(200).json({ message: "Logged out successfully" });
     }
 
     const user = await User.findById(decoded.id);
     if (user) {
-      user.refreshToken = null;
+      // Only revoke this device's token, leave other devices active
+      user.refreshTokens = (user.refreshTokens || []).filter(t => t !== token);
       await user.save({ validateBeforeSave: false });
-
-
-      // const redisKey = `login:${user.email}`; // Delete user entry from redis
-      // await redisClient.del(redisKey);
     }
 
     res.clearCookie("refreshToken");
@@ -375,7 +335,6 @@ module.exports.resetPassword = async (req, res) => {
     const { newPassword } = req.body;
 
     if (!token || !newPassword) return res.status(400).json({ error: "Token and new password are required" });
-    if (newPassword.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters long" });
 
     const user = await User.findOne({
       resetToken: token,
@@ -412,7 +371,7 @@ module.exports.checkVerificationStatus = async (req, res) => {
       emailVerified: user.emailVerified,
     });
   } catch (err) {
-    console.error("Error checking verification status:", err);
+    logger.error(`[CheckVerification] Error: ${err.stack}`);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

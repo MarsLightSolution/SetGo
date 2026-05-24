@@ -119,9 +119,9 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  refreshToken: {
-    type: String, // for JWT refresh token
-    required: false,
+  refreshTokens: {
+    type: [String], // one entry per active device/session (web + mobile)
+    default: [],
   },
   resetToken: {
     type: String, // for password reset token
