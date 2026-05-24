@@ -1,5 +1,6 @@
 const User = require("../models/user");
-const logger = require("../utils/logger"); // Import the logger
+const logger = require("../utils/logger");
+const { sendNotificationToUser } = require("../services/pushService");
 
 // Follow a user
 exports.followUser = async (req, res) => {
@@ -33,6 +34,17 @@ exports.followUser = async (req, res) => {
     }
     
     logger.info(`[FollowUser] Successfully processed follow request from ${followerId} to ${followingId}`);
+
+    // Notify the followed user in the background
+    const followerName = follower.profileName || follower.username;
+    sendNotificationToUser(followingId, {
+      type: 'follow',
+      title: 'New Follower',
+      message: `${followerName} started following you`,
+      senderId: followerId,
+      metadata: { userId: followerId },
+    }).catch(() => {});
+
     return res.status(200).json({ success: true, message: "User followed successfully" });
   } catch (err) {
     logger.error(`[FollowUser] Error: ${err.stack}`);

@@ -12,6 +12,7 @@ const {
 } = require("../services/templates.js");
 const logger = require('../utils/logger');
 const { emitToUser } = require('../utils/ioInstance');
+const { sendNotificationToUser } = require('../services/pushService');
 
 const placeOrder = async (req, res) => {
   logger.debug('placeOrder called', { body: req.body });
@@ -67,27 +68,18 @@ const placeOrder = async (req, res) => {
     // ── Real-time notifications ───────────────────────────────────────────
     const productName = product.title?.en || product.title || "item";
 
-    // Notify buyer: order confirmed
-    emitToUser(buyerId, "notification", {
-      id:        `order_placed_buyer_${order._id}`,
-      type:      "order",
-      title:     "🛒 Order Placed Successfully!",
-      message:   `Your order for "${productName}" has been confirmed. Amount: ${total} AZN`,
-      timestamp: Date.now(),
-      isRead:    false,
-      orderId:   order._id,
-    });
+    const buyerTitle  = '🛒 Order Placed Successfully!';
+    const buyerMsg    = `Your order for "${productName}" has been confirmed. Amount: ${total} AZN`;
+    const sellerTitle = '🎉 New Order Received!';
+    const sellerMsg   = `${address.name} ordered "${productName}". Amount: ${total} AZN`;
 
-    // Notify seller: new sale
-    emitToUser(sellerId, "notification", {
-      id:        `order_placed_seller_${order._id}`,
-      type:      "order",
-      title:     "🎉 New Order Received!",
-      message:   `${address.name} ordered "${productName}". Amount: ${total} AZN`,
-      timestamp: Date.now(),
-      isRead:    false,
-      orderId:   order._id,
-    });
+    // Socket (real-time, online users)
+    emitToUser(buyerId,  "notification", { id: `order_placed_buyer_${order._id}`,  type: "order", title: buyerTitle,  message: buyerMsg,  timestamp: Date.now(), isRead: false, orderId: order._id });
+    emitToUser(sellerId, "notification", { id: `order_placed_seller_${order._id}`, type: "order", title: sellerTitle, message: sellerMsg, timestamp: Date.now(), isRead: false, orderId: order._id });
+
+    // Push (offline / background)
+    sendNotificationToUser(buyerId,  { type: 'product', title: buyerTitle,  message: buyerMsg,  senderId: sellerId, metadata: { productId: productId?.toString(), orderId: order._id?.toString() } }).catch(() => {});
+    sendNotificationToUser(sellerId, { type: 'product', title: sellerTitle, message: sellerMsg, senderId: buyerId,  metadata: { productId: productId?.toString(), orderId: order._id?.toString() } }).catch(() => {});
 
     try {
     await sendEmail(

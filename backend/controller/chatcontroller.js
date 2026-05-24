@@ -2,7 +2,8 @@ const User = require("../models/user");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/message");
 const mongoose = require("mongoose");
-const logger = require("../utils/logger"); 
+const logger = require("../utils/logger");
+const { sendNotificationToUser } = require("../services/pushService");
 
 // ----------------- Helper -----------------
 const findUserByIdentifier = async (identifier) => {
@@ -159,10 +160,28 @@ exports.sendMessage = async (req, res) => {
     });
     await message.save();
 
-    await Conversation.findByIdAndUpdate(conversationId, {
+    const conversation = await Conversation.findByIdAndUpdate(conversationId, {
       lastMessage: text,
       lastMessageTime: new Date(),
     });
+
+    // Notify the other participant(s) in the background
+    if (conversation) {
+      const senderObjId = new mongoose.Types.ObjectId(senderId);
+      const recipients = conversation.participants.filter(
+        (p) => !p.userId.equals(senderObjId)
+      );
+      const senderName = sender.chatDisplayName || sender.profileName || sender.username;
+      for (const recipient of recipients) {
+        sendNotificationToUser(recipient.userId, {
+          type: 'message',
+          title: senderName,
+          message: text.length > 80 ? text.slice(0, 80) + '…' : text,
+          senderId,
+          metadata: { conversationId },
+        }).catch(() => {});
+      }
+    }
 
     res.json({ success: true, message });
   } catch (error) {
