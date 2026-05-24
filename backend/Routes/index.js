@@ -24,4 +24,5 @@ router.use("/reviews", require("./reviewRoutes.js"));
 router.use("/api/shops", shopRoutes);
 router.use("/api/ads", require("./adRoutes.js"));
 router.use("/api/notifications", require("./notificationRoutes.js"));
+router.use("/api/logs", require("./logRoutes.js"));
 module.exports = router;
