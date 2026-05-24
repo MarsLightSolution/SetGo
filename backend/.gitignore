@@ -139,6 +139,8 @@ credentials.json
 
 # ========== Documentation (internal planning & review) ==========
 docs/
+*.md
+!README.md
 
 # ========== Deployment ==========
 .serverless/
