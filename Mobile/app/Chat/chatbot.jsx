@@ -15,8 +15,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import { getUserId, getAuthToken } from '../../services/secureAuthService';
+import { useAuthStore } from '../../Store/authStore';
 
 // Toast helper functions
 const showSuccessToast = (message) => {
@@ -62,11 +63,10 @@ const log = logger.create('Chatbot');
 
 export default function Chatbot() {
   const router = useRouter();
+  const { isAuthenticated, user } = useAuthStore();
   const scrollViewRef = useRef(null);
 
-  const [messages, setMessages] = useState([
-    { sender: 'bot', text: '👋 Hi! I\'m your shopping assistant. How can I help you today?' },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [showOrderInput, setShowOrderInput] = useState(false);
@@ -85,24 +85,17 @@ export default function Chatbot() {
 
   const loadUserId = async () => {
     try {
-      const id = await AsyncStorage.getItem('userId');
-      
-      if (!id) {
-        showWarningToast('User session not found. Some features may be limited.');
-        setMessages((prev) => [
-          ...prev,
-          { 
-            sender: 'bot', 
-            text: '⚠️ I notice you\'re not logged in. You can still ask general questions, but I won\'t be able to access your order history.' 
-          },
-        ]);
-      } else {
+      const id = await getUserId();
+      if (id) {
         setUserId(id);
-        log.info('User ID loaded:', id);
       }
+      const greeting = id
+        ? `👋 Hi ${user?.userName || 'there'}! I'm your SetGo assistant. How can I help you today?`
+        : '👋 Hi! I\'m your SetGo assistant. You\'re not logged in, so order tracking won\'t be available. I can still help with general questions!';
+      setMessages([{ sender: 'bot', text: greeting }]);
     } catch (error) {
       log.error('Error loading userId:', error);
-      showErrorToast('Failed to load user session');
+      setMessages([{ sender: 'bot', text: '👋 Hi! How can I help you today?' }]);
     } finally {
       setIsInitializing(false);
     }
@@ -250,18 +243,16 @@ export default function Chatbot() {
     setLoading(true);
     
     try {
+      const token = await getAuthToken();
       const { data } = await axios.post(
         API_ENDPOINTS.CHATBOT_ASK,
-        {
-          question,
-          orderId: orderIdParam,
-          userId,
-        },
+        { question, orderId: orderIdParam, userId },
         {
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          timeout: 15000, // 15 second timeout
+          timeout: 15000,
         }
       );
 

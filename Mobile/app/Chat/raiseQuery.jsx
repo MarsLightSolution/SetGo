@@ -16,7 +16,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 
@@ -46,6 +45,7 @@ const showErrorToast = (message) => {
 };
 
 import { API_ENDPOINTS } from '../../config/api';
+import { getUserId, getAuthToken } from '../../services/secureAuthService';
 import logger from '../../utils/logger';
 
 const log = logger.create('RaiseQuery');
@@ -88,7 +88,7 @@ export default function RaiseQuery() {
 
   const loadUserId = async () => {
     try {
-      const id = await AsyncStorage.getItem('userId');
+      const id = await getUserId();
       if (!id) {
         showErrorToast('Please log in to raise a query');
         router.replace('/auth');
@@ -96,7 +96,6 @@ export default function RaiseQuery() {
       }
       setUserId(id);
     } catch (error) {
-      // Silent error - log for debugging only
       if (__DEV__) log.debug('Error loading userId:', error);
       showErrorToast('Failed to load user data');
     }
@@ -240,6 +239,7 @@ export default function RaiseQuery() {
     setLoading(true);
 
     try {
+      const token = await getAuthToken();
       const { data } = await axios.post(
         API_ENDPOINTS.CONCERN_RAISE,
         {
@@ -256,6 +256,7 @@ export default function RaiseQuery() {
         {
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           timeout: 15000,
         }
