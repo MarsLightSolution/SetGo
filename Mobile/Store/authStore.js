@@ -206,16 +206,17 @@ export const useAuthStore = create((set, get) => ({
    */
   logout: async () => {
     try {
-      // Invalidate refresh token on the backend
+      const refreshToken = await getRefreshToken();
       await fetch(API_ENDPOINTS.LOGOUT, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
         credentials: 'include',
       }).catch(() => {});
 
       await clearSession();
       set({ isAuthenticated: false, user: null });
-    } catch (error) {
-      // Force clear state even if storage/network fails
+    } catch {
       set({ isAuthenticated: false, user: null });
     }
   },

@@ -25,17 +25,17 @@ const STORAGE_KEYS = {
   USER_PREFERENCES: 'userPreferences',
 };
 
-/**
- * Check if SecureStore is available on this device
- * Falls back to AsyncStorage on unsupported platforms (web)
- */
+// Cached once — avoids repeated async I/O on every token read/write
+let _secureAvailable = null;
 const isSecureStoreAvailable = async () => {
+  if (_secureAvailable !== null) return _secureAvailable;
   try {
     await SecureStore.getItemAsync('__test__');
-    return true;
+    _secureAvailable = true;
   } catch {
-    return false;
+    _secureAvailable = false;
   }
+  return _secureAvailable;
 };
 
 // ==================== JWT HELPERS ====================
@@ -427,7 +427,9 @@ export const clearSession = async () => {
  */
 export const migrateFromAsyncStorage = async () => {
   try {
-    // Check for old token format
+    const done = await AsyncStorage.getItem('__migration_done__');
+    if (done) return false;
+
     const oldToken = await AsyncStorage.getItem('token');
     const oldUserId = await AsyncStorage.getItem('userId');
     const oldUser = await AsyncStorage.getItem('user');
@@ -454,9 +456,11 @@ export const migrateFromAsyncStorage = async () => {
         await AsyncStorage.removeItem('user');
       }
 
+      await AsyncStorage.setItem('__migration_done__', '1');
       return true; // Migration performed
     }
 
+    await AsyncStorage.setItem('__migration_done__', '1');
     return false; // No migration needed
   } catch (error) {
     return false;

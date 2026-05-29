@@ -42,12 +42,12 @@ export default function BottomTabBar() {
         </View>
       </TouchableOpacity>
 
-      {/* Orders */}
-      <TouchableOpacity style={styles.tab} onPress={() => router.push('/orders')}>
+      {/* Chat */}
+      <TouchableOpacity style={styles.tab} onPress={() => router.push('/Chat/chat')}>
         <Ionicons
-          name={isActive('/orders') ? 'receipt' : 'receipt-outline'}
+          name={isActive('/Chat/chat') ? 'chatbubble' : 'chatbubble-outline'}
           size={24}
-          color={isActive('/orders') ? '#4ADE80' : '#9CA3AF'}
+          color={isActive('/Chat/chat') ? '#4ADE80' : '#9CA3AF'}
         />
       </TouchableOpacity>
 

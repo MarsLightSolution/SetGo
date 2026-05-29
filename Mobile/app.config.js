@@ -4,8 +4,8 @@ import 'dotenv/config';
 export default ({ config }) => {
   return {
     ...config,
-    name: 'SetGo',
-    slug: 'setgo',
+    name: process.env.APP_NAME || 'SatGo',
+    slug: 'satgo',
     version: '1.0.0',
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
@@ -24,13 +24,13 @@ export default ({ config }) => {
     // iOS Configuration
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.setgo.app',
+      bundleIdentifier: 'com.Satgo.app',
       buildNumber: '1',
       infoPlist: {
-        NSCameraUsageDescription: 'SetGo needs camera access to take product photos',
-        NSPhotoLibraryUsageDescription: 'SetGo needs photo library access to select product images',
-        NSLocationWhenInUseUsageDescription: 'SetGo needs your location to show nearby products',
-        NSPhotoLibraryAddUsageDescription: 'SetGo needs permission to save photos to your library',
+        NSCameraUsageDescription: 'Satgo needs camera access to take product photos',
+        NSPhotoLibraryUsageDescription: 'Satgo needs photo library access to select product images',
+        NSLocationWhenInUseUsageDescription: 'Satgo needs your location to show nearby products',
+        NSPhotoLibraryAddUsageDescription: 'Satgo needs permission to save photos to your library',
         NSAppTransportSecurity: {
           NSAllowsArbitraryLoads: false,
           NSExceptionDomains: {
@@ -53,7 +53,7 @@ export default ({ config }) => {
 
     // Android Configuration
     android: {
-      package: 'com.setgo.app',
+      package: 'com.Satgo.app',
       versionCode: 1,
       permissions: [
         'CAMERA',

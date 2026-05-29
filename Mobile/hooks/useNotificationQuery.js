@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { API_ENDPOINTS, SOCKET_URL } from '../config/api';
 import { getAuthToken } from '../services/secureAuthService';
 import io from 'socket.io-client';
@@ -33,16 +33,20 @@ export function useNotificationSocket(enabled = true) {
   const qc = useQueryClient();
   useEffect(() => {
     if (!enabled) return;
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-      reconnection: true,
+    let socket;
+    getAuthToken().then(token => {
+      socket = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+        reconnection: true,
+        auth: token ? { token: `Bearer ${token}` } : {},
+      });
+      socket.on('notification', () => {
+        qc.invalidateQueries({ queryKey: notifKeys.list() });
+        qc.invalidateQueries({ queryKey: notifKeys.unread() });
+      });
     });
-    socket.on('notification', () => {
-      qc.invalidateQueries({ queryKey: notifKeys.list() });
-      qc.invalidateQueries({ queryKey: notifKeys.unread() });
-    });
-    return () => socket.disconnect();
+    return () => socket?.disconnect();
   }, [enabled, qc]);
 }
 

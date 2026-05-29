@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import { Picker } from "@react-native-picker/picker";
+import CustomSelect from '../Components/CustomSelect';
 import Icon from "react-native-vector-icons/Feather";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -869,18 +869,17 @@ const Form = () => {
 
           {/* Input Language */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Language of Input</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formData.inputLanguage}
-                onValueChange={(value) => handleChange("inputLanguage", value)}
-                style={styles.picker}
-              >
-                <Picker.Item label="English" value="en" />
-                <Picker.Item label="Azərbaycan" value="az" />
-                <Picker.Item label="Русский" value="ru" />
-              </Picker>
-            </View>
+            <CustomSelect
+              label="Language of Input"
+              value={formData.inputLanguage}
+              onChange={(value) => handleChange("inputLanguage", value)}
+              options={[
+                { label: 'English', value: 'en' },
+                { label: 'Azərbaycan', value: 'az' },
+                { label: 'Русский', value: 'ru' },
+              ]}
+              placeholder="Select language"
+            />
           </View>
 
           {/* Title */}
@@ -905,23 +904,22 @@ const Form = () => {
             <Text style={styles.label}>
               Category <Text style={styles.required}>*</Text>
             </Text>
-            <View style={[styles.pickerContainer, errors.category && styles.inputError]}>
-              <Picker
-                selectedValue={formData.category}
-                onValueChange={(value) => handleChange("category", value)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select a category" value="" />
-                <Picker.Item label={t('post.categories.cars')} value="Cars & Motorcycles" />
-                <Picker.Item label={t('post.categories.realEstate')} value="Real Estate" />
-                <Picker.Item label={t('post.categories.jobs')} value="Jobs" />
-                <Picker.Item label={t('post.categories.household')} value="Household & Furniture" />
-                <Picker.Item label={t('post.categories.electronics')} value="Electronics" />
-                <Picker.Item label={t('post.categories.leisure')} value="Leisure, Hobby & Neighborhood" />
-                <Picker.Item label={t('post.categories.service')} value="Service" />
-                <Picker.Item label={t('post.categories.other')} value="Other" />
-              </Picker>
-            </View>
+            <CustomSelect
+              value={formData.category}
+              onChange={(value) => handleChange("category", value)}
+              placeholder="Select a category"
+              error={errors.category}
+              options={[
+                { label: t('post.categories.cars'),        value: 'Cars & Motorcycles' },
+                { label: t('post.categories.realEstate'),  value: 'Real Estate' },
+                { label: t('post.categories.jobs'),        value: 'Jobs' },
+                { label: t('post.categories.household'),   value: 'Household & Furniture' },
+                { label: t('post.categories.electronics'), value: 'Electronics' },
+                { label: t('post.categories.leisure'),     value: 'Leisure, Hobby & Neighborhood' },
+                { label: t('post.categories.service'),     value: 'Service' },
+                { label: t('post.categories.other'),       value: 'Other' },
+              ]}
+            />
             {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
           </View>
 
@@ -994,20 +992,18 @@ const Form = () => {
 
           {/* Condition */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Condition</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formData.condition}
-                onValueChange={(value) => handleChange("condition", value)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select condition" value="" />
-                <Picker.Item label="New" value="New" />
-                <Picker.Item label="Like New" value="Like New" />
-                <Picker.Item label="Used" value="Used" />
-                <Picker.Item label="Defective / Needs Repair" value="Defective / Needs Repair" />
-              </Picker>
-            </View>
+            <CustomSelect
+              label="Condition"
+              value={formData.condition}
+              onChange={(value) => handleChange("condition", value)}
+              placeholder="Select condition"
+              options={[
+                { label: 'New',                       value: 'New' },
+                { label: 'Like New',                  value: 'Like New' },
+                { label: 'Used',                      value: 'Used' },
+                { label: 'Defective / Needs Repair',  value: 'Defective / Needs Repair' },
+              ]}
+            />
           </View>
 
           {/* Description */}

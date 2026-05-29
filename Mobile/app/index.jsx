@@ -317,6 +317,7 @@ export default function HomeScreen() {
     <View style={styles.mainContainer}>
       <ScrollView
         style={styles.container}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

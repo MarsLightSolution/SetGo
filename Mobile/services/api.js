@@ -5,6 +5,7 @@ import {
   getAuthToken,
   setAuthToken,
   getRefreshToken,
+  setRefreshToken,
   isTokenExpiringSoon,
 } from './secureAuthService';
 import { BASE_URL, API_ENDPOINTS } from '../config/api';
@@ -69,6 +70,9 @@ const performRefresh = async () => {
 
   const newToken = data.accessToken.replace(/^Bearer\s+/i, '');
   await setAuthToken(newToken); // also persists expiry via parseJwtExpiry
+  if (data.refreshToken) {
+    await setRefreshToken(data.refreshToken); // store rotated token
+  }
   return newToken;
 };
 
