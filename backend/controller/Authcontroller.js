@@ -7,7 +7,10 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const logger = require("../utils/logger");
+const { ERRORS } = require("../config/errors");
 require("dotenv").config();
+
+const MAX_SESSIONS = 5; // max simultaneous devices per user
 
 /********************************************************************
  * SIGN‑UP (TEMP USER + EMAIL VERIFICATION)
@@ -139,22 +142,28 @@ module.exports.login = async (req, res) => {
     // 1. Fetch user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "The email address you entered is incorrect." });
+      const e = ERRORS.AUTH.EMAIL_NOT_FOUND;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
     }
 
     // 2. Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       logger.warn(`[Login] Incorrect password for ${email}`);
-      return res.status(400).json({ message: "The password you entered is incorrect." });
+      const e = ERRORS.AUTH.WRONG_PASSWORD;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
     }
 
     // 3. Generate tokens
     const accessToken  = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // 4. Add refresh token for this device (keeps other devices active)
-    user.refreshTokens = [...(user.refreshTokens || []), refreshToken];
+    // 4. Add refresh token — cap at MAX_SESSIONS to prevent token accumulation
+    const tokens = user.refreshTokens || [];
+    const updated = tokens.length >= MAX_SESSIONS
+      ? [...tokens.slice(-(MAX_SESSIONS - 1)), refreshToken]
+      : [...tokens, refreshToken];
+    user.refreshTokens = updated;
     await user.save({ validateBeforeSave: false });
 
     // 5. Set HttpOnly cookie (web) — mobile reads token from response body
@@ -178,7 +187,8 @@ module.exports.login = async (req, res) => {
 
   } catch (err) {
     logger.error(`[Login] Error: ${err.stack}`);
-    return res.status(500).json({ message: "Internal server error." });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -189,7 +199,10 @@ module.exports.login = async (req, res) => {
 module.exports.refreshAccessToken = async (req, res) => {
   // Accept from cookie (web) or body (React Native — can't read HttpOnly cookies)
   const token = req.cookies.refreshToken || req.body?.refreshToken;
-  if (!token) return res.status(401).json({ message: "Refresh token not found" });
+  if (!token) {
+    const e = ERRORS.AUTH.REFRESH_TOKEN_MISSING;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
@@ -197,7 +210,8 @@ module.exports.refreshAccessToken = async (req, res) => {
     const user = await User.findById(decoded.id);
     if (!user || !user.refreshTokens?.includes(token)) {
       logger.warn(`[RefreshToken] Invalid refresh token for user id ${decoded.id}`);
-      return res.status(403).json({ message: "Invalid refresh token" });
+      const e = ERRORS.AUTH.REFRESH_TOKEN_INVALID;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
     }
 
     // Rotate: remove old token, issue new one for this device
@@ -219,7 +233,8 @@ module.exports.refreshAccessToken = async (req, res) => {
     return res.json({ success: true, accessToken: "Bearer " + newAccessToken, refreshToken: newRefreshToken });
   } catch (err) {
     logger.error(`[RefreshToken] Error: ${err.stack}`);
-    return res.status(403).json({ message: "Refresh token expired or invalid" });
+    const e = ERRORS.AUTH.REFRESH_TOKEN_INVALID;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -261,10 +276,16 @@ module.exports.logout = async (req, res) => {
 module.exports.forgetpassword = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!email) {
+      const e = ERRORS.AUTH.RESET_EMAIL_REQUIRED;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found or email not verified" });
+    if (!user) {
+      const e = ERRORS.AUTH.RESET_USER_NOT_FOUND;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     user.resetToken = crypto.randomBytes(32).toString("hex");
     user.resetTokenExpiration = Date.now() + 3600000; // 1 h
@@ -297,10 +318,11 @@ module.exports.forgetpassword = async (req, res) => {
     });
 
     logger.info(`[ForgetPassword] Reset email sent to: ${email}`);
-    return res.status(200).json({ message: "Password reset link sent to your email." });
+    return res.status(200).json({ success: true, message: "Password reset link sent to your email." });
   } catch (err) {
     logger.error(`[ForgetPassword] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Something went wrong. Please try again later." });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -310,19 +332,26 @@ module.exports.forgetpassword = async (req, res) => {
 module.exports.verifyResetToken = async (req, res) => {
   try {
     const { token } = req.query;
-    if (!token) return res.status(400).json({ error: "Token is required" });
+    if (!token) {
+      const e = ERRORS.AUTH.RESET_TOKEN_MISSING;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     const user = await User.findOne({
       resetToken: token,
       resetTokenExpiration: { $gt: Date.now() },
     });
-    if (!user) return res.status(400).json({ error: "Invalid or expired token" });
+    if (!user) {
+      const e = ERRORS.AUTH.RESET_TOKEN_INVALID;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     logger.info(`[VerifyResetToken] Valid reset token for: ${user.email}`);
     return res.redirect(`${process.env.SERVER_FRONTEND}/newpassword?token=${token}`);
   } catch (err) {
     logger.error(`[VerifyResetToken] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Server error during token verification" });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -334,13 +363,19 @@ module.exports.resetPassword = async (req, res) => {
     const { token } = req.query;
     const { newPassword } = req.body;
 
-    if (!token || !newPassword) return res.status(400).json({ error: "Token and new password are required" });
+    if (!token || !newPassword) {
+      const e = ERRORS.AUTH.RESET_MISSING_FIELDS;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     const user = await User.findOne({
       resetToken: token,
       resetTokenExpiration: { $gt: Date.now() },
     });
-    if (!user) return res.status(400).json({ error: "Invalid or expired token" });
+    if (!user) {
+      const e = ERRORS.AUTH.RESET_TOKEN_INVALID;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     user.password = await bcrypt.hash(newPassword, 12);
     user.resetToken = undefined;
@@ -348,12 +383,12 @@ module.exports.resetPassword = async (req, res) => {
     await user.save();
 
     logger.info(`[ResetPassword] Password reset for: ${user.email}`);
-    return res.status(200).json({ message: "Password has been reset successfully" });
+    return res.status(200).json({ success: true, message: "Password has been reset successfully" });
   } catch (err) {
     logger.error(`[ResetPassword] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Something went wrong. Please try again later." });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
-
 };
 module.exports.checkVerificationStatus = async (req, res) => {
   try {
