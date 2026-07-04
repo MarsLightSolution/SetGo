@@ -51,11 +51,11 @@ export default function UIComponentsTest() {
           label="Test Setting"
           value="Test Value"
           onPress={() => {}}
-          iconColor="#10B981"
-          iconBg="#ECFDF5"
+          iconColor="#008235"
+          iconBg="#DCFCE7"
         />
 
-        <PulseIcon size={6} color="#10B981" />
+        <PulseIcon size={6} color="#008235" />
       </AnimatedCard>
     </View>
   );

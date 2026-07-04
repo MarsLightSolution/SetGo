@@ -29,7 +29,7 @@ export function AnimatedToggle({ value, onValueChange, loading }) {
   });
 
   if (loading) {
-    return <ActivityIndicator color="#10B981" size="small" />;
+    return <ActivityIndicator color="#008235" size="small" />;
   }
 
   return (
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   toggleTrackActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#008235',
   },
   toggleThumb: {
     width: 28,

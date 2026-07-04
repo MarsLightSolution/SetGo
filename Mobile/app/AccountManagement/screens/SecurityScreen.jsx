@@ -90,7 +90,7 @@ export const SecurityScreen = ({ formData, userAds, setModalOpen, handleDeleteAc
       <AnimatedCard delay={200}>
         <Text style={styles.sectionLabel}>ACTIVITY</Text>
         <View style={styles.activityCard}>
-          <Feather name="activity" size={20} color="#10B981" />
+          <Feather name="activity" size={20} color="#008235" />
           <Text style={styles.activityText}>
             {userAds.length > 0
               ? `You have ${userAds.length} active ad${userAds.length > 1 ? 's' : ''}`

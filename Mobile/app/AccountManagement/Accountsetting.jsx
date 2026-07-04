@@ -109,23 +109,23 @@ export const styles = StyleSheet.create({
 
   // Header
   menuHeader: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#008235",
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 32,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    shadowColor: "#10B981",
+    shadowColor: "#008235",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
   },
   header: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#008235",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    shadowColor: "#10B981",
+    shadowColor: "#008235",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -343,18 +343,18 @@ export const styles = StyleSheet.create({
   activityCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#DCFCE7",
     padding: 16,
     borderRadius: 12,
     gap: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: "#D1FAE5",
+    borderColor: "#008235",
   },
   activityText: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#059669",
+    color: "#008235",
     flex: 1,
   },
 
@@ -384,7 +384,7 @@ export const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -410,8 +410,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   toggleTrackActive: {
-    backgroundColor: "#10B981",
-    shadowColor: "#10B981",
+    backgroundColor: "#008235",
+    shadowColor: "#008235",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -587,7 +587,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#10B981",
+    borderColor: "#008235",
     paddingHorizontal: 14,
     paddingVertical: 16,
     fontSize: 24,
@@ -607,7 +607,7 @@ export const styles = StyleSheet.create({
   resendText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#10B981",
+    color: "#008235",
   },
 
   // Country Code Input
@@ -642,8 +642,8 @@ export const styles = StyleSheet.create({
     minHeight: 48,
   },
   buttonPrimary: {
-    backgroundColor: "#10B981",
-    shadowColor: "#10B981",
+    backgroundColor: "#008235",
+    shadowColor: "#008235",
     shadowOpacity: 0.3,
   },
   buttonSecondary: {
@@ -708,24 +708,24 @@ export const styles = StyleSheet.create({
 
   // Privacy Card
   privacyCard: {
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#DCFCE7",
     padding: 20,
     borderRadius: 16,
     alignItems: "center",
     marginTop: 12,
     borderWidth: 2,
-    borderColor: "#D1FAE5",
+    borderColor: "#008235",
   },
   privacyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#059669",
+    color: "#008235",
     marginTop: 12,
     marginBottom: 8,
   },
   privacyDesc: {
     fontSize: 14,
-    color: "#047857",
+    color: "#006828",
     textAlign: "center",
     lineHeight: 20,
   },
@@ -736,19 +736,19 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#DCFCE7",
     padding: 16,
     borderRadius: 12,
     marginTop: 8,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: "#10B981",
+    borderColor: "#008235",
     borderStyle: "dashed",
   },
   addAddressText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#10B981",
+    color: "#008235",
   },
   currentAddressBox: {
     backgroundColor: "#F9FAFB",
@@ -971,7 +971,7 @@ export default function EnhancedSettingsApp() {
   if (initialLoading) {
     return (
       <SafeAreaView style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#10B981" />
+        <ActivityIndicator size="large" color="#008235" />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </SafeAreaView>
     )

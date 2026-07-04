@@ -192,6 +192,12 @@ export default function ChatApp() {
   };
 
   const restoreFromCache = async () => {
+    const userData = await getUserData();
+    if (!userData) {
+      setConversations([]);
+      setAllUsers([]);
+      return;
+    }
     const [cachedConvs, cachedUsers] = await Promise.all([
       loadCachedConversations(),
       loadCachedAllUsers(),
@@ -209,12 +215,15 @@ export default function ChatApp() {
         if (identifier) {
           connectUser(identifier, displayName);
         } else {
+          setConversations([]);
           setIsLoadingChats(false);
         }
       } else {
+        setConversations([]);
         setIsLoadingChats(false);
       }
     } catch {
+      setConversations([]);
       setIsLoadingChats(false);
     }
   };

@@ -63,8 +63,8 @@ export const PrivacyScreen = ({ goBack }) => (
               icon={item.icon}
               label={item.label}
               value={item.desc}
-              iconColor="#10B981"
-              iconBg="#ECFDF5"
+              iconColor="#008235"
+              iconBg="#DCFCE7"
               onPress={() => Alert.alert(item.label, `${item.label} information will be displayed here`)}
             />
           ))}
@@ -73,7 +73,7 @@ export const PrivacyScreen = ({ goBack }) => (
 
       <AnimatedCard delay={100}>
         <View style={styles.privacyCard}>
-          <Feather name="lock" size={24} color="#10B981" />
+          <Feather name="lock" size={24} color="#008235" />
           <Text style={styles.privacyTitle}>Your Data is Safe</Text>
           <Text style={styles.privacyDesc}>
             We use industry-standard encryption to protect your personal information

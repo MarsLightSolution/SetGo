@@ -104,7 +104,7 @@ export const AddressModal = ({
                         style={styles.addAddressButton}
                         activeOpacity={0.7}
                       >
-                        <Feather name="plus-circle" size={20} color="#10B981" />
+                        <Feather name="plus-circle" size={20} color="#008235" />
                         <Text style={styles.addAddressText}>
                           {formData.deliveryAddress.street ? "Edit address" : "Add address"}
                         </Text>

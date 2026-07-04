@@ -57,7 +57,7 @@ export const NotificationsScreen = ({ formData, toggleLoading, handleNewsletterT
         <View style={styles.toggleItem}>
           <View style={styles.toggleContent}>
             <View style={styles.toggleIconContainer}>
-              <Feather name="mail" size={20} color="#10B981" />
+              <Feather name="mail" size={20} color="#008235" />
             </View>
             <View style={styles.toggleTextContainer}>
               <Text style={styles.toggleTitle}>Newsletter</Text>
@@ -76,7 +76,7 @@ export const NotificationsScreen = ({ formData, toggleLoading, handleNewsletterT
         <View style={styles.toggleItem}>
           <View style={styles.toggleContent}>
             <View style={styles.toggleIconContainer}>
-              <Feather name="message-circle" size={20} color="#10B981" />
+              <Feather name="message-circle" size={20} color="#008235" />
             </View>
             <View style={styles.toggleTextContainer}>
               <Text style={styles.toggleTitle}>Messages from Users</Text>
