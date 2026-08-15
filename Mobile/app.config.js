@@ -1,5 +1,15 @@
 // app.config.js
 import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+
+const googleServicesPath = './google-services.json';
+const hasGoogleServicesFile = fs.existsSync(path.resolve(__dirname, googleServicesPath));
+
+// Single source of truth for the EAS project id — used both for push
+// notifications (Constants.expoConfig.extra.eas.projectId) and for EAS
+// Update (updates.url below). Set EAS_PROJECT_ID in .env.
+const easProjectId = process.env.EAS_PROJECT_ID || 'your-project-id';
 
 export default ({ config }) => {
   return {
@@ -17,6 +27,14 @@ export default ({ config }) => {
 
     updates: {
       fallbackToCacheTimeout: 0,
+      url: `https://u.expo.dev/${easProjectId}`,
+    },
+
+    // OTA updates only apply to builds sharing this native version — bump it
+    // (and do a fresh `eas build`) whenever a change needs new native code.
+    // Pure-JS fixes can then ship via `eas update` without a store review.
+    runtimeVersion: {
+      policy: 'appVersion',
     },
 
     assetBundlePatterns: ['**/*'],
@@ -68,6 +86,9 @@ export default ({ config }) => {
       usesCleartextTraffic: true,
       // Network security configuration
       networkSecurityConfig: './network_security_config.xml',
+      // Required for FCM/Android push. Add Mobile/google-services.json (from Firebase
+      // console, Android app package must match `package` above) to enable this.
+      ...(hasGoogleServicesFile ? { googleServicesFile: googleServicesPath } : {}),
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -103,8 +124,14 @@ export default ({ config }) => {
       'expo-router',
       'expo-font',
       'expo-web-browser',
-      // NOTE: expo-notifications plugin removed — not compatible with Expo Go SDK 53+
-      // For development builds or production EAS builds, configure separately
+      // Only affects dev-client/production native builds, not Expo Go (which can't
+      // apply custom native config regardless), so it's safe to keep enabled.
+      [
+        'expo-notifications',
+        {
+          color: '#008235',
+        },
+      ],
     ],
 
     // Environment variables and extra config
@@ -113,7 +140,7 @@ export default ({ config }) => {
       environment: process.env.NODE_ENV || 'development',
 
       eas: {
-        projectId: process.env.EAS_PROJECT_ID || 'your-project-id',
+        projectId: easProjectId,
       },
     },
   };
