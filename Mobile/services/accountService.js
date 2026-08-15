@@ -4,16 +4,16 @@
  * API service layer for account management operations.
  * Extracted from app/AccountManagement/Accountsetting.jsx for reusability.
  *
- * TODO: Security improvements needed before production:
- * 1. Replace fetch() with axios instance from services/api.js for consistent auth headers
- * 2. Add request/response interceptors for error handling
- * 3. Migrate from HTTP to HTTPS endpoints
- * 4. Add request retry logic for failed calls
- * 5. Implement proper error tracking (Sentry)
- *
- * See PRODUCTION_READINESS_AUDIT.md for full security requirements.
+ * Uses the shared `api` axios instance (services/api.js) instead of raw
+ * fetch(), so every call here gets:
+ *  - Authorization headers attached automatically (proactive token refresh)
+ *  - The 401 → refresh → retry safety net
+ *  - Automatic retry on transient network/5xx failures
+ *  - 5xx errors reported to errorReporter (crash/error dashboard)
+ * consistent with the rest of the app's data layer.
  */
 
+import api from './api';
 import { API_ENDPOINTS } from '../config/api';
 import logger from '../utils/logger';
 
@@ -36,20 +36,8 @@ export const accountService = {
    */
   getUserProfile: async (userId) => {
     try {
-      const response = await fetch(API_ENDPOINTS.USER_DATA(userId));
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        log.error('API returned non-JSON response:', text);
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.get(API_ENDPOINTS.USER_DATA(userId));
+      return data;
     } catch (error) {
       log.error('getUserProfile error:', error);
       throw error;
@@ -65,23 +53,8 @@ export const accountService = {
    */
   updateProfileName: async (userId, profileName) => {
     try {
-      const response = await fetch(API_ENDPOINTS.UPDATE_PROFILE_NAME(userId), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileName: profileName }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data; // Return the updated user data
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.patch(API_ENDPOINTS.UPDATE_PROFILE_NAME(userId), { profileName });
+      return data.data; // Return the updated user data
     } catch (error) {
       log.error('updateProfileName error:', error);
       throw error;
@@ -100,27 +73,8 @@ export const accountService = {
    */
   verifyEmail: async (userId, password, newEmail) => {
     try {
-      const response = await fetch(API_ENDPOINTS.EMAIL_VERIFY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userId,
-          password: password,
-          newEmail: newEmail,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data || data; // Return updated user data if available
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.post(API_ENDPOINTS.EMAIL_VERIFY, { userId, password, newEmail });
+      return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('verifyEmail error:', error);
       throw error;
@@ -137,23 +91,8 @@ export const accountService = {
    */
   updateDeliveryAddress: async (userId, deliveryAddress) => {
     try {
-      const response = await fetch(API_ENDPOINTS.UPDATE_DELIVERY_ADDRESS(userId), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deliveryAddress: deliveryAddress }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data; // Return the updated user data
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.patch(API_ENDPOINTS.UPDATE_DELIVERY_ADDRESS(userId), { deliveryAddress });
+      return data.data; // Return the updated user data
     } catch (error) {
       log.error('updateDeliveryAddress error:', error);
       throw error;
@@ -169,23 +108,8 @@ export const accountService = {
    */
   updateBillingAddress: async (userId, billingAddress) => {
     try {
-      const response = await fetch(API_ENDPOINTS.UPDATE_BILLING_ADDRESS(userId), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ billingAddress: billingAddress }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data || data; // Return updated user data if available
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.patch(API_ENDPOINTS.UPDATE_BILLING_ADDRESS(userId), { billingAddress });
+      return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('updateBillingAddress error:', error);
       throw error;
@@ -202,22 +126,8 @@ export const accountService = {
    */
   sendOTP: async (phoneData) => {
     try {
-      const response = await fetch(API_ENDPOINTS.SEND_OTP, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(phoneData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.post(API_ENDPOINTS.SEND_OTP, phoneData);
+      return data;
     } catch (error) {
       log.error('sendOTP error:', error);
       throw error;
@@ -232,23 +142,8 @@ export const accountService = {
    */
   verifyOTP: async (otpData) => {
     try {
-      const response = await fetch(API_ENDPOINTS.VERIFY_OTP, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(otpData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data || data; // Return updated user data if available
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.post(API_ENDPOINTS.VERIFY_OTP, otpData);
+      return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('verifyOTP error:', error);
       throw error;
@@ -264,23 +159,8 @@ export const accountService = {
    */
   updatePassword: async (userId, passwordData) => {
     try {
-      const response = await fetch(API_ENDPOINTS.UPDATE_PASSWORD(userId), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(passwordData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data || data; // Return updated user data if available
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.patch(API_ENDPOINTS.UPDATE_PASSWORD(userId), passwordData);
+      return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('updatePassword error:', error);
       throw error;
@@ -297,19 +177,8 @@ export const accountService = {
    */
   toggleNewsletter: async (userId) => {
     try {
-      const response = await fetch(API_ENDPOINTS.NEWSLETTER(userId));
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data || data; // Return updated user data if available
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.get(API_ENDPOINTS.NEWSLETTER(userId));
+      return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('toggleNewsletter error:', error);
       throw error;
@@ -324,19 +193,8 @@ export const accountService = {
    */
   toggleMessages: async (userId) => {
     try {
-      const response = await fetch(API_ENDPOINTS.USER_MESSAGES(userId));
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return data.data || data; // Return updated user data if available
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.get(API_ENDPOINTS.USER_MESSAGES(userId));
+      return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('toggleMessages error:', error);
       throw error;
@@ -353,14 +211,8 @@ export const accountService = {
    */
   getUserAds: async (userId) => {
     try {
-      const response = await fetch(API_ENDPOINTS.USER_ADS(userId));
-      const text = await response.text();
-      try {
-        const data = JSON.parse(text);
-        return Array.isArray(data.data) ? data.data : [];
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.get(API_ENDPOINTS.USER_ADS(userId));
+      return Array.isArray(data.data) ? data.data : [];
     } catch (error) {
       log.error('getUserAds error:', error);
       return [];
@@ -379,20 +231,8 @@ export const accountService = {
    */
   deleteUser: async (userId) => {
     try {
-      const response = await fetch(API_ENDPOINTS.DELETE_USER(userId), {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        throw new Error('Server error: Invalid response format');
-      }
+      const { data } = await api.delete(API_ENDPOINTS.DELETE_USER(userId));
+      return data;
     } catch (error) {
       log.error('deleteUser error:', error);
       throw error;

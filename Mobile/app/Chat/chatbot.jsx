@@ -18,6 +18,7 @@ import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { getUserId, getAuthToken } from '../../services/secureAuthService';
 import { useAuthStore } from '../../Store/authStore';
+import { withErrorBoundary } from '../../Components/ErrorBoundary';
 
 // Toast helper functions
 const showSuccessToast = (message) => {
@@ -61,7 +62,7 @@ import logger from '../../utils/logger';
 
 const log = logger.create('Chatbot');
 
-export default function Chatbot() {
+function Chatbot() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const scrollViewRef = useRef(null);
@@ -865,3 +866,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+export default withErrorBoundary(Chatbot);

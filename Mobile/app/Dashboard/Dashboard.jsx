@@ -14,8 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../Store/authStore';
 import { useUserAds } from '../../hooks/useUserQuery';
 import { useTransactions } from '../../hooks/useOrderQuery';
+import { withErrorBoundary } from '../../Components/ErrorBoundary';
 
-export default function DashboardScreen() {
+function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const userId = user?._id || user?.id;
@@ -224,3 +225,5 @@ const styles = StyleSheet.create({
   adStatus: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
   adStatusText: { fontSize: 12, fontWeight: '600' },
 });
+
+export default withErrorBoundary(DashboardScreen);

@@ -18,6 +18,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../../Store/wishSlice';
 import { useAuthStore } from '../../Store/authStore';
+import { withErrorBoundary } from '../../Components/ErrorBoundary';
 import { Ionicons } from '@expo/vector-icons';
 import SkeletonLoader from '../../Components/SkeletonLoader';
 import PaymentDialog from '../../Components/PaymentDialog';
@@ -110,7 +111,7 @@ const ThumbnailGallery = React.memo(function ThumbnailGallery({ pictures, curren
   );
 });
 
-export default function ProductDetail() {
+function ProductDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const dispatch = useDispatch();
@@ -1213,3 +1214,5 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
 });
+
+export default withErrorBoundary(ProductDetail);
