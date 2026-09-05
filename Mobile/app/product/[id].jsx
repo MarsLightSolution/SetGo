@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../../Store/wishSlice';
@@ -43,15 +43,17 @@ const getLocalizedText = (field, lang = 'en') => {
   return field[lang] || field.en || '';
 };
 
-// Memoized Image Component
+// Memoized Image Component — expo-image gives disk caching (RN's Image only
+// caches in memory per-session), so repeat visits to a product load instantly
+// and use less data instead of re-downloading every photo each time.
 const ProductImage = React.memo(function ProductImage({ uri, style, resizeMode }) {
   return (
     <Image
       source={{ uri }}
       style={style}
-      resizeMode={resizeMode}
-      progressiveRenderingEnabled
-      fadeDuration={200}
+      contentFit={resizeMode}
+      transition={200}
+      cachePolicy="disk"
     />
   );
 });
@@ -103,7 +105,8 @@ const ThumbnailGallery = React.memo(function ThumbnailGallery({ pictures, curren
           <Image
             source={{ uri: `${IMAGE_BASE_URL}/${pic.replace(/\\/g, '/')}` }}
             style={styles.thumbnailImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="disk"
           />
         </TouchableOpacity>
       ))}
@@ -693,7 +696,8 @@ function ProductDetail() {
                 <Image
                   source={{ uri: `${IMAGE_BASE_URL}${product.shop.logo}` }}
                   style={styles.avatarImage}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="disk"
                 />
               ) : (
                 <Text style={styles.avatarText}>

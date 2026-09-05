@@ -43,6 +43,7 @@ export async function fetchAndCacheRemoteConfig() {
     const config = {
       apiUrl: data.apiUrl || baseUrl,
       minVersion: data.minVersion || HARDCODED_MIN_VERSION,
+      keys: data.keys || {},
       fetchedAt: Date.now(),
     };
     _cached = config;
@@ -50,6 +51,26 @@ export async function fetchAndCacheRemoteConfig() {
   } catch {
     // silent — app continues with fallback
   }
+}
+
+/**
+ * Read a runtime key the backend maintains centrally (config/app's `keys`
+ * object — see backend/controller/configController.js), instead of baking
+ * it into this app's own .env. Only for keys used at JS runtime; anything
+ * that configures native code at build time (e.g. the Maps SDK key in
+ * app.config.js) can't be fetched this way and stays a build-time env var.
+ *
+ * Returns `fallback` if the key hasn't been fetched yet or isn't set
+ * server-side — callers should always pass one for the first-launch case.
+ *
+ * @param {string} name - key name, matching a field under `keys` in the
+ *   /config/app response (e.g. 'googleMapsApiKey')
+ * @param {*} [fallback]
+ */
+export async function getRemoteKey(name, fallback = null) {
+  const stored = await _loadStored();
+  const value = stored?.keys?.[name];
+  return value !== undefined && value !== null ? value : fallback;
 }
 
 async function _loadStored() {
