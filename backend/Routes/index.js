@@ -24,4 +24,9 @@ router.use("/reviews", require("./reviewRoutes.js"));
 router.use("/api/shops", shopRoutes);
 router.use("/api/ads", require("./adRoutes.js"));
 router.use("/api/notifications", require("./notificationRoutes.js"));
+// NOTE: was never mounted — mobile's crash/error reporting (services/errorReporter.js)
+// and the admin error-log dashboard (app/admin/error-logs.jsx) have been silently
+// hitting 404s on POST/GET /logs/error until this line.
+router.use("/logs", require("./logRoutes.js"));
+router.use("/config", require("./configRoutes.js"));
 module.exports = router;
