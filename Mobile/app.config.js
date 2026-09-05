@@ -82,10 +82,12 @@ export default ({ config }) => {
         'INTERNET',
         'ACCESS_NETWORK_STATE',
       ],
-      // Always allow cleartext traffic (HTTP) for development and production
-      usesCleartextTraffic: true,
-      // Network security configuration
-      networkSecurityConfig: './network_security_config.xml',
+      // NOTE: cleartext traffic is controlled below via the expo-build-properties
+      // plugin (android.usesCleartextTraffic), not here — neither this field nor
+      // networkSecurityConfig is part of Expo's actual config schema at this
+      // level, so having them here did nothing but fail `expo-doctor`'s schema
+      // check. (network_security_config.xml itself was never wired into a real
+      // Android build either — no config-plugin reads that key.)
       // Required for FCM/Android push. Add Mobile/google-services.json (from Firebase
       // console, Android app package must match `package` above) to enable this.
       ...(hasGoogleServicesFile ? { googleServicesFile: googleServicesPath } : {}),
@@ -135,8 +137,11 @@ export default ({ config }) => {
     ],
 
     // Environment variables and extra config
+    //
+    // Note: there's no `apiUrl` here on purpose — config/api.js is the single
+    // source of truth for that (reads EXPO_PUBLIC_API_URL directly), so a
+    // second hardcoded fallback here would just drift out of sync with it.
     extra: {
-      apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://10.219.164.234:8080',
       environment: process.env.NODE_ENV || 'development',
 
       eas: {
