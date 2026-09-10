@@ -152,6 +152,12 @@ const ERRORS = {
       message: 'Token and new password are required.',
       reason: 'resetPassword — token query param or newPassword body field is missing',
     },
+    EMAIL_SEND_FAILED: {
+      code: 'AUTH_1022',
+      status: 502,
+      message: 'We could not send the verification email. Please try signing up again in a few minutes.',
+      reason: 'signup — nodemailer transporter.sendMail() threw (SMTP auth failure, network issue, etc.); the temp user is rolled back so the client can retry cleanly',
+    },
   },
 
   // ──────────────────────────────────────────

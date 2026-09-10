@@ -49,38 +49,50 @@ module.exports.signup = async (req, res) => {
     if (temp_user) {
       await TempUser.deleteOne({ _id: temp_user._id });
     }
-    await TempUser.create({ email, username, password: hashedPassword, token });
+    const newTempUser = await TempUser.create({ email, username, password: hashedPassword, token });
     logger.info(`[Signup] Temp user created: ${username}`);
 
-    // --- Send mail -------------------------------------------------
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // --- Send mail ---------------------------------------------------
+    // Isolated in its own try/catch: an SMTP failure here is an upstream
+    // dependency issue, not a validation/server bug, so it gets its own
+    // error code and the half-finished temp user is rolled back rather
+    // than left dangling with a generic 500.
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
 
-    const verificationLink = `${process.env.SERVER_BACKEND}/verifyemail?token=${token}`;
+      const verificationLink = `${process.env.SERVER_BACKEND}/verifyemail?token=${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Email Verification - Action Required",
-      html: `
-        <h2 style="color:#4CAF50;">Hi ${username},</h2>
-        <p>Thank you for signing up! Please verify your email by clicking the button below. This link is valid for <strong>15 minutes</strong>.</p>
-        <p style="text-align:center;margin:30px 0;">
-          <a href="${verificationLink}" style="background:#4CAF50;color:#fff;padding:12px 20px;text-decoration:none;border-radius:5px;">Verify My Email</a>
-        </p>
-        <p>If the button does not work, copy and paste this URL into your browser:</p>
-        <p><a href="${verificationLink}">${verificationLink}</a></p>
-      `,
-    });
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Email Verification - Action Required",
+        html: `
+          <h2 style="color:#4CAF50;">Hi ${username},</h2>
+          <p>Thank you for signing up! Please verify your email by clicking the button below. This link is valid for <strong>15 minutes</strong>.</p>
+          <p style="text-align:center;margin:30px 0;">
+            <a href="${verificationLink}" style="background:#4CAF50;color:#fff;padding:12px 20px;text-decoration:none;border-radius:5px;">Verify My Email</a>
+          </p>
+          <p>If the button does not work, copy and paste this URL into your browser:</p>
+          <p><a href="${verificationLink}">${verificationLink}</a></p>
+        `,
+      });
 
-    logger.info(`[Signup] Verification email sent to ${email}`);
+      logger.info(`[Signup] Verification email sent to ${email}`);
+    } catch (mailErr) {
+      logger.error(`[Signup] Failed to send verification email to ${email}: ${mailErr.message}`, { stack: mailErr.stack });
+      await TempUser.deleteOne({ _id: newTempUser._id }).catch(() => {});
+      const e = ERRORS.AUTH.EMAIL_SEND_FAILED;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
+
     return res.status(201).json({ message: "Signup successful. Please check your email to verify your account." });
   } catch (err) {
     logger.error(`[Signup] Error: ${err.stack}`);
