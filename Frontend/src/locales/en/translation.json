@@ -255,8 +255,8 @@
     "individual": "Individual",
     "shop": "Shop",
     "languageEnglish": "English",
-    "languageAzerbaijani": "Az\u0259rbaycan",
-    "languageRussian": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439",
+    "languageAzerbaijani": "Azərbaycan",
+    "languageRussian": "Русский",
     "availableUnits": "Available Units",
     "single": "Single",
     "bulk": "Bulk",
@@ -934,7 +934,12 @@
     "popularSearches": "Popular Searches",
     "adsOverview": "Ads Overview",
     "overviewOfCompanyPages": "Overview Of Company Pages",
-    "carValuation": "Car Valuation"
+    "carValuation": "Car Valuation",
+    "supportTitle": "Need help? Call support",
+    "weAccept": "We accept",
+    "paymentsSecuredBy": "Payments processed securely via Azericard",
+    "disclaimer": "\"SatGo is not responsible for the content of user-generated listings or third-party advertisements displayed on the platform. All responsibility for the accuracy, legality, quality, and safety of the listed products or services lies with the seller. SatGo's role is limited to providing the platform and payment services as an intermediary, and we do not guarantee or endorse any user content.\"",
+    "operatedByPrefix": "The classifieds services are operated by"
   },
   "common": {
     "cancel": "Cancel",
@@ -942,5 +947,13 @@
     "loading": "Loading...",
     "linkCopied": "Link copied to clipboard!",
     "pleaseLogin": "Please log in to continue."
+  },
+  "aboutUsPage": {
+    "title": "About Us",
+    "paragraph1": "SatGo is an online classifieds and e-commerce marketplace that connects buyers and sellers across Azerbaijan, making it simple to list, discover, and purchase products and services in one place.",
+    "paragraph2": "Our platform provides secure payment processing, real-time order tracking, and dedicated tools for individual sellers and registered shops, so every transaction is transparent and reliable.",
+    "paragraph3": "We are committed to protecting our users through verified accounts, clear policies, and responsive customer support, available in Azerbaijani, English, and Russian.",
+    "supportTitle": "Support",
+    "supportDescription": "Have a question about an order, payment, or your account? Our support team is ready to help."
   }
 }

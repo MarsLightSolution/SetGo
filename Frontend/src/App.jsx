@@ -9,6 +9,7 @@ import PublicRoute from './Hooks/PublicRoute'
 import ErrorBoundary from './components/common/ErrorBoundary'
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'))
+const AboutUs = lazy(() => import('./pages/AboutUs'))
 const Register = lazy(() => import('./pages/Register'))
 const Login = lazy(() => import('./pages/Login'))
 const Form = lazy(() => import('./pages/Form'))
@@ -78,6 +79,7 @@ function App() {
           <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route path='/' element={<Home />} />
+            <Route path='/about-us' element={<AboutUs />} />
             <Route path='/register' element={<PublicRoute><Register /></PublicRoute>} />
             <Route path='/login' element={<PublicRoute><Login /></PublicRoute>} />
             <Route path='/phoneverify' element={<PhoneVerification />} />

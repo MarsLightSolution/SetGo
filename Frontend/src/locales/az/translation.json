@@ -59,7 +59,6 @@
   "geolocationNotSupported": "Coğrafi yerləşmə brauzeriniz tərəfindən dəstəklənmir.",
   "allowLocationAccess": "Yaxınlıqdakı məhsulları əldə etmək üçün zəhmət olmasa, yerə girişə icazə verin.",
   "unableToFetchLocation": "Yeriniz əldə edilmədi. Yenidən cəhd edin.",
-
   "home": {
     "unknownLocation": "Naməlum",
     "loginToLike": "Bəyənmək üçün əvvəlcə daxil olmalısınız.",
@@ -935,7 +934,12 @@
     "popularSearches": "Populyar Axtarışlar",
     "adsOverview": "Elanlar İcmalı",
     "overviewOfCompanyPages": "Şirkət Səhifələri İcmalı",
-    "carValuation": "Avtomobil Qiyməti"
+    "carValuation": "Avtomobil Qiyməti",
+    "supportTitle": "Kömək lazımdır? Dəstək xəttinə zəng edin",
+    "weAccept": "Qəbul edirik",
+    "paymentsSecuredBy": "Ödənişlər Azericard vasitəsilə təhlükəsiz şəkildə həyata keçirilir",
+    "disclaimer": "\"SatGo platformada yerləşdirilən istifadəçi elanlarının və ya üçüncü tərəf reklamlarının məzmununa görə məsuliyyət daşımır. Satılan məhsul və ya xidmətlərin dəqiqliyi, qanuniliyi, keyfiyyəti və təhlükəsizliyi ilə bağlı bütün məsuliyyət satıcının üzərinə düşür. SatGo-nun rolu vasitəçi kimi platforma və ödəniş xidmətlərinin təqdim edilməsi ilə məhdudlaşır və biz istifadəçi məzmununa zəmanət vermirik və ya təsdiq etmirik.\"",
+    "operatedByPrefix": "Elanlar xidməti aşağıdakı şirkət tərəfindən idarə olunur:"
   },
   "common": {
     "cancel": "Ləğv et",
@@ -943,5 +947,13 @@
     "loading": "Yüklənir...",
     "linkCopied": "Link buferə kopyalandı!",
     "pleaseLogin": "Davam etmək üçün daxil olun."
+  },
+  "aboutUsPage": {
+    "title": "Haqqımızda",
+    "paragraph1": "SatGo Azərbaycan üzrə alıcıları və satıcıları birləşdirən onlayn elanlar və elektron ticarət platformasıdır. O, məhsul və xidmətlərin bir yerdə yerləşdirilməsini, tapılmasını və satın alınmasını asanlaşdırır.",
+    "paragraph2": "Platformamız təhlükəsiz ödəniş emalı, real vaxtda sifariş izləmə, həmçinin fərdi satıcılar və qeydiyyatdan keçmiş mağazalar üçün xüsusi alətlər təqdim edir ki, hər əməliyyat şəffaf və etibarlı olsun.",
+    "paragraph3": "Biz istifadəçilərimizi təsdiqlənmiş hesablar, aydın qaydalar və operativ müştəri dəstəyi vasitəsilə qorumağa sadiqik. Dəstək Azərbaycan, İngilis və Rus dillərində mövcuddur.",
+    "supportTitle": "Dəstək",
+    "supportDescription": "Sifariş, ödəniş və ya hesabınızla bağlı sualınız var? Dəstək komandamız sizə kömək etməyə hazırdır."
   }
 }

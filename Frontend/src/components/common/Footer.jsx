@@ -1,59 +1,65 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { FaPhoneAlt } from "react-icons/fa";
+
+const SUPPORT_PHONE = "+994 50 545 86 52";
+const SUPPORT_PHONE_TEL = "+994505458652";
 
 const Footer = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const footerColumns = [
     {
       title: t("footer.classifieds"),
       links: [
-        t("footer.aboutUs"),
-        t("footer.career"),
-        t("footer.press"),
-        t("footer.classifiedsMagazine"),
-        t("footer.engagement"),
-        t("footer.mobileApps"),
+        { label: t("footer.aboutUs"), onClick: () => navigate("/about-us") },
+        { label: t("footer.career") },
+        { label: t("footer.press") },
+        { label: t("footer.classifiedsMagazine") },
+        { label: t("footer.engagement") },
+        { label: t("footer.mobileApps") },
       ],
     },
     {
       title: t("footer.information"),
       links: [
-        t("footer.help"),
-        t("footer.tipsForYourSafety"),
-        t("footer.childAndYourProtection"),
-        t("footer.privacyPolicy"),
-        t("footer.privacySettings"),
-        t("footer.termsOfUse"),
+        { label: t("footer.help"), onClick: () => navigate("/about-us") },
+        { label: t("footer.tipsForYourSafety") },
+        { label: t("footer.childAndYourProtection") },
+        { label: t("footer.privacyPolicy") },
+        { label: t("footer.privacySettings") },
+        { label: t("footer.termsOfUse") },
       ],
     },
     {
       title: t("footer.forCompanies"),
       links: [
-        t("footer.classifiedRealEstate"),
-        t("footer.proInfopoint"),
-        t("footer.proPackagesForCompanies"),
-        t("footer.advertisingOnClassifieds"),
+        { label: t("footer.classifiedRealEstate") },
+        { label: t("footer.proInfopoint") },
+        { label: t("footer.proPackagesForCompanies") },
+        { label: t("footer.advertisingOnClassifieds") },
       ],
     },
     {
       title: t("footer.socialMedia"),
       links: [
-        t("footer.facebook"),
-        t("footer.youtube"),
-        t("footer.instagram"),
-        t("footer.threads"),
-        t("footer.pinterest"),
-        t("footer.tikTok"),
+        { label: t("footer.facebook") },
+        { label: t("footer.youtube") },
+        { label: t("footer.instagram") },
+        { label: t("footer.threads") },
+        { label: t("footer.pinterest") },
+        { label: t("footer.tikTok") },
       ],
     },
     {
       title: t("footer.generally"),
       links: [
-        t("footer.popularSearches"),
-        t("footer.adsOverview"),
-        t("footer.overviewOfCompanyPages"),
-        t("footer.carValuation"),
+        { label: t("footer.popularSearches") },
+        { label: t("footer.adsOverview") },
+        { label: t("footer.overviewOfCompanyPages") },
+        { label: t("footer.carValuation") },
       ],
     },
   ];
@@ -69,9 +75,19 @@ const Footer = () => {
           <ul className="space-y-2 text-sm text-gray-600">
             {col.links.map((link, j) => (
               <li key={j}>
-                <a href="#" className="hover:text-green-800 transition-colors">
-                  {link}
-                </a>
+                {link.onClick ? (
+                  <button
+                    type="button"
+                    onClick={link.onClick}
+                    className="hover:text-green-800 transition-colors"
+                  >
+                    {link.label}
+                  </button>
+                ) : (
+                  <a href="#" className="hover:text-green-800 transition-colors">
+                    {link.label}
+                  </a>
+                )}
               </li>
             ))}
           </ul>
@@ -79,9 +95,21 @@ const Footer = () => {
       ))}
     </div>
 
+    {/* Support */}
+    <div className="border-t border-gray-200 mt-10 pt-6 flex flex-col items-center gap-2">
+      <p className="text-xs text-gray-500 font-medium">{t("footer.supportTitle")}</p>
+      <a
+        href={`tel:${SUPPORT_PHONE_TEL}`}
+        className="flex items-center gap-2 text-sm font-medium text-[#2e4a2f] hover:text-green-700 transition-colors"
+      >
+        <FaPhoneAlt className="text-green-700" />
+        {SUPPORT_PHONE}
+      </a>
+    </div>
+
     {/* Payment Methods */}
-    <div className="border-t border-gray-200 mt-10 pt-6 flex flex-col items-center gap-3">
-      <p className="text-xs text-gray-500 font-medium">We accept</p>
+    <div className="border-t border-gray-200 mt-6 pt-6 flex flex-col items-center gap-3">
+      <p className="text-xs text-gray-500 font-medium">{t("footer.weAccept")}</p>
       <div className="flex items-center gap-4">
         {/* Visa Logo */}
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 500" className="h-8 w-auto">
@@ -97,20 +125,14 @@ const Footer = () => {
           <path d="M390 130.7c-35.3 27.5-58 70.4-58 118.3s22.7 90.8 58 118.3c35.3-27.5 58-70.4 58-118.3s-22.7-90.8-58-118.3z" fill="#eb6100" />
         </svg>
       </div>
-      <p className="text-xs text-gray-400">Payments processed securely via Azericard</p>
+      <p className="text-xs text-gray-400">{t("footer.paymentsSecuredBy")}</p>
     </div>
 
     {/* Bottom Info */}
     <div className="border-t border-gray-200 mt-6 pt-6 text-center text-xs text-gray-500 space-y-2 px-4">
+      <p>{t("footer.disclaimer")}</p>
       <p>
-        "SatGo is not responsible for the content of user-generated listings or third-party
-advertisements displayed on the platform. All responsibility for the accuracy, legality,
-quality, and safety of the listed products or services lies with the seller. SatGo's role is
-limited to providing the platform and payment services as an intermediary, and we do
-not guarantee or endorse any user content."
-      </p>
-      <p>
-        The classifieds services are operated by <span className="font-medium">SatGo</span>.
+        {t("footer.operatedByPrefix")} <span className="font-medium">SatGo</span>.
       </p>
     </div>
   </div>
