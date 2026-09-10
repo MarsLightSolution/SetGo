@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Authcontroller = require("../controller/Authcontroller");
+const verifyToken = require("../middlewares/auth.middlewares");
 const { authLimiter, createAccountLimiter } = require("../middlewares/rateLimiter.middleware");
 const { validateSignup, validateLogin, validateResetPassword } = require("../middlewares/validation.middleware");
 
@@ -13,8 +14,8 @@ router.post("/logout", Authcontroller.logout);
 router.post("/forgotpassword", authLimiter, Authcontroller.forgetpassword);
 router.get("/verifytoken", Authcontroller.verifyResetToken);
 router.post("/resetpassword", authLimiter, validateResetPassword, Authcontroller.resetPassword);
-router.get('/protected', Authcontroller.verifyJWT,(req, res) => {
-    res.json({ message: 'This is a protected route', user: req.user });
-  });
+router.get('/protected', verifyToken, (req, res) => {
+  res.json({ message: 'This is a protected route', user: req.user });
+});
 
 module.exports = router

@@ -6,9 +6,11 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const redisClient = require("../utils/redisClient");
 const logger = require("../utils/logger");
+const { ERRORS } = require("../config/errors");
 require("dotenv").config();
+
+const MAX_SESSIONS = 5; // max simultaneous devices per user
 
 /********************************************************************
  * SIGN‑UP (TEMP USER + EMAIL VERIFICATION)
@@ -23,9 +25,6 @@ module.exports.signup = async (req, res) => {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: "Invalid email format" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters long" });
     }
     if (!/^[a-zA-Z0-9]+$/.test(username)) {
       return res.status(400).json({ error: "Username can only contain alphanumeric characters" });
@@ -50,38 +49,50 @@ module.exports.signup = async (req, res) => {
     if (temp_user) {
       await TempUser.deleteOne({ _id: temp_user._id });
     }
-    await TempUser.create({ email, username, password: hashedPassword, token });
+    const newTempUser = await TempUser.create({ email, username, password: hashedPassword, token });
     logger.info(`[Signup] Temp user created: ${username}`);
 
-    // --- Send mail -------------------------------------------------
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // --- Send mail ---------------------------------------------------
+    // Isolated in its own try/catch: an SMTP failure here is an upstream
+    // dependency issue, not a validation/server bug, so it gets its own
+    // error code and the half-finished temp user is rolled back rather
+    // than left dangling with a generic 500.
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
 
-    const verificationLink = `${process.env.SERVER_BACKEND}/verifyemail?token=${token}`;
+      const verificationLink = `${process.env.SERVER_BACKEND}/verifyemail?token=${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Email Verification - Action Required",
-      html: `
-        <h2 style="color:#4CAF50;">Hi ${username},</h2>
-        <p>Thank you for signing up! Please verify your email by clicking the button below. This link is valid for <strong>15 minutes</strong>.</p>
-        <p style="text-align:center;margin:30px 0;">
-          <a href="${verificationLink}" style="background:#4CAF50;color:#fff;padding:12px 20px;text-decoration:none;border-radius:5px;">Verify My Email</a>
-        </p>
-        <p>If the button does not work, copy and paste this URL into your browser:</p>
-        <p><a href="${verificationLink}">${verificationLink}</a></p>
-      `,
-    });
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Email Verification - Action Required",
+        html: `
+          <h2 style="color:#4CAF50;">Hi ${username},</h2>
+          <p>Thank you for signing up! Please verify your email by clicking the button below. This link is valid for <strong>15 minutes</strong>.</p>
+          <p style="text-align:center;margin:30px 0;">
+            <a href="${verificationLink}" style="background:#4CAF50;color:#fff;padding:12px 20px;text-decoration:none;border-radius:5px;">Verify My Email</a>
+          </p>
+          <p>If the button does not work, copy and paste this URL into your browser:</p>
+          <p><a href="${verificationLink}">${verificationLink}</a></p>
+        `,
+      });
 
-    logger.info(`[Signup] Verification email sent to ${email}`);
+      logger.info(`[Signup] Verification email sent to ${email}`);
+    } catch (mailErr) {
+      logger.error(`[Signup] Failed to send verification email to ${email}: ${mailErr.message}`, { stack: mailErr.stack });
+      await TempUser.deleteOne({ _id: newTempUser._id }).catch(() => {});
+      const e = ERRORS.AUTH.EMAIL_SEND_FAILED;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
+
     return res.status(201).json({ message: "Signup successful. Please check your email to verify your account." });
   } catch (err) {
     logger.error(`[Signup] Error: ${err.stack}`);
@@ -140,58 +151,39 @@ module.exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // const redisKey = `login:${email}`;
-
-    // 1️⃣ Try fetching user from Redis first
-    // const cachedUserData = await redisClient.get(redisKey);
-
-    let user;
-
-    // if (cachedUserData) {
-    //   console.log("✅ User found in Redis cache");
-    //   user = JSON.parse(cachedUserData);
-    // } else {
-    //   // 2️⃣ Fallback to MongoDB if not in Redis
-    user = await User.findOne({ email });
+    // 1. Fetch user
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "The email address you entered is incorrect." });
+      const e = ERRORS.AUTH.EMAIL_NOT_FOUND;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
     }
 
-    // // Only cache what's needed (avoid full sensitive object)
-    // const safeToCache = {
-    //   _id: user._id,
-    //   username: user.username,
-    //   email: user.email,
-    //   password: user.password, // hashed
-    //   role: user.role
-    // };
-
-    // Save to Redis for 24 hours
-    // await redisClient.set(redisKey, JSON.stringify(safeToCache), {
-    //   EX: 60 * 60 * 24 // 24 hours
-    // });
-    // console.log("💾 User data cached in Redis");
-    // 3️⃣ Compare password
+    // 2. Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       logger.warn(`[Login] Incorrect password for ${email}`);
-      return res.status(400).json({ message: "The password you entered is incorrect." });
+      const e = ERRORS.AUTH.WRONG_PASSWORD;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
     }
 
-    // 6️⃣ Generate tokens
-    const accessToken = generateAccessToken(user);
+    // 3. Generate tokens
+    const accessToken  = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // 7️⃣ Save refresh token
-    user.refreshToken = refreshToken;
+    // 4. Add refresh token — cap at MAX_SESSIONS to prevent token accumulation
+    const tokens = user.refreshTokens || [];
+    const updated = tokens.length >= MAX_SESSIONS
+      ? [...tokens.slice(-(MAX_SESSIONS - 1)), refreshToken]
+      : [...tokens, refreshToken];
+    user.refreshTokens = updated;
     await user.save({ validateBeforeSave: false });
 
-    // 8️⃣ Set HttpOnly cookie (for web clients)
+    // 5. Set HttpOnly cookie (web) — mobile reads token from response body
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     logger.info(`[Login] User logged in: ${email}`);
@@ -199,7 +191,7 @@ module.exports.login = async (req, res) => {
     return res.json({
       success: true,
       accessToken: "Bearer " + accessToken,
-      refreshToken, // also in body for React Native (can't read HttpOnly cookies)
+      refreshToken,
       userId: user._id,
       userName: user.username,
       role: user.role,
@@ -207,7 +199,8 @@ module.exports.login = async (req, res) => {
 
   } catch (err) {
     logger.error(`[Login] Error: ${err.stack}`);
-    return res.status(500).json({ message: "Internal server error." });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -218,45 +211,42 @@ module.exports.login = async (req, res) => {
 module.exports.refreshAccessToken = async (req, res) => {
   // Accept from cookie (web) or body (React Native — can't read HttpOnly cookies)
   const token = req.cookies.refreshToken || req.body?.refreshToken;
-  if (!token) return res.status(401).json({ message: "Refresh token not found" });
+  if (!token) {
+    const e = ERRORS.AUTH.REFRESH_TOKEN_MISSING;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
 
     const user = await User.findById(decoded.id);
-    if (!user || user.refreshToken !== token) {
+    if (!user || !user.refreshTokens?.includes(token)) {
       logger.warn(`[RefreshToken] Invalid refresh token for user id ${decoded.id}`);
-      return res.status(403).json({ message: "Invalid refresh token" });
+      const e = ERRORS.AUTH.REFRESH_TOKEN_INVALID;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
     }
 
-    const newAccessToken = generateAccessToken(user);
+    // Rotate: remove old token, issue new one for this device
+    user.refreshTokens = user.refreshTokens.filter(t => t !== token);
+    const newAccessToken  = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+    user.refreshTokens.push(newRefreshToken);
+    await user.save({ validateBeforeSave: false });
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     logger.info(`[RefreshToken] Access token refreshed for user id ${decoded.id}`);
 
-    return res.json({ success: true, accessToken: "Bearer " + newAccessToken });
+    return res.json({ success: true, accessToken: "Bearer " + newAccessToken, refreshToken: newRefreshToken });
   } catch (err) {
     logger.error(`[RefreshToken] Error: ${err.stack}`);
-    return res.status(403).json({ message: "Refresh token expired or invalid" });
-  }
-};
-
-/********************************************************************
- * JWT PROTECTION MIDDLEWARE (expects Bearer header)
- *******************************************************************/
-module.exports.verifyJWT = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: "Access token missing or invalid" });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    req.user = decoded;
-    logger.info(`[verifyJWT] Valid token for user id: ${decoded.id}`);
-    next();
-  } catch (err) {
-    logger.error(`[verifyJWT] Invalid or expired token: ${err.stack}`);
-    return res.status(403).json({ message: "Access token expired or invalid" });
+    const e = ERRORS.AUTH.REFRESH_TOKEN_INVALID;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -265,26 +255,23 @@ module.exports.verifyJWT = (req, res, next) => {
  *******************************************************************/
 module.exports.logout = async (req, res) => {
   try {
-    const token = req.cookies.refreshToken;
+    // Accept token from cookie (web) or body (mobile — can't use HttpOnly cookies)
+    const token = req.cookies.refreshToken || req.body?.refreshToken;
     if (!token) return res.status(200).json({ message: "Logged out successfully" });
 
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
     } catch {
-      // even if invalid, clear cookie for good measure
       res.clearCookie("refreshToken");
       return res.status(200).json({ message: "Logged out successfully" });
     }
 
     const user = await User.findById(decoded.id);
     if (user) {
-      user.refreshToken = null;
+      // Only revoke this device's token, leave other devices active
+      user.refreshTokens = (user.refreshTokens || []).filter(t => t !== token);
       await user.save({ validateBeforeSave: false });
-
-
-      // const redisKey = `login:${user.email}`; // Delete user entry from redis
-      // await redisClient.del(redisKey);
     }
 
     res.clearCookie("refreshToken");
@@ -301,10 +288,16 @@ module.exports.logout = async (req, res) => {
 module.exports.forgetpassword = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!email) {
+      const e = ERRORS.AUTH.RESET_EMAIL_REQUIRED;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found or email not verified" });
+    if (!user) {
+      const e = ERRORS.AUTH.RESET_USER_NOT_FOUND;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     user.resetToken = crypto.randomBytes(32).toString("hex");
     user.resetTokenExpiration = Date.now() + 3600000; // 1 h
@@ -337,10 +330,11 @@ module.exports.forgetpassword = async (req, res) => {
     });
 
     logger.info(`[ForgetPassword] Reset email sent to: ${email}`);
-    return res.status(200).json({ message: "Password reset link sent to your email." });
+    return res.status(200).json({ success: true, message: "Password reset link sent to your email." });
   } catch (err) {
     logger.error(`[ForgetPassword] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Something went wrong. Please try again later." });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -350,19 +344,26 @@ module.exports.forgetpassword = async (req, res) => {
 module.exports.verifyResetToken = async (req, res) => {
   try {
     const { token } = req.query;
-    if (!token) return res.status(400).json({ error: "Token is required" });
+    if (!token) {
+      const e = ERRORS.AUTH.RESET_TOKEN_MISSING;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     const user = await User.findOne({
       resetToken: token,
       resetTokenExpiration: { $gt: Date.now() },
     });
-    if (!user) return res.status(400).json({ error: "Invalid or expired token" });
+    if (!user) {
+      const e = ERRORS.AUTH.RESET_TOKEN_INVALID;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     logger.info(`[VerifyResetToken] Valid reset token for: ${user.email}`);
     return res.redirect(`${process.env.SERVER_FRONTEND}/newpassword?token=${token}`);
   } catch (err) {
     logger.error(`[VerifyResetToken] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Server error during token verification" });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
 };
 
@@ -374,14 +375,19 @@ module.exports.resetPassword = async (req, res) => {
     const { token } = req.query;
     const { newPassword } = req.body;
 
-    if (!token || !newPassword) return res.status(400).json({ error: "Token and new password are required" });
-    if (newPassword.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters long" });
+    if (!token || !newPassword) {
+      const e = ERRORS.AUTH.RESET_MISSING_FIELDS;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     const user = await User.findOne({
       resetToken: token,
       resetTokenExpiration: { $gt: Date.now() },
     });
-    if (!user) return res.status(400).json({ error: "Invalid or expired token" });
+    if (!user) {
+      const e = ERRORS.AUTH.RESET_TOKEN_INVALID;
+      return res.status(e.status).json({ success: false, code: e.code, message: e.message });
+    }
 
     user.password = await bcrypt.hash(newPassword, 12);
     user.resetToken = undefined;
@@ -389,12 +395,12 @@ module.exports.resetPassword = async (req, res) => {
     await user.save();
 
     logger.info(`[ResetPassword] Password reset for: ${user.email}`);
-    return res.status(200).json({ message: "Password has been reset successfully" });
+    return res.status(200).json({ success: true, message: "Password has been reset successfully" });
   } catch (err) {
     logger.error(`[ResetPassword] Error: ${err.stack}`);
-    return res.status(500).json({ error: "Something went wrong. Please try again later." });
+    const e = ERRORS.SERVER.INTERNAL;
+    return res.status(e.status).json({ success: false, code: e.code, message: e.message });
   }
-
 };
 module.exports.checkVerificationStatus = async (req, res) => {
   try {
@@ -412,7 +418,7 @@ module.exports.checkVerificationStatus = async (req, res) => {
       emailVerified: user.emailVerified,
     });
   } catch (err) {
-    console.error("Error checking verification status:", err);
+    logger.error(`[CheckVerification] Error: ${err.stack}`);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

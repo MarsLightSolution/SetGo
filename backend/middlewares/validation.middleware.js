@@ -1,31 +1,24 @@
 const Joi = require('joi');
+const { ERRORS } = require('../config/errors');
 
-/**
- * Input Validation Middleware using Joi
- * Validates and sanitizes user input to prevent injection attacks and bad data
- */
-
-// Validation helper function
-const validate = (schema) => {
+// Validation helper — accepts a route-specific error code key from ERRORS.VALIDATION
+const validate = (schema, errorKey = 'SIGNUP_INVALID') => {
   return (req, res, next) => {
     const { error, value } = schema.validate(req.body, {
-      abortEarly: false, // Return all errors, not just the first one
-      stripUnknown: true, // Remove unknown keys from the object
+      abortEarly: false,
+      stripUnknown: true,
     });
 
     if (error) {
-      const errors = error.details.map(detail => ({
-        field: detail.path.join('.'),
-        message: detail.message,
-      }));
-
-      return res.status(400).json({
-        error: 'Validation Error',
-        details: errors,
+      const e = ERRORS.VALIDATION[errorKey];
+      return res.status(e.status).json({
+        success: false,
+        code: e.code,
+        message: e.message,
+        details: error.details.map(d => ({ field: d.path.join('.'), message: d.message })),
       });
     }
 
-    // Replace req.body with validated and sanitized value
     req.body = value;
     next();
   };
@@ -262,12 +255,12 @@ const createShopSchema = Joi.object({
 
 // Export validation middleware for each schema
 module.exports = {
-  validateSignup: validate(signupSchema),
-  validateLogin: validate(loginSchema),
+  validateSignup: validate(signupSchema, 'SIGNUP_INVALID'),
+  validateLogin: validate(loginSchema, 'LOGIN_INVALID'),
   validateCreateProduct: validate(createProductSchema),
   validateCreateOrder: validate(createOrderSchema),
   validateCreatePayment: validate(createPaymentSchema),
   validateWalletTransfer: validate(walletTransferSchema),
-  validateResetPassword: validate(resetPasswordSchema),
+  validateResetPassword: validate(resetPasswordSchema, 'RESET_PASSWORD_INVALID'),
   validateCreateShop: validate(createShopSchema),
 };
