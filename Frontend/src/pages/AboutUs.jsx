@@ -44,11 +44,11 @@ function AboutUs() {
                 <span className="font-medium text-gray-800">{SUPPORT_PHONE}</span>
               </a>
               <a
-                href="mailto:support@satgo.com"
+                href="mailto:info@satgo.az"
                 className="flex items-center gap-3 px-4 py-3 rounded-md border border-gray-200 hover:border-green-600 hover:bg-green-50 transition-colors"
               >
                 <FaEnvelope className="text-green-700" />
-                <span className="font-medium text-gray-800">support@satgo.com</span>
+                <span className="font-medium text-gray-800">info@satgo.az</span>
               </a>
             </div>
           </div>
