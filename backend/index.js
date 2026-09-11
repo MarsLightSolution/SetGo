@@ -32,6 +32,12 @@ try {
 
 const app = express();
 
+// nginx sits directly in front of Express as a single reverse-proxy hop and forwards
+// X-Forwarded-For. Without this, express-rate-limit can't safely read client IPs from
+// that header and throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request that hits
+// a rate limiter. `1` = trust exactly one hop (nginx), not the whole forwarded chain.
+app.set('trust proxy', 1);
+
 // ------------------- SECURITY MIDDLEWARE -------------------
 // SECURITY: Helmet.js - Sets various HTTP headers for security
 app.use(helmet({
