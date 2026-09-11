@@ -995,5 +995,105 @@
     "helpfulLinksTitle": "Helpful Links",
     "aboutLinkLabel": "About SatGo",
     "submitQueryLabel": "Submit a Query"
+  },
+  "privacyPolicy": {
+    "heroTitle": "Privacy Policy",
+    "heroSubtitle": "This Privacy Policy is an integral part of the SatGo User Agreement.",
+    "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282",
+    "sections": [
+      {
+        "number": "1",
+        "title": "General Provisions",
+        "body": "SatGo collects and processes only the personal data necessary to operate the platform and provide its services.\n\nBy using the platform, users voluntarily agree to the collection and processing of their personal data in accordance with this Policy."
+      },
+      {
+        "number": "2",
+        "title": "Data We Collect",
+        "body": "SatGo may collect the following information:\n\n• Account information (name, email address, phone number)\n• Listing information and content provided by users\n• Communication data exchanged through the platform\n• Technical data such as IP address, browser type, device information, and access time\n\nSatGo does not collect or process sensitive personal data such as racial origin, political views, religious beliefs, health data, biometric or genetic information."
+      },
+      {
+        "number": "3",
+        "title": "Purpose of Data Processing",
+        "body": "Personal data is processed for the following purposes:\n\n• Operating and maintaining the platform\n• Improving platform functionality and user experience\n• Preventing fraud, abuse, and unauthorized activity\n• Ensuring compliance with applicable laws\n• Providing customer support"
+      },
+      {
+        "number": "4",
+        "title": "Payment Information",
+        "body": "All payments are processed via certified third-party payment providers.\n\nSatGo does not store, process, or have access to users' card details at any time."
+      },
+      {
+        "number": "5",
+        "title": "Data Sharing",
+        "body": "SatGo does not sell, rent, or trade users' personal data.\n\nPersonal data may only be disclosed:\n\n• If required by law or governmental authorities\n• To authorized service providers strictly necessary for platform operation\n• With the user's explicit consent"
+      },
+      {
+        "number": "6",
+        "title": "Data Security",
+        "body": "SatGo implements appropriate technical and organizational measures to protect personal data from unauthorized access, alteration, disclosure, or destruction.\n\nAccess to personal data is restricted to authorized personnel only."
+      },
+      {
+        "number": "7",
+        "title": "Data Retention",
+        "body": "Personal data is stored only for as long as necessary to fulfill the purposes outlined in this Policy or as required by law.\n\nUsers may request deletion of their personal data by contacting support."
+      },
+      {
+        "number": "8",
+        "title": "User Rights",
+        "body": "Users have the right to:\n\n• Access their personal data\n• Request correction of inaccurate data\n• Request deletion of their personal data\n• Withdraw consent for data processing\n\nRequests may be submitted via the official contact email."
+      },
+      {
+        "number": "9",
+        "title": "Cookies and Similar Technologies",
+        "body": "SatGo may use cookies and similar technologies to:\n\n• Improve website functionality\n• Analyze platform performance\n• Enhance security\n\nUsers may manage cookie preferences through their browser settings."
+      },
+      {
+        "number": "10",
+        "title": "Amendments",
+        "body": "SatGo reserves the right to modify this Privacy Policy at any time.\n\nContinued use of the platform after changes constitutes acceptance of the updated Policy."
+      },
+      {
+        "number": "11",
+        "title": "Wallet and Internal Balance",
+        "body": "SatGo may provide users with an internal wallet feature that allows users to deposit funds, make payments within the platform, and request withdrawals.\n\nAll deposits and withdrawals are processed through certified third-party payment providers. SatGo does not store or have access to users' card details.\n\nTransaction records related to wallet activity may be stored for security, fraud prevention, accounting, and legal compliance purposes.\n\nUsers are responsible for ensuring the accuracy of their withdrawal details."
+      }
+    ]
+  },
+  "refundPolicy": {
+    "heroTitle": "Refund Policy",
+    "heroSubtitle": "Understand how refunds, cancellations, and buyer protection work on SatGo.",
+    "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282",
+    "buyerProtectionBadge": "Buyer Protection",
+    "sections": [
+      {
+        "number": "1",
+        "title": "Platform Role",
+        "highlight": false,
+        "body": "SatGo acts solely as an intermediary platform between buyers and sellers. SatGo does not sell products and is not a party to sales transactions concluded between users."
+      },
+      {
+        "number": "2",
+        "title": "Private Sales",
+        "highlight": false,
+        "body": "For private sales conducted through the platform, SatGo does not issue refunds.\n\nAny refund agreements, cancellations, or disputes must be resolved directly between the buyer and the seller."
+      },
+      {
+        "number": "3",
+        "title": "Online Payments and Buyer Protection",
+        "highlight": true,
+        "body": "For transactions completed through online payment on the platform, buyer protection is provided.\n\nThe buyer's payment is temporarily held and released to the seller only after the buyer confirms receipt of the product.\n\nIf a dispute or unresolved issue arises before confirmation, the buyer and seller are expected to communicate directly through the platform in order to resolve the matter.\n\nDuring this period, the funds remain temporarily held until the matter is resolved between the parties.\n\nSatGo does not guarantee product quality, condition, authenticity, or delivery and is not responsible for fulfillment of transactions."
+      },
+      {
+        "number": "4",
+        "title": "Wallet and Deposited Funds",
+        "highlight": false,
+        "body": "SatGo may provide users with an internal wallet feature to deposit funds, make payments within the platform, and request withdrawals.\n\nFunds deposited into the user wallet are intended solely for use within the platform.\n\nThe SatGo wallet does not constitute a bank account, financial institution account, or payment account. Stored balances do not earn interest and are not insured.\n\nWithdrawal requests may be subject to identity verification, security checks, and fraud prevention procedures."
+      },
+      {
+        "number": "5",
+        "title": "Paid Platform Services",
+        "highlight": false,
+        "body": "Payments made for paid platform features, including listing promotions, visibility enhancements, boosts, or other activated services, are non-refundable once the service has been activated."
+      }
+    ]
   }
 }

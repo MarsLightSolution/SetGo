@@ -995,5 +995,105 @@
     "helpfulLinksTitle": "Faydalı keçidlər",
     "aboutLinkLabel": "SatGo haqqında",
     "submitQueryLabel": "Sorğu göndər"
+  },
+  "privacyPolicy": {
+    "heroTitle": "Məxfilik Siyasəti",
+    "heroSubtitle": "Bu Məxfilik Siyasəti SatGo İstifadəçi Sazişinin ayrılmaz hissəsidir.",
+    "lastUpdated": "Son yenilənmə: 2026 — SATGO, VÖEN 1301881282",
+    "sections": [
+      {
+        "number": "1",
+        "title": "Ümumi Müddəalar",
+        "body": "SatGo yalnız platformanın fəaliyyəti və xidmətlərinin təqdim edilməsi üçün zəruri olan şəxsi məlumatları toplayır və emal edir.\n\nPlatformadan istifadə etməklə, istifadəçilər öz şəxsi məlumatlarının bu Siyasətə uyğun toplanmasına və emalına könüllü razılıq verirlər."
+      },
+      {
+        "number": "2",
+        "title": "Topladığımız Məlumatlar",
+        "body": "SatGo aşağıdakı məlumatları toplaya bilər:\n\n• Hesab məlumatları (ad, e-poçt ünvanı, telefon nömrəsi)\n• İstifadəçilər tərəfindən təqdim edilən elan məlumatları və məzmun\n• Platforma vasitəsilə mübadilə edilən kommunikasiya məlumatları\n• IP ünvanı, brauzer növü, cihaz məlumatları və giriş vaxtı kimi texniki məlumatlar\n\nSatGo irqi mənşə, siyasi baxışlar, dini inanclar, sağlamlıq məlumatları, biometrik və ya genetik məlumatlar kimi həssas şəxsi məlumatları toplamır və emal etmir."
+      },
+      {
+        "number": "3",
+        "title": "Məlumatların Emalının Məqsədi",
+        "body": "Şəxsi məlumatlar aşağıdakı məqsədlər üçün emal olunur:\n\n• Platformanın fəaliyyəti və saxlanılması\n• Platformanın funksionallığının və istifadəçi təcrübəsinin təkmilləşdirilməsi\n• Fırıldaqçılığın, sui-istifadənin və icazəsiz fəaliyyətin qarşısının alınması\n• Qüvvədə olan qanunlara uyğunluğun təmin edilməsi\n• Müştəri dəstəyinin göstərilməsi"
+      },
+      {
+        "number": "4",
+        "title": "Ödəniş Məlumatları",
+        "body": "Bütün ödənişlər sertifikatlaşdırılmış üçüncü tərəf ödəniş provayderləri vasitəsilə həyata keçirilir.\n\nSatGo heç bir zaman istifadəçilərin kart məlumatlarını saxlamır, emal etmir və onlara giriş imkanına malik deyil."
+      },
+      {
+        "number": "5",
+        "title": "Məlumatların Paylaşılması",
+        "body": "SatGo istifadəçilərin şəxsi məlumatlarını satmır, icarəyə vermir və ya mübadilə etmir.\n\nŞəxsi məlumatlar yalnız aşağıdakı hallarda açıqlana bilər:\n\n• Qanun və ya dövlət orqanları tərəfindən tələb olunduqda\n• Platformanın fəaliyyəti üçün ciddi surətdə zəruri olan səlahiyyətli xidmət təminatçılarına\n• İstifadəçinin açıq razılığı ilə"
+      },
+      {
+        "number": "6",
+        "title": "Məlumatların Təhlükəsizliyi",
+        "body": "SatGo şəxsi məlumatları icazəsiz girişdən, dəyişdirilmədən, açıqlanmadan və ya məhv edilmədən qorumaq üçün müvafiq texniki və təşkilati tədbirlər həyata keçirir.\n\nŞəxsi məlumatlara giriş yalnız səlahiyyətli işçilərlə məhdudlaşdırılır."
+      },
+      {
+        "number": "7",
+        "title": "Məlumatların Saxlanılma Müddəti",
+        "body": "Şəxsi məlumatlar yalnız bu Siyasətdə göstərilən məqsədlərin həyata keçirilməsi üçün zəruri olan müddət ərzində və ya qanunla tələb olunduğu müddətdə saxlanılır.\n\nİstifadəçilər dəstək xidməti ilə əlaqə saxlamaqla öz şəxsi məlumatlarının silinməsini tələb edə bilərlər."
+      },
+      {
+        "number": "8",
+        "title": "İstifadəçi Hüquqları",
+        "body": "İstifadəçilərin aşağıdakı hüquqları var:\n\n• Öz şəxsi məlumatlarına giriş əldə etmək\n• Qeyri-dəqiq məlumatların düzəldilməsini tələb etmək\n• Öz şəxsi məlumatlarının silinməsini tələb etmək\n• Məlumatların emalına razılığı geri götürmək\n\nSorğular rəsmi əlaqə e-poçtu vasitəsilə göndərilə bilər."
+      },
+      {
+        "number": "9",
+        "title": "Kukilər və Oxşar Texnologiyalar",
+        "body": "SatGo aşağıdakı məqsədlər üçün kukilər və oxşar texnologiyalardan istifadə edə bilər:\n\n• Veb-saytın funksionallığının yaxşılaşdırılması\n• Platformanın performansının təhlili\n• Təhlükəsizliyin artırılması\n\nİstifadəçilər brauzer parametrləri vasitəsilə kuki seçimlərini idarə edə bilərlər."
+      },
+      {
+        "number": "10",
+        "title": "Dəyişikliklər",
+        "body": "SatGo istənilən vaxt bu Məxfilik Siyasətini dəyişdirmək hüququnu özündə saxlayır.\n\nDəyişikliklərdən sonra platformadan istifadənin davam etdirilməsi yenilənmiş Siyasətin qəbul edilməsi deməkdir."
+      },
+      {
+        "number": "11",
+        "title": "Cib (Wallet) və Daxili Balans",
+        "body": "SatGo istifadəçilərə vəsait yatırmaq, platforma daxilində ödəniş etmək və pul çıxarma sorğusu vermək imkanı verən daxili cib (wallet) funksiyası təqdim edə bilər.\n\nBütün yatırma və çıxarma əməliyyatları sertifikatlaşdırılmış üçüncü tərəf ödəniş provayderləri vasitəsilə həyata keçirilir. SatGo istifadəçilərin kart məlumatlarını saxlamır və onlara giriş imkanına malik deyil.\n\nCib fəaliyyəti ilə bağlı əməliyyat qeydləri təhlükəsizlik, fırıldaqçılığın qarşısının alınması, mühasibatlıq və qanuni uyğunluq məqsədləri üçün saxlanıla bilər.\n\nİstifadəçilər öz pul çıxarma məlumatlarının dəqiqliyinə görə məsuliyyət daşıyırlar."
+      }
+    ]
+  },
+  "refundPolicy": {
+    "heroTitle": "Geri Qaytarma Siyasəti",
+    "heroSubtitle": "SatGo-da geri qaytarmaların, ləğvlərin və alıcı müdafiəsinin necə işlədiyini öyrənin.",
+    "lastUpdated": "Son yenilənmə: 2026 — SATGO, VÖEN 1301881282",
+    "buyerProtectionBadge": "Alıcı Müdafiəsi",
+    "sections": [
+      {
+        "number": "1",
+        "title": "Platformanın Rolu",
+        "highlight": false,
+        "body": "SatGo yalnız alıcılar və satıcılar arasında vasitəçi platforma kimi çıxış edir. SatGo məhsul satmır və istifadəçilər arasında bağlanan satış əməliyyatlarının tərəfi deyil."
+      },
+      {
+        "number": "2",
+        "title": "Fərdi Satışlar",
+        "highlight": false,
+        "body": "Platforma vasitəsilə həyata keçirilən fərdi satışlar üçün SatGo geri qaytarma etmir.\n\nİstənilən geri qaytarma razılaşmaları, ləğvlər və ya mübahisələr birbaşa alıcı və satıcı arasında həll edilməlidir."
+      },
+      {
+        "number": "3",
+        "title": "Onlayn Ödənişlər və Alıcı Müdafiəsi",
+        "highlight": true,
+        "body": "Platformada onlayn ödəniş vasitəsilə tamamlanan əməliyyatlar üçün alıcı müdafiəsi təmin edilir.\n\nAlıcının ödənişi müvəqqəti olaraq saxlanılır və yalnız alıcı məhsulu aldığını təsdiqlədikdən sonra satıcıya buraxılır.\n\nTəsdiqdən əvvəl mübahisə və ya həll olunmamış məsələ yaranarsa, alıcı və satıcının məsələni həll etmək üçün platforma vasitəsilə birbaşa ünsiyyət qurması gözlənilir.\n\nBu müddət ərzində vəsait tərəflər arasında məsələ həll olunana qədər müvəqqəti saxlanılır.\n\nSatGo məhsulun keyfiyyətinə, vəziyyətinə, orijinallığına və ya çatdırılmasına zəmanət vermir və əməliyyatların icrasına görə məsuliyyət daşımır."
+      },
+      {
+        "number": "4",
+        "title": "Cib (Wallet) və Yatırılmış Vəsait",
+        "highlight": false,
+        "body": "SatGo istifadəçilərə vəsait yatırmaq, platforma daxilində ödəniş etmək və pul çıxarma sorğusu vermək üçün daxili cib (wallet) funksiyası təqdim edə bilər.\n\nİstifadəçi cibinə yatırılan vəsait yalnız platforma daxilində istifadə üçün nəzərdə tutulub.\n\nSatGo cibi bank hesabı, maliyyə institutu hesabı və ya ödəniş hesabı təşkil etmir. Saxlanılan balanslara faiz hesablanmır və onlar sığortalanmır.\n\nPul çıxarma sorğuları şəxsiyyətin təsdiqlənməsi, təhlükəsizlik yoxlamaları və fırıldaqçılığın qarşısının alınması prosedurlarına tabe ola bilər."
+      },
+      {
+        "number": "5",
+        "title": "Ödənişli Platforma Xidmətləri",
+        "highlight": false,
+        "body": "Elanların təşviqi, görünürlüyün artırılması, boostlar və ya digər aktivləşdirilmiş xidmətlər daxil olmaqla, ödənişli platforma funksiyaları üçün edilən ödənişlər xidmət aktivləşdirildikdən sonra geri qaytarılmır."
+      }
+    ]
   }
 }
