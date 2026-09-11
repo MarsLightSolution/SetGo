@@ -59,7 +59,6 @@
   "geolocationNotSupported": "Coğrafi yerləşmə brauzeriniz tərəfindən dəstəklənmir.",
   "allowLocationAccess": "Yaxınlıqdakı məhsulları əldə etmək üçün zəhmət olmasa, yerə girişə icazə verin.",
   "unableToFetchLocation": "Yeriniz əldə edilmədi. Yenidən cəhd edin.",
-
   "home": {
     "unknownLocation": "Naməlum",
     "loginToLike": "Bəyənmək üçün əvvəlcə daxil olmalısınız.",
@@ -935,7 +934,14 @@
     "popularSearches": "Populyar Axtarışlar",
     "adsOverview": "Elanlar İcmalı",
     "overviewOfCompanyPages": "Şirkət Səhifələri İcmalı",
-    "carValuation": "Avtomobil Qiyməti"
+    "carValuation": "Avtomobil Qiyməti",
+    "supportTitle": "Kömək lazımdır? Dəstək xəttinə zəng edin",
+    "weAccept": "Qəbul edirik",
+    "paymentsSecuredBy": "Ödənişlər Azericard vasitəsilə təhlükəsiz şəkildə həyata keçirilir",
+    "disclaimer": "\"SatGo platformada yerləşdirilən istifadəçi elanlarının və ya üçüncü tərəf reklamlarının məzmununa görə məsuliyyət daşımır. Satılan məhsul və ya xidmətlərin dəqiqliyi, qanuniliyi, keyfiyyəti və təhlükəsizliyi ilə bağlı bütün məsuliyyət satıcının üzərinə düşür. SatGo-nun rolu vasitəçi kimi platforma və ödəniş xidmətlərinin təqdim edilməsi ilə məhdudlaşır və biz istifadəçi məzmununa zəmanət vermirik və ya təsdiq etmirik.\"",
+    "operatedByPrefix": "Elanlar xidməti aşağıdakı şirkət tərəfindən idarə olunur:",
+    "refundPolicy": "Geri qaytarma siyasəti",
+    "contact": "Əlaqə"
   },
   "common": {
     "cancel": "Ləğv et",
@@ -943,5 +949,51 @@
     "loading": "Yüklənir...",
     "linkCopied": "Link buferə kopyalandı!",
     "pleaseLogin": "Davam etmək üçün daxil olun."
+  },
+  "company": {
+    "nameLabel": "Şirkətin adı",
+    "name": "SATGO",
+    "taxIdLabel": "VÖEN",
+    "taxId": "1301881282",
+    "addressLabel": "Qeydiyyat ünvanı",
+    "address": "AZ1052, Bakı, Nərimanov rayonu,\n13-cü bina, m.M1, m2, Azərbaycan",
+    "jurisdictionLabel": "Yurisdiksiya",
+    "jurisdiction": "Azərbaycan Respublikası"
+  },
+  "about": {
+    "heroTitle": "SatGo haqqında",
+    "heroSubtitle": "Azərbaycan üzrə alıcıları və satıcıları birləşdirən etibarlı onlayn bazar.",
+    "whatIsTitle": "SatGo nədir?",
+    "whatIsP1": "SatGo Azərbaycanda istifadəçilərə geniş çeşiddə mal və xidmətləri almaq və satmaq imkanı verən onlayn bazar platformasıdır. Platforma vasitəsilə istifadəçilər nəqliyyat vasitələri, daşınmaz əmlak, elektronika, məişət əşyaları və digər icazə verilən kateqoriyalarda elan yerləşdirə və satın ala bilərlər.",
+    "whatIsP2": "Həm fiziki şəxslər, həm də qeydiyyatdan keçmiş müəssisələr platforma vasitəsilə elan yerləşdirə və əməliyyatları tamamlaya bilər. SatGo təhlükəsiz əməliyyat mühiti təqdim edir, o cümlədən onlayn ödənişlər üçün alıcı müdafiəsi, burada vəsait əməliyyat təsdiqlənənə qədər müvəqqəti saxlanıla bilər.",
+    "featureBuyerProtectionTitle": "Alıcı Müdafiəsi",
+    "featureBuyerProtectionDesc": "Alıcı sifarişini aldığını təsdiqləyənə qədər vəsait təhlükəsiz şəkildə saxlanılır.",
+    "featureForEveryoneTitle": "Hər kəs üçün",
+    "featureForEveryoneDesc": "Fiziki şəxslər və müəssisələr eyni şəkildə SatGo-da elan yerləşdirə və satın ala bilər.",
+    "featureWideCategoriesTitle": "Geniş Kateqoriyalar",
+    "featureWideCategoriesDesc": "Nəqliyyat vasitələri, daşınmaz əmlak, elektronika, məişət əşyaları və daha çoxu.",
+    "administrationTitle": "İdarəetmə",
+    "administrationDesc": "Platforma Azərbaycan Respublikasının qanunvericiliyinə uyğun idarə olunur.",
+    "ipRightsNote": "Platforma ilə bağlı bütün əqli mülkiyyət hüquqları yalnız SATGO-ya məxsusdur.",
+    "contactUsLabel": "Bizimlə əlaqə"
+  },
+  "contact": {
+    "heroTitle": "Bizimlə əlaqə",
+    "heroSubtitle": "Sualınız var və ya dəstəyə ehtiyacınız var? Kömək etməyə hazırıq.",
+    "emailSupportTitle": "E-poçt dəstəyi",
+    "emailSupportDesc": "Hesab, elan və ya ödəniş ilə bağlı suallarınız üçün bizə mesaj göndərin.",
+    "phoneTitle": "Telefon",
+    "phoneDesc": "Təcili məsələlər üçün iş saatlarında komandamızla əlaqə saxlayın.",
+    "addressTitle": "Ünvan",
+    "addressDesc": "Bakı, Azərbaycandakı qeydiyyat ofisimiz.",
+    "businessHoursTitle": "İş saatları",
+    "businessHoursDesc": "Dəstək komandamız bu saatlarda mövcuddur.",
+    "hoursWeekday": "Bazar ertəsi – Cümə: 09:00 – 18:00",
+    "hoursSaturday": "Şənbə: 10:00 – 15:00",
+    "hoursSunday": "Bazar: Bağlıdır",
+    "companyInfoTitle": "Şirkət məlumatı",
+    "helpfulLinksTitle": "Faydalı keçidlər",
+    "aboutLinkLabel": "SatGo haqqında",
+    "submitQueryLabel": "Sorğu göndər"
   }
 }

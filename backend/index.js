@@ -66,9 +66,10 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       "http://51.20.123.49",
       "http://10.113.84.234:8080",
       "http://10.175.186.234:8080",
-      "http://10.233.109.234:8080",
-      "http://10.106.131.234:8080",
-      "http://10.175.186.234:8080"
+      "http://10.137.164.234:8080",
+      "http://192.168.29.86:8080",
+      "http://192.168.1.3:8080",
+      
     ];
 
 const corsOptions = {
@@ -204,14 +205,29 @@ const io = new Server(server, {
   transports: ["websocket", "polling"], // ensure websocket works behind proxies
 });
 
+// Socket JWT handshake — verify access token before any event fires
+const jwt = require("jsonwebtoken");
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) return next(new Error("Authentication required"));
+  try {
+    const clean = token.replace(/^Bearer\s+/i, "");
+    const decoded = jwt.verify(clean, process.env.ACCESS_TOKEN_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch {
+    next(new Error("Invalid or expired token"));
+  }
+});
+
 // Init socket controller
 initSocket(io);
 
-// Optional: log connections
+// Log connections (userId available after handshake)
 io.on("connection", (socket) => {
-  logger.info('New client connected', { socketId: socket.id });
+  logger.info('Socket connected', { socketId: socket.id, userId: socket.userId });
   socket.on("disconnect", () => {
-    logger.info('Client disconnected', { socketId: socket.id });
+    logger.info('Socket disconnected', { socketId: socket.id });
   });
 });
 

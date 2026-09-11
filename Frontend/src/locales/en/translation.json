@@ -255,8 +255,8 @@
     "individual": "Individual",
     "shop": "Shop",
     "languageEnglish": "English",
-    "languageAzerbaijani": "Az\u0259rbaycan",
-    "languageRussian": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439",
+    "languageAzerbaijani": "Azərbaycan",
+    "languageRussian": "Русский",
     "availableUnits": "Available Units",
     "single": "Single",
     "bulk": "Bulk",
@@ -934,7 +934,14 @@
     "popularSearches": "Popular Searches",
     "adsOverview": "Ads Overview",
     "overviewOfCompanyPages": "Overview Of Company Pages",
-    "carValuation": "Car Valuation"
+    "carValuation": "Car Valuation",
+    "supportTitle": "Need help? Call support",
+    "weAccept": "We accept",
+    "paymentsSecuredBy": "Payments processed securely via Azericard",
+    "disclaimer": "\"SatGo is not responsible for the content of user-generated listings or third-party advertisements displayed on the platform. All responsibility for the accuracy, legality, quality, and safety of the listed products or services lies with the seller. SatGo's role is limited to providing the platform and payment services as an intermediary, and we do not guarantee or endorse any user content.\"",
+    "operatedByPrefix": "The classifieds services are operated by",
+    "refundPolicy": "Refund Policy",
+    "contact": "Contact"
   },
   "common": {
     "cancel": "Cancel",
@@ -942,5 +949,51 @@
     "loading": "Loading...",
     "linkCopied": "Link copied to clipboard!",
     "pleaseLogin": "Please log in to continue."
+  },
+  "company": {
+    "nameLabel": "Company Name",
+    "name": "SATGO",
+    "taxIdLabel": "Tax ID (VÖEN)",
+    "taxId": "1301881282",
+    "addressLabel": "Registered Address",
+    "address": "AZ1052, Baku, Narimanov District,\nBuilding 13, m.M1, m2, Azerbaijan",
+    "jurisdictionLabel": "Jurisdiction",
+    "jurisdiction": "Republic of Azerbaijan"
+  },
+  "about": {
+    "heroTitle": "About SatGo",
+    "heroSubtitle": "Azerbaijan's trusted online marketplace connecting buyers and sellers across the country.",
+    "whatIsTitle": "What is SatGo?",
+    "whatIsP1": "SatGo is an online marketplace platform in Azerbaijan that enables users to buy and sell a wide range of goods and services. Through the platform, users can list and purchase vehicles, real estate, electronics, household items, and other permitted categories.",
+    "whatIsP2": "Both private individuals and registered businesses may create listings and complete transactions through the platform. SatGo provides a secure transaction environment, including buyer protection for online payments, where funds may be temporarily held until transaction confirmation.",
+    "featureBuyerProtectionTitle": "Buyer Protection",
+    "featureBuyerProtectionDesc": "Funds are held securely until the buyer confirms receipt of their order.",
+    "featureForEveryoneTitle": "For Everyone",
+    "featureForEveryoneDesc": "Private individuals and businesses alike can list and buy on SatGo.",
+    "featureWideCategoriesTitle": "Wide Categories",
+    "featureWideCategoriesDesc": "Vehicles, real estate, electronics, household items, and more.",
+    "administrationTitle": "Administration",
+    "administrationDesc": "The platform is operated in accordance with the laws of the Republic of Azerbaijan.",
+    "ipRightsNote": "All intellectual property rights related to the platform are exclusively owned by SATGO.",
+    "contactUsLabel": "Contact Us"
+  },
+  "contact": {
+    "heroTitle": "Contact Us",
+    "heroSubtitle": "Have a question or need support? We're here to help.",
+    "emailSupportTitle": "Email Support",
+    "emailSupportDesc": "Send us a message for account, listing, or payment queries.",
+    "phoneTitle": "Phone",
+    "phoneDesc": "Reach our team during business hours for urgent matters.",
+    "addressTitle": "Address",
+    "addressDesc": "Our registered office in Baku, Azerbaijan.",
+    "businessHoursTitle": "Business Hours",
+    "businessHoursDesc": "Our support team is available during these hours.",
+    "hoursWeekday": "Monday – Friday: 09:00 – 18:00",
+    "hoursSaturday": "Saturday: 10:00 – 15:00",
+    "hoursSunday": "Sunday: Closed",
+    "companyInfoTitle": "Company Information",
+    "helpfulLinksTitle": "Helpful Links",
+    "aboutLinkLabel": "About SatGo",
+    "submitQueryLabel": "Submit a Query"
   }
 }

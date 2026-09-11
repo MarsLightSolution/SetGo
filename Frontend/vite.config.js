@@ -57,7 +57,51 @@ export default defineConfig(({ mode }) => {
 
       rollupOptions: {
         output: {
-assetFileNames: (assetInfo) => {
+          // Manual chunking — use exact regex to avoid circular chunk refs
+          manualChunks: (id) => {
+            if (!id.includes('node_modules')) return undefined;
+
+            if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) {
+              return 'react-vendor';
+            }
+            if (/node_modules\/(@mui|@emotion)\//.test(id)) {
+              return 'mui-vendor';
+            }
+            if (/node_modules\/(leaflet|react-leaflet)\//.test(id)) {
+              return 'leaflet-vendor';
+            }
+            if (/node_modules\/(socket\.io-client|engine\.io-client|socket\.io-parser|@socket\.io)\//.test(id)) {
+              return 'socket-vendor';
+            }
+            if (/node_modules\/axios\//.test(id)) {
+              return 'http-vendor';
+            }
+            if (/node_modules\/framer-motion\//.test(id)) {
+              return 'animation-vendor';
+            }
+            if (/node_modules\/(@lottiefiles\/|dotlottie-web\/)/.test(id)) {
+              return 'lottie-vendor';
+            }
+            if (/node_modules\/heic2any\//.test(id)) {
+              return 'heic-vendor';
+            }
+            if (/node_modules\/@react-google-maps\//.test(id)) {
+              return 'maps-vendor';
+            }
+            if (/node_modules\/(react-icons|lucide-react)\//.test(id)) {
+              return 'icons-vendor';
+            }
+            if (/node_modules\/(i18next|react-i18next|i18next-browser-languagedetector)\//.test(id)) {
+              return 'i18n-vendor';
+            }
+            if (/node_modules\/(@reduxjs\/toolkit|react-redux|immer)\//.test(id)) {
+              return 'redux-vendor';
+            }
+
+            return 'vendor';
+          },
+
+          assetFileNames: (assetInfo) => {
             const name = assetInfo.names?.[0] ?? '';
             if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico|webp)$/i.test(name)) {
               return 'assets/images/[name]-[hash][extname]';

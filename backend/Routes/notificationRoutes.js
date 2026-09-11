@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
+const User = require('../models/user');
 const authMiddleware = require('../middlewares/auth.middlewares'); // Using existing auth middleware
 const logger = require('../utils/logger');
 
@@ -8,7 +9,7 @@ const logger = require('../utils/logger');
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20, unreadOnly = false } = req.query;
-    const userId = req.user.email || req.user._id; // Using _id from mongoose
+    const userId = req.user._id.toString(); // Using _id from mongoose
     
     const query = { recipientId: userId };
     if (unreadOnly === 'true') {
@@ -49,7 +50,7 @@ router.get('/', authMiddleware, async (req, res) => {
 // Get unread count
 router.get('/unread-count', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.email || req.user._id;
+    const userId = req.user._id.toString();
     const unreadCount = await Notification.getUnreadCount(userId);
     
     res.json({
@@ -70,7 +71,7 @@ router.get('/unread-count', authMiddleware, async (req, res) => {
 router.patch('/:id/read', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.email || req.user._id;
+    const userId = req.user._id.toString();
 
     const notification = await Notification.findOne({
       _id: id,
@@ -104,7 +105,7 @@ router.patch('/:id/read', authMiddleware, async (req, res) => {
 // Mark all notifications as read
 router.patch('/mark-all-read', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.email || req.user._id;
+    const userId = req.user._id.toString();
     const result = await Notification.markAllAsRead(userId);
 
     res.json({
@@ -126,7 +127,7 @@ router.patch('/mark-all-read', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.email || req.user._id;
+    const userId = req.user._id.toString();
 
     const notification = await Notification.findOneAndDelete({
       _id: id,
@@ -157,7 +158,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 // Delete all read notifications
 router.delete('/read/all', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.email || req.user._id;
+    const userId = req.user._id.toString();
     const result = await Notification.deleteMany({
       recipientId: userId,
       isRead: true
@@ -182,7 +183,7 @@ router.delete('/read/all', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { recipientId, type, title, message, metadata } = req.body;
-    const senderId = req.user.email || req.user._id;
+    const senderId = req.user._id.toString();
 
     if (!recipientId || !type || !title) {
       return res.status(400).json({
@@ -215,6 +216,22 @@ router.post('/', authMiddleware, async (req, res) => {
       message: 'Failed to create notification',
       error: error.message
     });
+  }
+});
+
+// Register / update Expo push token for the authenticated user
+router.post('/push-token', authMiddleware, async (req, res) => {
+  try {
+    const { token, platform } = req.body;
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'token is required' });
+    }
+    const userId = req.user._id;
+    await User.findByIdAndUpdate(userId, { pushToken: token, pushPlatform: platform || 'unknown' });
+    res.json({ success: true, message: 'Push token registered' });
+  } catch (error) {
+    logger.error('Error registering push token', { message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to register push token' });
   }
 });
 

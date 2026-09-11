@@ -1,21 +1,40 @@
-import { Link } from "react-router-dom"
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { FaPhoneAlt } from "react-icons/fa";
+
+const SUPPORT_PHONE = "+994 50 545 86 52";
+const SUPPORT_PHONE_TEL = "+994505458652";
 
 const Footer = () => {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-white border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
         {/* Legal links */}
         <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-gray-500">
-          <Link to="/about"          className="hover:text-green-700 transition-colors">About</Link>
-          <Link to="/privacy-policy" className="hover:text-green-700 transition-colors">Privacy Policy</Link>
-          <Link to="/refund-policy"  className="hover:text-green-700 transition-colors">Refund Policy</Link>
-          <Link to="/contact"        className="hover:text-green-700 transition-colors">Contact</Link>
+          <Link to="/about" className="hover:text-green-700 transition-colors">{t("footer.aboutUs")}</Link>
+          <Link to="/privacy-policy" className="hover:text-green-700 transition-colors">{t("footer.privacyPolicy")}</Link>
+          <Link to="/refund-policy" className="hover:text-green-700 transition-colors">{t("footer.refundPolicy")}</Link>
+          <Link to="/contact" className="hover:text-green-700 transition-colors">{t("footer.contact")}</Link>
+        </div>
+
+        {/* Support */}
+        <div className="border-t border-gray-200 pt-6 flex flex-col items-center gap-2">
+          <p className="text-xs text-gray-500 font-medium">{t("footer.supportTitle")}</p>
+          <a
+            href={`tel:${SUPPORT_PHONE_TEL}`}
+            className="flex items-center gap-2 text-sm font-medium text-[#2e4a2f] hover:text-green-700 transition-colors"
+          >
+            <FaPhoneAlt className="text-green-700" />
+            {SUPPORT_PHONE}
+          </a>
         </div>
 
         {/* Payment Methods */}
         <div className="border-t border-gray-200 pt-6 flex flex-col items-center gap-3">
-          <p className="text-xs text-gray-500 font-medium">We accept</p>
+          <p className="text-xs text-gray-500 font-medium">{t("footer.weAccept")}</p>
           <div className="flex items-center gap-4">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 500" className="h-8 w-auto">
               <rect width="780" height="500" rx="40" fill="#1a1f71" />
@@ -29,26 +48,20 @@ const Footer = () => {
               <path d="M390 130.7c-35.3 27.5-58 70.4-58 118.3s22.7 90.8 58 118.3c35.3-27.5 58-70.4 58-118.3s-22.7-90.8-58-118.3z" fill="#eb6100" />
             </svg>
           </div>
-          <p className="text-xs text-gray-400">Payments processed securely via Azericard</p>
+          <p className="text-xs text-gray-400">{t("footer.paymentsSecuredBy")}</p>
         </div>
 
         {/* Bottom Info */}
         <div className="border-t border-gray-200 pt-6 text-center text-xs text-gray-500 space-y-2 px-4">
+          <p>{t("footer.disclaimer")}</p>
           <p>
-            "SatGo is not responsible for the content of user-generated listings or third-party
-            advertisements displayed on the platform. All responsibility for the accuracy, legality,
-            quality, and safety of the listed products or services lies with the seller. SatGo's role is
-            limited to providing the platform and payment services as an intermediary, and we do
-            not guarantee or endorse any user content."
-          </p>
-          <p>
-            The classifieds services are operated by <span className="font-medium">SatGo</span>.
+            {t("footer.operatedByPrefix")} <span className="font-medium">SatGo</span>.
           </p>
         </div>
 
       </div>
     </footer>
-  )
-}
+  );
+};
 
-export default Footer
+export default Footer;
