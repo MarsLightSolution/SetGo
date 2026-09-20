@@ -75,48 +75,47 @@ const getUserTransactions = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(id))
     throw new ApiError(400, "Invalid user id");
 
-  // ① Fetch user with only the wallet and transactionHistory
-  const user = await User.findById(id, "transactionHistory walletBalance username");
+  const user = await User.findById(id, "walletBalance username");
   if (!user) throw new ApiError(404, "User not found");
 
-  // ② Pull all distinct txn IDs to resolve counterparties
-  const txnIds = user.transactionHistory.map((h) => h.transactionId);
+  // Transaction is the single ledger - history is derived from it, not stored on the user
+  const txDocs = await Transaction.find(Transaction.walletEntriesFilter(user._id))
+    .sort({ createdAt: -1 })
+    .lean();
 
-  // ③ Fetch sender & receiver for each txn in one query
-  const txDocs = await Transaction.find(
-    { transactionId: { $in: txnIds } },
-    "transactionId senderId receiverId status"
-  ).lean();
+  // One ledger row can appear as a debit (sender) and/or a credit (receiver) for this user
+  const entries = [];
+  for (const tx of txDocs) {
+    const isReceiver = tx.receiverId && tx.receiverId.toString() === id;
+    const isSender = tx.senderId && tx.senderId.toString() === id && tx.paymentMode !== "online";
+    if (isSender) entries.push({ tx, direction: "debit", counterpartyId: tx.receiverId });
+    if (isReceiver) entries.push({ tx, direction: "credit", counterpartyId: tx.senderId });
+  }
 
-  // ④ Create a map for fast lookup
-  const txnMap = new Map(txDocs.map((t) => [t.transactionId, t]));
+  // Resolve every counterparty in one query
+  const cpIds = [...new Set(entries.map((e) => e.counterpartyId?.toString()).filter(Boolean))];
+  const cpUsers = await User.find({ _id: { $in: cpIds } }, "username").lean();
+  const cpMap = new Map(cpUsers.map((u) => [u._id.toString(), u]));
 
-  // ⑤ Build response array and compute totals
   let totalCredit = 0;
   let totalDebit = 0;
 
-  const transactions = await Promise.all(
-    user.transactionHistory
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .map(async (h) => {
-        const tx = txnMap.get(h.transactionId);
-        let counterpartyId =
-          h.direction === "debit" ? tx?.receiverId : tx?.senderId;
+  // Same response shape the frontend already consumes
+  const transactions = entries.map(({ tx, direction, counterpartyId }) => {
+    if (direction === "credit") totalCredit += tx.amount;
+    else totalDebit += tx.amount;
 
-        if (h.direction === "credit") totalCredit += h.amount;
-        if (h.direction === "debit") totalDebit += h.amount;
-
-        const cp = counterpartyId
-          ? await User.findById(counterpartyId, "username").lean()
-          : null;
-
-        return {
-          ...h.toObject(),
-          status: tx?.status || "unknown",
-          counterparty: cp ? { _id: cp._id, username: cp.username } : null,
-        };
-      })
-  );
+    const cp = counterpartyId ? cpMap.get(counterpartyId.toString()) : null;
+    return {
+      _id: tx._id,
+      transactionId: tx.transactionId,
+      amount: tx.amount,
+      direction,
+      createdAt: tx.createdAt,
+      status: tx.status || "unknown",
+      counterparty: cp ? { _id: cp._id, username: cp.username } : null,
+    };
+  });
 
   res.json(
     new ApiResponse(200, {
@@ -134,7 +133,7 @@ const getUserWalletBalance = asyncHandler(async(req,res)=>{
   if (!mongoose.Types.ObjectId.isValid(id))
     throw new ApiError(400, "Invalid user id");
 
-  // ① Fetch user with only the wallet and transactionHistory
+  // ① Fetch just the wallet balance
   const user = await User.findById(id, " walletBalance username");
   if (!user) throw new ApiError(404, "User not found");
   res.json(

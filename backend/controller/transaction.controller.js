@@ -52,15 +52,8 @@ const walletTransfer = asyncHandler(async (req, res) => {
       paymentMode: "Wallet",
       type: "transfer",
     }], { session });
-    await User.findByIdAndUpdate(senderId, {
-      $inc: { walletBalance: -amount },
-      $push: { transactionHistory: { transactionId, amount, direction: "debit", createdAt: new Date() } }
-    }, { session });
-
-    await User.findByIdAndUpdate(receiverId, {
-      $inc: { walletBalance: amount },
-      $push: { transactionHistory: { transactionId, amount, direction: "credit", createdAt: new Date() } }
-    }, { session });
+    await User.findByIdAndUpdate(senderId, { $inc: { walletBalance: -amount } }, { session });
+    await User.findByIdAndUpdate(receiverId, { $inc: { walletBalance: amount } }, { session });
 
     if (!useExternalSession) {
       await session.commitTransaction();
@@ -131,14 +124,11 @@ async function onlineWalletTransfer(payload, session = null) {
       transactionId,
       description,
       status: 'success',
-      paymentMode: 'online',
+      paymentMode: 'online', // sender paid via gateway; only the receiver's wallet changes
       type: 'transfer',
     }], { session: dbSession });
 
-    await User.findByIdAndUpdate(receiverId, {
-      $inc: { walletBalance: amount },
-      $push: { transactionHistory: { transactionId, amount, direction: "credit", createdAt: new Date() } }
-    }, { session: dbSession });
+    await User.findByIdAndUpdate(receiverId, { $inc: { walletBalance: amount } }, { session: dbSession });
 
     if (!useExternalSession) {
       await dbSession.commitTransaction();
