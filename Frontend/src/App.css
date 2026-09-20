@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", "Inter", sans-serif;
+}
+
 *{
   box-sizing: border-box;
 }
@@ -50,6 +55,24 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;            /* Chrome, Safari, Opera */
 }
+/* Logo entrance animation */
+@keyframes logo-enter {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
+.logo-enter {
+  animation: logo-enter 0.6s ease-out backwards;
+}
 
+.logo-text-enter {
+  animation: logo-enter 0.6s ease-out 0.2s backwards;
+}
 
+/* Turn animation off for people who get motion sick */
+@media (prefers-reduced-motion: reduce) {
+  .logo-enter,
+  .logo-text-enter {
+    animation: none;
+  }
+}

@@ -115,9 +115,12 @@ const Navbar = () => {
       className="flex items-center space-x-2 cursor-pointer"
       onClick={() => navigate("/")}
     >
-      <img src={logo} alt="logo" className="h-10 w-10" />
+      <img 
+      src={logo}
+      alt="logo" 
+      className="h-14 w-14 transition-transform duration-300 hover:scale-120 " />
       {/* Always show full text */}
-      <span className="text-xl sm:text-2xl font-semibold text-[#2e4a2f]">
+      <span className="text-xl sm:text-2xl font-semibold text-[#2e4a2f] logo-text-enter transition-colors duration-300 group-hover:text-green-600">
         SATGO
       </span>
     </div>
