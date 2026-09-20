@@ -26,7 +26,6 @@ COMMIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short HEAD)"
 
 FRONTEND_DIR="$REPO_ROOT/Frontend"
 BACKEND_DIR="$REPO_ROOT/backend"
-PAYMENT_DIR="$REPO_ROOT/payment-microservice"
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 log()     { echo -e "${BOLD}${BLUE}[DEPLOY]${NC} $*"; }
@@ -89,7 +88,6 @@ preflight() {
 
   [[ -d "$FRONTEND_DIR" ]]  || error "Frontend directory not found: $FRONTEND_DIR"
   [[ -d "$BACKEND_DIR" ]]   || error "Backend directory not found: $BACKEND_DIR"
-  [[ -d "$PAYMENT_DIR" ]]   || error "Payment directory not found: $PAYMENT_DIR"
 
   if ! git -C "$REPO_ROOT" ls-remote origin HEAD >/dev/null 2>&1; then
     warn "Cannot reach remote 'origin'. Build will run but push will be skipped."
@@ -135,16 +133,6 @@ validate_backend() {
   cd "$REPO_ROOT"
 }
 
-# ─── Validate Payment Microservice ───────────────────────────────────────────
-validate_payment() {
-  step "💳  Validating Payment Microservice (Node.js)"
-
-  cd "$PAYMENT_DIR"
-  node --check src/app.js && success "src/app.js syntax OK"
-
-  cd "$REPO_ROOT"
-}
-
 # ─── Create Production Branch ────────────────────────────────────────────────
 create_branch() {
   step "🌿  Creating production branch: ${PROD_BRANCH}"
@@ -183,8 +171,7 @@ Build time    : $(date '+%Y-%m-%d %H:%M:%S')
 
 Services included:
   - Frontend (Vite/React) — pre-built dist/ included
-  - Backend (Node.js)     — source, run: npm install && npm start
-  - Payment Microservice  — source, run: npm install && npm start"
+  - Backend (Node.js)     — source, run: npm install && npm start"
 
   git -C "$REPO_ROOT" commit -m "$msg"
   success "Committed"
@@ -246,7 +233,6 @@ main() {
   preflight
   build_frontend
   validate_backend
-  validate_payment
   create_branch
   stage_artifacts
   create_commit

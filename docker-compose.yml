@@ -2,9 +2,8 @@
 #   docker compose build
 #   docker compose up -d
 #
-# Secrets are NOT baked into images. They come from the gitignored files
-#   backend/.env  and  payment-microservice/.env
-# and the payment signing keys from payment-microservice/keys/ (mounted read-only).
+# Secrets are NOT baked into images. They come from the gitignored file
+#   backend/.env
 services:
   frontend:
     build:
@@ -34,21 +33,6 @@ services:
       - backend_logs:/app/logs
     restart: unless-stopped
 
-  payment:
-    build: ./payment-microservice
-    image: setgo-payment
-    env_file: ./payment-microservice/.env
-    environment:
-      NODE_ENV: production
-      PORT: "5001"
-    ports:
-      - "5001:5001"
-    volumes:
-      - ./payment-microservice/keys:/app/keys:ro
-      - payment_logs:/app/logs
-    restart: unless-stopped
-
 volumes:
   backend_uploads:
   backend_logs:
-  payment_logs:

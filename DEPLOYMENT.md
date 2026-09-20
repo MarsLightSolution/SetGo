@@ -12,13 +12,12 @@ and what's still outstanding.
 
 ## 1. Architecture
 
-One EC2 instance runs everything:
+One EC2 instance runs everything (frontend + backend only; the payment microservice was retired 2026-09-20):
 
 | Service | How | Port | Domain |
 |---|---|---|---|
 | Frontend (static build) | nginx serves `Frontend/dist` directly | — | `satgo.az`, `www.satgo.az` |
 | Backend API | PM2 (`setgo-backend`) | 8080 | `api.satgo.az` |
-| Payment microservice | PM2 (`setgo-payment`) | 5001 | `payment.satgo.az` |
 | MongoDB | Atlas (external) | — | — |
 | Redis | Redis Cloud (external) | — | — |
 
@@ -39,7 +38,7 @@ Three kinds of branches (reorganised 2026-09-20):
 
 | Branch | Contains | Who writes to it |
 |---|---|---|
-| **`main-2`** | Application code **only**: `Frontend/`, `backend/`, `payment-microservice/` (+ `README.md`, `.gitignore`). No deployment files. | Feature PRs |
+| **`main-2`** | Application code **only**: `Frontend/`, `backend/` (+ `README.md`, `.gitignore`). No deployment files. | Feature PRs |
 | **`deployment`** (protected) | `main-2`'s application code **plus** everything needed to ship it: `scripts/`, `ecosystem.config.js`, `nginx/`, the Dockerfiles, `docker-compose.yml`, this runbook. | Cherry-picks from `main-2` + deployment-file changes |
 | **`production/<timestamp>`** | One-off snapshots created by `scripts/deploy-production.sh` *from `deployment`*: source + a force-added pre-built `Frontend/dist/`. The server always has one checked out. | The deploy script only — never commit to these |
 
@@ -110,8 +109,7 @@ This does, in order:
 1. Preflight checks (must be on `deployment`, `Frontend/.env.production` sane, clean tree,
    `git`/`node`/`npm` present, remote reachable)
 2. `npm run build` in `Frontend/` (this is when you'd see build errors — fix and re-run)
-3. `node --check` on `backend/index.js` and `payment-microservice/src/app.js` (syntax only,
-   not a real test)
+3. `node --check` on `backend/index.js` (syntax only, not a real test)
 4. Creates a new branch `production/<UTC-ish timestamp>` off the current commit of `deployment`
 5. Force-adds `Frontend/dist/`, commits, pushes to `origin`
 6. Switches back to your original branch
@@ -129,9 +127,9 @@ bash scripts/pm2-start.sh
 ```
 
 `git checkout` here is the actual cutover — it swaps `Frontend/dist` on disk (nginx serves it
-directly, so this takes effect immediately) and updates `backend/`/`payment-microservice/`
-source. `pm2-start.sh` then does `npm install --omit=dev` in both service dirs and
-zero-downtime-reloads (`pm2 reload`) if they're already running.
+directly, so this takes effect immediately) and updates the `backend/` source. `pm2-start.sh` then
+does `npm install --omit=dev` in `backend/` and zero-downtime-reloads (`pm2 reload`) if it is
+already running. It also removes the retired `setgo-payment` PM2 entry if one is still registered.
 
 **Before you run the checkout**, check `Frontend/dist` is owned by `ubuntu`, not `www-data`:
 
@@ -152,7 +150,7 @@ branch switch) and you end up with a broken mix of old and new build assets bein
 ```bash
 curl -sk -o /dev/null -w '%{http_code}\n' https://satgo.az/
 curl -sk -o /dev/null -w '%{http_code}\n' https://api.satgo.az/config/app
-pm2 list          # both setgo-backend and setgo-payment should show "online"
+pm2 list          # setgo-backend should show "online"
 pm2 logs --nostream --lines 30
 ```
 
@@ -214,8 +212,6 @@ The server user needs passwordless `sudo` (it already has it) only for the autom
 ### What it does NOT do
 
 - It does not touch nginx (`nginx/satgo.conf` is applied by hand) or the server's `.env` files.
-- It does not gate on `setgo-payment` — that service is still down (Known Issues #3), and the
-  deploy shouldn't be blocked or rolled back because of it.
 - The repository is **public**: never put secrets in the workflow file itself; use Actions secrets.
 
 ---
@@ -301,35 +297,20 @@ that Certbot added directly on the server when it was set up — and that change
 back into git. If the server were ever rebuilt from this repo, SSL would silently be missing.
 **Fixed**: `nginx/satgo.conf` now matches the live config exactly (synced 2026-09-11).
 
-### 3. Payment microservice is crash-looping — 🔴 open, needs a decision
+### 3. Payment microservice — ✅ retired (2026-09-20)
 
-`setgo-payment` was already in PM2's crash-restart loop (`waiting…`, pid 0, restart count in the
-40s-50s) *before* this session touched anything — confirmed via the restart counter on first
-inspection. Cause:
+The microservice was crash-looping (missing `keys/private.pem`) and the project no longer includes
+it. It is removed from `main-2`, PM2, nginx, Docker and the deploy scripts. What remains:
 
-```
-Error: ENOENT: no such file or directory, open './keys/private.pem'
-```
-
-`payment-microservice/keys/` doesn't exist on the server at all. This key is required by
-`payment-microservice/src/services/crypto.service.js` to sign/verify payment requests presumably
-to Paymentwall/Azericard.
-
-**Notable**: `git log --all` shows `payment-microservice/keys/private.pem` *was* committed to
-this repo at one point (`ed2ef65`, "initial micro service model") and later untracked via
-`git rm --cached` when `.gitignore` was updated (`391b127`) — but history was never rewritten/
-force-pushed, so **the key is still fully recoverable from git history** by anyone with repo
-access. This is both a possible quick fix (restore the file from `ed2ef65` if it's still the
-right key) and a security exposure that should be addressed regardless:
-
-- Decide whether the key in `ed2ef65` is still the one Paymentwall/Azericard expects. If yes,
-  restore it to `payment-microservice/keys/private.pem` (and `public.pem`) on the server —
-  **do not commit it back to git**, it stays server-only per `.gitignore`.
-- If it's stale/rotated since, a new keypair needs to be generated and the public half
-  re-registered with the payment provider — this is a business/ops decision, not something to
-  do unilaterally.
-- Either way, consider the old key compromised (it sat in git history, possibly pushed to
-  GitHub) and worth rotating regardless of whether it's the current one.
+- `backend/Routes/payment-proxy.routes.js` and the `PAYMENT_MICROSERVICE_URL` setting still call
+  the removed service, so card checkout keeps failing. That backend path needs to be removed or
+  repointed.
+- The old signing key is still in git history (`ed2ef65`) of this **public** repository. Treat it
+  as compromised and rotate it with the payment provider if it was ever used for real traffic.
+- On the server: `payment.satgo.az` can be dropped from the nginx config
+  (`sudo cp nginx/satgo.conf /etc/nginx/sites-available/satgo.conf && sudo nginx -t && sudo systemctl reload nginx`),
+  and the leftover `~/SetGo/payment-microservice/` directory (untracked `keys/`, `.env`,
+  `node_modules/`) can be deleted.
 
 ### 4. Redis connection is failing continuously — 🟡 open, not blocking
 
@@ -360,21 +341,17 @@ badly behind what was actually live. Now application code lives in `main-2`, dep
 
 ## Docker (optional alternative to the PM2 workflow above)
 
-`docker-compose.yml` plus a `Dockerfile` in `Frontend/`, `backend/` and `payment-microservice/`
-build the three services as images. The live server still uses PM2 + nginx (sections 1-4);
+`docker-compose.yml` plus a `Dockerfile` in `Frontend/` and `backend/` build the two services as images. The live server still uses PM2 + nginx (sections 1-4);
 this is for local parity, or a future move to containers.
 
 ```bash
-docker compose build          # frontend, backend, payment
+docker compose build          # frontend, backend
 docker compose up -d
 ```
 
-- **Secrets are not baked in.** Backend and payment read `backend/.env` and
-  `payment-microservice/.env` at runtime; payment's `keys/` is mounted read-only.
+- **Secrets are not baked in.** The backend reads `backend/.env` at runtime.
 - **Frontend `VITE_*` values are baked in at build time** (Vite inlines them). Defaults are the
   production domains (`api.satgo.az` / `satgo.az`); override with `VITE_SERVER=... docker compose build`.
   `.env*` files are excluded from the build context on purpose, so build args are the single
   source of truth — this avoids the stale-`.env.production` mistake described in the deploy history.
-- Frontend image serves on port 80 (mapped to 8081), backend 8080, payment 5001.
-- Payment will crash-loop in a container for the same reason as on the server until
-  `payment-microservice/keys/private.pem` exists (see Known Issues #3).
+- Frontend image serves on port 80 (mapped to 8081), backend on 8080.

@@ -30,9 +30,5 @@ cd "$REPO_ROOT/backend"
 entry="index.js"; [[ -f "server.js" ]] && entry="server.js"
 node --check "$entry" && success "Backend OK"
 
-step "💳  Payment Microservice Syntax Check"
-cd "$REPO_ROOT/payment-microservice"
-node --check src/app.js && success "Payment OK"
-
 echo ""
 success "All builds complete. Run deploy-production.sh to push to a production branch."

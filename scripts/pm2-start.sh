@@ -35,23 +35,23 @@ cd "$REPO_ROOT/backend"
 npm install --omit=dev --no-audit --no-fund
 success "Backend deps installed"
 
-# ─── Install payment deps ─────────────────────────────────────────────────────
-step "📦  Installing Payment Microservice dependencies"
-cd "$REPO_ROOT/payment-microservice"
-npm install --omit=dev --no-audit --no-fund
-success "Payment deps installed"
-
 cd "$REPO_ROOT"
 
 # ─── Start or reload PM2 ─────────────────────────────────────────────────────
 step "🚀  Starting services with PM2"
 
 # If already running → reload (zero-downtime), else fresh start
-if pm2 list | grep -q "setgo-backend\|setgo-payment"; then
+if pm2 describe setgo-backend >/dev/null 2>&1; then
   warn "Services already running — reloading with zero downtime..."
   pm2 reload ecosystem.config.js --env production
 else
   pm2 start ecosystem.config.js --env production
+fi
+
+# The payment microservice was retired - remove its stale PM2 entry if it is still registered
+if pm2 describe setgo-payment >/dev/null 2>&1; then
+  warn "Removing retired setgo-payment process from PM2"
+  pm2 delete setgo-payment
 fi
 
 success "Services started"
@@ -70,7 +70,6 @@ echo ""
 echo -e "  ${BOLD}Useful commands:${NC}"
 echo -e "    pm2 logs                    → live logs (all services)"
 echo -e "    pm2 logs setgo-backend      → backend logs only"
-echo -e "    pm2 logs setgo-payment      → payment logs only"
 echo -e "    pm2 monit                   → live CPU/memory dashboard"
 echo -e "    pm2 restart setgo-backend   → restart one service"
 echo -e "    pm2 stop all                → stop everything"
