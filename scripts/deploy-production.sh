@@ -46,6 +46,18 @@ preflight() {
   git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     || error "Not inside a git repository: $REPO_ROOT"
 
+  # ── GUARD: deploys are cut from the `deployment` branch only ──────────────
+  if [[ "$SOURCE_BRANCH" != "deployment" && "${ALLOW_ANY_BRANCH:-}" != "1" ]]; then
+    error "Deploys must run from the 'deployment' branch (currently on '${SOURCE_BRANCH}'). Run: git checkout deployment  (or set ALLOW_ANY_BRANCH=1 to override)"
+  fi
+
+  # ── GUARD: Frontend/.env.production is gitignored but baked into the bundle ─
+  # A wrong VITE_SERVER once shipped a build calling a dead domain for a day.
+  ENV_PROD="$REPO_ROOT/Frontend/.env.production"
+  [[ -f "$ENV_PROD" ]] || error "Missing Frontend/.env.production - required for the production build (see DEPLOYMENT.md §3.1)"
+  tr -d '\r' < "$ENV_PROD" | grep -Eq '^VITE_SERVER=https://api\.satgo\.az$' \
+    || error "Frontend/.env.production must contain VITE_SERVER=https://api.satgo.az (see DEPLOYMENT.md §3.1)"
+
   # ── GUARD: untracked files check ─────────────────────────────────────────
   # Untracked files get committed to the production branch via `git add --all`.
   # When the script switches back to the source branch, git removes those files

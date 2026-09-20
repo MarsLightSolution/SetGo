@@ -35,24 +35,35 @@ One EC2 instance runs everything:
 
 ## 2. The branch strategy
 
-This repo has **two lines of history that matter for deployment**:
+Three kinds of branches (reorganised 2026-09-20):
 
-- **`main-2`** — the actual development branch. PRs land here.
-- **`production/<timestamp>`** — one-off snapshot branches, each containing a full pre-built
-  `Frontend/dist/` committed alongside the source (normally `dist/` is gitignored; these
-  branches force-add it with `git add -f`). The server always has one of these checked out.
-  A new one is created by `scripts/deploy-production.sh` every time you deploy — never commit
-  directly to an existing `production/*` branch.
+| Branch | Contains | Who writes to it |
+|---|---|---|
+| **`main-2`** | Application code **only**: `Frontend/`, `backend/`, `payment-microservice/` (+ `README.md`, `.gitignore`). No deployment files. | Feature PRs |
+| **`deployment`** (protected) | `main-2`'s application code **plus** everything needed to ship it: `scripts/`, `ecosystem.config.js`, `nginx/`, the Dockerfiles, `docker-compose.yml`, this runbook. | Cherry-picks from `main-2` + deployment-file changes |
+| **`production/<timestamp>`** | One-off snapshots created by `scripts/deploy-production.sh` *from `deployment`*: source + a force-added pre-built `Frontend/dist/`. The server always has one checked out. | The deploy script only — never commit to these |
 
-**Important**: as of 2026-09-11, `main-2` and the `production/*` lineage were badly diverged —
-`main-2` was missing real, already-live pages (`About.jsx`, `Contact.jsx`, `PrivacyPolicy.jsx`,
-`RefundPolicy.jsx`, a simplified `Footer.jsx`, an Admin panel rewrite, `vite.config.js` changes)
-because `scripts/`, `ecosystem.config.js`, and `nginx/satgo.conf` had *only ever existed on
-production branches* and were never merged back. This has now been fixed — `main-2` has
-everything merged in and the deploy tooling now lives on `main-2` too, so **from now on,
-always branch/deploy from `main-2`** and this shouldn't recur, provided each deploy's
-production branch keeps getting its source changes contributed back the normal way (PR into
-`main-2`, not committed straight onto a `production/*` branch).
+**Deployments are run from `deployment` only** — `deploy-production.sh` refuses to run on any
+other branch (override with `ALLOW_ANY_BRANCH=1`, don't).
+
+### Keeping `deployment` in sync with `main-2`
+
+Application changes land in `main-2` first (via PR), then get cherry-picked onto `deployment`.
+Never commit application code directly on `deployment`, otherwise the two drift apart.
+
+```bash
+git checkout deployment && git pull origin deployment
+git fetch origin main-2
+git cherry -v deployment origin/main-2      # "+" = on main-2 but not yet on deployment
+git cherry-pick <sha> [<sha> ...]           # oldest first
+git push origin deployment
+```
+
+`git cherry` compares patch contents, so it stays accurate even though cherry-picks get new SHAs.
+
+> **Never cherry-pick the `main-2` commit that removed the deployment files**
+> (`chore: remove deployment files ...`, 2026-09-20). It will show as `+` in `git cherry` — skip it,
+> or it deletes `scripts/`, `nginx/` etc. from `deployment`.
 
 ---
 
@@ -62,16 +73,32 @@ Run this from a machine that has the repo cloned, push access to GitHub, Node 18
 reach the server over SSH. (It does **not** need to be the server itself — building on a dev
 machine avoids taxing the EC2 box's very limited RAM, see [§5](#5-server-resource-limits).)
 
-### 3.1 Make sure `main-2` is what you want to ship
+### 3.1 Get `deployment` up to date
 
 ```bash
-git checkout main-2
-git pull origin main-2
-# merge/land your feature branch into main-2 here (PR, or a clean fast-forward merge)
+git checkout deployment
+git pull origin deployment
+git fetch origin main-2
+git cherry -v deployment origin/main-2      # what's not on deployment yet
+git cherry-pick <sha> ...                   # see section 2 (skip the "remove deployment files" commit)
+git push origin deployment
 ```
 
 Working tree must be clean (no untracked or uncommitted files) — the deploy script will warn
 and prompt if not, and the prompt hangs forever in a non-interactive shell.
+
+**Check `Frontend/.env.production` before building.** It is gitignored (so it never shows up in
+review) and Vite bakes its values into the JS bundle. It must contain:
+
+```
+VITE_SERVER=https://api.satgo.az
+VITE_FRONTEND=https://satgo.az
+VITE_SOCKET=https://api.satgo.az
+VITE_APP_URL=https://satgo.az
+```
+
+A wrong value here once shipped a build that called `satgo.com/api/...` (a dead domain) for a
+whole day. The deploy script now refuses to build unless `VITE_SERVER=https://api.satgo.az`.
 
 ### 3.2 Run the deploy script
 
@@ -80,11 +107,12 @@ bash scripts/deploy-production.sh
 ```
 
 This does, in order:
-1. Preflight checks (clean tree, `git`/`node`/`npm` present, remote reachable)
+1. Preflight checks (must be on `deployment`, `Frontend/.env.production` sane, clean tree,
+   `git`/`node`/`npm` present, remote reachable)
 2. `npm run build` in `Frontend/` (this is when you'd see build errors — fix and re-run)
 3. `node --check` on `backend/index.js` and `payment-microservice/src/app.js` (syntax only,
    not a real test)
-4. Creates a new branch `production/<UTC-ish timestamp>` off the current commit
+4. Creates a new branch `production/<UTC-ish timestamp>` off the current commit of `deployment`
 5. Force-adds `Frontend/dist/`, commits, pushes to `origin`
 6. Switches back to your original branch
 
@@ -266,6 +294,31 @@ Neither the winston logger (`app.log`/`error.log`) nor PM2's own output
 caused the ~1GB log bloat. Options: `pm2 install pm2-logrotate`, or configure winston with
 `maxsize`/`maxFiles` (e.g. via `winston-daily-rotate-file`).
 
-### 6. `main-2` / `production/*` divergence — ✅ fixed, watch for recurrence
+### 6. `main-2` / `production/*` divergence — ✅ fixed by the `deployment` branch
 
-Covered in [§2](#2-the-branch-strategy) above.
+The original problem: deploy tooling only ever lived on `production/*` branches, so `main-2` fell
+badly behind what was actually live. Now application code lives in `main-2`, deployment files in
+`deployment`, and every deploy is cut from `deployment` — see [§2](#2-the-branch-strategy).
+
+---
+
+## Docker (optional alternative to the PM2 workflow above)
+
+`docker-compose.yml` plus a `Dockerfile` in `Frontend/`, `backend/` and `payment-microservice/`
+build the three services as images. The live server still uses PM2 + nginx (sections 1-4);
+this is for local parity, or a future move to containers.
+
+```bash
+docker compose build          # frontend, backend, payment
+docker compose up -d
+```
+
+- **Secrets are not baked in.** Backend and payment read `backend/.env` and
+  `payment-microservice/.env` at runtime; payment's `keys/` is mounted read-only.
+- **Frontend `VITE_*` values are baked in at build time** (Vite inlines them). Defaults are the
+  production domains (`api.satgo.az` / `satgo.az`); override with `VITE_SERVER=... docker compose build`.
+  `.env*` files are excluded from the build context on purpose, so build args are the single
+  source of truth — this avoids the stale-`.env.production` mistake described in the deploy history.
+- Frontend image serves on port 80 (mapped to 8081), backend 8080, payment 5001.
+- Payment will crash-loop in a container for the same reason as on the server until
+  `payment-microservice/keys/private.pem` exists (see Known Issues #3).
