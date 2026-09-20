@@ -940,7 +940,7 @@
     "paymentsSecuredBy": "Payments processed securely via Azericard",
     "disclaimer": "\"SatGo is not responsible for the content of user-generated listings or third-party advertisements displayed on the platform. All responsibility for the accuracy, legality, quality, and safety of the listed products or services lies with the seller. SatGo's role is limited to providing the platform and payment services as an intermediary, and we do not guarantee or endorse any user content.\"",
     "operatedByPrefix": "The classifieds services are operated by",
-    "refundPolicy": "Refund Policy",
+    "refundPolicy": "Refund & Cancellation Policy",
     "contact": "Contact"
   },
   "common": {
@@ -1059,40 +1059,39 @@
     ]
   },
   "refundPolicy": {
-    "heroTitle": "Refund Policy",
-    "heroSubtitle": "Understand how refunds, cancellations, and buyer protection work on SatGo.",
+    "heroTitle": "Refund & Cancellation Policy",
+    "heroSubtitle": "How refund and cancellation requests, disputes and refunds work on SATGO.",
     "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282",
-    "buyerProtectionBadge": "Buyer Protection",
     "sections": [
       {
         "number": "1",
-        "title": "Platform Role",
-        "highlight": false,
-        "body": "SatGo acts solely as an intermediary platform between buyers and sellers. SatGo does not sell products and is not a party to sales transactions concluded between users."
+        "title": "Refund and Cancellation Requests",
+        "body": "Customers may submit a refund or cancellation request after placing an order, provided that the request is made before the order is delivered to and received by the customer. Such requests may be submitted through the refund/cancellation mechanism available on the SATGO platform and will be reviewed and processed in accordance with this Refund Policy.\n\nRefunds through SATGO are generally available only for transactions paid directly through SATGO’s integrated card-payment system on the SATGO website/platform. If a payment was made outside SATGO’s card-payment system, including payments made directly between a buyer and seller, SATGO generally cannot process or reverse that payment and such transactions are therefore not eligible for a refund through SATGO, except where otherwise required by applicable law.\n\nOnce an order has been delivered and received by the customer, it will generally be considered non-refundable, except where the product received is materially different from what was ordered or advertised, where SATGO's dispute-resolution rules provide otherwise, or where a refund or other remedy is required under applicable law."
       },
       {
         "number": "2",
-        "title": "Private Sales",
-        "highlight": false,
-        "body": "For private sales conducted through the platform, SatGo does not issue refunds.\n\nAny refund agreements, cancellations, or disputes must be resolved directly between the buyer and the seller."
+        "title": "Incorrect or Misrepresented Products",
+        "body": "If, after delivery, the customer discovers that the product received is materially different from the product ordered or does not correspond to the seller's listing or description, the customer may contact SATGO through the platform's Support System, provided that the order was paid for using SATGO's integrated card-payment system.\n\nSATGO will review the case, contact the relevant seller, facilitate the dispute process, and, where the customer is eligible for a refund under this Refund Policy, assist in processing the refund through the appropriate payment procedure.\n\nThe customer may be required to provide reasonable evidence, including photographs, videos, order information, communications, or other relevant information demonstrating the discrepancy between the product ordered and the product received."
       },
       {
         "number": "3",
-        "title": "Online Payments and Buyer Protection",
-        "highlight": true,
-        "body": "For transactions completed through online payment on the platform, buyer protection is provided.\n\nThe buyer's payment is temporarily held and released to the seller only after the buyer confirms receipt of the product.\n\nIf a dispute or unresolved issue arises before confirmation, the buyer and seller are expected to communicate directly through the platform in order to resolve the matter.\n\nDuring this period, the funds remain temporarily held until the matter is resolved between the parties.\n\nSatGo does not guarantee product quality, condition, authenticity, or delivery and is not responsible for fulfillment of transactions."
+        "title": "SATGO's Role",
+        "body": "SATGO operates as an e-commerce platform and intermediary connecting customers with independent sellers and facilitating the ordering, payment, and delivery process.\n\nResponsibility for the product itself, including its quality, condition, specifications, defects, shortages, damage, accuracy of the listing, or other product-related matters, remains primarily with the respective seller or shop from whom the product was purchased.\n\nSATGO does not manufacture or own products offered by independent sellers. However, where necessary, SATGO will provide reasonable assistance to customers by communicating with the seller, reviewing disputes, facilitating the resolution process, and providing the applicable refund/cancellation mechanism."
       },
       {
         "number": "4",
-        "title": "Wallet and Deposited Funds",
-        "highlight": false,
-        "body": "SatGo may provide users with an internal wallet feature to deposit funds, make payments within the platform, and request withdrawals.\n\nFunds deposited into the user wallet are intended solely for use within the platform.\n\nThe SatGo wallet does not constitute a bank account, financial institution account, or payment account. Stored balances do not earn interest and are not insured.\n\nWithdrawal requests may be subject to identity verification, security checks, and fraud prevention procedures."
+        "title": "Refund Processing",
+        "body": "Where a refund is permitted under this Refund Policy, the eligible product amount will be processed in accordance with SATGO's established refund procedure and the applicable payment-processing requirements.\n\nRefunds processed by SATGO are generally limited to eligible transactions originally completed through SATGO's integrated card-payment system. SATGO cannot ordinarily issue refunds for payments or transfers completed outside the SATGO payment system because SATGO does not process or control those external transactions.\n\nDelivery or shipping charges and any applicable fees or additional charges incurred in connection with the transaction are generally non-refundable and will not form part of the refunded product amount, except where otherwise required by applicable law or where SATGO determines that such charges should be refunded under the circumstances of a particular dispute."
       },
       {
         "number": "5",
-        "title": "Paid Platform Services",
-        "highlight": false,
-        "body": "Payments made for paid platform features, including listing promotions, visibility enhancements, boosts, or other activated services, are non-refundable once the service has been activated."
+        "title": "Refund and Cancellation Mechanism",
+        "body": "The SATGO e-commerce platform will provide customers who have completed eligible transactions through SATGO's card-payment system with a technically and functionally accessible mechanism through which they can submit refund or cancellation requests.\n\nBefore delivery, customers may use this mechanism to request cancellation or a refund in accordance with this policy.\n\nAfter delivery, customers may use SATGO's Support System for eligible disputes, including cases where the product received is materially different from the product ordered or advertised.\n\nSATGO will accept, review, and process eligible requests according to the procedures established in this Refund Policy."
+      },
+      {
+        "number": "6",
+        "title": "Disputes, Chargebacks and Reversals",
+        "body": "Disputes concerning product quality, condition, defects, damage, incorrect products, misleading descriptions, or other product-related matters will primarily concern the customer and the respective seller. However, SATGO will provide reasonable assistance in facilitating and managing the dispute process where required.\n\nNothing in this Refund Policy limits any rights or procedures available to customers under applicable law or through the applicable payment provider, issuing bank, chargeback, reversal, or other available dispute-resolution process.\n\nSATGO will cooperate with the relevant payment service providers and financial institutions where necessary in connection with refunds, reversals, chargebacks, and payment disputes, in accordance with the applicable procedures and requirements."
       }
     ]
   }
