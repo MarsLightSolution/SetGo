@@ -1,0 +1,1 @@
+import{j as e,N as r}from"./react-vendor-TM7GPbFn.js";function u({children:a}){let t=null;try{t=JSON.parse(localStorage.getItem("userData"))}catch(o){t=null}return t?t.role!=="admin"?e.jsx(r,{to:"/"}):a:e.jsx(r,{to:"/login"})}export{u as default};
