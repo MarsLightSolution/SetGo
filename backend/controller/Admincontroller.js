@@ -1,5 +1,6 @@
 const Order = require("../models/Order.js");
 const User = require("../models/user.js");
+const Transaction = require("../models/transaction.model.js");
 const Product = require("../models/product.model.js");
 const ADMIN_ID = process.env.Admin_Id;
 const { sendEmail } = require("../services/emailService.js");
@@ -14,16 +15,35 @@ const getAdminDashboardData = async (req, res) => {
   try {
     // Fetch orders with buyer/seller/product info
     const orders = await Order.find({})
-      .populate("buyerId", "profileName email createdAt walletBalance transactionHistory buy")
-      .populate("sellerId", "profileName email createdAt walletBalance transactionHistory sell")
+      .populate("buyerId", "profileName email createdAt walletBalance buy")
+      .populate("sellerId", "profileName email createdAt walletBalance sell")
       .populate("productId", "title price description")
       .sort({ createdAt: -1 })
       .lean();
 
     // Fetch all users for dashboard
     const allUsers = await User.find({})
-      .select("profileName email createdAt walletBalance transactionHistory buy sell paymentAccounts")
+      .select("profileName email createdAt walletBalance buy sell paymentAccounts")
       .lean();
+
+    // Wallet ledger lives in the Transaction collection (not on the user document)
+    const walletTxns = await Transaction.find({}).sort({ createdAt: -1 }).lean();
+    const userById = new Map(allUsers.map((u) => [u._id.toString(), u]));
+
+    // Expand each ledger row into the per-user entries the dashboard shows:
+    // a debit for the sender (wallet mode only) and a credit for the receiver
+    const walletEntries = [];
+    const walletEntryCount = new Map(); // userId -> number of ledger entries
+    const pushEntry = (userId, direction, txn) => {
+      const user = userById.get(userId?.toString());
+      if (!user) return;
+      walletEntryCount.set(user._id.toString(), (walletEntryCount.get(user._id.toString()) || 0) + 1);
+      walletEntries.push({ user, direction, txn });
+    };
+    for (const txn of walletTxns) {
+      if (txn.paymentMode !== "online") pushEntry(txn.senderId, "debit", txn);
+      pushEntry(txn.receiverId, "credit", txn);
+    }
 
     /** -----------------------------
      *  Derived Stats
@@ -57,18 +77,16 @@ const getAdminDashboardData = async (req, res) => {
       source: "order",
     }));
 
-    const userTransactions = allUsers.flatMap((user) =>
-      (user.transactionHistory || []).map((txn) => ({
-        id: txn.transactionId || txn._id,
-        type: txn.direction,
-        amount: txn.amount,
-        description: `Wallet ${txn.direction} - ${user.profileName || user.email}`,
-        date: txn.createdAt,
-        status: txn.status || "completed",
-        userName: user.profileName || user.email,
-        source: "wallet",
-      }))
-    );
+    const userTransactions = walletEntries.map(({ user, direction, txn }) => ({
+      id: txn.transactionId || txn._id,
+      type: direction,
+      amount: txn.amount,
+      description: `Wallet ${direction} - ${user.profileName || user.email}`,
+      date: txn.createdAt,
+      status: txn.status === "success" ? "completed" : txn.status || "completed",
+      userName: user.profileName || user.email,
+      source: "wallet",
+    }));
 
     const allTransactions = [...orderTransactions, ...userTransactions].sort(
       (a, b) => new Date(b.date) - new Date(a.date)
@@ -89,7 +107,7 @@ const getAdminDashboardData = async (req, res) => {
         totalOrders: buyerOrders.length,
         totalSpent,
         walletBalance: buyer.walletBalance || 0,
-        totalTransactions: buyer.transactionHistory?.length || 0,
+        totalTransactions: walletEntryCount.get(buyer._id.toString()) || 0,
         totalPurchases: buyer.buy?.length || 0,
         paymentMethods: buyer.paymentAccounts?.length || 0,
         status: buyerOrders.length > 0 ? "active" : "inactive",

@@ -55,14 +55,8 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    transactionHistory: [
-      {
-        transactionId: String,
-        amount: Number,
-        direction: { type: String, enum: ["debit", "credit"] },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
+    // Wallet transaction history is NOT stored here - the Transaction collection
+    // (models/transaction.model.js) is the single ledger; query it by senderId/receiverId.
     activity: [
       {
         action: String,
