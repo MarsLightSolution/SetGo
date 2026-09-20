@@ -20,26 +20,12 @@ export default function RefundPolicy() {
       {/* Sections */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-5">
         {Array.isArray(sections) && sections.map((s) => (
-          <div
-            key={s.number}
-            className={`rounded-2xl border shadow-sm p-7 ${
-              s.highlight
-                ? "bg-green-50 border-green-200"
-                : "bg-white border-gray-100"
-            }`}
-          >
+          <div key={s.number} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
             <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-3">
-              <span className={`w-7 h-7 text-white text-xs font-bold rounded-lg flex items-center justify-center shrink-0 ${
-                s.highlight ? "bg-green-700" : "bg-green-600"
-              }`}>
+              <span className="w-7 h-7 bg-green-600 text-white text-xs font-bold rounded-lg flex items-center justify-center shrink-0">
                 {s.number}
               </span>
               {s.title}
-              {s.highlight && (
-                <span className="ml-1 text-xs font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full">
-                  {t("refundPolicy.buyerProtectionBadge")}
-                </span>
-              )}
             </h2>
             <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line pl-10">
               {s.body}

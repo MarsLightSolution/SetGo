@@ -940,7 +940,7 @@
     "paymentsSecuredBy": "Ödənişlər Azericard vasitəsilə təhlükəsiz şəkildə həyata keçirilir",
     "disclaimer": "\"SatGo platformada yerləşdirilən istifadəçi elanlarının və ya üçüncü tərəf reklamlarının məzmununa görə məsuliyyət daşımır. Satılan məhsul və ya xidmətlərin dəqiqliyi, qanuniliyi, keyfiyyəti və təhlükəsizliyi ilə bağlı bütün məsuliyyət satıcının üzərinə düşür. SatGo-nun rolu vasitəçi kimi platforma və ödəniş xidmətlərinin təqdim edilməsi ilə məhdudlaşır və biz istifadəçi məzmununa zəmanət vermirik və ya təsdiq etmirik.\"",
     "operatedByPrefix": "Elanlar xidməti aşağıdakı şirkət tərəfindən idarə olunur:",
-    "refundPolicy": "Geri qaytarma siyasəti",
+    "refundPolicy": "Geri Qaytarma və Ləğvetmə Siyasəti",
     "contact": "Əlaqə"
   },
   "common": {
@@ -1059,40 +1059,39 @@
     ]
   },
   "refundPolicy": {
-    "heroTitle": "Geri Qaytarma Siyasəti",
-    "heroSubtitle": "SatGo-da geri qaytarmaların, ləğvlərin və alıcı müdafiəsinin necə işlədiyini öyrənin.",
+    "heroTitle": "Geri Qaytarma və Ləğvetmə Siyasəti",
+    "heroSubtitle": "SATGO-da geri qaytarma və ləğvetmə sorğularının, mübahisələrin və geri ödənişlərin necə işlədiyini öyrənin.",
     "lastUpdated": "Son yenilənmə: 2026 — SATGO, VÖEN 1301881282",
-    "buyerProtectionBadge": "Alıcı Müdafiəsi",
     "sections": [
       {
         "number": "1",
-        "title": "Platformanın Rolu",
-        "highlight": false,
-        "body": "SatGo yalnız alıcılar və satıcılar arasında vasitəçi platforma kimi çıxış edir. SatGo məhsul satmır və istifadəçilər arasında bağlanan satış əməliyyatlarının tərəfi deyil."
+        "title": "Geri Qaytarma və Ləğvetmə Sorğuları",
+        "body": "Müştərilər sifariş verdikdən sonra, sorğu sifarişin müştəriyə çatdırılmasından və müştəri tərəfindən təhvil alınmasından əvvəl göndərildiyi təqdirdə, geri qaytarma və ya ləğvetmə sorğusu təqdim edə bilərlər. Belə sorğular SATGO platformasında mövcud olan geri qaytarma/ləğvetmə mexanizmi vasitəsilə göndərilə bilər və bu Geri Qaytarma Siyasətinə uyğun olaraq nəzərdən keçiriləcək və emal olunacaq.\n\nSATGO vasitəsilə geri qaytarma, ümumiyyətlə, yalnız SATGO vebsaytında/platformasında SATGO-nun inteqrasiya olunmuş kart ödəniş sistemi vasitəsilə birbaşa ödənilmiş əməliyyatlar üçün mümkündür. Ödəniş SATGO-nun kart ödəniş sistemindən kənarda, o cümlədən alıcı ilə satıcı arasında birbaşa həyata keçirilibsə, SATGO ümumiyyətlə həmin ödənişi emal edə və ya geri qaytara bilməz və belə əməliyyatlar tətbiq olunan qanunvericiliklə başqa hal tələb olunmadıqda SATGO vasitəsilə geri qaytarmaya aid deyil.\n\nSifariş çatdırılıb müştəri tərəfindən təhvil alındıqdan sonra, alınan məhsulun sifariş edilən və ya elan edilən məhsuldan əhəmiyyətli dərəcədə fərqləndiyi, SATGO-nun mübahisələrin həlli qaydalarında başqa hal nəzərdə tutulduğu və ya tətbiq olunan qanunvericiliklə geri ödəniş və ya digər hüquqi müdafiə vasitəsinin tələb olunduğu hallar istisna olmaqla, o, ümumiyyətlə geri qaytarılmayan hesab olunur."
       },
       {
         "number": "2",
-        "title": "Fərdi Satışlar",
-        "highlight": false,
-        "body": "Platforma vasitəsilə həyata keçirilən fərdi satışlar üçün SatGo geri qaytarma etmir.\n\nİstənilən geri qaytarma razılaşmaları, ləğvlər və ya mübahisələr birbaşa alıcı və satıcı arasında həll edilməlidir."
+        "title": "Yanlış və ya Düzgün Təqdim Edilməyən Məhsullar",
+        "body": "Çatdırılmadan sonra müştəri alınan məhsulun sifariş edilən məhsuldan əhəmiyyətli dərəcədə fərqləndiyini və ya satıcının elanına və ya təsvirinə uyğun gəlmədiyini aşkar edərsə, sifariş SATGO-nun inteqrasiya olunmuş kart ödəniş sistemi ilə ödənilibsə, platformanın Dəstək Sistemi vasitəsilə SATGO ilə əlaqə saxlaya bilər.\n\nSATGO işi nəzərdən keçirəcək, müvafiq satıcı ilə əlaqə saxlayacaq, mübahisə prosesinə yardım edəcək və müştəri bu Geri Qaytarma Siyasətinə əsasən geri ödənişə layiqdirsə, uyğun ödəniş proseduru vasitəsilə geri ödənişin həyata keçirilməsinə kömək edəcək.\n\nMüştəridən sifariş edilən və alınan məhsul arasındakı fərqi göstərən ağlabatan sübutlar, o cümlədən fotoşəkillər, videolar, sifariş məlumatı, yazışmalar və ya digər müvafiq məlumat təqdim etməsi tələb oluna bilər."
       },
       {
         "number": "3",
-        "title": "Onlayn Ödənişlər və Alıcı Müdafiəsi",
-        "highlight": true,
-        "body": "Platformada onlayn ödəniş vasitəsilə tamamlanan əməliyyatlar üçün alıcı müdafiəsi təmin edilir.\n\nAlıcının ödənişi müvəqqəti olaraq saxlanılır və yalnız alıcı məhsulu aldığını təsdiqlədikdən sonra satıcıya buraxılır.\n\nTəsdiqdən əvvəl mübahisə və ya həll olunmamış məsələ yaranarsa, alıcı və satıcının məsələni həll etmək üçün platforma vasitəsilə birbaşa ünsiyyət qurması gözlənilir.\n\nBu müddət ərzində vəsait tərəflər arasında məsələ həll olunana qədər müvəqqəti saxlanılır.\n\nSatGo məhsulun keyfiyyətinə, vəziyyətinə, orijinallığına və ya çatdırılmasına zəmanət vermir və əməliyyatların icrasına görə məsuliyyət daşımır."
+        "title": "SATGO-nun Rolu",
+        "body": "SATGO müştəriləri müstəqil satıcılarla birləşdirən, sifarişin verilməsinə, ödənişə və çatdırılmaya vasitəçilik edən elektron ticarət platforması və vasitəçi kimi fəaliyyət göstərir.\n\nMəhsulun özünə, o cümlədən onun keyfiyyətinə, vəziyyətinə, xüsusiyyətlərinə, qüsurlarına, çatışmazlıqlarına, zədələnməsinə, elanın dəqiqliyinə və ya digər məhsulla bağlı məsələlərə görə məsuliyyət əsasən məhsulun alındığı müvafiq satıcıda və ya mağazada qalır.\n\nSATGO müstəqil satıcıların təklif etdiyi məhsulları istehsal etmir və onlara sahib deyil. Lakin zərurət olduqda SATGO satıcı ilə əlaqə saxlamaqla, mübahisələri nəzərdən keçirməklə, həll prosesinə yardım etməklə və tətbiq olunan geri qaytarma/ləğvetmə mexanizmini təmin etməklə müştərilərə ağlabatan dəstək göstərəcək."
       },
       {
         "number": "4",
-        "title": "Cib (Wallet) və Yatırılmış Vəsait",
-        "highlight": false,
-        "body": "SatGo istifadəçilərə vəsait yatırmaq, platforma daxilində ödəniş etmək və pul çıxarma sorğusu vermək üçün daxili cib (wallet) funksiyası təqdim edə bilər.\n\nİstifadəçi cibinə yatırılan vəsait yalnız platforma daxilində istifadə üçün nəzərdə tutulub.\n\nSatGo cibi bank hesabı, maliyyə institutu hesabı və ya ödəniş hesabı təşkil etmir. Saxlanılan balanslara faiz hesablanmır və onlar sığortalanmır.\n\nPul çıxarma sorğuları şəxsiyyətin təsdiqlənməsi, təhlükəsizlik yoxlamaları və fırıldaqçılığın qarşısının alınması prosedurlarına tabe ola bilər."
+        "title": "Geri Ödənişin Emalı",
+        "body": "Bu Geri Qaytarma Siyasətinə əsasən geri ödənişə icazə verildiyi hallarda, uyğun məhsul məbləği SATGO-nun müəyyən edilmiş geri ödəniş proseduruna və tətbiq olunan ödəniş emalı tələblərinə uyğun olaraq emal ediləcək.\n\nSATGO tərəfindən emal olunan geri ödənişlər ümumiyyətlə əvvəlcə SATGO-nun inteqrasiya olunmuş kart ödəniş sistemi vasitəsilə tamamlanmış uyğun əməliyyatlarla məhdudlaşır. SATGO, adətən, SATGO ödəniş sistemindən kənarda həyata keçirilən ödənişlər və ya köçürmələr üzrə geri ödəniş edə bilməz, çünki SATGO həmin xarici əməliyyatları emal etmir və onlara nəzarət etmir.\n\nÇatdırılma və ya göndərmə haqları, həmçinin əməliyyatla bağlı yaranan tətbiq olunan komissiyalar və əlavə ödənişlər, ümumiyyətlə, geri qaytarılmır və tətbiq olunan qanunvericiliklə başqa hal tələb olunmadıqda və ya SATGO konkret mübahisənin şəraitində bu haqların geri qaytarılmasının məqsədəuyğun olduğunu müəyyən etmədikdə, geri qaytarılan məhsul məbləğinin tərkib hissəsi olmayacaq."
       },
       {
         "number": "5",
-        "title": "Ödənişli Platforma Xidmətləri",
-        "highlight": false,
-        "body": "Elanların təşviqi, görünürlüyün artırılması, boostlar və ya digər aktivləşdirilmiş xidmətlər daxil olmaqla, ödənişli platforma funksiyaları üçün edilən ödənişlər xidmət aktivləşdirildikdən sonra geri qaytarılmır."
+        "title": "Geri Qaytarma və Ləğvetmə Mexanizmi",
+        "body": "SATGO elektron ticarət platforması SATGO-nun kart ödəniş sistemi vasitəsilə uyğun əməliyyatları tamamlamış müştərilərə geri qaytarma və ya ləğvetmə sorğuları göndərməyə imkan verən texniki və funksional baxımdan əlçatan mexanizm təqdim edəcək.\n\nÇatdırılmadan əvvəl müştərilər bu mexanizmdən bu siyasətə uyğun olaraq ləğvetmə və ya geri ödəniş sorğusu vermək üçün istifadə edə bilərlər.\n\nÇatdırılmadan sonra müştərilər uyğun mübahisələr, o cümlədən alınan məhsulun sifariş edilən və ya elan edilən məhsuldan əhəmiyyətli dərəcədə fərqləndiyi hallar üçün SATGO-nun Dəstək Sistemindən istifadə edə bilərlər.\n\nSATGO uyğun sorğuları bu Geri Qaytarma Siyasətində müəyyən edilmiş prosedurlara uyğun olaraq qəbul edəcək, nəzərdən keçirəcək və emal edəcək."
+      },
+      {
+        "number": "6",
+        "title": "Mübahisələr, Chargeback və Geri Çağırmalar",
+        "body": "Məhsulun keyfiyyəti, vəziyyəti, qüsurları, zədələnməsi, yanlış məhsul, yanıldıcı təsvirlər və ya digər məhsulla bağlı məsələlərlə əlaqədar mübahisələr əsasən müştəri ilə müvafiq satıcı arasında həll olunur. Lakin SATGO zərurət olduqda mübahisə prosesinin asanlaşdırılması və idarə olunmasında ağlabatan yardım göstərəcək.\n\nBu Geri Qaytarma Siyasətindəki heç bir müddəa müştərilərin tətbiq olunan qanunvericiliyə əsasən və ya müvafiq ödəniş provayderi, kart buraxan bank, chargeback, geri çağırma və ya digər mövcud mübahisə həlli prosesi vasitəsilə malik olduğu hüquq və prosedurları məhdudlaşdırmır.\n\nSATGO geri ödənişlər, geri çağırmalar, chargeback-lər və ödəniş mübahisələri ilə bağlı zərurət olduqda müvafiq ödəniş xidməti provayderləri və maliyyə institutları ilə tətbiq olunan prosedur və tələblərə uyğun əməkdaşlıq edəcək."
       }
     ]
   }
