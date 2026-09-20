@@ -1,0 +1,169 @@
+# Deploy to production (EC2 + PM2 + nginx).
+#
+# Runs on every push to `deployment` that touches more than docs / this workflow.
+# Same process as DEPLOYMENT.md, automated: build -> cut production/<timestamp>
+# branch (scripts/deploy-production.sh) -> check it out on the server
+# (scripts/pm2-start.sh) -> verify the live site -> roll back if verification fails.
+#
+# NOTE: `.github/` is in .gitignore, so this file was added with `git add -f`.
+# One-time secrets/variables setup: see "Automated deploy" in DEPLOYMENT.md.
+name: Deploy to production
+
+on:
+  push:
+    branches: [deployment]
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false   # never interrupt a deploy that is mid-flight
+
+permissions:
+  contents: write             # deploy-production.sh pushes production/<timestamp>
+
+jobs:
+  deploy:
+    name: Build, ship, verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production   # add required reviewers on this environment for a manual approval gate
+    env:
+      SITE_URL: https://satgo.az
+      API_URL: https://api.satgo.az
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+    steps:
+      - name: Check required configuration
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          MAPS_KEY: ${{ vars.VITE_GOOGLE_MAPS_KEY }}
+        run: |
+          missing=0
+          [ -n "$SSH_KEY" ]         || { echo "::error::Secret DEPLOY_SSH_KEY is not set"; missing=1; }
+          [ -n "$KNOWN_HOSTS" ]     || { echo "::error::Secret DEPLOY_KNOWN_HOSTS is not set"; missing=1; }
+          [ -n "$DEPLOY_HOST" ]     || { echo "::error::Variable DEPLOY_HOST is not set"; missing=1; }
+          [ -n "$DEPLOY_USER" ]     || { echo "::error::Variable DEPLOY_USER is not set"; missing=1; }
+          [ -n "$MAPS_KEY" ]        || { echo "::error::Variable VITE_GOOGLE_MAPS_KEY is not set (maps would break in the build)"; missing=1; }
+          exit $missing
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # deploy-production.sh refuses to run anywhere but the `deployment` branch;
+      # actions/checkout leaves a detached HEAD.
+      - name: Check out the deployment branch
+        run: git checkout -B deployment
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix Frontend --no-audit --no-fund
+
+      # Gitignored locally, baked into the bundle by Vite. The script also
+      # refuses to build unless VITE_SERVER is exactly https://api.satgo.az.
+      - name: Write Frontend/.env.production
+        env:
+          MAPS_KEY: ${{ vars.VITE_GOOGLE_MAPS_KEY }}
+        run: |
+          cat > Frontend/.env.production <<EOF
+          VITE_SERVER=${API_URL}
+          VITE_FRONTEND=${SITE_URL}
+          VITE_SOCKET=${API_URL}
+          VITE_APP_URL=${SITE_URL}
+          VITE_GOOGLE_MAPS_KEY=${MAPS_KEY}
+          EOF
+
+      - name: Build and push the production/<timestamp> branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/deploy-production.sh
+          BRANCH=$(git for-each-ref --sort=-committerdate --format='%(refname:short)' refs/heads/production/ | head -1)
+          [ -n "$BRANCH" ] || { echo "::error::deploy script did not create a production branch"; exit 1; }
+          echo "PROD_BRANCH=$BRANCH" >> "$GITHUB_ENV"
+          echo "Created $BRANCH"
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY"     > ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host deploy-target
+            HostName ${DEPLOY_HOST}
+            User ${DEPLOY_USER}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+
+      - name: Remember the branch currently live (for rollback)
+        run: |
+          PREV=$(ssh deploy-target 'cd ~/SetGo && git branch --show-current')
+          [ -n "$PREV" ] || { echo "::error::could not read the server's current branch"; exit 1; }
+          echo "PREV_BRANCH=$PREV" >> "$GITHUB_ENV"
+          echo "Currently live: $PREV"
+
+      - name: Deploy on the server
+        run: |
+          # the branch name is meant to expand locally
+          # shellcheck disable=SC2029
+          ssh deploy-target "bash -s -- $PROD_BRANCH" <<'REMOTE'
+          set -euo pipefail
+          BRANCH="$1"
+          cd ~/SetGo
+          # Frontend/dist owned by www-data makes `git checkout` half-fail (see DEPLOYMENT.md).
+          if [ "$(stat -c %U Frontend/dist)" != "$(id -un)" ]; then
+            sudo -n chown -R "$(id -un):$(id -gn)" Frontend/dist
+          fi
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Server working tree is dirty - refusing to deploy:"; git status --short; exit 1
+          fi
+          git fetch origin "$BRANCH"
+          git checkout "$BRANCH"
+          bash scripts/pm2-start.sh
+          REMOTE
+
+      - name: Verify the live site
+        run: |
+          curl -fsS --retry 6 --retry-delay 5 --retry-connrefused -o /dev/null "$SITE_URL/"
+          curl -fsS --retry 6 --retry-delay 5 --retry-connrefused -o /dev/null "$API_URL/config/app"
+          # The bundle must call the real API and never the old dead domain.
+          JS=$(curl -fsS "$SITE_URL/" | grep -o 'assets/js/index-[^"]*\.js' | head -1)
+          [ -n "$JS" ] || { echo "::error::could not find the main bundle in index.html"; exit 1; }
+          curl -fsS "$SITE_URL/$JS" -o bundle.js
+          grep -q 'api\.satgo\.az' bundle.js || { echo "::error::bundle does not reference api.satgo.az"; exit 1; }
+          if grep -q 'satgo\.com' bundle.js; then echo "::error::bundle still references satgo.com"; exit 1; fi
+          echo "Site, API and bundle OK"
+
+      - name: Roll back to the previous branch
+        if: failure() && env.PREV_BRANCH != '' && env.PROD_BRANCH != ''
+        run: |
+          echo "::warning::Deploy of $PROD_BRANCH failed - rolling back to $PREV_BRANCH"
+          # shellcheck disable=SC2029
+          ssh deploy-target "cd ~/SetGo && git checkout '$PREV_BRANCH' && bash scripts/pm2-start.sh"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Deploy: ${{ job.status }}"
+            echo "- Source commit: \`${GITHUB_SHA::7}\` on \`deployment\`"
+            echo "- Production branch: \`${PROD_BRANCH:-not created}\`"
+            echo "- Previous live branch: \`${PREV_BRANCH:-unknown}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

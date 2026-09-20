@@ -164,6 +164,62 @@ grep -rl "some distinctive string you just changed" ~/SetGo/Frontend/dist/assets
 
 ---
 
+## 3b. Automated deploy (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs sections 3.2-3.4 for you on every push to `deployment`
+(ignoring pushes that only touch `*.md` or `.github/`). Steps: build the frontend -> run
+`scripts/deploy-production.sh` (cuts and pushes `production/<timestamp>`) -> SSH to the server and
+`git checkout` it + `scripts/pm2-start.sh` -> verify `https://satgo.az`, `https://api.satgo.az/config/app`
+and that the bundle points at `api.satgo.az` -> **roll back to the previously live branch if
+verification fails**. Deploys are serialised (`concurrency`), and the job uses the `production`
+environment, so you can add *required reviewers* there (Settings -> Environments) for a manual approval gate.
+
+So the day-to-day flow is: land in `main-2` -> cherry-pick onto `deployment` (section 2) -> `git push origin deployment` -> watch the Actions run.
+
+### One-time setup
+
+Nothing deploys until these exist (the first step of the job lists whatever is missing).
+
+```bash
+# 1. dedicated deploy key (do NOT reuse a personal key)
+ssh-keygen -t ed25519 -N "" -C "github-actions-deploy" -f deploy_key
+
+# 2. authorise it on the server (use your existing access)
+ssh ubuntu@<server-ip> "cat >> ~/.ssh/authorized_keys" < deploy_key.pub
+
+# 3. pin the server's host key so the runner can't be MITM'd
+ssh-keyscan -t ed25519 <server-ip> > known_hosts.txt
+
+# 4. store everything in GitHub (repo Settings -> Secrets and variables -> Actions)
+gh secret set DEPLOY_SSH_KEY      < deploy_key
+gh secret set DEPLOY_KNOWN_HOSTS  < known_hosts.txt
+gh variable set DEPLOY_HOST --body <server-ip>
+gh variable set DEPLOY_USER --body ubuntu
+gh variable set VITE_GOOGLE_MAPS_KEY --body <maps browser key>
+
+# 5. delete the local copies of the private key
+rm deploy_key deploy_key.pub known_hosts.txt
+```
+
+The server user needs passwordless `sudo` (it already has it) only for the automatic
+`chown` of `Frontend/dist` described in section 3.3.
+
+### Running / re-running
+
+- Push a non-doc change to `deployment` (a cherry-pick counts), or
+- Actions -> *Deploy to production* -> a previous run -> **Re-run all jobs**.
+- `workflow_dispatch` is declared too, but GitHub only lists manual workflows that exist on the
+  *default* branch (`main-2`), which deliberately has no deployment files.
+
+### What it does NOT do
+
+- It does not touch nginx (`nginx/satgo.conf` is applied by hand) or the server's `.env` files.
+- It does not gate on `setgo-payment` — that service is still down (Known Issues #3), and the
+  deploy shouldn't be blocked or rolled back because of it.
+- The repository is **public**: never put secrets in the workflow file itself; use Actions secrets.
+
+---
+
 ## 4. House-keeping
 
 ### Logs
