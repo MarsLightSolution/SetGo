@@ -267,7 +267,7 @@ NODE_ENV=production npm start
 - **Database**: MongoDB Atlas, AWS DocumentDB
 - **Redis**: Redis Cloud, AWS ElastiCache
 
-See [DEPLOYMENT_GUIDE.md](Frontend/DEPLOYMENT_GUIDE.md) for detailed instructions.
+See [DEPLOYMENT.md on the `deployment` branch](https://github.com/MarsLightSolution/SetGo/blob/deployment/DEPLOYMENT.md) for detailed instructions.
 
 ---
 
@@ -333,7 +333,7 @@ Found a bug or have a feature request? Please check our [issue tracker](https://
 - [API Documentation](docs/API.md) *(Coming Soon)*
 - [Frontend Architecture](Frontend/README_OPTIMIZATION.md)
 - [Backend Security](backend/README_SECURITY_FIXES.md)
-- [Deployment Guide](Frontend/DEPLOYMENT_GUIDE.md)
+- [Deployment Guide (`deployment` branch)](https://github.com/MarsLightSolution/SetGo/blob/deployment/DEPLOYMENT.md)
 - [CI/CD Pipeline](.github/CI_COMPATIBILITY_REPORT.md)
 
 ---
@@ -412,4 +412,4 @@ Made with ❤️ by [Mars Light Solution](https://github.com/MarsLightSolution)
 
 This branch holds application code only (`Frontend/`, `backend/`, `payment-microservice/`).
 All deployment files (nginx, PM2, deploy scripts, Docker, runbook) live on the
-[`deployment`](../../tree/deployment) branch - see `DEPLOYMENT.md` there.
+[`deployment`](https://github.com/MarsLightSolution/SetGo/tree/deployment) branch - see `DEPLOYMENT.md` there.
