@@ -407,3 +407,9 @@ Made with ❤️ by [Mars Light Solution](https://github.com/MarsLightSolution)
 [⬆ Back to Top](#-satgo---local-marketplace-platform)
 
 </div>
+
+## Deployment
+
+This branch holds application code only (`Frontend/`, `backend/`, `payment-microservice/`).
+All deployment files (nginx, PM2, deploy scripts, Docker, runbook) live on the
+[`deployment`](../../tree/deployment) branch - see `DEPLOYMENT.md` there.
