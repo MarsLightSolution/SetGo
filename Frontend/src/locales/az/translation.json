@@ -132,7 +132,9 @@
     "passwordValidation": "Parol ən azı 6 simvol uzunluğunda olmalıdır.",
     "successMessage": "Qeydiyyat uğurlu oldu!",
     "failedMessage": "Qeydiyyat uğursuz oldu.",
-    "serverError": "Server xətası. Zəhmət olmasa, daha sonra yenidən cəhd edin."
+    "serverError": "Server xətası. Zəhmət olmasa, daha sonra yenidən cəhd edin.",
+    "ourTermsPrefix": "Bizim",
+    "termsApplySuffix": "qüvvədədir. Məlumatlarınızı necə emal etdiyimiz barədə məlumatı bizim"
   },
   "login": {
     "title": "Daxil ol",
@@ -276,7 +278,8 @@
     "productAddedToShop": "Məhsul mağazanıza əlavə edildi!",
     "wantToSellMore": "Daha çox satmaq istəyirsiniz?",
     "createShopDescription": "Öz mağazanızı yaradın, brendinizi qurun və daha çox müştəriyə çatın.",
-    "createShop": "Mağaza Yarat"
+    "createShop": "Mağaza Yarat",
+    "listingRulesPrefix": "Elan yerləşdirməklə siz həmçinin bizim"
   },
   "renewPassword": {
     "title": "Parolunuzu Sıfırlayın",
@@ -527,7 +530,8 @@
     "soldByShop": "Mağaza tərəfindən satılır",
     "viewShopProducts": "Mağaza Məhsullarına Bax",
     "visitShop": "Mağazaya Keç",
-    "failedToStartConversation": "Söhbət başlamadı. Yenidən cəhd edin."
+    "failedToStartConversation": "Söhbət başlamadı. Yenidən cəhd edin.",
+    "reportListingButton": "Bu elanı bildir"
   },
   "userInfo": {
     "confirmDeleteAdTitle": "Silinməni Təsdiqləyin",
@@ -938,10 +942,11 @@
     "supportTitle": "Kömək lazımdır? Dəstək xəttinə zəng edin",
     "weAccept": "Qəbul edirik",
     "paymentsSecuredBy": "Ödənişlər Azericard vasitəsilə təhlükəsiz şəkildə həyata keçirilir",
-    "disclaimer": "\"SatGo platformada yerləşdirilən istifadəçi elanlarının və ya üçüncü tərəf reklamlarının məzmununa görə məsuliyyət daşımır. Satılan məhsul və ya xidmətlərin dəqiqliyi, qanuniliyi, keyfiyyəti və təhlükəsizliyi ilə bağlı bütün məsuliyyət satıcının üzərinə düşür. SatGo-nun rolu vasitəçi kimi platforma və ödəniş xidmətlərinin təqdim edilməsi ilə məhdudlaşır və biz istifadəçi məzmununa zəmanət vermirik və ya təsdiq etmirik.\"",
+    "disclaimer": "SATGO alıcıları öz elanlarına, məhsullarına və xidmətlərinə görə məsuliyyət daşıyan müstəqil satıcılarla birləşdirir. SATGO elanları öz qaydalarına uyğunluq baxımından yoxlayır, qanunsuz, təhlükəsiz olmayan və ya yanıldıcı məzmun haqqında hesabatları araşdırır və elanların silinməsi və hesabların məhdudlaşdırılması daxil olmaqla müvafiq tədbirlər görür. İstifadəçilər hesabat və şikayətlərini bizim Əlaqə səhifəmiz vasitəsilə göndərə bilərlər.",
     "operatedByPrefix": "Elanlar xidməti aşağıdakı şirkət tərəfindən idarə olunur:",
     "refundPolicy": "Geri Qaytarma və Ləğvetmə Siyasəti",
-    "contact": "Əlaqə"
+    "contact": "Əlaqə",
+    "listingRules": "Elan Qaydaları və Şikayətlər"
   },
   "common": {
     "cancel": "Ləğv et",
@@ -994,7 +999,11 @@
     "companyInfoTitle": "Şirkət məlumatı",
     "helpfulLinksTitle": "Faydalı keçidlər",
     "aboutLinkLabel": "SatGo haqqında",
-    "submitQueryLabel": "Sorğu göndər"
+    "submitQueryLabel": "Dəstək və Şikayətlər",
+    "reportSectionTitle": "Elan Haqqında Bildiriş Verin və ya Şikayət Edin",
+    "reportSectionP1": "Şübhəli qanunsuz və ya təhlükəsiz olmayan məhsullar, yanıldıcı məlumat, fırıldaqçılıq və ya satıcının davranışı barədə bildirmək üçün dəstək formumuzdan istifadə edin və \"Report Ad/Seller\" seçin, və ya info@satgo.az ünvanına e-poçt göndərin.",
+    "reportSectionP2": "Elanın linkini və ya Elan/Məhsul ID-sini, məsələnin izahını və hər hansı dəstəkləyici sübutu daxil edin. Məhsulu almasanız belə bildiriş verə bilərsiniz.",
+    "reportSectionP3": "SATGO bildirişləri nəzərdən keçirir, mümkün pozuntuları araşdırır və öz {{link}} əsasında müvafiq tədbirlər görür."
   },
   "privacyPolicy": {
     "heroTitle": "Məxfilik Siyasəti",
@@ -1071,12 +1080,12 @@
       {
         "number": "2",
         "title": "Yanlış və ya Düzgün Təqdim Edilməyən Məhsullar",
-        "body": "Çatdırılmadan sonra müştəri alınan məhsulun sifariş edilən məhsuldan əhəmiyyətli dərəcədə fərqləndiyini və ya satıcının elanına və ya təsvirinə uyğun gəlmədiyini aşkar edərsə, sifariş SATGO-nun inteqrasiya olunmuş kart ödəniş sistemi ilə ödənilibsə, platformanın Dəstək Sistemi vasitəsilə SATGO ilə əlaqə saxlaya bilər.\n\nSATGO işi nəzərdən keçirəcək, müvafiq satıcı ilə əlaqə saxlayacaq, mübahisə prosesinə yardım edəcək və müştəri bu Geri Qaytarma Siyasətinə əsasən geri ödənişə layiqdirsə, uyğun ödəniş proseduru vasitəsilə geri ödənişin həyata keçirilməsinə kömək edəcək.\n\nMüştəridən sifariş edilən və alınan məhsul arasındakı fərqi göstərən ağlabatan sübutlar, o cümlədən fotoşəkillər, videolar, sifariş məlumatı, yazışmalar və ya digər müvafiq məlumat təqdim etməsi tələb oluna bilər."
+        "body": "İstifadəçilər təsvirlərinə uyğun gəlməyən məhsul və ya xidmətlər, yanıldıcı elanlar, şübhəli qanunsuz fəaliyyət və ya təhlükəsizliklə bağlı narahatlıqlar barədə SATGO-nun Dəstək Sistemi vasitəsilə və ya info@satgo.az ünvanına e-poçt göndərməklə hesabat verə bilərlər. SATGO satınalma edilib-edilməməsindən və ya hansı ödəniş üsulundan istifadə olunmasından asılı olmayaraq bu hesabatları qəbul edir. SATGO vasitəsilə emal olunan geri ödənişə haqq qazanma ayrıca olaraq bu Geri Qaytarma Siyasətinə əsasən qiymətləndirilir.\n\nSATGO işi nəzərdən keçirəcək, müvafiq satıcı ilə əlaqə saxlayacaq, mübahisə prosesinə yardım edəcək və müştəri bu Geri Qaytarma Siyasətinə əsasən geri ödənişə layiqdirsə, uyğun ödəniş proseduru vasitəsilə geri ödənişin həyata keçirilməsinə kömək edəcək.\n\nMüştəridən sifariş edilən və alınan məhsul arasındakı fərqi göstərən ağlabatan sübutlar, o cümlədən fotoşəkillər, videolar, sifariş məlumatı, yazışmalar və ya digər müvafiq məlumat təqdim etməsi tələb oluna bilər."
       },
       {
         "number": "3",
         "title": "SATGO-nun Rolu",
-        "body": "SATGO müştəriləri müstəqil satıcılarla birləşdirən, sifarişin verilməsinə, ödənişə və çatdırılmaya vasitəçilik edən elektron ticarət platforması və vasitəçi kimi fəaliyyət göstərir.\n\nMəhsulun özünə, o cümlədən onun keyfiyyətinə, vəziyyətinə, xüsusiyyətlərinə, qüsurlarına, çatışmazlıqlarına, zədələnməsinə, elanın dəqiqliyinə və ya digər məhsulla bağlı məsələlərə görə məsuliyyət əsasən məhsulun alındığı müvafiq satıcıda və ya mağazada qalır.\n\nSATGO müstəqil satıcıların təklif etdiyi məhsulları istehsal etmir və onlara sahib deyil. Lakin zərurət olduqda SATGO satıcı ilə əlaqə saxlamaqla, mübahisələri nəzərdən keçirməklə, həll prosesinə yardım etməklə və tətbiq olunan geri qaytarma/ləğvetmə mexanizmini təmin etməklə müştərilərə ağlabatan dəstək göstərəcək."
+        "body": "SATGO müştəriləri müstəqil satıcılarla birləşdirən və platforma vasitəsilə əməliyyatları asanlaşdıran onlayn bazar işlədir.\n\nSatıcılar öz məhsul və xidmətlərinin qanuniliyinə, təhlükəsizliyinə, orijinallığına, keyfiyyətinə və vəziyyətinə, elanlarının dəqiqliyinə və müştəriləri qarşısındakı öhdəliklərinin yerinə yetirilməsinə görə məsuliyyət daşıyırlar.\n\nSATGO öz elan yoxlaması, hesabat və şikayətlərin həlli proseslərini idarə etməyə görə məsuliyyət daşıyır. SATGO elanları öz qaydalarına uyğunluq baxımından yoxlayır, şübhəli qanunsuz, təhlükəsiz olmayan və ya yanıldıcı məzmunu araşdırır və müvafiq tədbirlər görür. Şəraitdən asılı olaraq, bura dəstəkləyici məlumatın tələb edilməsi, düzəlişlərin tələb edilməsi, elanların silinməsi və ya satıcı hesablarının məhdudlaşdırılması və ya dayandırılması daxil ola bilər.\n\nSATGO müştəri mübahisələrini nəzərdən keçirir və bu siyasətə əsasən uyğun ləğvetmə və geri ödənişlərə yardım edir. SATGO-nun vasitəçi rolu onun tətbiq olunan qanunvericilik üzrə öz öhdəliklərini istisna etmir."
       },
       {
         "number": "4",
@@ -1086,13 +1095,53 @@
       {
         "number": "5",
         "title": "Geri Qaytarma və Ləğvetmə Mexanizmi",
-        "body": "SATGO elektron ticarət platforması SATGO-nun kart ödəniş sistemi vasitəsilə uyğun əməliyyatları tamamlamış müştərilərə geri qaytarma və ya ləğvetmə sorğuları göndərməyə imkan verən texniki və funksional baxımdan əlçatan mexanizm təqdim edəcək.\n\nÇatdırılmadan əvvəl müştərilər bu mexanizmdən bu siyasətə uyğun olaraq ləğvetmə və ya geri ödəniş sorğusu vermək üçün istifadə edə bilərlər.\n\nÇatdırılmadan sonra müştərilər uyğun mübahisələr, o cümlədən alınan məhsulun sifariş edilən və ya elan edilən məhsuldan əhəmiyyətli dərəcədə fərqləndiyi hallar üçün SATGO-nun Dəstək Sistemindən istifadə edə bilərlər.\n\nSATGO uyğun sorğuları bu Geri Qaytarma Siyasətində müəyyən edilmiş prosedurlara uyğun olaraq qəbul edəcək, nəzərdən keçirəcək və emal edəcək."
+        "body": "Müştərilər geri qaytarma və ya ləğvetmə sorğularını SATGO-nun https://satgo.az/raise-query ünvanındakı dəstək formu vasitəsilə və ya info@satgo.az ünvanına e-poçt göndərməklə təqdim edə bilərlər. Sorğularda sifariş nömrəsi, sorğunun səbəbi və hər hansı müvafiq sübut göstərilməlidir. SATGO sorğuları qeydə alır, nəzərdən keçirir, zərurət olduqda müvafiq satıcı ilə əlaqə saxlayır və nəticə barədə müştəriyə məlumat verir. Geri ödənişə haqq qazanma bu siyasətə əsasən müəyyən edilir.\n\nÇatdırılmadan əvvəl müştərilər bu mexanizmdən bu siyasətə uyğun olaraq ləğvetmə və ya geri ödəniş sorğusu vermək üçün istifadə edə bilərlər.\n\nÇatdırılmadan sonra müştərilər uyğun mübahisələr, o cümlədən alınan məhsulun sifariş edilən və ya elan edilən məhsuldan əhəmiyyətli dərəcədə fərqləndiyi hallar üçün SATGO-nun Dəstək Sistemindən istifadə edə bilərlər.\n\nSATGO uyğun sorğuları bu Geri Qaytarma Siyasətində müəyyən edilmiş prosedurlara uyğun olaraq qəbul edəcək, nəzərdən keçirəcək və emal edəcək."
       },
       {
         "number": "6",
         "title": "Mübahisələr, Chargeback və Geri Çağırmalar",
-        "body": "Məhsulun keyfiyyəti, vəziyyəti, qüsurları, zədələnməsi, yanlış məhsul, yanıldıcı təsvirlər və ya digər məhsulla bağlı məsələlərlə əlaqədar mübahisələr əsasən müştəri ilə müvafiq satıcı arasında həll olunur. Lakin SATGO zərurət olduqda mübahisə prosesinin asanlaşdırılması və idarə olunmasında ağlabatan yardım göstərəcək.\n\nBu Geri Qaytarma Siyasətindəki heç bir müddəa müştərilərin tətbiq olunan qanunvericiliyə əsasən və ya müvafiq ödəniş provayderi, kart buraxan bank, chargeback, geri çağırma və ya digər mövcud mübahisə həlli prosesi vasitəsilə malik olduğu hüquq və prosedurları məhdudlaşdırmır.\n\nSATGO geri ödənişlər, geri çağırmalar, chargeback-lər və ödəniş mübahisələri ilə bağlı zərurət olduqda müvafiq ödəniş xidməti provayderləri və maliyyə institutları ilə tətbiq olunan prosedur və tələblərə uyğun əməkdaşlıq edəcək."
+        "body": "SATGO məhsulun keyfiyyəti, qüsurları, zədələnməsi, yanlış göndərilməsi və yanıldıcı təsvirlərlə bağlı şikayətləri qəbul edir və nəzərdən keçirir. SATGO mövcud sübutları qiymətləndirir, zərurət olduqda müvafiq satıcı ilə əlaqə saxlayır və bu siyasətə əsasən həll prosesinə yardım göstərir. Şikayət qanunsuz, təhlükəsiz olmayan və ya yanıldıcı fəaliyyəti göstərdikdə, SATGO həmçinin elanı və ya satıcını araşdırır və öz platforma qaydalarına əsasən müvafiq tədbirlər görür.\n\nBu Geri Qaytarma Siyasətindəki heç bir müddəa müştərilərin tətbiq olunan qanunvericiliyə əsasən və ya müvafiq ödəniş provayderi, kart buraxan bank, chargeback, geri çağırma və ya digər mövcud mübahisə həlli prosesi vasitəsilə malik olduğu hüquq və prosedurları məhdudlaşdırmır.\n\nSATGO geri ödənişlər, geri çağırmalar, chargeback-lər və ödəniş mübahisələri ilə bağlı zərurət olduqda müvafiq ödəniş xidməti provayderləri və maliyyə institutları ilə tətbiq olunan prosedur və tələblərə uyğun əməkdaşlıq edəcək."
       }
     ]
+  },
+  "listingRules": {
+    "heroTitle": "Elan Qaydaları və Şikayətlər",
+    "heroSubtitle": "Satıcı öhdəlikləri, qadağan olunmuş elanlar və SATGO-nun hesabat və şikayətləri necə nəzərdən keçirdiyi.",
+    "lastUpdated": "Son yenilənmə: 2026 — SATGO, VÖEN 1301881282",
+    "sections": [
+      {
+        "number": "1",
+        "title": "Satıcı öhdəlikləri",
+        "body": "Satıcılar yalnız tətbiq olunan qanunvericilik və SATGO-nun qaydaları ilə icazə verilən məhsul və xidmətləri təklif etməlidirlər. Elan təsvirləri, fotoşəkillər, qiymətlər və digər əhəmiyyətli məlumatlar dəqiq olmalı və qüsurları gizlətməməli və ya müştəriləri yanıltmamalıdır. Satıcılar öz məhsul və ya xidmətlərini təklif etmək üçün tələb olunan bütün icazələrə malik olmalıdırlar."
+      },
+      {
+        "number": "2",
+        "title": "Qadağan olunmuş elanlar",
+        "body": "Qanunsuz, oğurlanmış, saxta və ya təhlükəsiz olmayan məhsullar, qanunsuz xidmətlər, fırıldaqçı təkliflər və yalan və ya yanıldıcı reklamlar qadağandır. Elanlar başqalarının hüquqlarını pozmamalıdır."
+      },
+      {
+        "number": "3",
+        "title": "Elanların yoxlanılması",
+        "body": "SATGO elanların müntəzəm yoxlamalarını aparır və satıcı fəaliyyəti ilə bağlı hesabatları nəzərdən keçirir. Yoxlamalar nəşrdən əvvəl və ya sonra həyata keçirilə bilər. SATGO elanın qanuniliyini, orijinallığını, təhlükəsizliyini və ya dəqiqliyini qiymətləndirmək üçün ağlabatan şəkildə zəruri olan məlumat və ya sənədləri tələb edə bilər."
+      },
+      {
+        "number": "4",
+        "title": "Pozuntulara qarşı tədbirlər",
+        "body": "Pozuntu şübhəsi üçün ağlabatan əsaslar olduqda, SATGO araşdırma aparılarkən elanı müvəqqəti məhdudlaşdıra bilər. Təsdiqlənmiş pozuntular elanın düzəldilməsi və ya silinməsi, satıcının hesabının məhdudlaşdırılması və ya dayandırılması ilə nəticələnə bilər. Ciddi və ya təkrarlanan pozuntular hesabın daimi bağlanması ilə nəticələnə bilər. SATGO qanunla tələb olunduqda səlahiyyətli orqanlarla əməkdaşlıq edir."
+      },
+      {
+        "number": "5",
+        "title": "Hesabatlar və şikayətlər",
+        "body": "İstənilən şəxs SATGO-nun Dəstək Sistemi vasitəsilə və ya info@satgo.az ünvanına e-poçt göndərməklə elan və ya satıcı barədə hesabat verə bilər. Hesabat vermək üçün SATGO vasitəsilə satınalma və ya ödəniş tələb olunmur. Zəhmət olmasa elanın linkini və ya identifikatorunu, hesabatın səbəbini və hər hansı dəstəkləyici sübutu daxil edin.\n\nSATGO hesabatları qeydə alır, mövcud məlumatı nəzərdən keçirir, zərurət olduqda əlavə təfərrüatlar tələb edir və müvafiq tədbirlər görür. Şübhəli qanunsuz fəaliyyət və ya təhlükəsizlik riski ilə bağlı hesabatlara üstünlük verilir. Əlaqə məlumatları mövcud olduqda, SATGO tətbiq olunan məxfilik və qanuni məhdudiyyətlərə tabe olaraq hesabat verən şəxsi nəticə barədə məlumatlandırır.\n\nBu yoxlamalar hər bir elana zəmanət təşkil etmir. Onlar SATGO-nun tətbiq olunan qanunvericilik üzrə öz öhdəliklərini istisna etmir."
+      }
+    ]
+  },
+  "termsOfUse": {
+    "heroTitle": "İstifadə Şərtləri",
+    "heroSubtitle": "Tam İstifadəçi Sazişi hazırlanarkən SATGO-nun hazırkı siyasətlərini haradan tapa biləcəyinizi bu səhifədə izah edir.",
+    "intro": "SATGO-nun tam İstifadə Şərtləri (İstifadəçi Sazişi) hazırlanır və bu səhifədə dərc olunacaq. Bu vaxta qədər SATGO platformasından istifadəniz aşağıda göstərilən siyasətlərlə və tətbiq olunan qanunvericiliklə tənzimlənir.",
+    "linksTitle": "Hazırkı siyasətlər",
+    "closingNote": "Bu şərtlərlə bağlı sualınız varsa, info@satgo.az ünvanı ilə bizimlə əlaqə saxlayın.",
+    "lastUpdated": "Son yenilənmə: 2026 — SATGO, VÖEN 1301881282"
   }
 }

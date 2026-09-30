@@ -132,7 +132,9 @@
     "passwordValidation": "Password must be at least 6 characters long.",
     "successMessage": "Registration successful!",
     "failedMessage": "Registration failed.",
-    "serverError": "Server error. Please try again later."
+    "serverError": "Server error. Please try again later.",
+    "ourTermsPrefix": "Our",
+    "termsApplySuffix": "apply. Information on how we process your data can be found in our"
   },
   "login": {
     "title": "Log In",
@@ -276,7 +278,8 @@
     "productAddedToShop": "Product added to your shop!",
     "wantToSellMore": "Want to sell more?",
     "createShopDescription": "Create your own shop, build your brand, and reach more customers.",
-    "createShop": "Create Shop"
+    "createShop": "Create Shop",
+    "listingRulesPrefix": "By listing an item, you also agree to follow our"
   },
   "renewPassword": {
     "title": "Reset Your Password",
@@ -527,7 +530,8 @@
     "soldByShop": "Sold by Shop",
     "viewShopProducts": "View Shop Products",
     "visitShop": "Visit Shop",
-    "failedToStartConversation": "Failed to start conversation. Please try again."
+    "failedToStartConversation": "Failed to start conversation. Please try again.",
+    "reportListingButton": "Report this listing"
   },
   "userInfo": {
     "confirmDeleteAdTitle": "Confirm Deletion",
@@ -938,10 +942,11 @@
     "supportTitle": "Need help? Call support",
     "weAccept": "We accept",
     "paymentsSecuredBy": "Payments processed securely via Azericard",
-    "disclaimer": "\"SatGo is not responsible for the content of user-generated listings or third-party advertisements displayed on the platform. All responsibility for the accuracy, legality, quality, and safety of the listed products or services lies with the seller. SatGo's role is limited to providing the platform and payment services as an intermediary, and we do not guarantee or endorse any user content.\"",
+    "disclaimer": "SATGO connects buyers with independent sellers, who are responsible for their listings, products and services. SATGO reviews listings for compliance with its rules, investigates reports of illegal, unsafe or misleading content, and takes appropriate action, including removing listings and restricting accounts. Users can submit reports and complaints through our Contact page.",
     "operatedByPrefix": "The classifieds services are operated by",
     "refundPolicy": "Refund & Cancellation Policy",
-    "contact": "Contact"
+    "contact": "Contact",
+    "listingRules": "Listing Rules & Complaints"
   },
   "common": {
     "cancel": "Cancel",
@@ -994,7 +999,11 @@
     "companyInfoTitle": "Company Information",
     "helpfulLinksTitle": "Helpful Links",
     "aboutLinkLabel": "About SatGo",
-    "submitQueryLabel": "Submit a Query"
+    "submitQueryLabel": "Support & Complaints",
+    "reportSectionTitle": "Report a Listing or Submit a Complaint",
+    "reportSectionP1": "To report suspected illegal or unsafe products, misleading information, fraud or a seller’s conduct, use our support form and select \"Report Ad/Seller\", or email info@satgo.az.",
+    "reportSectionP2": "Include the listing link or Ad/Product ID, an explanation of the issue and any supporting evidence. You can submit a report even if you have not purchased the item.",
+    "reportSectionP3": "SATGO reviews reports, investigates potential violations and takes appropriate action under its {{link}}."
   },
   "privacyPolicy": {
     "heroTitle": "Privacy Policy",
@@ -1071,12 +1080,12 @@
       {
         "number": "2",
         "title": "Incorrect or Misrepresented Products",
-        "body": "If, after delivery, the customer discovers that the product received is materially different from the product ordered or does not correspond to the seller's listing or description, the customer may contact SATGO through the platform's Support System, provided that the order was paid for using SATGO's integrated card-payment system.\n\nSATGO will review the case, contact the relevant seller, facilitate the dispute process, and, where the customer is eligible for a refund under this Refund Policy, assist in processing the refund through the appropriate payment procedure.\n\nThe customer may be required to provide reasonable evidence, including photographs, videos, order information, communications, or other relevant information demonstrating the discrepancy between the product ordered and the product received."
+        "body": "Users may report products or services that differ from their descriptions, misleading listings, suspected illegal activity, or safety concerns through SATGO's Support System or by emailing info@satgo.az. SATGO accepts these reports regardless of whether a purchase was made or which payment method was used. Eligibility for a refund processed through SATGO is assessed separately under this Refund Policy.\n\nSATGO will review the case, contact the relevant seller, facilitate the dispute process, and, where the customer is eligible for a refund under this Refund Policy, assist in processing the refund through the appropriate payment procedure.\n\nThe customer may be required to provide reasonable evidence, including photographs, videos, order information, communications, or other relevant information demonstrating the discrepancy between the product ordered and the product received."
       },
       {
         "number": "3",
         "title": "SATGO's Role",
-        "body": "SATGO operates as an e-commerce platform and intermediary connecting customers with independent sellers and facilitating the ordering, payment, and delivery process.\n\nResponsibility for the product itself, including its quality, condition, specifications, defects, shortages, damage, accuracy of the listing, or other product-related matters, remains primarily with the respective seller or shop from whom the product was purchased.\n\nSATGO does not manufacture or own products offered by independent sellers. However, where necessary, SATGO will provide reasonable assistance to customers by communicating with the seller, reviewing disputes, facilitating the resolution process, and providing the applicable refund/cancellation mechanism."
+        "body": "SATGO operates an online marketplace connecting customers with independent sellers and facilitating transactions through the platform.\n\nSellers are responsible for the legality, safety, authenticity, quality and condition of their products and services, the accuracy of their listings, and the fulfilment of their obligations to customers.\n\nSATGO is responsible for operating its listing-review, reporting and complaint-handling processes. SATGO checks listings for compliance with its rules, investigates suspected illegal, unsafe or misleading content, and takes appropriate action. Depending on the circumstances, this may include requesting supporting information, requiring corrections, removing listings, or restricting or suspending seller accounts.\n\nSATGO reviews customer disputes and facilitates eligible cancellations and refunds under this policy. SATGO's intermediary role does not exclude its own obligations under applicable law."
       },
       {
         "number": "4",
@@ -1086,13 +1095,53 @@
       {
         "number": "5",
         "title": "Refund and Cancellation Mechanism",
-        "body": "The SATGO e-commerce platform will provide customers who have completed eligible transactions through SATGO's card-payment system with a technically and functionally accessible mechanism through which they can submit refund or cancellation requests.\n\nBefore delivery, customers may use this mechanism to request cancellation or a refund in accordance with this policy.\n\nAfter delivery, customers may use SATGO's Support System for eligible disputes, including cases where the product received is materially different from the product ordered or advertised.\n\nSATGO will accept, review, and process eligible requests according to the procedures established in this Refund Policy."
+        "body": "Customers can submit refund or cancellation requests through SATGO's support form at https://satgo.az/raise-query or by emailing info@satgo.az. Requests should include the order number, the reason for the request and any relevant evidence. SATGO records and reviews requests, contacts the relevant seller where necessary, and informs the customer of the outcome. Refund eligibility is determined under this policy.\n\nBefore delivery, customers may use this mechanism to request cancellation or a refund in accordance with this policy.\n\nAfter delivery, customers may use SATGO's Support System for eligible disputes, including cases where the product received is materially different from the product ordered or advertised.\n\nSATGO will accept, review, and process eligible requests according to the procedures established in this Refund Policy."
       },
       {
         "number": "6",
         "title": "Disputes, Chargebacks and Reversals",
-        "body": "Disputes concerning product quality, condition, defects, damage, incorrect products, misleading descriptions, or other product-related matters will primarily concern the customer and the respective seller. However, SATGO will provide reasonable assistance in facilitating and managing the dispute process where required.\n\nNothing in this Refund Policy limits any rights or procedures available to customers under applicable law or through the applicable payment provider, issuing bank, chargeback, reversal, or other available dispute-resolution process.\n\nSATGO will cooperate with the relevant payment service providers and financial institutions where necessary in connection with refunds, reversals, chargebacks, and payment disputes, in accordance with the applicable procedures and requirements."
+        "body": "SATGO accepts and reviews complaints about product quality, defects, damage, incorrect items and misleading descriptions. SATGO assesses the available evidence, contacts the relevant seller where necessary, and facilitates resolution under this policy. Where a complaint indicates illegal, unsafe or misleading activity, SATGO also investigates the listing or seller and takes appropriate action under its platform rules.\n\nNothing in this Refund Policy limits any rights or procedures available to customers under applicable law or through the applicable payment provider, issuing bank, chargeback, reversal, or other available dispute-resolution process.\n\nSATGO will cooperate with the relevant payment service providers and financial institutions where necessary in connection with refunds, reversals, chargebacks, and payment disputes, in accordance with the applicable procedures and requirements."
       }
     ]
+  },
+  "listingRules": {
+    "heroTitle": "Listing Rules & Complaints",
+    "heroSubtitle": "Seller responsibilities, prohibited listings, and how SATGO reviews reports and complaints.",
+    "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282",
+    "sections": [
+      {
+        "number": "1",
+        "title": "Seller responsibilities",
+        "body": "Sellers must offer only products and services permitted by applicable law and SATGO’s rules. Listing descriptions, photographs, prices and other material information must be accurate and must not conceal defects or mislead customers. Sellers must hold any permissions required to offer their products or services."
+      },
+      {
+        "number": "2",
+        "title": "Prohibited listings",
+        "body": "Illegal, stolen, counterfeit or unsafe products, unlawful services, fraudulent offers and false or misleading advertisements are prohibited. Listings must not infringe the rights of others."
+      },
+      {
+        "number": "3",
+        "title": "Listing checks",
+        "body": "SATGO conducts routine checks of listings and reviews reports concerning seller activity. Checks may take place before or after publication. SATGO may request information or documents reasonably needed to assess a listing’s legality, authenticity, safety or accuracy."
+      },
+      {
+        "number": "4",
+        "title": "Action on violations",
+        "body": "Where there are reasonable grounds to suspect a violation, SATGO may temporarily restrict a listing while it is investigated. Confirmed violations may result in correction or removal of the listing and restrictions or suspension of the seller’s account. Serious or repeated violations may result in permanent account closure. SATGO cooperates with competent authorities where required by law."
+      },
+      {
+        "number": "5",
+        "title": "Reports and complaints",
+        "body": "Anyone may report a listing or seller through SATGO’s Support System or by emailing info@satgo.az. A purchase or payment through SATGO is not required to submit a report. Please include the listing link or identifier, the reason for the report and any supporting evidence.\n\nSATGO records reports, reviews the available information, requests further details where necessary and takes appropriate action. Reports involving suspected illegal activity or safety risks receive priority. Where contact details are available, SATGO informs the reporting person of the outcome, subject to applicable privacy and legal restrictions.\n\nThese checks do not constitute a guarantee of every listing. They do not exclude SATGO’s own obligations under applicable law."
+      }
+    ]
+  },
+  "termsOfUse": {
+    "heroTitle": "Terms of Use",
+    "heroSubtitle": "This page explains where to find SATGO's current policies while the full User Agreement is being finalised.",
+    "intro": "SATGO's complete Terms of Use (User Agreement) is being finalised and will be published on this page. In the meantime, your use of the SATGO platform is governed by the policies listed below, together with applicable law.",
+    "linksTitle": "Current policies",
+    "closingNote": "If you have questions about these terms, contact us at info@satgo.az.",
+    "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282"
   }
 }

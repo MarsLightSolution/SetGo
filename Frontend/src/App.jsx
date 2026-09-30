@@ -54,6 +54,8 @@ const About = lazy(() => import('./pages/About'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'))
 const Contact = lazy(() => import('./pages/Contact'))
+const ListingRulesComplaints = lazy(() => import('./pages/ListingRulesComplaints'))
+const TermsOfUse = lazy(() => import('./pages/TermsOfUse'))
 // Scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation()
@@ -132,6 +134,8 @@ function AppContent() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/refund-policy"  element={<RefundPolicy />} />
             <Route path="/contact"        element={<Contact />} />
+            <Route path="/listing-rules"  element={<ListingRulesComplaints />} />
+            <Route path="/terms-of-use"   element={<TermsOfUse />} />
           </Routes>
         </Suspense>
       </main>
