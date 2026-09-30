@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { MapPin, Mail, Phone, Clock, FileText, ShieldCheck } from "lucide-react"
+import { MapPin, Mail, Phone, Clock, FileText, ShieldCheck, Flag } from "lucide-react"
 
 const SUPPORT_PHONE = "+994 50 545 86 52"
 const SUPPORT_PHONE_TEL = "+994505458652"
@@ -8,6 +8,10 @@ const SUPPORT_EMAIL = "info@satgo.az"
 
 export default function Contact() {
   const { t } = useTranslation()
+
+  // contact.reportSectionP3 contains a literal "{{link}}" token pointing at
+  // the Listing Rules & Complaints page - split it so we can render a real <Link>.
+  const [reportP3Before, reportP3After] = t("contact.reportSectionP3").split("{{link}}")
 
   const helpfulLinks = [
     { to: "/about", icon: ShieldCheck, label: t("contact.aboutLinkLabel") },
@@ -94,6 +98,27 @@ export default function Contact() {
             </div>
           </div>
 
+        </div>
+
+        {/* Report a Listing or Submit a Complaint */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-11 h-11 bg-red-50 rounded-xl flex items-center justify-center shrink-0">
+              <Flag className="w-5 h-5 text-red-600" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900">{t("contact.reportSectionTitle")}</h2>
+          </div>
+          <div className="text-sm text-gray-600 leading-relaxed space-y-3">
+            <p>{t("contact.reportSectionP1")}</p>
+            <p>{t("contact.reportSectionP2")}</p>
+            <p>
+              {reportP3Before}
+              <Link to="/listing-rules" className="text-green-700 font-medium hover:underline">
+                {t("footer.listingRules")}
+              </Link>
+              {reportP3After}
+            </p>
+          </div>
         </div>
 
         {/* Company info */}
