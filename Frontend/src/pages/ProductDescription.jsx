@@ -888,11 +888,11 @@ const ProductDetail = () => {
                     </p>
                     <p className="text-xs text-gray-600 mb-4">
                       {t("productDetail.dataTransmissionInfo2")}{" "}
-                      <a href="#" className="text-green-700 underline">
+                      <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" className="text-green-700 underline">
                         {t("productDetail.termsOfUse")}
                       </a>
                       . {t("productDetail.dataTransmissionInfo3")}{" "}
-                      <a href="#" className="text-green-700 underline">
+                      <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-green-700 underline">
                         {t("productDetail.privacyPolicy")}
                       </a>
                       .
@@ -1158,6 +1158,13 @@ const ProductDetail = () => {
                         className="w-full border border-gray-400 text-sm font-medium text-gray-700 hover:bg-gray-100 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {t("productDetail.shareAdButton")}
+                      </button>
+
+                      <button
+                        onClick={() => navigate(`/raise-query?issueType=ad_report&adId=${product._id}`)}
+                        className="w-full border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 py-2 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {t("productDetail.reportListingButton")}
                       </button>
 
                       {/* ✅ SHOP INFO IN SIDEBAR - Show if product is from shop */}

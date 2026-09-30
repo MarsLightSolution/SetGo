@@ -1,14 +1,23 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8080/concern";
+const BASE_URL = `${import.meta.env.VITE_SERVER}/concern`;
+
+// SECURITY: every /concern endpoint now requires a verified login (see
+// backend/Routes/concernRoutes.js) - identity is derived server-side from this
+// token, never from an id passed in the request body/query.
+const authHeaders = () => {
+  const token = localStorage.getItem("accessToken");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 // ========= Close Concern with Admin Message (Main Close API) =========
-export const closeConcernWithMessage = async (concernId, adminId, adminMessage) => {
+export const closeConcernWithMessage = async (concernId, adminMessage) => {
   try {
-    const response = await axios.post(`${BASE_URL}/${concernId}/close`, {
-      adminId,
-      adminMessage,
-    });
+    const response = await axios.post(
+      `${BASE_URL}/${concernId}/close`,
+      { adminMessage },
+      { headers: authHeaders() }
+    );
     return response.data;
   } catch (error) {
     console.error("Error closing concern:", error);
@@ -17,12 +26,13 @@ export const closeConcernWithMessage = async (concernId, adminId, adminMessage) 
 };
 
 // ========= Add Admin Response (without closing) =========
-export const addAdminResponse = async (concernId, adminId, message) => {
+export const addAdminResponse = async (concernId, message) => {
   try {
-    const response = await axios.post(`${BASE_URL}/${concernId}/response`, {
-      adminId,
-      message,
-    });
+    const response = await axios.post(
+      `${BASE_URL}/${concernId}/response`,
+      { message },
+      { headers: authHeaders() }
+    );
     return response.data;
   } catch (error) {
     console.error("Error adding admin response:", error);
@@ -33,9 +43,11 @@ export const addAdminResponse = async (concernId, adminId, message) => {
 // ========= Update Concern Status =========
 export const updateConcernStatus = async (concernId, status) => {
   try {
-    const response = await axios.patch(`${BASE_URL}/${concernId}/status`, {
-      status,
-    });
+    const response = await axios.patch(
+      `${BASE_URL}/${concernId}/status`,
+      { status },
+      { headers: authHeaders() }
+    );
     return response.data;
   } catch (error) {
     console.error("Error updating concern status:", error);
@@ -46,9 +58,11 @@ export const updateConcernStatus = async (concernId, status) => {
 // ========= Reopen Concern =========
 export const reopenConcern = async (concernId, reason) => {
   try {
-    const response = await axios.post(`${BASE_URL}/${concernId}/reopen`, {
-      reason,
-    });
+    const response = await axios.post(
+      `${BASE_URL}/${concernId}/reopen`,
+      { reason },
+      { headers: authHeaders() }
+    );
     return response.data;
   } catch (error) {
     console.error("Error reopening concern:", error);
@@ -64,7 +78,9 @@ export const getAllConcerns = async (filters = {}) => {
     if (filters.issueType) params.append("issueType", filters.issueType);
     if (filters.limit) params.append("limit", filters.limit);
 
-    const response = await axios.get(`${BASE_URL}/admin/all?${params.toString()}`);
+    const response = await axios.get(`${BASE_URL}/admin/all?${params.toString()}`, {
+      headers: authHeaders(),
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching all concerns:", error);
@@ -75,7 +91,9 @@ export const getAllConcerns = async (filters = {}) => {
 // ========= Get Concern Statistics =========
 export const getConcernStatistics = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/admin/statistics`);
+    const response = await axios.get(`${BASE_URL}/admin/statistics`, {
+      headers: authHeaders(),
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching concern statistics:", error);
@@ -84,9 +102,9 @@ export const getConcernStatistics = async () => {
 };
 
 // ========= Get User Concerns =========
-export const getUserConcerns = async (userId) => {
+export const getUserConcerns = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/user?userId=${userId}`);
+    const response = await axios.get(`${BASE_URL}/user`, { headers: authHeaders() });
     return response.data;
   } catch (error) {
     console.error("Error fetching user concerns:", error);
@@ -95,9 +113,9 @@ export const getUserConcerns = async (userId) => {
 };
 
 // ========= Get Concern Details =========
-export const getConcernDetails = async (concernId, userId) => {
+export const getConcernDetails = async (concernId) => {
   try {
-    const response = await axios.get(`${BASE_URL}/${concernId}?userId=${userId}`);
+    const response = await axios.get(`${BASE_URL}/${concernId}`, { headers: authHeaders() });
     return response.data;
   } catch (error) {
     console.error("Error fetching concern details:", error);
@@ -108,7 +126,9 @@ export const getConcernDetails = async (concernId, userId) => {
 // ========= Raise New Concern =========
 export const raiseConcern = async (concernData) => {
   try {
-    const response = await axios.post(`${BASE_URL}/raise`, concernData);
+    const response = await axios.post(`${BASE_URL}/raise`, concernData, {
+      headers: authHeaders(),
+    });
     return response.data;
   } catch (error) {
     console.error("Error raising concern:", error);
@@ -124,9 +144,11 @@ export const closeQuery = async (concernId) => {
     "closeQuery is deprecated. Use closeConcernWithMessage instead."
   );
   try {
-    const response = await axios.patch(`${BASE_URL}/${concernId}/status`, {
-      status: "closed",
-    });
+    const response = await axios.patch(
+      `${BASE_URL}/${concernId}/status`,
+      { status: "closed" },
+      { headers: authHeaders() }
+    );
     return response.data;
   } catch (error) {
     console.error("Error closing query:", error);
@@ -142,10 +164,11 @@ export const sendAdminMessage = async (concernId, message) => {
     "sendAdminMessage is deprecated. Use addAdminResponse instead."
   );
   try {
-    const response = await axios.post(`${BASE_URL}/${concernId}/response`, {
-      adminId: null,
-      message,
-    });
+    const response = await axios.post(
+      `${BASE_URL}/${concernId}/response`,
+      { message },
+      { headers: authHeaders() }
+    );
     return response.data;
   } catch (error) {
     console.error("Error sending admin message:", error);

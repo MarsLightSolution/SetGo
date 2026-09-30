@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { closeConcernWithMessage, addAdminResponse, updateConcernStatus } from "./queryApi";
 import { 
@@ -17,8 +18,13 @@ import {
   ZoomIn
 } from "lucide-react";
 
-// ✅ Backend Base URL - Change this to your actual backend URL
-const BACKEND_URL = "http://localhost:8080";
+// Backend base URL - same env var every other page uses
+const BACKEND_URL = import.meta.env.VITE_SERVER;
+
+const authHeaders = () => {
+  const token = localStorage.getItem("accessToken");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 // ✅ Helper function to get full image URL
 const getImageUrl = (imagePath) => {
@@ -36,9 +42,18 @@ const getImageUrl = (imagePath) => {
 };
 
 export default function MyQueries() {
-  // Get userId and adminId from localStorage
-  const userId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "68b1e2fa927f21500b024dd0" : "68b1e2fa927f21500b024dd0";
-  const adminId = typeof window !== 'undefined' ? localStorage.getItem("adminId") || "60d5ec49f1b2c72b8c8e4f20" : "60d5ec49f1b2c72b8c8e4f20";
+  const navigate = useNavigate();
+
+  // SECURITY: the backend now authorizes every /concern request from the verified
+  // login token (see backend/Routes/concernRoutes.js), not from an id we send it.
+  // There is no logged-out fallback identity any more - you must be logged in.
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem("userData"));
+  } catch {
+    currentUser = null;
+  }
+  const isAdmin = currentUser?.role === "admin";
 
   const [queries, setQueries] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
@@ -61,13 +76,18 @@ export default function MyQueries() {
   const [sendingResponse, setSendingResponse] = useState(false);
 
   useEffect(() => {
+    if (!localStorage.getItem("accessToken")) {
+      navigate("/login");
+      return;
+    }
     fetchQueries();
   }, []);
 
   const fetchQueries = async () => {
     try {
       const { data } = await axios.get(
-        `${BACKEND_URL}/concern/user?userId=${userId}`
+        `${BACKEND_URL}/concern/user`,
+        { headers: authHeaders() }
       );
 
       if (data.success) {
@@ -83,7 +103,8 @@ export default function MyQueries() {
   const fetchQueryDetails = async (concernId) => {
     try {
       const { data } = await axios.get(
-        `${BACKEND_URL}/concern/${concernId}?userId=${userId}`
+        `${BACKEND_URL}/concern/${concernId}`,
+        { headers: authHeaders() }
       );
 
       if (data.success) {
@@ -110,7 +131,6 @@ export default function MyQueries() {
     try {
       const result = await closeConcernWithMessage(
         selectedQuery._id,
-        adminId,
         closeMessage
       );
 
@@ -144,7 +164,6 @@ export default function MyQueries() {
     try {
       const result = await addAdminResponse(
         selectedQuery._id,
-        adminId,
         responseMessage
       );
 
@@ -554,8 +573,10 @@ export default function MyQueries() {
                   </div>
                 )}
 
-                {/* Action Buttons */}
-                {selectedQuery.status !== "closed" ? (
+                {/* Action Buttons - respond/close/reopen are admin moderation actions.
+                    The backend also enforces this (403 for non-admins); this just
+                    keeps the controls out of a regular user's own ticket view. */}
+                {isAdmin && (selectedQuery.status !== "closed" ? (
                   <div className="space-y-3 pt-4 border-t border-gray-200">
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
@@ -591,7 +612,7 @@ export default function MyQueries() {
                     <CheckCircle className="w-10 h-10 text-gray-500 mx-auto mb-2" />
                     <p className="text-gray-600 font-medium">This query has been closed</p>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           </div>

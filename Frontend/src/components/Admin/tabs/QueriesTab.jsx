@@ -5,7 +5,13 @@ import {
 } from "lucide-react"
 import { SERVER_URL } from "../adminUtils"
 
-const adminId = "60d5ec49f1b2c72b8c8e4f20"
+// SECURITY: the backend derives the admin's identity from this session's
+// verified login token (see backend/Routes/concernRoutes.js) - it no longer
+// trusts a client-supplied adminId, which used to be this hardcoded value.
+const authHeaders = () => {
+  const token = localStorage.getItem("accessToken")
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 const STATUS_CONFIG = {
   open:        { color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   icon: <Clock className="w-3.5 h-3.5" />,        label: "Open" },
@@ -52,7 +58,7 @@ export default function QueriesTab({ onCountChange }) {
   const fetchQueries = async () => {
     try {
       setQueriesLoading(true)
-      const response = await fetch(`${SERVER_URL}/concern/all`)
+      const response = await fetch(`${SERVER_URL}/concern/all`, { headers: authHeaders() })
       const data     = await response.json()
       if (data.success) {
         const concerns = data.concerns || []
@@ -68,7 +74,7 @@ export default function QueriesTab({ onCountChange }) {
 
   const fetchQueryDetails = async (concernId) => {
     try {
-      const response = await fetch(`${SERVER_URL}/concern/${concernId}`)
+      const response = await fetch(`${SERVER_URL}/concern/${concernId}`, { headers: authHeaders() })
       const data     = await response.json()
       if (data.success) { setSelectedQuery(data.data); setShowDetails(true) }
     } catch (err) {
@@ -82,8 +88,8 @@ export default function QueriesTab({ onCountChange }) {
     try {
       const response = await fetch(`${SERVER_URL}/concern/${selectedQuery._id}/close`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminId, adminMessage: closeMessage }),
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ adminMessage: closeMessage }),
       })
       const result = await response.json()
       if (result.success) {
@@ -105,8 +111,8 @@ export default function QueriesTab({ onCountChange }) {
     try {
       const response = await fetch(`${SERVER_URL}/concern/${selectedQuery._id}/response`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminId, message: responseMessage }),
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ message: responseMessage }),
       })
       const result = await response.json()
       if (result.success) {
@@ -127,7 +133,7 @@ export default function QueriesTab({ onCountChange }) {
     try {
       const response = await fetch(`${SERVER_URL}/concern/${selectedQuery._id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ status: newStatus }),
       })
       const result = await response.json()

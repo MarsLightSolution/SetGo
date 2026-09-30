@@ -184,12 +184,15 @@ const Register = () => {
           </button>
 
           <p className="text-xs text-gray-600 mt-4">
-            {t("register.termsText1", { // Translated with interpolation for links
-              termsLink: <span className="text-green-700">{t("register.termsOfUse")}</span>
-            })}
-            {t("register.termsText2", {
-              privacyLink: <span className="text-green-700">{t("register.privacyPolicy")}</span>
-            })}
+            {t("register.ourTermsPrefix")}{" "}
+            <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" className="text-green-700 underline">
+              {t("register.termsOfUse")}
+            </a>
+            {" "}{t("register.termsApplySuffix")}{" "}
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-green-700 underline">
+              {t("register.privacyPolicy")}
+            </a>
+            .
           </p>
         </div>
       </div>

@@ -785,12 +785,19 @@ const Form = () => {
             />
             <p className="text-xs text-gray-500 mt-2">
               {t("form.termsAgreementPrefix")}{" "}
-              <a href="#" className="text-blue-600 underline">
+              <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                 {t("form.termsOfUse")}
               </a>
               {" "}{t("form.termsAgreementAnd")}{" "}
-              <a href="#" className="text-blue-600 underline">
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                 {t("form.privacyPolicy")}
+              </a>
+              .
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              {t("form.listingRulesPrefix")}{" "}
+              <a href="/listing-rules" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                {t("footer.listingRules")}
               </a>
               .
             </p>
