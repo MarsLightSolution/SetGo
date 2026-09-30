@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   showSuccessToast,
   showErrorToast,
@@ -8,20 +7,42 @@ import {
 } from "./Hooks/Tostify";
 import { Upload, X, CheckCircle, AlertCircle, HelpCircle, Send } from "lucide-react";
 
-// ✅ Backend Base URL
-const BACKEND_URL = "http://localhost:8080";
+// Backend base URL - same env var every other page uses
+const BACKEND_URL = import.meta.env.VITE_SERVER;
+
+const VALID_ISSUE_TYPES = [
+  "order_issue", "payment_issue", "tracking_issue", "cancellation_issue",
+  "wallet_issue", "seller_buyer_issue", "ad_report", "others",
+];
 
 export default function RaiseQuery() {
   const navigate = useNavigate();
-  const userId = localStorage.getItem("userId") || "68b1e2fa927f21500b024dd0";
+  const [searchParams] = useSearchParams();
+
+  // SECURITY: the backend now requires a verified login for every /concern
+  // request (see backend/Routes/concernRoutes.js) and derives identity from
+  // that token - it no longer trusts a userId we send it. There is no
+  // logged-out fallback identity any more; redirect to login instead.
+  useEffect(() => {
+    if (!localStorage.getItem("accessToken")) {
+      showErrorToast("Please log in to raise a support query.");
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  // Deep-linked from a product page's "Report this listing" button:
+  // /raise-query?issueType=ad_report&adId=<productId>
+  const initialIssueType = VALID_ISSUE_TYPES.includes(searchParams.get("issueType"))
+    ? searchParams.get("issueType")
+    : "order_issue";
 
   const [formData, setFormData] = useState({
-    issueType: "order_issue",
+    issueType: initialIssueType,
     orderId: "",
     transactionId: "",
     walletId: "",
     sellerId: "",
-    adId: "",
+    adId: searchParams.get("adId") || "",
     message: "",
   });
 
@@ -101,12 +122,12 @@ export default function RaiseQuery() {
 
   const validateForm = () => {
     const issue = formData.issueType;
-    
-    if (!userId) {
-      showErrorToast("User ID missing. Please log in again.");
+
+    if (!localStorage.getItem("accessToken")) {
+      showErrorToast("Please log in to raise a support query.");
       return false;
     }
-    
+
     if (issue === "order_issue" && !formData.orderId) {
       showErrorToast("Order ID is required for order issues.");
       return false;
@@ -165,8 +186,8 @@ export default function RaiseQuery() {
       // Create FormData for multipart/form-data submission
       const submitData = new FormData();
 
-      // Append all text fields
-      submitData.append("userId", userId);
+      // Append all text fields. userId is intentionally NOT sent - the backend
+      // derives it from the logged-in user's token (see concernController.raiseConcern).
       submitData.append("issueType", formData.issueType);
       submitData.append("orderId", formData.orderId || "");
       submitData.append("transactionId", formData.transactionId || "");
@@ -183,11 +204,13 @@ export default function RaiseQuery() {
 
       console.log("Submitting form with", imageFiles.length, "images");
 
-      // ✅ Use fetch or axios without setting Content-Type (let browser set it with boundary)
+      // DO NOT set Content-Type - browser sets it automatically with the multipart boundary
       const response = await fetch(`${BACKEND_URL}/concern/raise`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
         body: submitData,
-        // DO NOT set Content-Type header - browser will set it automatically with boundary
       });
 
       const data = await response.json();

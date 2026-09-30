@@ -54,8 +54,9 @@ exports.raiseConcern = async (req, res) => {
   const startTime = Date.now();
 
   try {
+    // SECURITY: identity comes from the verified token, never from the request body.
+    const userId = req.user._id;
     const {
-      userId,
       issueType,
       orderId,
       transactionId,
@@ -65,13 +66,6 @@ exports.raiseConcern = async (req, res) => {
       message,
       images,
     } = req.body;
-
-    if (!userId) {
-      logger.warn(`${endpoint}: Missing userId`, { body: req.body });
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
-    }
 
     if (issueType === "order_issue" && !orderId) {
       logger.warn(`${endpoint}: Missing orderId for order_issue`, { userId });
@@ -161,13 +155,8 @@ logger.info(`${endpoint}: Images processed`, {
 exports.getUserConcerns = async (req, res) => {
   const endpoint = "getUserConcerns";
   try {
-    const { userId } = req.query;
-    if (!userId) {
-      logger.warn(`${endpoint}: Missing userId`, { query: req.query });
-      return res
-        .status(400)
-        .json({ success: false, message: "User ID is required" });
-    }
+    // SECURITY: always the caller's own concerns - identity comes from the verified token.
+    const userId = req.user._id;
 
     const concerns = await Concern.find({ userId })
       .populate("orderId", "transactionId status total")
@@ -207,24 +196,29 @@ exports.getConcernDetails = async (req, res) => {
   const endpoint = "getConcernDetails";
   try {
     const { concernId } = req.params;
-    const { userId } = req.query;
 
-    // If userId provided, filter by it (user view); otherwise allow admin access
-    const query = userId ? { _id: concernId, userId } : { _id: concernId };
-
-    const concern = await Concern.findOne(query)
+    const concern = await Concern.findById(concernId)
       .populate("orderId")
       .populate("sellerId", "name email")
       .populate("adminResponses.adminId", "name");
 
     if (!concern) {
-      logger.warn(`${endpoint}: Concern not found`, { concernId, userId });
+      logger.warn(`${endpoint}: Concern not found`, { concernId });
       return res
         .status(404)
         .json({ success: false, message: "Concern not found" });
     }
 
-    logger.info(`${endpoint}: Concern details retrieved`, { concernId, userId });
+    // SECURITY: only the ticket's owner or an admin may view it.
+    const isOwner = concern.userId?.toString() === req.user._id.toString();
+    if (!isOwner && req.user.role !== "admin") {
+      logger.warn(`${endpoint}: Forbidden`, { concernId, requester: req.user._id });
+      return res
+        .status(403)
+        .json({ success: false, message: "You do not have access to this concern" });
+    }
+
+    logger.info(`${endpoint}: Concern details retrieved`, { concernId, userId: req.user._id });
 
     res.status(200).json({ success: true, data: concern });
   } catch (error) {
@@ -242,20 +236,16 @@ exports.addAdminResponse = async (req, res) => {
   const endpoint = "addAdminResponse";
   try {
     const { concernId } = req.params;
-    const { message, adminId } = req.body;
+    const { message } = req.body;
+    // SECURITY: the route requires verifyJWT + requireAdmin, so req.user is the
+    // verified, logged-in admin - never trust a client-supplied adminId.
+    const adminId = req.user._id;
 
     if (!message) {
       logger.warn(`${endpoint}: Missing message`, { concernId });
       return res
         .status(400)
         .json({ success: false, message: "Message is required" });
-    }
-
-    if (!adminId) {
-      logger.warn(`${endpoint}: Missing adminId`, { concernId });
-      return res
-        .status(400)
-        .json({ success: false, message: "Admin ID is required" });
     }
 
     const concern = await Concern.findById(concernId).populate("userId", "email name");
@@ -414,7 +404,9 @@ exports.closeConcernWithMessage = async (req, res) => {
   const endpoint = "closeConcernWithMessage";
   try {
     const { concernId } = req.params;
-    const { adminMessage, adminId } = req.body;
+    const { adminMessage } = req.body;
+    // SECURITY: route requires verifyJWT + requireAdmin - identity is the verified admin.
+    const adminId = req.user._id;
 
     if (!adminMessage || adminMessage.trim() === "") {
       logger.warn(`${endpoint}: Missing admin message`, { concernId });
@@ -516,6 +508,8 @@ exports.reopenConcern = async (req, res) => {
   try {
     const { concernId } = req.params;
     const { reason } = req.body;
+    // SECURITY: route requires verifyJWT + requireAdmin - identity is the verified admin.
+    const adminId = req.user._id;
 
     const concern = await Concern.findById(concernId);
     
@@ -541,7 +535,7 @@ exports.reopenConcern = async (req, res) => {
     // Add a note about reopening
     if (reason) {
       concern.adminResponses.push({
-        adminId: null,
+        adminId,
         message: `Concern reopened. Reason: ${reason}`,
         respondedAt: new Date(),
       });
