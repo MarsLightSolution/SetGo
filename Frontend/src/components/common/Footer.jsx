@@ -56,7 +56,7 @@ const Footer = () => {
         <div className="border-t border-gray-200 pt-6 text-center text-xs text-gray-500 space-y-2 px-4">
           <p>{t("footer.disclaimer")}</p>
           <p>
-            {t("footer.operatedByPrefix")} <span className="font-medium">SatGo</span>.
+            {t("footer.operatedByPrefix")} <span className="font-medium">SATGO</span>.
           </p>
         </div>
 

@@ -1007,18 +1007,18 @@
   },
   "privacyPolicy": {
     "heroTitle": "Privacy Policy",
-    "heroSubtitle": "This Privacy Policy is an integral part of the SatGo User Agreement.",
+    "heroSubtitle": "This Privacy Policy is an integral part of the SATGO User Agreement.",
     "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282",
     "sections": [
       {
         "number": "1",
         "title": "General Provisions",
-        "body": "SatGo collects and processes only the personal data necessary to operate the platform and provide its services.\n\nBy using the platform, users voluntarily agree to the collection and processing of their personal data in accordance with this Policy."
+        "body": "SATGO collects and processes only the personal data necessary to operate the platform and provide its services.\n\nBy using the platform, users voluntarily agree to the collection and processing of their personal data in accordance with this Policy."
       },
       {
         "number": "2",
         "title": "Data We Collect",
-        "body": "SatGo may collect the following information:\n\n• Account information (name, email address, phone number)\n• Listing information and content provided by users\n• Communication data exchanged through the platform\n• Technical data such as IP address, browser type, device information, and access time\n\nSatGo does not collect or process sensitive personal data such as racial origin, political views, religious beliefs, health data, biometric or genetic information."
+        "body": "SATGO may collect the following information:\n\n• Account information (name, email address, phone number)\n• Listing information and content provided by users\n• Communication data exchanged through the platform\n• Technical data such as IP address, browser type, device information, and access time\n\nSATGO does not collect or process sensitive personal data such as racial origin, political views, religious beliefs, health data, biometric or genetic information."
       },
       {
         "number": "3",
@@ -1028,17 +1028,17 @@
       {
         "number": "4",
         "title": "Payment Information",
-        "body": "All payments are processed via certified third-party payment providers.\n\nSatGo does not store, process, or have access to users' card details at any time."
+        "body": "All payments are processed via certified third-party payment providers.\n\nSATGO does not store, process, or have access to users' card details at any time."
       },
       {
         "number": "5",
         "title": "Data Sharing",
-        "body": "SatGo does not sell, rent, or trade users' personal data.\n\nPersonal data may only be disclosed:\n\n• If required by law or governmental authorities\n• To authorized service providers strictly necessary for platform operation\n• With the user's explicit consent"
+        "body": "SATGO does not sell, rent, or trade users' personal data.\n\nPersonal data may only be disclosed:\n\n• If required by law or governmental authorities\n• To authorized service providers strictly necessary for platform operation\n• With the user's explicit consent"
       },
       {
         "number": "6",
         "title": "Data Security",
-        "body": "SatGo implements appropriate technical and organizational measures to protect personal data from unauthorized access, alteration, disclosure, or destruction.\n\nAccess to personal data is restricted to authorized personnel only."
+        "body": "SATGO implements appropriate technical and organizational measures to protect personal data from unauthorized access, alteration, disclosure, or destruction.\n\nAccess to personal data is restricted to authorized personnel only."
       },
       {
         "number": "7",
@@ -1053,17 +1053,17 @@
       {
         "number": "9",
         "title": "Cookies and Similar Technologies",
-        "body": "SatGo may use cookies and similar technologies to:\n\n• Improve website functionality\n• Analyze platform performance\n• Enhance security\n\nUsers may manage cookie preferences through their browser settings."
+        "body": "SATGO may use cookies and similar technologies to:\n\n• Improve website functionality\n• Analyze platform performance\n• Enhance security\n\nUsers may manage cookie preferences through their browser settings."
       },
       {
         "number": "10",
         "title": "Amendments",
-        "body": "SatGo reserves the right to modify this Privacy Policy at any time.\n\nContinued use of the platform after changes constitutes acceptance of the updated Policy."
+        "body": "SATGO reserves the right to modify this Privacy Policy at any time.\n\nContinued use of the platform after changes constitutes acceptance of the updated Policy."
       },
       {
         "number": "11",
         "title": "Wallet and Internal Balance",
-        "body": "SatGo may provide users with an internal wallet feature that allows users to deposit funds, make payments within the platform, and request withdrawals.\n\nAll deposits and withdrawals are processed through certified third-party payment providers. SatGo does not store or have access to users' card details.\n\nTransaction records related to wallet activity may be stored for security, fraud prevention, accounting, and legal compliance purposes.\n\nUsers are responsible for ensuring the accuracy of their withdrawal details."
+        "body": "SATGO may provide users with an internal wallet feature that allows users to deposit funds, make payments within the platform, and request withdrawals.\n\nAll deposits and withdrawals are processed through certified third-party payment providers. SATGO does not store or have access to users' card details.\n\nTransaction records related to wallet activity may be stored for security, fraud prevention, accounting, and legal compliance purposes.\n\nUsers are responsible for ensuring the accuracy of their withdrawal details."
       }
     ]
   },
