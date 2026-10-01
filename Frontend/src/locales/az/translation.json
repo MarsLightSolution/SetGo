@@ -1138,10 +1138,67 @@
   },
   "termsOfUse": {
     "heroTitle": "İstifadə Şərtləri",
-    "heroSubtitle": "Tam İstifadəçi Sazişi hazırlanarkən SATGO-nun hazırkı siyasətlərini haradan tapa biləcəyinizi bu səhifədə izah edir.",
-    "intro": "SATGO-nun tam İstifadə Şərtləri (İstifadəçi Sazişi) hazırlanır və bu səhifədə dərc olunacaq. Bu vaxta qədər SATGO platformasından istifadəniz aşağıda göstərilən siyasətlərlə və tətbiq olunan qanunvericiliklə tənzimlənir.",
-    "linksTitle": "Hazırkı siyasətlər",
-    "closingNote": "Bu şərtlərlə bağlı sualınız varsa, info@satgo.az ünvanı ilə bizimlə əlaqə saxlayın.",
-    "lastUpdated": "Son yenilənmə: 2026 — SATGO, VÖEN 1301881282"
+    "heroSubtitle": "Bu Şərtlər SATGO-nun vebsaytından, hesablarından, elanlarından və bazar xidmətlərindən istifadəni tənzimləyir.",
+    "effectiveDateLabel": "Qüvvəyə minmə tarixi",
+    "effectiveDate": "2026",
+    "operatedByPrefix": "SATGO aşağıdakı tərəfindən idarə olunan onlayn bazardır:",
+    "lastUpdated": "Son yenilənmə: 2026 — SATGO, VÖEN 1301881282",
+    "sections": [
+      {
+        "number": "1",
+        "title": "SATGO haqqında",
+        "body": "Bu Şərtlər SATGO-nun vebsaytından, hesablarından, elanlarından və bazar xidmətlərindən istifadəni tənzimləyir. Qeydiyyatdan keçməzdən, elan yerləşdirməzdən və ya əməliyyatı tamamlamazdan əvvəl onları oxuyun."
+      },
+      {
+        "number": "2",
+        "title": "Hesablar və platformadan istifadə",
+        "body": "İstifadəçilər dəqiq məlumat təqdim etməli, hesab məlumatlarını yeniləməli və giriş məlumatlarını qorumalıdırlar. Şübhəli icazəsiz hesab girişi haqqında dərhal SATGO-ya məlumat verilməlidir.\n\nİstifadəçilər platformadakı fəaliyyətləri üçün tələb olunan hüquqi qabiliyyətə malik olmalıdırlar. Müəssisə adından hərəkət edən hər kəs onu təmsil etmək səlahiyyətinə malik olmalıdır.\n\nİstifadəçilər platformadan sui-istifadə etməməli, başqalarının adından çıxış etməməli, saxta məlumat yaymamalı, təhlükəsizliyə müdaxilə etməməli və ya SATGO-dan qanunsuz fəaliyyətlər üçün istifadə etməməlidirlər."
+      },
+      {
+        "number": "3",
+        "title": "SATGO-nun bazar rolu",
+        "body": "SATGO alıcıları müstəqil satıcılarla birləşdirir və elanlara, kommunikasiyaya və əməliyyatlara dəstək verən xidmətlər təqdim edir.\n\nElanda SATGO-nun açıq şəkildə satıcı kimi göstərilmədiyi hallarda, təklif olunan məhsul və ya xidmət üzrə saziş alıcı ilə müəyyən edilmiş satıcı arasındadır.\n\nSATGO öz platforma xidmətlərinə, elan yoxlaması və şikayətlərin həlli proseslərinə, həmçinin tətbiq olunan qanunvericilik üzrə öhdəliklərinə görə məsuliyyət daşımağa davam edir."
+      },
+      {
+        "number": "4",
+        "title": "Satıcıların öhdəlikləri",
+        "body": "Satıcılar aşağıdakılara görə məsuliyyət daşıyırlar:\n\n• Məhsul və xidmətlərinin qanuniliyi, təhlükəsizliyi, orijinallığı və vəziyyəti.\n• Dəqiq təsvirlər, fotoşəkillər, qiymətlər, mövcudluq və çatdırılma məlumatı.\n• Alıcının qərarına təsir edən əhəmiyyətli qüsurların, məhdudiyyətlərin və digər məlumatların açıqlanması.\n• Fəaliyyətləri üçün tələb olunan lisenziya, icazə və ya hüquqlara malik olmaq.\n• Qanunla tələb olunduqda müəssisə identifikasiyası və əlaqə məlumatlarının təqdim edilməsi.\n• Qəbul edilmiş sifarişlərin yerinə yetirilməsi və tətbiq olunan çatdırılma, zəmanət, ləğvetmə, geri qaytarma və istehlakçı müdafiəsi öhdəliklərinə əməl edilməsi.\n\nQanunsuz, oğurlanmış, saxta və ya təhlükəsiz olmayan məhsullar, qanunsuz xidmətlər, fırıldaqçı təkliflər və əhəmiyyətli dərəcədə yanıldıcı elanlar qadağandır.\n\nSatıcılar SATGO-nun uyğunluq yoxlamaları ilə əməkdaşlıq etməli və ağlabatan şəkildə tələb olunan dəstəkləyici məlumatı təqdim etməlidirlər."
+      },
+      {
+        "number": "5",
+        "title": "SATGO-nun elan yoxlamaları və icra tədbirləri",
+        "body": "SATGO elanların öz qaydalarına uyğunluğunu yoxlamaq və şübhəli qanunsuz, təhlükəsiz olmayan, fırıldaqçı və ya yanıldıcı məzmunu müəyyən etmək üçün proseslər işlədir. Bu proseslərə müntəzəm elan yoxlamaları, istifadəçi hesabatlarının nəzərdən keçirilməsi və lazım olduqda dəstəkləyici məlumat tələbləri daxildir.\n\nYoxlamalar nəşrdən əvvəl və ya sonra həyata keçirilə bilər. SATGO öz nəzərdən keçirmələri vasitəsilə müəyyən edilmiş və ya istifadəçilər, satıcılar və ya səlahiyyətli orqanlar tərəfindən bildirilmiş məsələləri araşdırır.\n\nŞəraitdən asılı olaraq SATGO aşağıdakıları edə bilər:\n\n• Mülkiyyət, orijinallıq, lisenziyalaşdırma və ya məhsul uyğunluğu sübutunu tələb etmək.\n• Qeyri-dəqiq və ya natamam məlumatın düzəldilməsini tələb etmək.\n• Məsələ araşdırılarkən elanı müvəqqəti məhdudlaşdırmaq.\n• Qadağan olunmuş elanları silmək.\n• Ciddi və ya təkrarlanan pozuntular üçün hesabları məhdudlaşdırmaq, dayandırmaq və ya bağlamaq.\n• Qanunla tələb olunduqda və ya icazə verildikdə səlahiyyətli orqanlarla əməkdaşlıq etmək.\n\nSATGO təhlükəsizliyə dərhal təsir edən və ya şübhəli qanunsuz fəaliyyəti göstərən hesabatlara üstünlük verir. Onun vasitəçi rolu öz hüquqi öhdəliklərini istisna etmir.\n\nƏlavə tələblər [Elan Qaydaları](/listing-rules)-nda göstərilir."
+      },
+      {
+        "number": "6",
+        "title": "Qiymətlər, sifarişlər və ödənişlər",
+        "body": "Satıcılar alıcı əməliyyatı qəbul etməzdən əvvəl qiyməti və tətbiq olunan çatdırılma haqlarını və ya digər şərtləri aydın şəkildə göstərməlidir. SATGO öz tətbiq olunan haqlarını onları tutmazdan əvvəl açıqlayacaq.\n\nSatıcılar qəbul edilmiş sifarişlərin təsdiqlənməsinə və yerinə yetirilməsinə görə məsuliyyət daşıyırlar. Alıcılar dəqiq sifariş və çatdırılma məlumatı təqdim etməli və istifadəsinə icazə verilmiş ödəniş üsullarından istifadə etməlidirlər.\n\nSATGO vasitəsilə həyata keçirilən ödənişlər platformada mövcud olan ödəniş xidmətləri vasitəsilə emal olunur.\n\nSATGO, ümumiyyətlə, öz ödəniş sistemindən kənarda alıcılar və satıcılar arasında birbaşa həyata keçirilən ödənişləri geri qaytara bilməz. Lakin SATGO yenə də bu əməliyyatlarla bağlı hesabatları qəbul edir və öz platforma qaydalarının şübhəli pozuntularını araşdırır."
+      },
+      {
+        "number": "7",
+        "title": "Ləğvetmələr, geri qaytarmalar və geri ödənişlər",
+        "body": "Ləğvetmə, geri qaytarma və geri ödəniş sorğuları tətbiq olunan qanunvericiliyə tabe olaraq SATGO-nun [Geri Qaytarma Siyasəti](/refund-policy) əsasında həll olunur.\n\nBu Şərtlərdə və ya Geri Qaytarma Siyasətində heç bir şey müqavilədən imtina etmək, malları geri qaytarmaq və ya dəyişdirmək, geri ödəniş almaq, təmir və ya əvəzetmə tələb etmək, yaxud qanunla nəzərdə tutulan digər hüquqi müdafiə vasitəsindən istifadə etmək üçün hər hansı məcburi hüququ aradan qaldırmır.\n\nMəhsulun çatdırılması və ya qəbul edilməsi özlüyündə tətbiq olunan qanunvericilik üzrə davam edən hüquqları aradan qaldırmır.\n\nSorğular [Dəstək və Şikayətlər](/raise-query) vasitəsilə və ya [info@satgo.az](mailto:info@satgo.az) ünvanına e-poçt göndərməklə təqdim edilə bilər. Zəhmət olmasa sifariş və ya elan istinadını, sorğunun səbəbini və mövcud olan müvafiq sübutu daxil edin.\n\nSATGO sorğuları nəzərdən keçirir, zərurət olduqda satıcı ilə əlaqə saxlayır, həll prosesinə yardım göstərir və uyğun geri ödənişlərə müvafiq ödəniş proseduru vasitəsilə kömək edir."
+      },
+      {
+        "number": "8",
+        "title": "Elanlar haqqında bildiriş və şikayətlərin edilməsi",
+        "body": "İstənilən şəxs şübhəli qanunsuz, təhlükəsiz olmayan, saxta və ya yanıldıcı elanlar, satıcının davranışı və ya SATGO-nun xidmətləri ilə bağlı problemlər barədə bildiriş verə bilər.\n\nBildirişlər [Dəstək və Şikayətlər](/raise-query) vasitəsilə təqdim edilə bilər. Əgər formaya giriş edə bilmirsinizsə və ya hesabınız yoxdursa, [info@satgo.az](mailto:info@satgo.az) ünvanına e-poçt göndərin.\n\nElan haqqında bildiriş vermək üçün SATGO vasitəsilə satınalma və ya ödəniş tələb olunmur.\n\nZəhmət olmasa elanın linkini və ya istinadını, məsələnin təsvirini və mövcud olan hər hansı dəstəkləyici sübutu təqdim edin. SATGO bildirişləri qeydə alır və nəzərdən keçirir, məlumatı qiymətləndirir, lazım olduqda müvafiq tərəflərlə əlaqə saxlayır və öz qaydalarına əsasən tədbirlər görür.\n\nƏlaqə məlumatları mövcud olduqda, SATGO tətbiq olunan məxfilik və qanuni məhdudiyyətlərə tabe olaraq nəticəni və ya müvafiq yenilikləri bildirir. İstifadəçilər əlavə məlumat təqdim etməklə yenidən baxılmasını tələb edə bilərlər.\n\nSATGO-nun şikayət prosesindən istifadə heç kəsin səlahiyyətli orqanla əlaqə saxlamasına və ya qanunla nəzərdə tutulan müdafiə vasitələrindən istifadə etməsinə mane olmur."
+      },
+      {
+        "number": "9",
+        "title": "Məzmun və şəxsi məlumat",
+        "body": "İstifadəçilər öz elan mətnini, fotoşəkillərini və digər məzmununu dərc etmək üçün zəruri hüquqlara malik olmalıdırlar.\n\nİstifadəçilər öz məzmunlarının mülkiyyətini saxlayırlar və platformanın işlədilməsi və elanlarının göstərilməsi üçün zəruri olduğu qədər SATGO-ya həmin məzmunu yerləşdirmək, göstərmək və texniki cəhətdən uyğunlaşdırmaq üçün müstəsna olmayan icazə verirlər.\n\nSATGO şəxsi məlumatları öz [Gizlilik Siyasəti](/privacy-policy)-ndə təsvir edildiyi kimi emal edir."
+      },
+      {
+        "number": "10",
+        "title": "Hesab məhdudiyyətləri və məsuliyyət",
+        "body": "SATGO şübhəli pozuntuları araşdırmaq, istifadəçiləri qorumaq və ya qanuna əməl etmək üçün ağlabatan şəkildə zəruri olduqda girişi məhdudlaşdıra bilər. Münasib olduqda və qanunla icazə verildikdə, SATGO məhdudiyyəti və istifadəçinin yenidən baxılma tələb edə biləcəyi üsulu izah edəcək.\n\nHesabın dayandırılması və ya bağlanması sifarişlər, şikayətlər və ya geri ödənişlərlə bağlı mövcud öhdəlikləri avtomatik olaraq ləğv etmir və ya mövcud hüquqları aradan qaldırmır.\n\nSatıcılar öz məhsulları, xidmətləri və müqavilə öhdəlikləri üçün məsuliyyət daşımağa davam edirlər. SATGO öz hərəkətləri, hərəkətsizlikləri və tətbiq olunan qanunvericilik üzrə öhdəlikləri üçün məsuliyyət daşımağa davam edir.\n\nBu Şərtlərdə heç bir şey qanuni şəkildə istisna edilə və ya məhdudlaşdırıla bilməyən məsuliyyəti və ya istehlakçı hüquqlarını istisna etmir və ya məhdudlaşdırmır."
+      },
+      {
+        "number": "11",
+        "title": "Dəyişikliklər və tətbiq olunan qanunvericilik",
+        "body": "SATGO bu Şərtləri yeniləyə bilər və yenilənmiş versiyanı qüvvəyə minmə tarixi ilə birlikdə dərc edəcək. Əhəmiyyətli dəyişikliklər müvafiq platforma bildirişi və ya digər mövcud əlaqə üsulu vasitəsilə bildiriləcək.\n\nDəyişikliklər tamamlanmış əməliyyatlarla bağlı hüquqları geriyə doğru aradan qaldırmayacaq. Qanunla tələb olunduqda, SATGO dəyişikliyi tətbiq etməzdən əvvəl razılıq əldə edəcək.\n\nBu Şərtlər, istifadəçiyə tətbiq olunan hər hansı məcburi müdafiələrə tabe olaraq, Azərbaycan Respublikasının qanunvericiliyi ilə tənzimlənir. Heç bir şey istifadəçinin səlahiyyətli orqandan yardım istəməsinə və ya səlahiyyətli məhkəmədə iddia irəli sürməsinə mane olmur.\n\nƏgər hər hansı müddəa məcburi qanunvericiliyə zidd olarsa, həmin qanunvericilik üstünlük təşkil edir."
+      }
+    ]
   }
 }

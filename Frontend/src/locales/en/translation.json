@@ -1138,10 +1138,67 @@
   },
   "termsOfUse": {
     "heroTitle": "Terms of Use",
-    "heroSubtitle": "This page explains where to find SATGO's current policies while the full User Agreement is being finalised.",
-    "intro": "SATGO's complete Terms of Use (User Agreement) is being finalised and will be published on this page. In the meantime, your use of the SATGO platform is governed by the policies listed below, together with applicable law.",
-    "linksTitle": "Current policies",
-    "closingNote": "If you have questions about these terms, contact us at info@satgo.az.",
-    "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282"
+    "heroSubtitle": "These Terms govern the use of SATGO's website, accounts, listings and marketplace services.",
+    "effectiveDateLabel": "Effective date",
+    "effectiveDate": "2026",
+    "operatedByPrefix": "SATGO is an online marketplace operated by",
+    "lastUpdated": "Last updated: 2026 — SATGO, Tax ID (VÖEN) 1301881282",
+    "sections": [
+      {
+        "number": "1",
+        "title": "About SATGO",
+        "body": "These Terms govern the use of SATGO’s website, accounts, listings and marketplace services. Please read them before registering, publishing a listing or completing a transaction."
+      },
+      {
+        "number": "2",
+        "title": "Accounts and use of the platform",
+        "body": "Users must provide accurate information, keep their account details current and protect their login credentials. Suspected unauthorised account access should be reported to SATGO promptly.\n\nUsers must have the legal capacity required for their activities on the platform. Anyone acting for a business must be authorised to represent it.\n\nUsers must not misuse the platform, impersonate others, publish fraudulent information, interfere with security or use SATGO for unlawful activities."
+      },
+      {
+        "number": "3",
+        "title": "SATGO’s marketplace role",
+        "body": "SATGO connects buyers with independent sellers and provides services supporting listings, communications and transactions.\n\nUnless a listing expressly identifies SATGO as the seller, the agreement for the advertised product or service is between the buyer and the identified seller.\n\nSATGO remains responsible for its own platform services, its listing-review and complaint-handling processes, and its obligations under applicable law."
+      },
+      {
+        "number": "4",
+        "title": "Sellers’ responsibilities",
+        "body": "Sellers are responsible for:\n\n• The legality, safety, authenticity and condition of their products and services.\n• Accurate descriptions, photographs, prices, availability and delivery information.\n• Disclosing material defects, restrictions and other information relevant to a buyer’s decision.\n• Holding any licences, permissions or rights required for their activities.\n• Providing business identification and contact information where required by law.\n• Fulfilling accepted orders and complying with applicable delivery, warranty, cancellation, refund and consumer-protection obligations.\n\nIllegal, stolen, counterfeit or unsafe products, unlawful services, fraudulent offers and materially misleading listings are prohibited.\n\nSellers must cooperate with SATGO’s compliance reviews and provide reasonably requested supporting information."
+      },
+      {
+        "number": "5",
+        "title": "SATGO’s listing checks and enforcement",
+        "body": "SATGO operates processes to check listings for compliance with its rules and to identify suspected illegal, unsafe, fraudulent or misleading content. These processes include routine listing checks, review of user reports and requests for supporting information where appropriate.\n\nChecks may take place before or after publication. SATGO investigates concerns identified through its own reviews or reported by users, sellers or competent authorities.\n\nDepending on the circumstances, SATGO may:\n\n• Request evidence of ownership, authenticity, licensing or product compliance.\n• Require corrections to inaccurate or incomplete information.\n• Temporarily restrict a listing while investigating a concern.\n• Remove prohibited listings.\n• Restrict, suspend or close accounts for serious or repeated violations.\n• Cooperate with competent authorities where required or permitted by law.\n\nSATGO prioritises reports indicating an immediate safety risk or suspected illegal activity. Its intermediary role does not exclude its own legal obligations.\n\nFurther requirements appear in the [Listing Rules](/listing-rules)."
+      },
+      {
+        "number": "6",
+        "title": "Prices, orders and payments",
+        "body": "Sellers must clearly state the price and any applicable delivery charges or other conditions before a buyer commits to a transaction. SATGO will disclose its own applicable fees before charging them.\n\nSellers are responsible for confirming and fulfilling accepted orders. Buyers must provide accurate order and delivery information and use payment methods they are authorised to use.\n\nPayments made through SATGO are processed using the payment services available on the platform.\n\nSATGO generally cannot reverse payments made directly between buyers and sellers outside its payment system. However, SATGO still accepts reports concerning those transactions and investigates suspected violations of its platform rules."
+      },
+      {
+        "number": "7",
+        "title": "Cancellations, returns and refunds",
+        "body": "Cancellation, return and refund requests are handled under SATGO’s [Refund Policy](/refund-policy), subject to applicable law.\n\nNothing in these Terms or the Refund Policy removes any mandatory right to withdraw from a contract, return or exchange goods, obtain a refund, request repair or replacement, or pursue another remedy provided by law.\n\nDelivery or acceptance of an item does not, by itself, remove rights that continue under applicable law.\n\nRequests may be submitted through [Support & Complaints](/raise-query) or by emailing [info@satgo.az](mailto:info@satgo.az). Please include the order or listing reference, the reason for the request and relevant evidence where available.\n\nSATGO reviews requests, contacts the seller where necessary, facilitates resolution and assists with eligible refunds through the relevant payment procedure."
+      },
+      {
+        "number": "8",
+        "title": "Reporting listings and making complaints",
+        "body": "Anyone may report suspected illegal, unsafe, counterfeit or misleading listings, seller misconduct or problems with SATGO’s services.\n\nReports may be submitted through [Support & Complaints](/raise-query). If you cannot access the form or do not have an account, email [info@satgo.az](mailto:info@satgo.az).\n\nA purchase or payment through SATGO is not required to report a listing.\n\nPlease provide the listing link or reference, a description of the concern and any supporting evidence available. SATGO records and reviews reports, assesses the information, contacts relevant parties where appropriate and takes action under its rules.\n\nWhere contact details are available, SATGO communicates the outcome or relevant updates, subject to privacy and legal restrictions. Users may request reconsideration by providing additional information.\n\nUsing SATGO’s complaint process does not prevent anyone from contacting a competent authority or pursuing remedies available under law."
+      },
+      {
+        "number": "9",
+        "title": "Content and personal information",
+        "body": "Users must have the rights necessary to publish their listing text, photographs and other content.\n\nUsers retain ownership of their content and give SATGO a non-exclusive permission to host, display and technically adapt that content as necessary to operate the platform and display their listings.\n\nSATGO handles personal information as described in its [Privacy Policy](/privacy-policy)."
+      },
+      {
+        "number": "10",
+        "title": "Account restrictions and responsibility",
+        "body": "SATGO may restrict access where reasonably necessary to investigate suspected violations, protect users or comply with law. Where appropriate and legally permitted, SATGO will explain the restriction and how the user can request a review.\n\nAccount suspension or closure does not automatically cancel outstanding obligations or remove existing rights concerning orders, complaints or refunds.\n\nSellers remain responsible for their products, services and contractual obligations. SATGO remains responsible for its own acts, omissions and obligations under applicable law.\n\nNothing in these Terms excludes or limits liability or consumer rights that cannot lawfully be excluded or limited."
+      },
+      {
+        "number": "11",
+        "title": "Changes and applicable law",
+        "body": "SATGO may update these Terms and will publish the revised version with its effective date. Material changes will be communicated through an appropriate platform notice or other available contact method.\n\nChanges will not retrospectively remove rights relating to completed transactions. Where legally required, SATGO will obtain agreement before applying a change.\n\nThese Terms are governed by the laws of the Republic of Azerbaijan, subject to any mandatory protections applicable to the user. Nothing prevents a user from seeking assistance from a competent authority or bringing a claim before a competent court.\n\nIf any provision conflicts with mandatory law, that law takes precedence."
+      }
+    ]
   }
 }
