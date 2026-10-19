@@ -75,6 +75,25 @@ router.post('/initiate', authenticateUser, async (req, res) => {
       });
     }
 
+    // ========= CARD PAYMENT GATE =========
+    // There is no live card-payment gateway integration yet (see
+    // backend/AZERICARD_PAYMENT_WALLET_PLAN.md). Previously this fell through to STEP 10
+    // below, which called PAYMENT_SERVICE_URL (hardcoded to http://localhost:3001, nothing
+    // listens there) - it failed, but only after creating a pending Order first, leaving
+    // confusing half-created/cancelled order records behind. Refuse explicitly and early
+    // instead, before any Order is created. Flip AZERICARD_ENABLED=true in .env once the
+    // real integration is built and tested.
+    if (onlineAmount > 0 && process.env.AZERICARD_ENABLED !== 'true') {
+      logger.warn('[Payment Gateway] Card payment attempted while AZERICARD_ENABLED is not set', {
+        buyerId, productId, onlineAmount,
+      });
+      return res.status(503).json({
+        success: false,
+        code: 'ONLINE_PAYMENT_UNAVAILABLE',
+        message: 'Online card payments are not available yet. Please use your wallet balance, or contact support for other options.'
+      });
+    }
+
     if (product.stock < 1) {
       return res.status(400).json({
         success: false,
