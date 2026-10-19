@@ -153,3 +153,4 @@ sessions/
 
 # ========== Redis ==========
 *.rdb
+scripts/.payment-monitor-state.json
