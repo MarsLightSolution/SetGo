@@ -337,6 +337,21 @@ The original problem: deploy tooling only ever lived on `production/*` branches,
 badly behind what was actually live. Now application code lives in `main-2`, deployment files in
 `deployment`, and every deploy is cut from `deployment` — see [§2](#2-the-branch-strategy).
 
+### 7. Payment integrity monitor (cron)
+
+`backend/scripts/monitor-payment-integrity.js` is a tripwire: card payments are gated off
+(`AZERICARD_ENABLED` unset in `backend/.env`) until the real Azericard integration ships, so any
+order/transaction record showing a *successful* online card payment is impossible and means
+something bypassed the gate. Registered on the server via `crontab -e` (user `ubuntu`):
+
+```
+*/15 * * * * cd /home/ubuntu/SetGo/backend && /usr/bin/node scripts/monitor-payment-integrity.js >> logs/payment-monitor.log 2>&1
+```
+
+Alerts (deduped, one email per new finding) go to `PAYMENT_ALERT_EMAIL` if set in `backend/.env`,
+otherwise to the fallback address hardcoded in the script. Dedup state lives in
+`backend/scripts/.payment-monitor-state.json` (gitignored) — delete it to force a re-alert.
+
 ---
 
 ## Docker (optional alternative to the PM2 workflow above)
