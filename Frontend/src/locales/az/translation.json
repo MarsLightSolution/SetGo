@@ -718,6 +718,8 @@
     "cardPaymentDisclaimer": "Kart ödənişləri Azericard vasitəsilə təhlükəsiz şəkildə emal ediləcək. Biz müştərilərin kart məlumatlarını saxlamırıq və onlara giriş imkanımız yoxdur."
   },
   "payment": {
+    "onlinePaymentUnavailable": "Kartla ödəniş hələ mövcud deyil. Zəhmət olmasa, tam məbləği pul kisəsi balansınızdan ödəyin.",
+    "incompleteCheckoutDetails": "Sifarişdən əvvəl profilinizdə ad, e-poçt, ünvan, şəhər və poçt indeksini tamamlayın.",
     "processingPayment": "Ödəniş emal edilir...",
     "paymentSuccessful": "Ödəniş Uğurlu Oldu!",
     "paymentFailed": "Ödəniş Uğursuz Oldu",

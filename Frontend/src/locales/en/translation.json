@@ -718,6 +718,8 @@
     "cardPaymentDisclaimer": "Card payments will be processed securely via Azericard. We do not store or have access to customers' card details."
   },
   "payment": {
+    "onlinePaymentUnavailable": "Card payments are not available yet. Please pay the full amount from your wallet balance.",
+    "incompleteCheckoutDetails": "Please complete your name, email, address, city and postal code in your profile before checking out.",
     "processingPayment": "Processing payment...",
     "paymentSuccessful": "Payment Successful!",
     "paymentFailed": "Payment Failed",

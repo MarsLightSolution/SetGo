@@ -169,26 +169,6 @@ const createOrderSchema = Joi.object({
     .required(),
 }).unknown(true);
 
-// Payment Creation Schema
-const createPaymentSchema = Joi.object({
-  amount: Joi.number()
-    .min(0.01)
-    .max(1000000)
-    .required()
-    .messages({
-      'number.min': 'Payment amount must be greater than 0',
-      'number.max': 'Payment amount exceeds maximum limit',
-    }),
-
-  productId: Joi.string()
-    .pattern(/^[0-9a-fA-F]{24}$/)
-    .required(),
-
-  receiverId: Joi.string()
-    .pattern(/^[0-9a-fA-F]{24}$/)
-    .optional(),
-}).unknown(true);
-
 // Wallet Transfer Schema
 const walletTransferSchema = Joi.object({
   receiverId: Joi.string()
@@ -259,7 +239,6 @@ module.exports = {
   validateLogin: validate(loginSchema, 'LOGIN_INVALID'),
   validateCreateProduct: validate(createProductSchema),
   validateCreateOrder: validate(createOrderSchema),
-  validateCreatePayment: validate(createPaymentSchema),
   validateWalletTransfer: validate(walletTransferSchema),
   validateResetPassword: validate(resetPasswordSchema, 'RESET_PASSWORD_INVALID'),
   validateCreateShop: validate(createShopSchema),

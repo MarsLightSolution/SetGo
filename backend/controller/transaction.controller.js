@@ -3,77 +3,47 @@ const User = require('../models/user.js');
 const asyncHandler = require("../utils/asyncHandler");
 const mongoose = require('mongoose');
 const logger = require('../utils/logger'); // Import the logger
+const { WalletError, withTransaction, transfer } = require('../services/walletLedger');
+
+// The sender is always the authenticated user; the only exception is an admin
+// moving money out of the platform wallet (Admin_Id), e.g. releasing held funds.
+function resolveSenderId(req) {
+  const self = String(req.user._id);
+  const requested = req.body.senderId ? String(req.body.senderId) : self;
+  if (requested === self) return self;
+  if (req.user.role === 'admin' && process.env.Admin_Id && requested === String(process.env.Admin_Id)) {
+    return requested;
+  }
+  return null;
+}
 
 const walletTransfer = asyncHandler(async (req, res) => {
-  const { senderId, receiverId, amount, transactionId, description } = req.body;
-  logger.info(`[WalletTransfer] Request received from sender: ${senderId} to receiver: ${receiverId} for amount: ${amount}`);
-  logger.debug('walletTransfer transaction id', { transactionId });
+  const { receiverId, transactionId, description } = req.body;
+  const amount = Number(req.body.amount);
 
-  // Use an existing session if provided, otherwise create a new one
-  const session = req.body.session || await mongoose.startSession();
-  const useExternalSession = !!req.body.session;
-
-  if (!useExternalSession) {
-    session.startTransaction();
-    logger.info(`[WalletTransfer] Started new transaction session.`);
+  const senderId = resolveSenderId(req);
+  if (!senderId) {
+    logger.warn('[WalletTransfer] Rejected: senderId does not match the authenticated user', {
+      userId: req.user._id, requestedSenderId: req.body.senderId,
+    });
+    return res.status(403).json({ success: false, code: 'SENDER_MISMATCH', message: 'You can only transfer from your own wallet' });
   }
+  if (!receiverId || !transactionId) {
+    return res.status(400).json({ success: false, code: 'MISSING_FIELDS', message: 'receiverId, amount and transactionId are required' });
+  }
+
+  logger.info(`[WalletTransfer] ${senderId} -> ${receiverId} amount ${amount} txn ${transactionId}`);
   try {
-    if (!senderId || !receiverId || !amount || !transactionId) {
-        logger.warn(`[WalletTransfer] Validation failed: Missing required fields.`);
-        throw new Error("Missing required fields: senderId, receiverId, amount, transactionId");
-    }
-    if (amount <= 0) {
-        logger.warn(`[WalletTransfer] Validation failed: Amount must be greater than zero. Amount: ${amount}`);
-        throw new Error("Amount must be greater than zero");
-    }
-
-    const sender = await User.findById(senderId).select('walletBalance').session(session);
-    if (!sender) {
-        logger.warn(`[WalletTransfer] Sender not found: ${senderId}`);
-        throw new Error("Sender not found");
-    }
-    if (sender.walletBalance < amount) {
-        logger.warn(`[WalletTransfer] Insufficient balance for sender: ${senderId}. Balance: ${sender.walletBalance}, Amount: ${amount}`);
-        throw new Error("Insufficient wallet balance");
-    }
-    const receiver = await User.findById(receiverId).session(session);
-
-    if (!receiver) {
-        logger.warn(`[WalletTransfer] Receiver not found: ${receiverId}`);
-        throw new Error("Receiver not found");
-    }
-    await Transaction.create([{
-      senderId,
-      receiverId,
-      amount,
-      transactionId,
-      description,
-      status: "success",
-      paymentMode: "Wallet",
-      type: "transfer",
-    }], { session });
-    await User.findByIdAndUpdate(senderId, { $inc: { walletBalance: -amount } }, { session });
-    await User.findByIdAndUpdate(receiverId, { $inc: { walletBalance: amount } }, { session });
-
-    if (!useExternalSession) {
-      await session.commitTransaction();
-      logger.info(`[WalletTransfer] Transaction committed successfully for transactionId: ${transactionId}`);
-    }
-    
+    await withTransaction((session) =>
+      transfer({ senderId, receiverId, amount, transactionId, description }, session)
+    );
     res.json({ success: true, message: "Wallet transfer successful" });
-
-  } catch (error) {
-    logger.error(`[WalletTransfer] Error during transfer for transactionId ${transactionId}: ${error.stack}`);
-    if (!useExternalSession) {
-      await session.abortTransaction();
-      logger.info(`[WalletTransfer] Transaction aborted for transactionId: ${transactionId}`);
+  } catch (err) {
+    if (err instanceof WalletError) {
+      logger.warn(`[WalletTransfer] ${err.code} for txn ${transactionId}`);
+      return res.status(err.status).json({ success: false, code: err.code, message: err.message });
     }
-    // Let the asyncHandler handle the response
-    throw error; 
-  } finally {
-    if (!useExternalSession) {
-      session.endSession();
-    }
+    throw err;
   }
 });
 

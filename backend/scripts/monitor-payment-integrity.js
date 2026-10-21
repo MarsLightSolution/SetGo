@@ -3,12 +3,11 @@
  * Payment integrity monitor.
  *
  * There is no live card-payment gateway integration yet (see
- * backend/AZERICARD_PAYMENT_WALLET_PLAN.md). Until AZERICARD_ENABLED=true is actually set,
- * it should be structurally impossible for any Order to reach paymentStatus "completed" via
- * a card/mixed payment, or for any Transaction to be written with paymentMode "online" and
- * status "success" — payment-proxy.routes.js now refuses card payments outright (see the
- * "CARD PAYMENT GATE" in /initiate), and the webhook that would mark one "completed" isn't
- * even mounted.
+ * backend/AZERICARD_PAYMENT_WALLET_PLAN.md). Until it ships, it should be structurally
+ * impossible for any Order to reach paymentStatus "completed" via a card/mixed payment, or
+ * for any Transaction to be written with paymentMode "online" and status "success" —
+ * /api/payments/initiate refuses any checkout with an online amount, and no callback
+ * endpoint exists.
  *
  * This script is the tripwire: run periodically (cron), it finds anything matching that
  * "should be impossible" shape, emails an alert the first time it sees each one, and records
