@@ -31,8 +31,16 @@ async function handleResult(fields, source, ip) {
   return { status: STATUS_FOR[outcome] || 200, body: outcome === 'unknown_order' || outcome === 'mismatch' ? outcome.toUpperCase() : 'OK' };
 }
 
+const cardPaymentsOn = () => process.env.AZERICARD_ENABLED === 'true';
+const resultPage = (orderId) =>
+  `${(process.env.SERVER_FRONTEND || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '')}/payment/result/${encodeURIComponent(orderId)}`;
+
 // Server-to-server result from the bank.
 router.post('/azericard/callback', bankLimiter, form, async (req, res) => {
+  if (!cardPaymentsOn()) {
+    logger.warn('[Azericard] callback received while card payments are disabled', { order: req.body?.ORDER, ip: req.ip });
+    return res.status(503).type('text').send('DISABLED');
+  }
   try {
     const { status, body } = await handleResult(req.body, 'callback', req.ip);
     res.status(status).type('text').send(body);
@@ -45,14 +53,14 @@ router.post('/azericard/callback', bankLimiter, form, async (req, res) => {
 // BACKREF: the bank POSTs the result here with the buyer's browser; apply it if it's signed (same
 // checks as the callback), then send the buyer to the result page whatever happened.
 router.all('/azericard/return/:orderId', bankLimiter, form, async (req, res) => {
-  if (req.body && req.body.P_SIGN) {
+  if (cardPaymentsOn() && req.body && req.body.P_SIGN) {
     try {
       await handleResult(req.body, 'return', req.ip);
     } catch (err) {
       logger.error('[Azericard] return processing failed', { order: req.body.ORDER, message: err.message });
     }
   }
-  res.redirect(303, getConfig().resultPageUrl(encodeURIComponent(req.params.orderId)));
+  res.redirect(303, resultPage(req.params.orderId));
 });
 
 // Local stand-in for the bank's hosted page; 404 unless AZERICARD_MODE=mock outside production.

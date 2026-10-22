@@ -346,6 +346,23 @@ describe('card checkout against the mock bank', () => {
     }
   });
 
+  test('callbacks while card payments are off get a clean 503, even in production with no Azericard config', async () => {
+    const saved = { ...process.env };
+    process.env.NODE_ENV = 'production';
+    process.env.AZERICARD_ENABLED = 'false';
+    delete process.env.AZERICARD_MODE;
+    try {
+      const cb = await postCallback({ ORDER: '1' });
+      expect(cb.status).toBe(503);
+      expect(cb.text).toBe('DISABLED');
+      const back = await request(app).post('/api/payments/azericard/return/abc').type('form').send({ P_SIGN: 'x' });
+      expect(back.status).toBe(303);
+      expect(back.headers.location).toBe('http://localhost:5173/payment/result/abc');
+    } finally {
+      process.env = saved;
+    }
+  });
+
   test('card payments switched off: refused before anything is written', async () => {
     process.env.AZERICARD_ENABLED = 'false';
     try {
