@@ -52,7 +52,7 @@ const PaymentDialog = ({
   onClose,
   onPaymentSuccess 
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (!product || !user) return null;
 
   const [walletBalance, setWalletBalance] = useState(0);
@@ -132,10 +132,16 @@ const PaymentDialog = ({
   };
 
   const redirectToGateway = ({ url, fields }) => {
+    // Browser data the bank uses for 3-D Secure risk checks; not part of the signature.
+    const mInfo = btoa(JSON.stringify({
+      browserScreenHeight: String(window.screen.height),
+      browserScreenWidth: String(window.screen.width),
+      browserTZ: String(new Date().getTimezoneOffset()),
+    }));
     const form = document.createElement("form");
     form.method = "POST";
     form.action = url;
-    Object.entries(fields).forEach(([name, value]) => {
+    Object.entries({ ...fields, M_INFO: mInfo }).forEach(([name, value]) => {
       const input = document.createElement("input");
       input.type = "hidden";
       input.name = name;
@@ -161,6 +167,7 @@ const PaymentDialog = ({
     const payload = {
       productId: product._id,
       walletDeduction: walletAmountToUse,
+      lang: i18n.language,
       checkoutDetails: {
         name: user.fullName,
         email: user.email,

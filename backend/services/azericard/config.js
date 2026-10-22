@@ -8,7 +8,7 @@ function required(name) {
 
 const trimSlash = (s) => s.replace(/\/+$/, '');
 
-// Read on every call (cheap) so tests and env changes take effect without a restart of the module.
+// Read on every call (cheap) so tests and env changes take effect without reloading the module.
 function getConfig() {
   const mode = process.env.AZERICARD_MODE || 'mock';
   if (!MODES.includes(mode)) throw new Error(`AZERICARD_MODE must be one of: ${MODES.join(', ')}`);
@@ -24,14 +24,17 @@ function getConfig() {
     enabled: process.env.AZERICARD_ENABLED === 'true',
     mode,
     gatewayUrl: mock ? `${backend}/api/payments/mock-azericard/pay` : required('AZERICARD_GATEWAY_URL'),
-    statusUrl: mock ? `${backend}/api/payments/mock-azericard/status` : required('AZERICARD_STATUS_URL'),
+    // Only the mock answers status checks until we have Azericard's "Operation Status" spec.
+    statusUrl: mock ? `${backend}/api/payments/mock-azericard/status` : null,
     terminal: mock ? process.env.AZERICARD_TERMINAL || '17200001' : required('AZERICARD_TERMINAL'),
     merchantName: process.env.AZERICARD_MERCH_NAME || 'SATGO',
-    merchantUrl: process.env.AZERICARD_MERCH_URL || frontend,
-    // Azericard configures the callback URL on their side (we gave it to them); the mock bank
-    // reads it from here.
+    // Part of the signed fields.
+    merchantUrl: process.env.AZERICARD_MERCH_URL || 'https://satgo.az',
+    // Server-to-server result; configured on Azericard's side (the mock reads it from here).
     callbackUrl: `${backend}/api/payments/azericard/callback`,
-    returnUrl: (orderId) => `${frontend}/payment/result/${orderId}`,
+    // BACKREF: the bank POSTs the result here with the buyer's browser.
+    returnUrl: (orderId) => `${backend}/api/payments/azericard/return/${orderId}`,
+    resultPageUrl: (orderId) => `${frontend}/payment/result/${orderId}`,
     frontendOrigin: new URL(frontend).origin,
     staleAfterMinutes: Number(process.env.AZERICARD_STALE_MINUTES || 20),
   };
