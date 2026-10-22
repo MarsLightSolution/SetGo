@@ -46,6 +46,8 @@ function verifyResult(fields) {
     approvalCode: fields.APPROVAL || null,
     rrn: fields.RRN || null,
     intRef: fields.INT_REF || null,
+    // Everything the bank sent except the signature, for review/audit (CARD, if present, is masked).
+    raw: Object.fromEntries(Object.entries(fields).filter(([k]) => k !== 'P_SIGN').map(([k, v]) => [k, String(v)])),
   };
 }
 
