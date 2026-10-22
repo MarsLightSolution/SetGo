@@ -106,11 +106,23 @@ async function flagForReview(order, reason, result = null) {
         'paymentMetadata.needsReview': true,
         'paymentMetadata.reviewReason': reason,
         'paymentMetadata.reviewFlaggedAt': new Date(),
-        ...(result && { 'paymentMetadata.reviewGatewayResult': gatewayFields(result) }),
+        ...(result && { 'paymentMetadata.reviewGatewayResult': { ...gatewayFields(result), raw: result.raw } }),
       },
     }
   );
-  logger.error('[Card] Payment needs manual review', { orderId: order._id, reason, gateway: result && gatewayFields(result) });
+  // Details in the message itself: the file log format drops metadata.
+  logger.error(`[Card] Payment needs manual review: order ${order._id}: ${reason}${result ? ` | bank sent ${JSON.stringify(result.raw)}` : ''}`);
+}
+
+// AMOUNT and TERMINAL are signed by the bank; CURRENCY is not, and may come back as the ISO
+// number (944) or be absent.
+function resultMismatches(result, order, cfg) {
+  const problems = [];
+  if (String(result.terminal || '').trim() !== cfg.terminal) problems.push(`TERMINAL "${result.terminal}" (expected ${cfg.terminal})`);
+  if (!sameAmount(result.amount, order.onlineAmount)) problems.push(`AMOUNT "${result.raw?.AMOUNT}" (expected ${order.onlineAmount})`);
+  const currency = String(result.currency || '').trim().toUpperCase();
+  if (currency && currency !== CURRENCY_AZN && currency !== '944') problems.push(`CURRENCY "${result.currency}"`);
+  return problems;
 }
 
 async function completeOrder(order, result) {
@@ -197,8 +209,9 @@ async function applyGatewayResult(result) {
   }
 
   const cfg = getConfig();
-  if (result.terminal !== cfg.terminal || result.currency !== CURRENCY_AZN || !sameAmount(result.amount, order.onlineAmount)) {
-    await flagForReview(order, 'Gateway result does not match the order (amount/terminal/currency)', result);
+  const problems = resultMismatches(result, order, cfg);
+  if (problems.length) {
+    await flagForReview(order, `Gateway result does not match the order: ${problems.join('; ')}`, result);
     return { outcome: 'mismatch', order };
   }
 
