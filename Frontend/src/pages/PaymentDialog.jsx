@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { authFetch } from "../utils/authFetch";
 
 // Simple CSS-based status indicators (no external dependencies)
 const StatusIndicator = ({ status }) => {
@@ -60,14 +61,9 @@ const PaymentDialog = ({
   const [customAmount, setCustomAmount] = useState(""); // Custom wallet amount
   const [status, setStatus] = useState("READY");
   const [errorMessage, setErrorMessage] = useState("");
-  const [authToken, setAuthToken] = useState(null);
 
   const navigate = useNavigate();
   const price = product.price ?? 0;
-
-  useEffect(() => {
-    setAuthToken(localStorage.getItem("accessToken"));
-  }, []);
 
   useEffect(() => {
     setWalletBalance(user.walletBalance ?? 0);
@@ -154,13 +150,6 @@ const PaymentDialog = ({
 
   // The server creates the order, moves the money and reserves the item in one step.
   const checkout = async () => {
-    if (!authToken) {
-      setStatus("FAILURE");
-      setErrorMessage(t("payment.sessionExpired"));
-      setTimeout(() => navigate("/login"), 2000);
-      return;
-    }
-
     setStatus("LOADING");
     setErrorMessage("");
 
@@ -178,12 +167,9 @@ const PaymentDialog = ({
     };
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/payments/initiate`, {
+      const res = await authFetch("/api/payments/initiate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
