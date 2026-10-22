@@ -71,4 +71,20 @@ async function transfer(
   }
 }
 
-module.exports = { WalletError, withTransaction, transfer };
+// Money that arrived through the card gateway: only the receiver's wallet changes.
+async function creditFromGateway({ senderId, receiverId, amount, transactionId, description = '', referenceId = null }, session) {
+  if (!session) throw new Error('walletLedger.creditFromGateway requires a session');
+  if (!(Number.isFinite(amount) && amount > 0)) {
+    throw new WalletError('INVALID_AMOUNT', 'Amount must be greater than zero');
+  }
+  const credited = await User.updateOne({ _id: receiverId }, { $inc: { walletBalance: amount } }, { session });
+  if (credited.matchedCount !== 1) throw new WalletError('RECEIVER_NOT_FOUND', 'Receiver not found', 404);
+
+  const [txn] = await Transaction.create(
+    [{ senderId, receiverId, amount, transactionId, description, referenceId, type: 'transfer', source: 'purchase', paymentMode: 'online', status: 'success' }],
+    { session }
+  );
+  return txn;
+}
+
+module.exports = { WalletError, withTransaction, transfer, creditFromGateway };

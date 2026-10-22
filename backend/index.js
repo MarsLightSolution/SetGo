@@ -244,5 +244,6 @@ server.listen(port, (err) => {
     logger.error('Error starting server', { message: err.message, stack: err.stack });
   } else {
     logger.info('Server running', { port });
+    require('./services/cardPayments').startReconciliationLoop();
   }
 });

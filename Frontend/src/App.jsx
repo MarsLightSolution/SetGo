@@ -40,6 +40,7 @@ const MyQueries = lazy(() => import('../src/MyQueries'))
 const CheckoutPage = lazy(() => import('./components/Checkout/Checkout'))
 const MyOrders = lazy(() => import('./components/Order/MyOrders'))
 const OrderDetail = lazy(() => import('./components/Order/OrderDetail'))
+const PaymentResult = lazy(() => import('./pages/PaymentResult'))
 const SellerAdminDashboard = lazy(() => import('./components/Admin/SellerAdmin'))
 const AdminOrders = lazy(() => import('./components/Admin/Adminpanel'))
 const AdminRoute = lazy(() => import('./components/Admin/AdminRoute'))
@@ -114,6 +115,7 @@ function AppContent() {
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/orders" element={<MyOrders />} />
             <Route path="/order/:id" element={<OrderDetail />} />
+            <Route path="/payment/result/:orderId" element={<PaymentResult />} />
             <Route path="/seller" element={<SellerAdminDashboard />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard/></ProtectedRoute>} />
             <Route path="/chatbot" element={<Chatbot />} />
