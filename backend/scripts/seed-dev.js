@@ -17,6 +17,7 @@ const Order = require('../models/Order');
 const Transaction = require('../models/transaction.model');
 
 const PRODUCTION_CLUSTER_HOSTS = ['dwmup'];
+const PRODUCTION_DB_NAMES = ['SetGo_prod'];
 const seedEmail = (key) => `seed.${key}@example.com`;
 const SEED_EMAIL_PATTERN = /^seed\.[a-z0-9]+@example\.com$/;
 const PASSWORD = 'Test@1234';
@@ -81,8 +82,8 @@ function copySeedImages() {
 
   await mongoose.connect(process.env.MONGO_DB);
   const host = mongoose.connection.host;
-  if (PRODUCTION_CLUSTER_HOSTS.some((h) => host.includes(h))) {
-    throw new Error(`Refusing to seed the production cluster (${host})`);
+  if (PRODUCTION_CLUSTER_HOSTS.some((h) => host.includes(h)) || PRODUCTION_DB_NAMES.includes(mongoose.connection.name)) {
+    throw new Error(`Refusing to seed a production database (${host} / ${mongoose.connection.name})`);
   }
   console.log(`Seeding ${host} / ${mongoose.connection.name}`);
 
