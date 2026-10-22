@@ -316,6 +316,36 @@ describe('card checkout against the mock bank', () => {
     expect(cancel.body.code).toBe('PAYMENT_IN_PROGRESS');
   });
 
+  test('allowlist: only listed accounts (by email or id) may pay by card', async () => {
+    const allowed = await setup(10);
+    const other = await setup(10);
+    process.env.AZERICARD_ALLOWED_USERS = ` ${allowed.buyer.email.toUpperCase()} , someone-else@example.com`;
+    try {
+      expect((await initiate(other.buyer, other.product, 0)).status).toBe(503);
+      expect(await quantity(other.product)).toBe(1);
+      expect((await initiate(allowed.buyer, allowed.product, 0)).status).toBe(200);
+      process.env.AZERICARD_ALLOWED_USERS = String(other.buyer._id);
+      expect((await initiate(other.buyer, other.product, 0)).status).toBe(200);
+    } finally {
+      delete process.env.AZERICARD_ALLOWED_USERS;
+    }
+  });
+
+  test('test terminal in production without an allowlist: nobody can pay by card', async () => {
+    const { buyer, product } = await setup(10);
+    const saved = { ...process.env };
+    Object.assign(process.env, {
+      NODE_ENV: 'production', AZERICARD_MODE: 'test',
+      AZERICARD_GATEWAY_URL: 'https://testmpi.3dsecure.az/cgi-bin/cgi_link', AZERICARD_TERMINAL: '17204526',
+    });
+    try {
+      expect((await initiate(buyer, product, 0)).status).toBe(503);
+      expect(await quantity(product)).toBe(1);
+    } finally {
+      process.env = saved;
+    }
+  });
+
   test('card payments switched off: refused before anything is written', async () => {
     process.env.AZERICARD_ENABLED = 'false';
     try {

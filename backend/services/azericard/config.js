@@ -37,7 +37,21 @@ function getConfig() {
     resultPageUrl: (orderId) => `${frontend}/payment/result/${orderId}`,
     frontendOrigin: new URL(frontend).origin,
     staleAfterMinutes: Number(process.env.AZERICARD_STALE_MINUTES || 20),
+    // Comma-separated user ids or emails allowed to pay by card; unset = everyone.
+    allowedUsers: process.env.AZERICARD_ALLOWED_USERS
+      ? new Set(process.env.AZERICARD_ALLOWED_USERS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean))
+      : null,
   };
 }
 
-module.exports = { getConfig };
+// Who may pay by card. On the TEST terminal in production, only an explicit allowlist: anyone else
+// could "pay" with Azericard's public test cards and get real items.
+function cardPaymentsAllowedFor(user) {
+  if (process.env.AZERICARD_ENABLED !== 'true') return false;
+  const cfg = getConfig();
+  if (!cfg.enabled) return false;
+  if (!cfg.allowedUsers) return !(cfg.mode === 'test' && process.env.NODE_ENV === 'production');
+  return cfg.allowedUsers.has(String(user._id).toLowerCase()) || cfg.allowedUsers.has(String(user.email || '').toLowerCase());
+}
+
+module.exports = { getConfig, cardPaymentsAllowedFor };

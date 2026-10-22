@@ -11,12 +11,12 @@ const logger = require('../utils/logger');
 const { WalletError, withTransaction, transfer } = require('../services/walletLedger');
 const { notifyOrderPlaced } = require('../services/orderNotifications');
 const { startCardCheckout } = require('../services/cardPayments');
-const { getConfig: getAzericardConfig } = require('../services/azericard/config');
+const { cardPaymentsAllowedFor } = require('../services/azericard/config');
 
-function cardPaymentsEnabled() {
+function cardPaymentsEnabled(user) {
   if (process.env.AZERICARD_ENABLED !== 'true') return false;
   try {
-    return getAzericardConfig().enabled;
+    return cardPaymentsAllowedFor(user);
   } catch (err) {
     logger.error('[Checkout] Azericard configuration error', { message: err.message });
     return false;
@@ -76,7 +76,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
     const onlineAmount = round2(total - walletDeduction);
 
     if (onlineAmount > 0) {
-      if (!cardPaymentsEnabled()) {
+      if (!cardPaymentsEnabled(req.user)) {
         logger.warn('[Checkout] Card payment attempted while card payments are disabled', { buyerId, productId, onlineAmount });
         return res.status(503).json({
           success: false,
