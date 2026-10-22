@@ -19,15 +19,15 @@ const bankLimiter = rateLimit({ windowMs: 60 * 1000, max: 300, standardHeaders: 
 const STATUS_FOR = { completed: 200, failed: 200, already_processed: 200, review: 200, unknown_order: 404, mismatch: 409 };
 
 async function handleResult(fields, source, ip) {
-  const { ORDER, ACTION, RC } = fields || {};
-  logger.info(`[Azericard] ${source} received`, { order: ORDER, action: ACTION, rc: RC, ip });
+  const { ORDER, P_SIGN, ...rest } = fields || {};
+  logger.info(`[Azericard] ${source} received from ${ip}: ORDER ${ORDER} ${JSON.stringify(rest)}`);
   const result = verifyResult(fields);
   if (!result) {
     logger.warn(`[Azericard] ${source} rejected: invalid P_SIGN`, { order: ORDER, ip });
     return { status: 400, body: 'INVALID SIGNATURE' };
   }
   const { outcome } = await applyGatewayResult(result);
-  logger.info(`[Azericard] ${source} processed`, { order: ORDER, outcome });
+  logger.info(`[Azericard] ${source} processed: ORDER ${ORDER} -> ${outcome}`);
   return { status: STATUS_FOR[outcome] || 200, body: outcome === 'unknown_order' || outcome === 'mismatch' ? outcome.toUpperCase() : 'OK' };
 }
 

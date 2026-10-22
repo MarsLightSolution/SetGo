@@ -282,6 +282,28 @@ describe('card checkout against the mock bank', () => {
     expect(order.paymentMetadata.needsReview).toBe(true);
   });
 
+  test('currency may come back as the ISO number 944 or be absent (it is not signed)', async () => {
+    const a = await setup(7);
+    const b = await setup(7);
+    const resA = await initiate(a.buyer, a.product, 0);
+    const resB = await initiate(b.buyer, b.product, 0);
+    await postCallback({ ...bankSigned(resA.body.data.gateway.fields), CURRENCY: '944' });
+    const { CURRENCY, ...noCurrency } = bankSigned(resB.body.data.gateway.fields);
+    await postCallback(noCurrency);
+    expect((await Order.findById(resA.body.data.orderId)).paymentStatus).toBe('completed');
+    expect((await Order.findById(resB.body.data.orderId)).paymentStatus).toBe('completed');
+  });
+
+  test('a mismatch records exactly what the bank sent, for review', async () => {
+    const { buyer, product } = await setup(40);
+    const res = await initiate(buyer, product, 0);
+    await postCallback(bankSigned({ ...res.body.data.gateway.fields, AMOUNT: '1.00' }));
+    const meta = (await Order.findById(res.body.data.orderId)).paymentMetadata;
+    expect(meta.reviewReason).toMatch(/AMOUNT "1.00" \(expected 40\)/);
+    expect(meta.reviewGatewayResult.raw).toMatchObject({ AMOUNT: '1.00', ACTION: '0', RC: '00' });
+    expect(meta.reviewGatewayResult.raw.P_SIGN).toBeUndefined();
+  });
+
   test('a correctly signed result for the wrong amount is not applied', async () => {
     const { seller, buyer, product } = await setup(40);
     const res = await initiate(buyer, product, 0);
