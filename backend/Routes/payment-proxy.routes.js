@@ -12,20 +12,6 @@ const { WalletError, withTransaction, transfer } = require('../services/walletLe
 const { notifyOrderPlaced } = require('../services/orderNotifications');
 const { startCardCheckout } = require('../services/cardPayments');
 const { getConfig: getAzericardConfig } = require('../services/azericard/config');
-const mockBank = require('../services/azericard/mockBank');
-
-router.use('/azericard', require('./azericard.routes'));
-
-// Local stand-in for the bank's hosted page; 404 unless AZERICARD_MODE=mock outside production.
-router.use('/mock-azericard', (req, res, next) => {
-  let mock = false;
-  try {
-    mock = getAzericardConfig().mode === 'mock';
-  } catch {
-    mock = false;
-  }
-  return mock ? mockBank.router(req, res, next) : res.sendStatus(404);
-});
 
 function cardPaymentsEnabled() {
   if (process.env.AZERICARD_ENABLED !== 'true') return false;
@@ -105,6 +91,7 @@ router.post('/initiate', authenticateUser, async (req, res) => {
         walletDeduction,
         onlineAmount,
         checkoutDetails: Object.fromEntries(CHECKOUT_FIELDS.map((f) => [f, String(checkoutDetails[f])])),
+        lang: req.body.lang,
       });
       return res.json({
         success: true,
