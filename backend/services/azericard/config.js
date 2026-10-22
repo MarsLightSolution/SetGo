@@ -28,12 +28,12 @@ function getConfig() {
     statusUrl: mock ? `${backend}/api/payments/mock-azericard/status` : null,
     terminal: mock ? process.env.AZERICARD_TERMINAL || '17200001' : required('AZERICARD_TERMINAL'),
     merchantName: process.env.AZERICARD_MERCH_NAME || 'SATGO',
-    // Part of the signed fields.
-    merchantUrl: process.env.AZERICARD_MERCH_URL || 'https://satgo.az',
     // Server-to-server result; configured on Azericard's side (the mock reads it from here).
     callbackUrl: `${backend}/api/payments/azericard/callback`,
-    // BACKREF: the bank POSTs the result here with the buyer's browser.
+    // BACKREF: documented as where the result is posted; in practice the test gateway delivers the
+    // result only to the callback above. Kept so a signed result posted here is still applied.
     returnUrl: (orderId) => `${backend}/api/payments/azericard/return/${orderId}`,
+    // Sent as MERCH_URL (signed): the bank's "Cancel" and "back to merchant" buttons go here.
     resultPageUrl: (orderId) => `${frontend}/payment/result/${orderId}`,
     frontendOrigin: new URL(frontend).origin,
     staleAfterMinutes: Number(process.env.AZERICARD_STALE_MINUTES || 20),

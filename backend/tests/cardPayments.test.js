@@ -160,7 +160,7 @@ describe('card checkout against the mock bank', () => {
     expect(gateway.url).toBe(getConfig().gatewayUrl);
     expect(gateway.fields).toMatchObject({
       AMOUNT: '50.00', CURRENCY: 'AZN', TRTYPE: '1', LANG: 'RU', NAME: 'Buyer Person',
-      MERCH_URL: 'https://satgo.az', DESC: `SATGO order ${orderId}`,
+      MERCH_URL: `http://localhost:5173/payment/result/${orderId}`, DESC: `SATGO order ${orderId}`,
       BACKREF: `${process.env.SERVER_BACKEND}/api/payments/azericard/return/${orderId}`,
     });
     expect(gateway.fields.ORDER).toMatch(/^\d{14}$/);
