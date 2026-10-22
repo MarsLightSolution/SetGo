@@ -186,6 +186,12 @@ orderSchema.index(
   { unique: true, partialFilterExpression: { transactionId: { $type: 'string' } } }
 );
 
+// One bank transaction can back at most one order
+orderSchema.index(
+  { 'gateway.intRef': 1 },
+  { unique: true, partialFilterExpression: { 'gateway.intRef': { $type: 'string' } } }
+);
+
 // ========= VIRTUAL FIELDS =========
 
 // Check if payment is complete
