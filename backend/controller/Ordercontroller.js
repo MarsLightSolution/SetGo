@@ -12,99 +12,70 @@ const {
 } = require("../services/templates.js");
 const logger = require('../utils/logger');
 const { emitToUser } = require('../utils/ioInstance');
+const Transaction = require("../models/transaction.model.js");
+const { notifyOrderPlaced } = require("../services/orderNotifications");
 
 const placeOrder = async (req, res) => {
   logger.debug('placeOrder called', { body: req.body });
   
   try {
-    const { buyerId, sellerId, productId, total, transactionId,address} = req.body;
-    logger.debug('parsed order fields', { buyerId, sellerId, productId, total, transactionId });
-    
-    // Validate required fields
-    if (!buyerId || !sellerId || !productId || !total || !address) {
+    // Legacy flow (still used by the mobile app): the client pays via
+    // /api/transaction/transferFund, then calls this with that transactionId. The order is
+    // only created if that payment really exists, came from this buyer, went to this
+    // product's seller, covers the price, and hasn't already backed another order.
+    const buyerId = String(req.user._id);
+    const { productId, transactionId, address } = req.body;
+
+    if (req.body.buyerId && String(req.body.buyerId) !== buyerId) {
+      return res.status(403).json({ success: false, error: "buyerId does not match the logged-in user" });
+    }
+    if (!productId || !transactionId || !address) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
-    logger.debug('verification done');
-    
-    const product = await Product.findById(productId).populate("owner","username email");
+
+    const product = await Product.findById(productId).populate("owner", "username email");
     if (!product) {
       return res.status(404).json({ success: false, error: "Product not found" });
     }
+    const sellerId = String(product.owner._id);
 
-    const buyer = { id: buyerId, name: address.name, email: address.email };
-    const seller = { 
-      id: sellerId, 
-      name: product.owner.username, 
-      email: product.owner.email 
-    };
-    const newOrder = {
-      id: transactionId,
-      product: product.title.en,
-      amount: total,
-    };
-    logger.debug('order preview', { newOrder, buyer: { id: buyer.id }, seller: { id: seller.id } });
+    const payment = await Transaction.findOne({ transactionId, status: "success" });
+    if (
+      !payment ||
+      String(payment.senderId) !== buyerId ||
+      String(payment.receiverId) !== sellerId ||
+      payment.amount < product.price
+    ) {
+      logger.warn('[placeOrder] Rejected: no matching payment', { buyerId, productId, transactionId });
+      return res.status(402).json({ success: false, code: "PAYMENT_NOT_VERIFIED", error: "No matching payment found for this order" });
+    }
+
+    if (await Order.exists({ transactionId })) {
+      return res.status(409).json({ success: false, code: "ORDER_EXISTS", error: "An order already exists for this payment" });
+    }
 
     const order = new Order({
       buyerId,
       sellerId,
       productId,
-      total,
+      total: payment.amount,
+      walletDeduction: payment.amount,
+      paidAmount: payment.amount,
       transactionId,
       status: "paid",
-     
+      paymentStatus: "completed",
+      paidAt: payment.createdAt,
       checkoutDetails: {
         name: address.name,
-        email: address.email, // added email
+        email: address.email,
         city: address.city,
         address: address.address,
         pincode: address.zipCode,
       },
     });
-    logger.debug('saving order to DB', { orderPreview: { product: newOrder.product, amount: newOrder.amount } });
-
     await order.save();
 
-    // ── Real-time notifications ───────────────────────────────────────────
-    const productName = product.title?.en || product.title || "item";
-
-    // Notify buyer: order confirmed
-    emitToUser(buyerId, "notification", {
-      id:        `order_placed_buyer_${order._id}`,
-      type:      "order",
-      title:     "🛒 Order Placed Successfully!",
-      message:   `Your order for "${productName}" has been confirmed. Amount: ${total} AZN`,
-      timestamp: Date.now(),
-      isRead:    false,
-      orderId:   order._id,
-    });
-
-    // Notify seller: new sale
-    emitToUser(sellerId, "notification", {
-      id:        `order_placed_seller_${order._id}`,
-      type:      "order",
-      title:     "🎉 New Order Received!",
-      message:   `${address.name} ordered "${productName}". Amount: ${total} AZN`,
-      timestamp: Date.now(),
-      isRead:    false,
-      orderId:   order._id,
-    });
-
-    try {
-    await sendEmail(
-      buyer.email,
-      "New Order Received",
-      buyerPaymentTemplate(buyer, newOrder, seller)
-    );
-
-    await sendEmail(
-      seller.email,
-      "New Order Notification",
-      sellerPaymentTemplate(seller, newOrder, buyer)
-    );
-  } catch (mailErr) {
-    logger.error('Email sending failed', { message: mailErr.message });
-    // don't throw, just log
-  }
+    await notifyOrderPlaced(order, product);
 
     res.json({ success: true, data: order });
   } catch (err) {

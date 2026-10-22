@@ -61,30 +61,13 @@ const PaymentDialog = ({
   const [status, setStatus] = useState("READY");
   const [errorMessage, setErrorMessage] = useState("");
   const [authToken, setAuthToken] = useState(null);
-  const [userId, setUserId] = useState(null);
 
   const navigate = useNavigate();
   const price = product.price ?? 0;
-  const orderTimestamp = Date.now().toString();
 
-  // Authenticate user and get userId from localStorage
   useEffect(() => {
-    const accessToken = localStorage.getItem("accessToken");
-    const storedUserId = localStorage.getItem("userId");
-
-    // if (!accessToken || !storedUserId) {
-    //   setErrorMessage("Authentication required. Please log in again.");
-    //   setStatus("FAILURE");
-    //   // Optionally redirect to login
-    //   setTimeout(() => {
-    //     navigate("/login");
-    //   }, 2000);
-    //   return;
-    // }
-
-    setAuthToken(accessToken);
-    setUserId(storedUserId);
-  }, [navigate]);
+    setAuthToken(localStorage.getItem("accessToken"));
+  }, []);
 
   useEffect(() => {
     setWalletBalance(user.walletBalance ?? 0);
@@ -128,13 +111,7 @@ const PaymentDialog = ({
       return;
     }
     if (isPayDisabled) return;
-
-    // If full amount covered by wallet, use wallet transfer
-    if (useWallet && walletAmountToUse >= price) {
-      await walletTransfer();
-    } else {
-      await processPayment();
-    }
+    await checkout();
   };
 
   // Handler for custom amount input
@@ -154,47 +131,11 @@ const PaymentDialog = ({
     setCustomAmount(amount);
   };
 
-  /**
-   * Creates an order record after successful payment
-   */
-  const createOrder = async (transactionId) => {
-    const payload = {
-      buyerId: userId,
-      sellerId: product.owner?._id || product.owner,
-      productId: product._id,
-      total: price,
-      transactionId,
-      address: {
-        name: user.fullName,
-        email: user.email,
-        city: user.city,
-        address: user.address,
-        zipCode: user.postalCode,
-      },
-    };
-
-    const res = await fetch(`${import.meta.env.VITE_SERVER}/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json().catch(() => ({}));
-    console.log("Order creation response:", { status: res.status, data });
-    return data;
-  };
-
-  /**
-   * Wallet-only payment (when full amount is covered by wallet)
-   * Uses direct wallet transfer endpoint
-   */
-  const walletTransfer = async () => {
-    if (!authToken || !userId) {
+  // The server creates the order, moves the money and reserves the item in one step.
+  const checkout = async () => {
+    if (!authToken) {
       setStatus("FAILURE");
-      setErrorMessage("Authentication required. Please log in again.");
+      setErrorMessage(t("payment.sessionExpired"));
       setTimeout(() => navigate("/login"), 2000);
       return;
     }
@@ -202,249 +143,60 @@ const PaymentDialog = ({
     setStatus("LOADING");
     setErrorMessage("");
 
-    const txnId = `txn_${orderTimestamp}_${Math.floor(Math.random() * 1e6)}`;
     const payload = {
-      senderId: userId,
-      receiverId: product.owner?._id || product.owner, // Product owner ID
-      type: "purchase",
-      amount: price,
-      description: `Payment for product: ${product.title || product._id}`,
-      transactionId: txnId,
-      referenceId: `order_${orderTimestamp}`,
-      source: "wallet",
       productId: product._id,
-      orderData: {
-        address: {
-          name: user.fullName,
-          email: user.email,
-          city: user.city,
-          address: user.address,
-          zipCode: user.postalCode,
-        },
-      },
-    };
-
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/transaction/transferFund`,
-        {
-          method: "POST",
-            headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${authToken}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const data = await res.json().catch(() => ({}));
-
-      if (res.status === 401 || res.status === 403) {
-        setStatus("FAILURE");
-        setErrorMessage("Session expired. Please log in again.");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("userId");
-        setTimeout(() => navigate("/login"), 2000);
-        return;
-      }
-
-      // Log the full response for debugging
-      console.log("Wallet transfer response:", { status: res.status, ok: res.ok, data });
-
-      if (res.status === 401 || res.status === 403) {
-        setStatus("FAILURE");
-        setErrorMessage("Session expired. Please log in again.");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("userId");
-        setTimeout(() => navigate("/login"), 2000);
-        return;
-      }
-
-      // Check for success - be more lenient with success conditions
-      const isSuccess = res.ok || res.status === 200 || res.status === 201 || data.success === true;
-      
-      if (isSuccess) {
-        console.log("Wallet payment completed successfully!", data);
-
-        // Create order after successful wallet payment
-        const orderData = await createOrder(txnId).catch((e) => {
-          console.error("Order creation failed:", e);
-          return {};
-        });
-
-        setStatus("SUCCESS");
-
-        // Notify parent component
-        onPaymentSuccess?.(price);
-
-        // Navigate after showing success
-        setTimeout(() => {
-          // Try different possible orderId field names from backend response
-          const orderId = orderData?.data?._id || data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
-          
-          console.log("Navigating... orderId:", orderId);
-          
-          // Close dialog first
-          onClose?.();
-          
-          // Then navigate
-          setTimeout(() => {
-            if (orderId) {
-              navigate(`/order/${orderId}`);
-            } else {
-              navigate("/orders");
-            }
-          }, 100);
-        }, 1500);
-      } else {
-        console.log("Payment failed:", data);
-        setStatus("FAILURE");
-        setErrorMessage(data.message || data.error || "Payment failed. Please try again.");
-      }
-    } catch (err) {
-      console.error("Wallet transfer error:", err);
-      setStatus("FAILURE");
-      setErrorMessage("Network error. Please check your connection.");
-    }
-  };
-
-  /**
-   * Online payment or wallet + online payment
-   * Backend will:
-   * - Authenticate user via JWT token from localStorage
-   * - Fetch product details from database (including owner)
-   * - Validate product price
-   * - Calculate wallet deduction
-   * - Process payment
-   * - Create order
-   */
-  const processPayment = async () => {
-    // Check authentication before processing
-    // if (!authToken || !userId) {
-    //   setStatus("FAILURE");
-    //   setErrorMessage("Authentication required. Please log in again.");
-    //   setTimeout(() => {
-    //     navigate("/login");
-    //   }, 2000);
-    //   return;
-    // }
-
-    setStatus("LOADING");
-    setErrorMessage("");
-
-    // SECURITY: Minimal payload with userId from localStorage
-    const payload = {
-      buyerId: userId,  // From localStorage (backend still validates token)
-      productId: product._id,  // Backend fetches full product details
-      walletUsed: useWallet,
-      walletAmount: walletAmountToUse, // Specific amount to use from wallet
+      walletDeduction: walletAmountToUse,
       checkoutDetails: {
-        // Shipping address from frontend (user input)
-          name: user.fullName,
-          email: user.email,
-          city: user.city,
-          address: user.address,
-          pincode: user.postalCode,
-        
+        name: user.fullName,
+        email: user.email,
+        city: user.city,
+        address: user.address,
+        pincode: user.postalCode,
       },
     };
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/payment/create`,
-        {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${authToken}`, // SECURITY: JWT token from localStorage
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/payments/initiate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
       const data = await res.json().catch(() => ({}));
-      
-      // Log full response for debugging
-      console.log("Payment API response:", { status: res.status, ok: res.ok, data });
 
-      // Handle unauthorized/authentication errors
-      if (res.status === 401 || res.status === 403) {
+      if (res.status === 401) {
         setStatus("FAILURE");
         setErrorMessage(t("payment.sessionExpired"));
         localStorage.removeItem("accessToken");
         localStorage.removeItem("userId");
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
+        setTimeout(() => navigate("/login"), 2000);
         return;
       }
-      console.log(data.data);
-      
-      console.log(data.completed);
-      
 
-      // Check for success - be more lenient
-      const isSuccess = res.ok || res.status === 200 || res.status === 201 || data.success === true;
-
-      if (isSuccess) {
-        // If payment requires redirect (online payment or wallet + online)
-        if (data.url) {
-          // Store minimal info in localStorage before redirect
-          localStorage.setItem('pendingPayment', JSON.stringify({
-            orderId: data.orderId || data.order?._id,
-            transactionId: data.transactionId,
-            timestamp: Date.now(),
-          }));
-
-          // Redirect to payment gateway
-          window.location.href = data.url;
-        } 
-        // Payment completed without redirect (wallet-only or instant payment)
-        else {
-          console.log("Payment completed successfully!", data);
-
-          // Create order after successful online payment
-          const orderData = await createOrder(data.transactionId || `txn_${orderTimestamp}`).catch((e) => {
-            console.error("Order creation failed:", e);
-            return {};
-          });
-
-          setStatus("SUCCESS");
-
-          // Notify parent component
-          onPaymentSuccess?.(price);
-
-          // Navigate to order page after delay
-          setTimeout(() => {
-            // Try different possible orderId field names from backend response
-            const orderId = orderData?.data?._id || data.orderId || data.order?._id || data.order?.id || data._id || data.id || data.transactionId;
-            
-            console.log("Navigating... orderId:", orderId);
-            
-            // Close dialog first
-            onClose?.();
-            
-            // Then navigate
-            setTimeout(() => {
-              if (orderId) {
-                navigate(`/order/${orderId}`);
-              } else {
-                // If no orderId, navigate to orders list
-                console.log("No orderId in response, navigating to orders page");
-                navigate("/orders");
-              }
-            }, 100);
-          }, 1500);
-        }
-      } else {
-        console.log("Payment failed:", data);
+      if (!res.ok || !data.success) {
         setStatus("FAILURE");
         setErrorMessage(
-          data.message || data.error || "Payment failed. Please try again."
+          data.code === "ONLINE_PAYMENT_UNAVAILABLE"
+            ? t("payment.onlinePaymentUnavailable")
+            : data.code === "INCOMPLETE_CHECKOUT_DETAILS"
+              ? t("payment.incompleteCheckoutDetails")
+              : data.message || t("payment.paymentFailed")
         );
+        return;
       }
+
+      setStatus("SUCCESS");
+      onPaymentSuccess?.(price);
+
+      const orderId = data.data?.orderId;
+      setTimeout(() => {
+        onClose?.();
+        setTimeout(() => navigate(orderId ? `/order/${orderId}` : "/orders"), 100);
+      }, 1500);
     } catch (err) {
-      console.error("Payment error:", err);
+      console.error("Checkout error:", err);
       setStatus("FAILURE");
       setErrorMessage(t("payment.networkError"));
     }
