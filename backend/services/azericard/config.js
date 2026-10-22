@@ -1,0 +1,40 @@
+const MODES = ['mock', 'test', 'live'];
+
+function required(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be set when AZERICARD_MODE is not "mock"`);
+  return value;
+}
+
+const trimSlash = (s) => s.replace(/\/+$/, '');
+
+// Read on every call (cheap) so tests and env changes take effect without a restart of the module.
+function getConfig() {
+  const mode = process.env.AZERICARD_MODE || 'mock';
+  if (!MODES.includes(mode)) throw new Error(`AZERICARD_MODE must be one of: ${MODES.join(', ')}`);
+  if (mode === 'mock' && process.env.NODE_ENV === 'production') {
+    throw new Error('AZERICARD_MODE=mock is not allowed in production');
+  }
+
+  const backend = trimSlash(process.env.SERVER_BACKEND || 'http://localhost:8080');
+  const frontend = trimSlash(process.env.SERVER_FRONTEND || process.env.FRONTEND_URL || 'http://localhost:5173');
+  const mock = mode === 'mock';
+
+  return {
+    enabled: process.env.AZERICARD_ENABLED === 'true',
+    mode,
+    gatewayUrl: mock ? `${backend}/api/payments/mock-azericard/pay` : required('AZERICARD_GATEWAY_URL'),
+    statusUrl: mock ? `${backend}/api/payments/mock-azericard/status` : required('AZERICARD_STATUS_URL'),
+    terminal: mock ? process.env.AZERICARD_TERMINAL || '17200001' : required('AZERICARD_TERMINAL'),
+    merchantName: process.env.AZERICARD_MERCH_NAME || 'SATGO',
+    merchantUrl: process.env.AZERICARD_MERCH_URL || frontend,
+    // Azericard configures the callback URL on their side (we gave it to them); the mock bank
+    // reads it from here.
+    callbackUrl: `${backend}/api/payments/azericard/callback`,
+    returnUrl: (orderId) => `${frontend}/payment/result/${orderId}`,
+    frontendOrigin: new URL(frontend).origin,
+    staleAfterMinutes: Number(process.env.AZERICARD_STALE_MINUTES || 20),
+  };
+}
+
+module.exports = { getConfig };

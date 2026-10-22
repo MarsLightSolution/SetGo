@@ -131,6 +131,21 @@ const PaymentDialog = ({
     setCustomAmount(amount);
   };
 
+  const redirectToGateway = ({ url, fields }) => {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = url;
+    Object.entries(fields).forEach(([name, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  };
+
   // The server creates the order, moves the money and reserves the item in one step.
   const checkout = async () => {
     if (!authToken) {
@@ -187,10 +202,18 @@ const PaymentDialog = ({
         return;
       }
 
+      const orderId = data.data?.orderId;
+
+      // Card part: the browser posts the signed form to the bank's payment page, which sends the
+      // buyer back to /payment/result/:orderId afterwards.
+      if (data.data?.gateway) {
+        redirectToGateway(data.data.gateway);
+        return;
+      }
+
       setStatus("SUCCESS");
       onPaymentSuccess?.(price);
 
-      const orderId = data.data?.orderId;
       setTimeout(() => {
         onClose?.();
         setTimeout(() => navigate(orderId ? `/order/${orderId}` : "/orders"), 100);

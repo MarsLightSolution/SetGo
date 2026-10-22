@@ -10,6 +10,32 @@ const Product = require('../models/product.model');
 const logger = require('../utils/logger');
 const { WalletError, withTransaction, transfer } = require('../services/walletLedger');
 const { notifyOrderPlaced } = require('../services/orderNotifications');
+const { startCardCheckout } = require('../services/cardPayments');
+const { getConfig: getAzericardConfig } = require('../services/azericard/config');
+const mockBank = require('../services/azericard/mockBank');
+
+router.use('/azericard', require('./azericard.routes'));
+
+// Local stand-in for the bank's hosted page; 404 unless AZERICARD_MODE=mock outside production.
+router.use('/mock-azericard', (req, res, next) => {
+  let mock = false;
+  try {
+    mock = getAzericardConfig().mode === 'mock';
+  } catch {
+    mock = false;
+  }
+  return mock ? mockBank.router(req, res, next) : res.sendStatus(404);
+});
+
+function cardPaymentsEnabled() {
+  if (process.env.AZERICARD_ENABLED !== 'true') return false;
+  try {
+    return getAzericardConfig().enabled;
+  } catch (err) {
+    logger.error('[Checkout] Azericard configuration error', { message: err.message });
+    return false;
+  }
+}
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const CHECKOUT_FIELDS = ['name', 'email', 'address', 'city', 'pincode'];
@@ -63,14 +89,28 @@ router.post('/initiate', authenticateUser, async (req, res) => {
     }
     const onlineAmount = round2(total - walletDeduction);
 
-    // Card payments arrive with the Azericard integration (AZERICARD_PAYMENT_WALLET_PLAN.md §12).
-    // Until then refuse before anything is written.
     if (onlineAmount > 0) {
-      logger.warn('[Checkout] Card payment attempted before the gateway exists', { buyerId, productId, onlineAmount });
-      return res.status(503).json({
-        success: false,
-        code: 'ONLINE_PAYMENT_UNAVAILABLE',
-        message: 'Online card payments are not available yet. Please use your wallet balance, or contact support for other options.',
+      if (!cardPaymentsEnabled()) {
+        logger.warn('[Checkout] Card payment attempted while card payments are disabled', { buyerId, productId, onlineAmount });
+        return res.status(503).json({
+          success: false,
+          code: 'ONLINE_PAYMENT_UNAVAILABLE',
+          message: 'Online card payments are not available yet. Please use your wallet balance, or contact support for other options.',
+        });
+      }
+      const { order, gateway } = await startCardCheckout({
+        buyerId,
+        product,
+        total,
+        walletDeduction,
+        onlineAmount,
+        checkoutDetails: Object.fromEntries(CHECKOUT_FIELDS.map((f) => [f, String(checkoutDetails[f])])),
+      });
+      return res.json({
+        success: true,
+        paymentMethod: walletDeduction > 0 ? 'mixed' : 'card',
+        completed: false,
+        data: { orderId: order._id, gateway },
       });
     }
 
@@ -271,6 +311,13 @@ router.post('/order/:orderId/cancel', authenticateUser, async (req, res) => {
     }
     if (!['pending', 'paid'].includes(order.status)) {
       return res.status(400).json({ success: false, message: `Cannot cancel order with status: ${order.status}` });
+    }
+    if (order.paymentStatus === 'processing') {
+      return res.status(409).json({
+        success: false,
+        code: 'PAYMENT_IN_PROGRESS',
+        message: 'This payment is still being confirmed by the bank. Please try again in a few minutes.',
+      });
     }
     // Refund destination for card money is an open business decision (plan §12.4).
     if (order.onlineAmount > 0 && order.paymentStatus === 'completed') {
