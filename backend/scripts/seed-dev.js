@@ -17,6 +17,7 @@ const Order = require('../models/Order');
 const Transaction = require('../models/transaction.model');
 
 const PRODUCTION_CLUSTER_HOSTS = ['dwmup'];
+const PRODUCTION_DB_NAMES = ['SetGo_prod'];
 const seedEmail = (key) => `seed.${key}@example.com`;
 const SEED_EMAIL_PATTERN = /^seed\.[a-z0-9]+@example\.com$/;
 const PASSWORD = 'Test@1234';
@@ -64,7 +65,108 @@ const PRODUCTS = [
   { owner: 'cardseller', image: 'horse.jpg', price: 1, quantity: 1, condition: 'New', category: 'Other',
     title: tr('Card test last item 1 AZN', 'Kart testi son ədəd 1 AZN', 'Тест карты последний 1 AZN'),
     description: tr('Only 1 in stock: second purchase must say out of stock.', 'Yalnız 1 ədəd.', 'Только 1 шт.') },
+  // Order history: one item per seeded order (quantity reflects what the order did to stock)
+  ...[
+    ['seller1', 'bike.jpg', 40, 0, 'Old road bike', 'Köhnə yol velosipedi', 'Старый шоссейный велосипед'],
+    ['seller2', 'horse.jpg', 60, 0, 'Wooden toy horse', 'Taxta oyuncaq at', 'Деревянная лошадка'],
+    ['seller1', 'camping.png', 50, 0, 'Sleeping bag', 'Yataq kisəsi', 'Спальный мешок'],
+    ['seller2', 'transportTrolley.png', 25, 1, 'Hand trolley', 'Əl arabası', 'Ручная тележка'],
+    ['cardseller', 'camping.png', 10, 1, 'Card declined item', 'Kartı rədd edilən əşya', 'Товар с отклонённой картой'],
+    ['cardseller', 'horse.jpg', 5, 0, 'Payment in progress item', 'Ödənişi davam edən əşya', 'Товар с незавершённой оплатой'],
+  ].map(([owner, image, price, quantity, en, az, ru]) => ({
+    owner, image, price, quantity, condition: 'Used', category: 'Other', history: en,
+    title: tr(en, az, ru),
+    description: tr('Seed product used by a seeded order.', 'Test sifarişi üçün məhsul.', 'Товар для тестового заказа.'),
+  })),
 ];
+
+// Seeded orders, each with the ledger rows the real checkout would have written.
+//   kind: wallet | card | mixed (wallet part `wallet`, rest by card)
+const ORDERS = [
+  { item: 'Old road bike', buyer: 'buyer1', kind: 'wallet', status: 'paid', paymentStatus: 'completed', daysAgo: 1 },
+  { item: 'Wooden toy horse', buyer: 'buyer3', kind: 'card', status: 'shipped', paymentStatus: 'completed', trackingId: 'AZ-TRACK-0001', daysAgo: 3 },
+  { item: 'Sleeping bag', buyer: 'buyer2', kind: 'mixed', wallet: 30, status: 'delivered', paymentStatus: 'completed', delivered: true, daysAgo: 7 },
+  { item: 'Hand trolley', buyer: 'buyer1', kind: 'wallet', status: 'cancelled', paymentStatus: 'refunded', refunded: true, daysAgo: 5 },
+  { item: 'Card declined item', buyer: 'cardbuyer2', kind: 'card', status: 'cancelled', paymentStatus: 'failed', declined: true, daysAgo: 2 },
+  { item: 'Payment in progress item', buyer: 'cardbuyer1', kind: 'card', status: 'pending', paymentStatus: 'processing', daysAgo: 0 },
+];
+
+const crypto = require('crypto');
+const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+const gatewayRef = (approved) => ({
+  rrn: String(crypto.randomInt(1e11, 1e12)),
+  intRef: crypto.randomBytes(8).toString('hex').toUpperCase(),
+  approvalCode: approved ? String(crypto.randomInt(100000, 1000000)) : null,
+  responseCode: approved ? '00' : '05',
+  action: approved ? '0' : '2',
+  callbackAt: new Date(),
+});
+
+async function seedOrders(users, productsByTitle) {
+  const platformId = process.env.Admin_Id && (await User.exists({ _id: process.env.Admin_Id })) ? process.env.Admin_Id : null;
+  const created = [];
+  for (const o of ORDERS) {
+    const product = productsByTitle[o.item];
+    const buyer = users[o.buyer];
+    const sellerId = product.owner;
+    const _id = new mongoose.Types.ObjectId();
+    const at = daysAgo(o.daysAgo);
+    const total = product.price;
+    const walletPart = o.kind === 'wallet' ? total : o.kind === 'mixed' ? o.wallet : 0;
+    const cardPart = total - walletPart;
+    const paid = o.paymentStatus === 'completed' || o.paymentStatus === 'refunded';
+    const ledger = [];
+    const row = (transactionId, senderId, receiverId, amount, extra = {}) => ledger.push({
+      transactionId, senderId, receiverId, amount, referenceId: String(_id), description: `Seed order: ${o.item}`,
+      type: 'transfer', source: 'purchase', paymentMode: 'Wallet', status: 'success', createdAt: at, ...extra,
+    });
+
+    if (paid && o.kind === 'wallet') row(`WALLET_${_id}`, buyer._id, sellerId, total);
+    if (paid && o.kind === 'mixed') {
+      if (platformId) {
+        row(`HOLD_${_id}`, buyer._id, platformId, walletPart);
+        row(`SETTLE_${_id}`, platformId, sellerId, walletPart);
+      } else {
+        row(`WALLET_${_id}`, buyer._id, sellerId, walletPart);
+      }
+    }
+    if (paid && cardPart > 0) row(`CARD_${_id}`, buyer._id, sellerId, cardPart, { paymentMode: 'online' });
+    if (o.refunded) row(`REFUND_${_id}`, sellerId, buyer._id, total, { type: 'refund', description: `Refund: ${o.item}` });
+
+    await Order.create({
+      _id,
+      buyerId: buyer._id,
+      sellerId,
+      productId: product._id,
+      total,
+      walletDeduction: walletPart,
+      onlineAmount: cardPart,
+      paidAmount: paid ? total : 0,
+      status: o.status,
+      paymentStatus: o.paymentStatus,
+      paidAt: paid ? at : null,
+      transactionId: paid ? `${cardPart > 0 ? 'CARD' : 'WALLET'}_${_id}` : null,
+      paymentOrderId: cardPart > 0 ? `${at.toISOString().slice(0, 10).replace(/-/g, '')}9${String(created.length).padStart(5, '0')}` : null,
+      gateway: cardPart > 0 && o.paymentStatus !== 'processing' ? gatewayRef(!o.declined) : undefined,
+      trackingId: o.trackingId || null,
+      deliveryConfirmedByBuyer: !!o.delivered,
+      deliveryConfirmedAt: o.delivered ? at : null,
+      cancelledAt: o.status === 'cancelled' ? at : null,
+      cancellationReason: o.refunded ? 'Cancelled by buyer' : o.declined ? 'Card payment not approved (ACTION 2, RC 05)' : null,
+      checkoutDetails: { name: buyer.profileName, email: buyer.email, address: '1 Test Street', city: 'Baku', pincode: 'AZ1000' },
+      paymentMetadata: { productTitle: o.item, productPrice: total, seeded: true },
+    });
+    if (ledger.length) await Transaction.insertMany(ledger);
+
+    // Sellers' balances reflect what they received; buyers keep the balances declared in USERS.
+    const net = ledger.reduce((sum, t) => sum + (String(t.receiverId) === String(sellerId) ? t.amount : 0)
+      - (String(t.senderId) === String(sellerId) ? t.amount : 0), 0);
+    if (net) await User.updateOne({ _id: sellerId }, { $inc: { walletBalance: net } });
+
+    created.push({ order: String(_id), item: o.item, buyer: seedEmail(o.buyer), kind: o.kind, status: o.status, payment: o.paymentStatus });
+  }
+  return created;
+}
 
 function copySeedImages() {
   const from = path.join(__dirname, '..', '..', 'Frontend', 'public', 'images');
@@ -81,8 +183,8 @@ function copySeedImages() {
 
   await mongoose.connect(process.env.MONGO_DB);
   const host = mongoose.connection.host;
-  if (PRODUCTION_CLUSTER_HOSTS.some((h) => host.includes(h))) {
-    throw new Error(`Refusing to seed the production cluster (${host})`);
+  if (PRODUCTION_CLUSTER_HOSTS.some((h) => host.includes(h)) || PRODUCTION_DB_NAMES.includes(mongoose.connection.name)) {
+    throw new Error(`Refusing to seed a production database (${host} / ${mongoose.connection.name})`);
   }
   console.log(`Seeding ${host} / ${mongoose.connection.name}`);
 
@@ -134,10 +236,17 @@ function copySeedImages() {
     console.warn('\nWARNING: Admin_Id is not set to an existing user; wallet + card checkouts will be refused.');
   }
 
+  const orders = await seedOrders(users, Object.fromEntries(products.map((p) => [p.title.en, p])));
+
+  const balances = await User.find({ _id: { $in: Object.values(users).map((u) => u._id) } }).select('email walletBalance');
+  const balanceOf = Object.fromEntries(balances.map((b) => [b.email, b.walletBalance]));
   console.log('\nUsers (password for all: ' + PASSWORD + ')');
-  console.table(USERS.map((u) => ({ email: seedEmail(u.key), wallet: `${u.walletBalance} ₼`, id: String(users[u.key]._id) })));
-  console.log('Products');
-  console.table(products.map((p) => ({ title: p.title.en, price: `${p.price} ₼`, qty: p.quantity, seller: p.name.en, id: String(p._id) })));
+  console.table(USERS.map((u) => ({ email: seedEmail(u.key), wallet: `${balanceOf[seedEmail(u.key)]} ₼`, id: String(users[u.key]._id) })));
+  console.log('Products for sale');
+  console.table(products.filter((p) => p.quantity > 0 && !PRODUCTS.find((d) => d.history === p.title.en && d.quantity === 0))
+    .map((p) => ({ title: p.title.en, price: `${p.price} ₼`, qty: p.quantity, seller: p.name.en, id: String(p._id) })));
+  console.log('Orders');
+  console.table(orders);
 
   await mongoose.disconnect();
 })().catch(async (e) => {
