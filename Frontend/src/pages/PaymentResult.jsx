@@ -1,26 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { authFetch } from "../utils/authFetch";
 
-const SERVER = import.meta.env.VITE_SERVER;
 const POLL_MS = 2000;
 const MAX_WAIT_MS = 90000;
 
-// The browser return from the bank proves nothing; the order's paymentStatus (set by the
-// bank's server-to-server callback) is the only source of truth.
-async function fetchOrder(orderId, allowRefresh = true) {
-  const res = await fetch(`${SERVER}/api/payments/order/${orderId}`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
-    credentials: "include",
-  });
-  if (res.status === 401 && allowRefresh) {
-    const refreshed = await fetch(`${SERVER}/refreshAccessToken`, { method: "POST", credentials: "include" });
-    const body = await refreshed.json().catch(() => ({}));
-    if (refreshed.ok && body.accessToken) {
-      localStorage.setItem("accessToken", body.accessToken);
-      return fetchOrder(orderId, false);
-    }
-  }
+// The order's paymentStatus, set only from a verified bank result, is the source of truth.
+async function fetchOrder(orderId) {
+  const res = await authFetch(`/api/payments/order/${orderId}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()).data.order;
 }
