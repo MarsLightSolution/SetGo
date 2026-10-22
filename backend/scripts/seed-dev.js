@@ -28,6 +28,11 @@ const USERS = [
   { key: 'buyer1', username: 'seedbuyer1', profileName: 'Rich Buyer', walletBalance: 1000 },
   { key: 'buyer2', username: 'seedbuyer2', profileName: 'Partial Buyer', walletBalance: 30 },
   { key: 'buyer3', username: 'seedbuyer3', profileName: 'Empty Wallet Buyer', walletBalance: 0 },
+  // Card (online) payment testing
+  { key: 'cardseller', username: 'seedcardseller', profileName: 'Card Test Seller', walletBalance: 0 },
+  { key: 'cardbuyer1', username: 'seedcardbuyer1', profileName: 'Card Buyer Approve', walletBalance: 0 },
+  { key: 'cardbuyer2', username: 'seedcardbuyer2', profileName: 'Card Buyer Decline', walletBalance: 0 },
+  { key: 'cardbuyer3', username: 'seedcardbuyer3', profileName: 'Card Buyer Mixed', walletBalance: 3 },
 ];
 
 const tr = (en, az, ru) => ({ en, az, ru });
@@ -50,6 +55,15 @@ const PRODUCTS = [
   { owner: 'seller2', image: 'bike.jpg', price: 15, quantity: 1, condition: 'Defective / Needs Repair', category: 'Cars & Motorcycles',
     title: tr('Bike for parts', 'Ehtiyat hissələri üçün velosiped', 'Велосипед на запчасти'),
     description: tr('Seed product: cheapest item.', 'Test məhsulu.', 'Тестовый товар.') },
+  // Card (online) payment testing: small amounts, plenty of stock for repeat runs
+  ...[1, 2, 5, 10].map((price) => ({
+    owner: 'cardseller', image: 'camping.png', price, quantity: 50, condition: 'New', category: 'Other',
+    title: tr(`Card test ${price} AZN`, `Kart testi ${price} AZN`, `Тест карты ${price} AZN`),
+    description: tr('Card payment test item (50 in stock).', 'Kartla ödəniş testi (50 ədəd).', 'Тест оплаты картой (50 шт.).'),
+  })),
+  { owner: 'cardseller', image: 'horse.jpg', price: 1, quantity: 1, condition: 'New', category: 'Other',
+    title: tr('Card test last item 1 AZN', 'Kart testi son ədəd 1 AZN', 'Тест карты последний 1 AZN'),
+    description: tr('Only 1 in stock: second purchase must say out of stock.', 'Yalnız 1 ədəd.', 'Только 1 шт.') },
 ];
 
 function copySeedImages() {
@@ -115,6 +129,10 @@ function copySeedImages() {
     termsAccepted: true,
     owner: users[p.owner]._id,
   })));
+
+  if (!process.env.Admin_Id || !(await User.exists({ _id: process.env.Admin_Id }))) {
+    console.warn('\nWARNING: Admin_Id is not set to an existing user; wallet + card checkouts will be refused.');
+  }
 
   console.log('\nUsers (password for all: ' + PASSWORD + ')');
   console.table(USERS.map((u) => ({ email: seedEmail(u.key), wallet: `${u.walletBalance} ₼`, id: String(users[u.key]._id) })));

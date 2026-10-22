@@ -9,6 +9,7 @@ const { MongoMemoryReplSet } = require('mongodb-memory-server');
 
 process.env.ACCESS_TOKEN_SECRET = 'test-access-secret-'.repeat(3);
 process.env.Admin_Id = new mongoose.Types.ObjectId().toString();
+process.env.AZERICARD_ENABLED = 'false';
 
 const User = require('../models/user');
 const Product = require('../models/product.model');
