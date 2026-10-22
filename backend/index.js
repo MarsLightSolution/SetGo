@@ -56,6 +56,9 @@ app.use(helmet({
 // SECURITY: MongoDB injection prevention
 app.use(mongoSanitize());
 
+// Bank-facing payment routes (callback, browser return, mock bank) — before CORS, see the file.
+app.use("/api/payments", require("./Routes/azericard.routes"));
+
 // ------------------- CORS -------------------
 // SECURITY: Use environment-based CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production'
@@ -244,5 +247,6 @@ server.listen(port, (err) => {
     logger.error('Error starting server', { message: err.message, stack: err.stack });
   } else {
     logger.info('Server running', { port });
+    require('./services/cardPayments').startReconciliationLoop();
   }
 });
