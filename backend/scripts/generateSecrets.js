@@ -30,11 +30,6 @@ console.log('-'.repeat(70));
 console.log(`SESSION_SECRET=${generateSecret(32)}`);
 console.log(`COOKIE_SECRET=${generateSecret(32)}`);
 
-console.log('\n💳 PAYMENT WEBHOOK SECRETS:');
-console.log('-'.repeat(70));
-console.log(`PAYMENT_WEBHOOK_SECRET=${generateSecret(32)}`);
-console.log(`PAYMENTWALL_SECRET_KEY=${generateApiKey()}`);
-
 console.log('\n🛡️  ENCRYPTION KEYS:');
 console.log('-'.repeat(70));
 console.log(`ENCRYPTION_KEY=${generateSecret(32)}`);

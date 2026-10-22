@@ -19,9 +19,6 @@ describe('validateEnvVariables', () => {
       // JWT_SECRET: 'a'.repeat(32),
       REFRESH_TOKEN_SECRET: 'b'.repeat(32),
       FRONTEND_URL: 'http://localhost:5173',
-      PAYMENTWALL_PROJECT_KEY: 'project_key',
-      PAYMENTWALL_SECRET_KEY: 'c'.repeat(40),
-      PAYMENT_MICROSERVICE_URL: 'http://payments.local'
     };
 
     expect(validateEnvVariables()).toBe(true);

@@ -1,406 +1,172 @@
-// routes/payment-proxy.routes.js
-// Main Backend - Payment Gateway Routes (Updated for Your Order Model)
+// routes/payment-proxy.routes.js — checkout, order status, order list, cancel.
+// Mounted at /api/payments.
 
 const express = require('express');
-const axios = require('axios');
+const mongoose = require('mongoose');
 const router = express.Router();
 const authenticateUser = require('../middlewares/auth.middlewares');
-const Order = require('../models/Order'); // Your Order model
-const Product = require('../models/product.model'); // Your Product model
-const User = require('../models/user'); // Your User model
+const Order = require('../models/Order');
+const Product = require('../models/product.model');
 const logger = require('../utils/logger');
+const { WalletError, withTransaction, transfer } = require('../services/walletLedger');
+const { notifyOrderPlaced } = require('../services/orderNotifications');
 
-// Environment variables
-const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3001';
-const PAYMENT_SERVICE_SECRET = process.env.PAYMENT_SERVICE_SECRET;
+const round2 = (n) => Math.round(n * 100) / 100;
+const CHECKOUT_FIELDS = ['name', 'email', 'address', 'city', 'pincode'];
 
+const sendWalletError = (res, err) =>
+  res.status(err.status).json({ success: false, code: err.code, message: err.message });
 
+/**
+ * POST /api/payments/initiate
+ * Body: { productId, walletDeduction (or walletAmount), checkoutDetails }
+ * The buyer is always the authenticated user.
+ */
 router.post('/initiate', authenticateUser, async (req, res) => {
   try {
-     // From JWT token
-    const { 
-      buyerId,
-      productId, 
-      walletUsed, 
-      walletDeduction = req.body.walletAmount || 0,
-      checkoutDetails 
-    } = req.body;
+    const buyerId = String(req.user._id);
+    const { productId, checkoutDetails } = req.body;
+    const walletDeduction = round2(Number(req.body.walletDeduction ?? req.body.walletAmount ?? 0));
 
-    logger.info(`[Payment Gateway] Initiating payment for buyer ${buyerId}`);
-    // logger.debug('amounts', { onlineAmount, walletDeduction });
-    
-    // ========= STEP 1: VALIDATE INPUT =========
-    
-    if (!productId) {
+    if (req.body.buyerId && String(req.body.buyerId) !== buyerId) {
+      return res.status(403).json({ success: false, code: 'BUYER_MISMATCH', message: 'buyerId does not match the logged-in user' });
+    }
+    if (!productId || !mongoose.isValidObjectId(productId)) {
+      return res.status(400).json({ success: false, message: 'Product ID is required' });
+    }
+    if (!Number.isFinite(walletDeduction) || walletDeduction < 0) {
+      return res.status(400).json({ success: false, message: 'Invalid wallet deduction amount' });
+    }
+    if (!checkoutDetails || CHECKOUT_FIELDS.some((f) => !checkoutDetails[f])) {
       return res.status(400).json({
         success: false,
-        message: 'Product ID is required'
+        code: 'INCOMPLETE_CHECKOUT_DETAILS',
+        message: 'Incomplete checkout details. Name, email, address, city, and pincode are required.',
       });
     }
 
-
-    if (walletDeduction < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid wallet deduction amount'
-      });
-    }
-    logger.debug('initiate payment request body', { body: req.body });
-    
-    // Validate checkout details
-    if (!checkoutDetails || !checkoutDetails.name || !checkoutDetails.email || 
-        !checkoutDetails.address || !checkoutDetails.city || !checkoutDetails.pincode) {
-      return res.status(400).json({
-        success: false,
-        message: 'Incomplete checkout details. Name, email, address, city, and pincode are required.'
-      });
-    }
-
-    // ========= STEP 2: VERIFY PRODUCT =========
-    
-    const product = await Product.findById(productId).populate('owner');
+    const product = await Product.findById(productId).populate('owner', 'username email');
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
-    logger.debug('Product found for payment initiation', { productId: product._id, price: product.price, stock: product.stock });
-    const onlineAmount = product.price - walletDeduction;
-
-    if (onlineAmount < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid online payment amount'
-      });
+    const sellerId = String(product.owner._id);
+    if (sellerId === buyerId) {
+      return res.status(400).json({ success: false, code: 'OWN_PRODUCT', message: 'You cannot buy your own product' });
+    }
+    if (!(product.quantity > 0)) {
+      return res.status(409).json({ success: false, code: 'OUT_OF_STOCK', message: 'Product is out of stock' });
     }
 
-    // ========= CARD PAYMENT GATE =========
-    // There is no live card-payment gateway integration yet (see
-    // backend/AZERICARD_PAYMENT_WALLET_PLAN.md). Previously this fell through to STEP 10
-    // below, which called PAYMENT_SERVICE_URL (hardcoded to http://localhost:3001, nothing
-    // listens there) - it failed, but only after creating a pending Order first, leaving
-    // confusing half-created/cancelled order records behind. Refuse explicitly and early
-    // instead, before any Order is created. Flip AZERICARD_ENABLED=true in .env once the
-    // real integration is built and tested.
-    if (onlineAmount > 0 && process.env.AZERICARD_ENABLED !== 'true') {
-      logger.warn('[Payment Gateway] Card payment attempted while AZERICARD_ENABLED is not set', {
-        buyerId, productId, onlineAmount,
-      });
+    const total = product.price;
+    if (walletDeduction > total) {
+      return res.status(400).json({ success: false, message: 'Wallet deduction exceeds the product price' });
+    }
+    const onlineAmount = round2(total - walletDeduction);
+
+    // Card payments arrive with the Azericard integration (AZERICARD_PAYMENT_WALLET_PLAN.md §12).
+    // Until then refuse before anything is written.
+    if (onlineAmount > 0) {
+      logger.warn('[Checkout] Card payment attempted before the gateway exists', { buyerId, productId, onlineAmount });
       return res.status(503).json({
         success: false,
         code: 'ONLINE_PAYMENT_UNAVAILABLE',
-        message: 'Online card payments are not available yet. Please use your wallet balance, or contact support for other options.'
+        message: 'Online card payments are not available yet. Please use your wallet balance, or contact support for other options.',
       });
     }
 
-    if (product.stock < 1) {
-      return res.status(400).json({
-        success: false,
-        message: 'Product is out of stock'
-      });
-    }
+    const orderId = new mongoose.Types.ObjectId();
+    const transactionId = `WALLET_${orderId}`;
+    const productTitle = product.title?.en || String(product._id);
 
-    // Get seller ID (assuming owner field contains seller info)
-    const sellerId = product.owner._id || product.owner;
-
-    // ========= STEP 3: VERIFY USER =========
-    
-    const buyer = await User.findById(buyerId);
-    
-    if (!buyer) {
-      return res.status(404).json({
-        success: false,
-        message: 'Buyer not found'
-      });
-    }
-
-    // ========= STEP 4: VERIFY WALLET BALANCE (if using wallet) =========
-    
-    if (walletDeduction > 0) {
-      const walletBalance = buyer.walletBalance || 0;
-      
-      if (walletDeduction > walletBalance) {
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient wallet balance. You have ₼${walletBalance}, but trying to use ₼${walletDeduction}`
-        });
-      }
-    }
-
-    // ========= STEP 5: CALCULATE TOTAL AMOUNT =========
-    
-    const totalAmount = product.price;
-    const calculatedTotal = walletDeduction + onlineAmount;
-
-    // Verify amounts match
-    if (Math.abs(calculatedTotal - totalAmount) > 0.01) { // Allow 1 cent difference for rounding
-      return res.status(400).json({
-        success: false,
-        message: `Payment amount mismatch. Product costs ₼${totalAmount}, but payment is ₼${calculatedTotal}`
-      });
-    }
-
-    // ========= STEP 6: CREATE ORDER IN DATABASE (PENDING) =========
-    
-    const order = await Order.create({
-      buyerId,
-      sellerId,
-      productId,
-      total: totalAmount,
-      walletDeduction: walletDeduction,
-      onlineAmount: onlineAmount,
-      paidAmount: 0, // Not paid yet
-      status: 'pending',
-      paymentStatus: 'pending',
-      checkoutDetails: {
-        name: checkoutDetails.name,
-        email: checkoutDetails.email,
-        address: checkoutDetails.address,
-        city: checkoutDetails.city,
-        pincode: checkoutDetails.pincode
-      },
-      paymentMetadata: {
-        initiatedAt: new Date(),
-        buyerEmail: buyer.email,
-        productTitle: product.title,
-        productPrice: product.price
-      }
-    });
-
-    logger.info(`[Payment Gateway] Order created: ${order._id}`);
-
-    // ========= STEP 7: HANDLE WALLET-ONLY PAYMENT =========
-    
-    if (onlineAmount === 0 && walletDeduction > 0) {
-      // Payment entirely from wallet - no need for payment microservice
-      
-      // Deduct from wallet
-      buyer.walletBalance -= walletDeduction;
-      await buyer.save();
-
-      // Update order
-      order.paymentStatus = 'completed';
-      order.paidAmount = walletDeduction;
-      order.status = 'paid';
-      order.paidAt = new Date();
-      order.transactionId = `WALLET_${Date.now()}_${order._id}`;
-      await order.save();
-
-      // Reduce product stock
-      product.stock -= 1;
-      await product.save();
-
-      // Add to seller's wallet (or pending balance)
-      const seller = await User.findById(sellerId);
-      if (seller) {
-        seller.walletBalance = (seller.walletBalance || 0) + walletDeduction;
-        await seller.save();
-      }
-
-      logger.info(`[Payment Gateway] Wallet-only payment completed for order ${order._id}`);
-
-      return res.json({
-        success: true,
-        paymentMethod: 'wallet',
-        completed: true,
-        data: {
-          orderId: order._id,
-          message: 'Payment completed successfully using wallet',
-          order: {
-            id: order._id,
-            status: order.status,
-            paymentStatus: order.paymentStatus,
-            total: order.total,
-            paidAmount: order.paidAmount
-          }
-        }
-      });
-    }
-
-    // ========= STEP 8: DEDUCT WALLET AMOUNT (if mixed payment) =========
-    
-    if (walletDeduction > 0) {
-      buyer.walletBalance -= walletDeduction;
-      await buyer.save();
-      
-      logger.info(`[Payment Gateway] Deducted ₼${walletDeduction} from buyer's wallet`);
-    }
-
-    // ========= STEP 9: PREPARE PAYMENT MICROSERVICE REQUEST =========
-    
-    const paymentMetadata = {
-      mainOrderId: order._id.toString(),
-      productId: product._id.toString(),
-      productTitle: product.title,
-      productPrice: product.price,
-      buyerId: buyerId.toString(),
-      sellerId: sellerId.toString(),
-      sellerName: product.owner.name || 'Seller',
-      walletDeduction: walletDeduction,
-      totalAmount: totalAmount,
-      checkoutDetails: checkoutDetails
-    };
-
-    // ========= STEP 10: CALL PAYMENT MICROSERVICE =========
-    
-    logger.info(`[Payment Gateway] Proxying to payment microservice for ₼${onlineAmount}`);
-
-    let paymentResponse;
-    try {
-      paymentResponse = await axios.post(
-        `${PAYMENT_SERVICE_URL}/api/v1/payments/initiate`,
-        {
-          amount: onlineAmount,
-          currency: 'AZN',
-          email: checkoutDetails.email,
-          description: `Purchase: ${product.title}`,
-          metadata: paymentMetadata
-        },
-        {
-          headers: {
-            'Authorization': req.headers.authorization,
-            'X-Service-Secret': PAYMENT_SERVICE_SECRET,
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000
-        }
+    const order = await withTransaction(async (session) => {
+      const reserved = await Product.updateOne(
+        { _id: product._id, quantity: { $gt: 0 } },
+        { $inc: { quantity: -1 } },
+        { session }
       );
-    } catch (error) {
-      logger.error('[Payment Gateway] Payment microservice error', { message: error.message, stack: error.stack });
-      
-      // Refund wallet if payment microservice fails
-      if (walletDeduction > 0) {
-        buyer.walletBalance += walletDeduction;
-        await buyer.save();
-        logger.info(`[Payment Gateway] Refunded ₼${walletDeduction} to buyer's wallet`);
+      if (reserved.modifiedCount !== 1) {
+        throw new WalletError('OUT_OF_STOCK', 'Product is out of stock', 409);
       }
 
-      // Update order status
-      order.paymentStatus = 'failed';
-      order.paymentMetadata.error = error.message;
-      await order.save();
-
-      // Handle specific errors
-      if (error.response) {
-        return res.status(error.response.status).json({
-          success: false,
-          message: error.response.data.message || 'Payment service error',
-          error: error.response.data
-        });
+      if (total > 0) {
+        await transfer({
+          senderId: buyerId,
+          receiverId: sellerId,
+          amount: total,
+          transactionId,
+          description: `Purchase: ${productTitle}`,
+          referenceId: String(orderId),
+          type: 'transfer',
+          source: 'purchase',
+        }, session);
       }
 
-      if (error.code === 'ECONNREFUSED') {
-        return res.status(503).json({
-          success: false,
-          message: 'Payment service is currently unavailable. Please try again later.'
-        });
-      }
+      const [created] = await Order.create([{
+        _id: orderId,
+        buyerId,
+        sellerId,
+        productId: product._id,
+        total,
+        walletDeduction: total,
+        onlineAmount: 0,
+        paidAmount: total,
+        status: 'paid',
+        paymentStatus: 'completed',
+        paidAt: new Date(),
+        transactionId,
+        checkoutDetails: Object.fromEntries(CHECKOUT_FIELDS.map((f) => [f, String(checkoutDetails[f])])),
+        paymentMetadata: { productTitle, productPrice: total },
+      }], { session });
+      return created;
+    });
 
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to initiate payment',
-        error: error.message
-      });
-    }
+    logger.info(`[Checkout] Wallet payment completed for order ${order._id}`);
+    notifyOrderPlaced(order, product).catch((err) =>
+      logger.error('[Checkout] notification failed', { orderId: order._id, message: err.message })
+    );
 
-    // ========= STEP 11: UPDATE ORDER WITH PAYMENT ORDER ID =========
-    
-    const paymentOrderId = paymentResponse.data.data.orderId;
-    
-    order.paymentOrderId = paymentOrderId;
-    order.paymentStatus = 'processing';
-    await order.save();
-
-    logger.info(`[Payment Gateway] Payment initiated. Payment Order ID: ${paymentOrderId}, Main Order ID: ${order._id}`);
-
-    // ========= STEP 12: RETURN SUCCESS RESPONSE =========
-    
-    res.json({
+    return res.json({
       success: true,
-      paymentMethod: walletDeduction > 0 ? 'mixed' : 'card',
+      paymentMethod: 'wallet',
+      completed: true,
       data: {
-        orderId: paymentOrderId, // Payment microservice order ID
-        mainOrderId: order._id, // Main database order ID
-        redirectUrl: paymentResponse.data.data.redirectUrl,
-        amount: {
-          total: totalAmount,
-          wallet: walletDeduction,
-          online: onlineAmount
-        }
-      }
+        orderId: order._id,
+        message: 'Payment completed successfully using wallet',
+        order: {
+          id: order._id,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          total: order.total,
+          paidAmount: order.paidAmount,
+        },
+      },
     });
-
   } catch (error) {
-    logger.error('[Payment Gateway] Error initiating payment', { message: error.message, stack: error.stack });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to initiate payment',
-      error: error.message
-    });
+    if (error instanceof WalletError) return sendWalletError(res, error);
+    logger.error('[Checkout] Error initiating payment', { message: error.message, stack: error.stack });
+    return res.status(500).json({ success: false, message: 'Failed to initiate payment' });
   }
 });
 
 /**
- * 🎯 ROUTE 2: Get Order/Payment Status
- * GET /api/payments/order/:orderId
+ * GET /api/payments/order/:orderId — by order id or gateway payment order id
  */
 router.get('/order/:orderId', authenticateUser, async (req, res) => {
   try {
     const { orderId } = req.params;
-    const userId = req.user.id;
+    const userId = String(req.user._id);
 
-    // Find order (can search by main order ID or payment order ID)
-    let order = await Order.findById(orderId)
+    const query = mongoose.isValidObjectId(orderId) ? { _id: orderId } : { paymentOrderId: orderId };
+    const order = await Order.findOne(query)
       .populate('productId')
       .populate('sellerId', 'name email')
       .populate('buyerId', 'name email');
 
     if (!order) {
-      // Try finding by payment order ID
-      order = await Order.findOne({ paymentOrderId: orderId })
-        .populate('productId')
-        .populate('sellerId', 'name email')
-        .populate('buyerId', 'name email');
+      return res.status(404).json({ success: false, message: 'Order not found' });
     }
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    // Verify user owns this order (buyer or seller)
-    if (order.buyerId._id.toString() !== userId && 
-        order.sellerId._id.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized to view this order'
-      });
-    }
-
-    // If order has payment order ID, fetch payment details
-    let paymentDetails = null;
-    if (order.paymentOrderId) {
-      try {
-        const paymentResponse = await axios.get(
-          `${PAYMENT_SERVICE_URL}/api/v1/payments/${order.paymentOrderId}`,
-          {
-            headers: {
-              'Authorization': req.headers.authorization,
-              'X-Service-Secret': PAYMENT_SERVICE_SECRET
-            },
-            timeout: 10000
-          }
-        );
-        
-        paymentDetails = paymentResponse.data.data;
-      } catch (error) {
-        logger.error('[Payment Gateway] Error fetching payment details', { message: error.message, stack: error.stack });
-        // Continue without payment details
-      }
+    if (String(order.buyerId._id) !== userId && String(order.sellerId._id) !== userId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized to view this order' });
     }
 
     res.json({
@@ -412,11 +178,11 @@ router.get('/order/:orderId', authenticateUser, async (req, res) => {
           buyerName: order.buyerId.name,
           sellerId: order.sellerId._id,
           sellerName: order.sellerId.name,
-          product: {
+          product: order.productId && {
             id: order.productId._id,
             title: order.productId.title,
             price: order.productId.price,
-            image: order.productId.images?.[0]
+            image: order.productId.pictures?.[0],
           },
           total: order.total,
           walletDeduction: order.walletDeduction,
@@ -430,53 +196,41 @@ router.get('/order/:orderId', authenticateUser, async (req, res) => {
           checkoutDetails: order.checkoutDetails,
           trackingId: order.trackingId,
           createdAt: order.createdAt,
-          updatedAt: order.updatedAt
+          updatedAt: order.updatedAt,
         },
-        paymentDetails: paymentDetails // Can be null if payment-only order
-      }
+      },
     });
-
   } catch (error) {
-    logger.error('[Payment Gateway] Error fetching order', { message: error.message, stack: error.stack });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch order details',
-      error: error.message
-    });
+    logger.error('[Payments] Error fetching order', { message: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Failed to fetch order details' });
   }
 });
 
 /**
- * 🎯 ROUTE 3: Get User's Orders
- * GET /api/payments/orders
+ * GET /api/payments/orders?role=buyer|seller&status=
  */
 router.get('/orders', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = String(req.user._id);
     const { role = 'buyer', status } = req.query;
 
     let orders;
-    
     if (role === 'buyer') {
       orders = await Order.getBuyerOrders(userId, { status });
     } else if (role === 'seller') {
       orders = await Order.getSellerOrders(userId, { status });
     } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role. Must be "buyer" or "seller"'
-      });
+      return res.status(400).json({ success: false, message: 'Invalid role. Must be "buyer" or "seller"' });
     }
 
     res.json({
       success: true,
       data: {
-        orders: orders.map(order => ({
+        orders: orders.map((order) => ({
           id: order._id,
-          productId: order.productId._id,
-          productTitle: order.productId.title,
-          productImage: order.productId.images?.[0],
+          productId: order.productId?._id,
+          productTitle: order.productId?.title,
+          productImage: order.productId?.pictures?.[0],
           total: order.total,
           paidAmount: order.paidAmount,
           paymentMethod: order.paymentMethod,
@@ -484,95 +238,94 @@ router.get('/orders', authenticateUser, async (req, res) => {
           paymentStatus: order.paymentStatus,
           checkoutDetails: order.checkoutDetails,
           createdAt: order.createdAt,
-          paidAt: order.paidAt
+          paidAt: order.paidAt,
         })),
-        count: orders.length
-      }
+        count: orders.length,
+      },
     });
-
   } catch (error) {
-    logger.error('[Payment Gateway] Error fetching orders', { message: error.message, stack: error.stack });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch orders',
-      error: error.message
-    });
+    logger.error('[Payments] Error fetching orders', { message: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Failed to fetch orders' });
   }
 });
 
 /**
- * 🎯 ROUTE 4: Cancel Order
- * POST /api/payments/order/:orderId/cancel
+ * POST /api/payments/order/:orderId/cancel — buyer only, before shipping.
+ * A paid wallet order is reversed seller -> buyer through the ledger.
  */
 router.post('/order/:orderId/cancel', authenticateUser, async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { reason } = req.body;
-    const userId = req.user.id;
+    const userId = String(req.user._id);
+    const reason = req.body.reason || 'Cancelled by buyer';
 
+    if (!mongoose.isValidObjectId(orderId)) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
     const order = await Order.findById(orderId);
-
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
+      return res.status(404).json({ success: false, message: 'Order not found' });
     }
-
-    // Only buyer can cancel
-    if (order.buyerId.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only buyer can cancel order'
-      });
+    if (String(order.buyerId) !== userId) {
+      return res.status(403).json({ success: false, message: 'Only buyer can cancel order' });
     }
-
-    // Can only cancel pending or paid orders
     if (!['pending', 'paid'].includes(order.status)) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: `Cannot cancel order with status: ${order.status}` });
+    }
+    // Refund destination for card money is an open business decision (plan §12.4).
+    if (order.onlineAmount > 0 && order.paymentStatus === 'completed') {
+      return res.status(409).json({
         success: false,
-        message: `Cannot cancel order with status: ${order.status}`
+        code: 'CARD_REFUND_UNSUPPORTED',
+        message: 'This order was paid by card. Please contact support to cancel it.',
       });
     }
 
-    // Cancel order
-    await order.cancelOrder(reason || 'Cancelled by buyer');
+    const refundAmount = order.paymentStatus === 'completed' ? order.paidAmount : 0;
 
-    // Refund if payment was made
-    if (order.paidAmount > 0) {
-      const buyer = await User.findById(order.buyerId);
-      buyer.walletBalance = (buyer.walletBalance || 0) + order.paidAmount;
-      await buyer.save();
+    await withTransaction(async (session) => {
+      const cancelled = await Order.updateOne(
+        { _id: order._id, status: { $in: ['pending', 'paid'] } },
+        { $set: { status: 'cancelled', cancelledAt: new Date(), cancellationReason: reason, ...(refundAmount > 0 && { paymentStatus: 'refunded' }) } },
+        { session }
+      );
+      if (cancelled.modifiedCount !== 1) {
+        throw new WalletError('ALREADY_CANCELLED', 'Order was already cancelled or has moved on', 409);
+      }
 
-      logger.info(`[Payment Gateway] Refunded ₼${order.paidAmount} to buyer's wallet`);
-    }
+      if (refundAmount > 0) {
+        try {
+          await transfer({
+            senderId: order.sellerId,
+            receiverId: order.buyerId,
+            amount: refundAmount,
+            transactionId: `REFUND_${order._id}`,
+            description: `Refund for cancelled order ${order._id}`,
+            referenceId: String(order._id),
+            type: 'refund',
+            source: 'purchase',
+          }, session);
+        } catch (err) {
+          if (err instanceof WalletError && err.code === 'INSUFFICIENT_BALANCE') {
+            throw new WalletError('REFUND_NEEDS_SUPPORT', 'The refund cannot be processed automatically. Please contact support.', 409);
+          }
+          throw err;
+        }
+      }
 
-    // Restore product stock
-    const product = await Product.findById(order.productId);
-    if (product) {
-      product.stock += 1;
-      await product.save();
-    }
+      await Product.updateOne({ _id: order.productId }, { $inc: { quantity: 1 } }, { session });
+    });
 
+    logger.info(`[Payments] Order ${order._id} cancelled, refunded ₼${refundAmount}`);
     res.json({
       success: true,
       message: 'Order cancelled successfully',
-      data: {
-        orderId: order._id,
-        status: order.status,
-        refundedAmount: order.paidAmount
-      }
+      data: { orderId: order._id, status: 'cancelled', refundedAmount: refundAmount },
     });
-
   } catch (error) {
-    logger.error('[Payment Gateway] Error cancelling order', { message: error.message, stack: error.stack });
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to cancel order',
-      error: error.message
-    });
+    if (error instanceof WalletError) return sendWalletError(res, error);
+    logger.error('[Payments] Error cancelling order', { message: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Failed to cancel order' });
   }
 });
 

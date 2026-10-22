@@ -142,12 +142,20 @@ const orderSchema = new mongoose.Schema(
 
     // ========= ADDITIONAL TRACKING =========
     
-    // ⭐ NEW: For debugging and auditing
-    // paymentMetadata: {
-    //   type: mongoose.Schema.Mixed,
-    //   default: {},
-    //   comment: "Additional payment data (optional)"
-    // },
+    paymentMetadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
+    // Filled from the Azericard callback once card payments are live
+    gateway: {
+      rrn: { type: String, default: null },
+      intRef: { type: String, default: null },
+      approvalCode: { type: String, default: null },
+      responseCode: { type: String, default: null },
+      action: { type: String, default: null },
+      callbackAt: { type: Date, default: null },
+    },
 
     // ⭐ NEW: Cancellation tracking
     cancelledAt: {
@@ -170,6 +178,12 @@ const orderSchema = new mongoose.Schema(
       { paymentStatus: 1 } // Filter by payment status
     ]
   }
+);
+
+// One payment can back at most one order
+orderSchema.index(
+  { transactionId: 1 },
+  { unique: true, partialFilterExpression: { transactionId: { $type: 'string' } } }
 );
 
 // ========= VIRTUAL FIELDS =========

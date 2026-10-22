@@ -21,12 +21,6 @@ const REQUIRED_ENV_VARS = {
   // CORS
   FRONTEND_URL: { required: true },
 
-  // Payment Gateway
-  PAYMENTWALL_PROJECT_KEY: { required: true, sensitive: true },
-  PAYMENTWALL_SECRET_KEY: { required: true, sensitive: true },
-  PAYMENT_MICROSERVICE_URL: { required: true },
-  PAYMENT_WEBHOOK_SECRET: { required: false, sensitive: true },
-
   // Cloudinary (File Storage) - Optional in development, required in production
   CLOUDINARY_CLOUD_NAME: { required: false },
   CLOUDINARY_API_KEY: { required: false, sensitive: true },
@@ -177,10 +171,6 @@ function performSecurityChecks(errors, warnings) {
   // Warn about missing optional but recommended variables
   if (!process.env.SESSION_SECRET) {
     warnings.push('⚠️  SESSION_SECRET not set - sessions may not be secure');
-  }
-
-  if (!process.env.PAYMENT_WEBHOOK_SECRET) {
-    warnings.push('⚠️  PAYMENT_WEBHOOK_SECRET not set - webhook signatures cannot be verified');
   }
 }
 
