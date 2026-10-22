@@ -719,7 +719,7 @@
   },
   "paymentResult": {
     "processing": { "title": "Ödənişiniz təsdiqlənir…", "message": "Bankdan təsdiq gözlənilir. Bu adətən bir neçə saniyə çəkir — zəhmət olmasa, bu səhifəni bağlamayın." },
-    "completed": { "title": "Ödəniş uğurlu oldu", "message": "Sifarişiniz təsdiqləndi. Satıcıya bildiriş göndərildi." },
+    "completed": { "title": "Ödəniş uğurlu oldu", "message": "Sifarişiniz təsdiqləndi və satıcıya bildiriş göndərildi. Sifarişinizə yönləndirilirsiniz…" },
     "failed": { "title": "Ödəniş tamamlanmadı", "message": "Bank bu ödənişi təsdiqləmədi. Kartınızdan pul tutulmayıb, pul kisəsindən istifadə olunan məbləğ isə geri qaytarılıb." },
     "timeout": { "title": "Bankdan cavab gözlənilir", "message": "Bankın təsdiqi hələ daxil olmayıb. Sifarişiniz avtomatik yenilənəcək — bir neçə dəqiqədən sonra Sifarişlərim bölməsini yoxlayın." },
     "error": { "title": "Ödəniş məlumatı yüklənmədi", "message": "Zəhmət olmasa, Sifarişlərim bölməsini yoxlayın. Pul tutulub, amma sifariş görünmürsə, dəstək xidməti ilə əlaqə saxlayın." },

@@ -719,7 +719,7 @@
   },
   "paymentResult": {
     "processing": { "title": "Confirming your payment…", "message": "Waiting for confirmation from the bank. This usually takes a few seconds — please don't close this page." },
-    "completed": { "title": "Payment successful", "message": "Your order is confirmed. The seller has been notified." },
+    "completed": { "title": "Payment successful", "message": "Your order is confirmed and the seller has been notified. Taking you to your order…" },
     "failed": { "title": "Payment not completed", "message": "The bank did not approve this payment. No money was taken from your card, and any wallet amount has been returned to your wallet." },
     "timeout": { "title": "Still waiting for the bank", "message": "We haven't received the bank's confirmation yet. Your order will update automatically — check My Orders in a few minutes." },
     "error": { "title": "We couldn't load this payment", "message": "Please check My Orders. If money was taken but no order appears, contact support." },

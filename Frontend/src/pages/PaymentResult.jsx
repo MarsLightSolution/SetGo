@@ -84,6 +84,13 @@ export default function PaymentResult() {
     };
   }, [orderId]);
 
+  // Paid: take the buyer to the order itself so they can see it was created.
+  useEffect(() => {
+    if (state !== "completed") return undefined;
+    const timer = setTimeout(() => navigate(`/order/${orderId}`, { replace: true }), 2500);
+    return () => clearTimeout(timer);
+  }, [state, orderId, navigate]);
+
   const icon = state === "timeout" || state === "error" ? ICONS.waiting : ICONS[state];
   const productId = order?.product?.id;
 
