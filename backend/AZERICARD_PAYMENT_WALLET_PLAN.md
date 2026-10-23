@@ -57,11 +57,19 @@ service was retired rather than fixed. Its code is still recoverable from git hi
   `verifyCallback()` that checks `P_SIGN` on incoming webhook data.
 - `generate-keys.js` — the same RSA-2048 keypair generation used in §0.
 
-**This logic needs review, not a rewrite** — see §4 for exactly what needs verifying against the
-real spec before it can be trusted, since it was written once before without confirmed access to
-Azericard's actual documentation (same 403 block I hit trying to reach
-`developer.azericard.com` just now — someone with portal access needs to pull the real merchant
-integration guide PDF, which Azericard/Rabita typically provide once the public key is submitted).
+**Correction (2026-10-21, after reading the recovered code line by line): treat it as reference,
+not a port.** It has structural problems beyond the §4 unknowns:
+- `createPayment()` POSTs the signed fields to the gateway *from our server* and expects a
+  `redirectUrl` back. In this gateway family the **cardholder's browser** submits the signed form
+  to the gateway's hosted page; a server-to-server POST of `TRTYPE=1` can't work.
+- `verifyCallback()` rebuilds the *request* signing string from the callback fields and verifies it
+  with *our* key — wrong field set and (almost certainly) the wrong key (§4).
+- It calls `crypto.randomBytes` without importing `crypto` — it would have thrown on first use.
+
+The new implementation is a rewrite that borrows names and TRTYPE codes from it (§12). The exact
+protocol still needs the real spec — `developer.azericard.com` still returns 403 to automated
+access as of 2026-10-21; someone with the bank relationship needs to obtain the merchant
+integration guide.
 
 What's still live and relevant in the current backend:
 
@@ -308,9 +316,124 @@ Fits the existing pipeline documented in `DEPLOYMENT.md` — no new infrastructu
 
 ---
 
+---
+
+## 12. Build plan (added 2026-10-21)
+
+### 12.1 What the current code actually does (found while planning)
+
+| # | Finding | Where | Impact |
+|---|---|---|---|
+| A | Frontend card checkout posts to `/api/payment/create`, which lives in `Routes/paymentroutes.js` — **never mounted** in `Routes/index.js`. | `Frontend/src/pages/PaymentDialog.jsx:354` | Card checkout from the UI 404s today. The real backend endpoint `/api/payments/initiate` has **no frontend caller**. The two halves were never connected. |
+| B | `/initiate` takes `buyerId` from the request **body**, not the JWT. | `payment-proxy.routes.js:21` | Any logged-in user can spend another user's wallet balance by putting that user's id in the body. **Security bug, fix first.** |
+| C | Wallet-only checkout: frontend calls `/api/transaction/transferFund`, then creates the order itself via `POST /orders` with a client-supplied transaction id. | `PaymentDialog.jsx:194-300` | The order record is trusted from the browser; payment and order creation are not atomic. |
+| D | `/initiate` and `/cancel` mutate `walletBalance` directly (wallet-only path, mixed deduction, refund-on-failure, cancel refund) with no `Transaction` row. | `payment-proxy.routes.js:179,197,224,274,545` | Ledger gap from §5.3 — balances can change with no history. |
+| E | `Order` writes `paymentMetadata`, but the field is commented out of the schema. | `models/Order.js` | Failure reasons and audit data silently dropped (strict mode). |
+| F | `/cancel` refunds the full `paidAmount` — including the **card** portion — to the buyer's **wallet**. | `payment-proxy.routes.js:543` | Card money silently becomes wallet credit. Needs a policy decision (§12.4). |
+| G | `Webhook.routes.js` is not mounted; `onlineWalletTransfer()` in `transaction.controller.js` is correct and session-aware. | — | Reuse `onlineWalletTransfer`; retire `Webhook.routes.js`. |
+
+### 12.2 Phases
+
+Phases 1–3 need **nothing** from the bank and can start now. Everything stays behind
+`AZERICARD_ENABLED` (already in place, #199), so nothing reaches users until Phase 5.
+
+**Phase 1 — Fix the foundations (no gateway code). ~2–3 days**
+1. `/initiate`: take `buyerId` from `req.user`, ignore the body field (finding B).
+2. New `backend/services/walletLedger.js`: `debitWallet(userId, amount, meta, session)` /
+   `creditWallet(...)` — balance `$inc` (with a `walletBalance >= amount` guard on debit) **and** the
+   `Transaction` row in the same Mongo session. Replace every direct mutation from finding D.
+3. Make wallet-only checkout server-side: `PaymentDialog` calls `/api/payments/initiate` for every
+   checkout; the existing wallet-only branch in `/initiate` creates the order, debits, decrements
+   stock and credits the seller in **one session**. Stop client-side order creation (finding C).
+4. Restore `paymentMetadata` in the `Order` schema; add `gateway: { rrn, intRef, approval, rc,
+   action, callbackAt }`. Add a **unique** index on `paymentOrderId` (sparse).
+5. Delete the dead paths: `Routes/paymentroutes.js` + its controller/validator, `Webhook.routes.js`,
+   the axios-to-`localhost:3001` code and the `PAYMENT_SERVICE_*` / `PAYMENTWALL_*` env vars.
+6. Tests for the above (Jest is already set up in `backend/tests/`).
+
+Shippable on its own. It fixes a live security bug and the ledger gap even if Azericard slips.
+
+**Phase 2 — Azericard module, built against a pluggable signer. ~3–4 days**
+```
+backend/services/azericard/
+  config.js     terminal, merchant name/url, gateway URL, key paths — all env vars
+  signer.js     buildSignString(fields, fieldOrder) + sign() with OUR private key
+                + verify() with AZERICARD's public key
+  gateway.js    buildPurchaseForm(order), parseCallback(body), buildStatusRequest(), buildRefund()
+  orderId.js    gateway-safe ORDER ids (these gateways usually restrict length/charset)
+```
+- Every §4 unknown (field order, empty-field encoding, TIMESTAMP format, hex vs base64,
+  callback field set) lives in **one constant table in `signer.js`**. When the spec arrives, only
+  that table and the test fixtures change.
+- `signer.test.js`: round-trip tests now; Azericard's published test vectors once we have them.
+- No "skip verification" switch, not even for dev (§7).
+
+**Phase 3 — Wire checkout + callback. ~3–4 days**
+- `POST /api/payments/initiate` (card or mixed): validate → create `Order` (`processing`) → debit the
+  wallet portion through `walletLedger` → return `{ gatewayUrl, fields }`. **No server-side POST to
+  the gateway.**
+- Frontend: `PaymentDialog` builds a hidden `<form method="POST" action={gatewayUrl}>` from `fields`
+  and submits it, so the browser lands on Azericard's hosted card page.
+- `POST /api/payments/azericard/callback` (public, no JWT):
+  1. urlencoded body parser on this route only; rate limit; log every hit (never log `P_SIGN`).
+  2. Verify `P_SIGN` → reject if invalid.
+  3. Find the order by `paymentOrderId`; check `AMOUNT`, `CURRENCY` and `TERMINAL` match what we
+     sent.
+  4. **Idempotent state transition**: `findOneAndUpdate({ _id, paymentStatus: 'processing' }, ...)`.
+     A retried callback finds nothing to update and gets the same success reply.
+  5. Success → in one session: mark order paid, decrement stock (`$inc` guarded by `stock > 0`),
+     credit the seller via `onlineWalletTransfer()` (`transactionId` derived from gateway RRN).
+     Out of stock at this point → mark for refund and alert (rare; same-item race).
+  6. Decline → mark failed, refund the wallet portion through `walletLedger`.
+  7. Reply exactly as the spec requires (§4).
+- `BACKREF` → new frontend page `/payment/result/:orderId` that polls
+  `GET /api/payments/order/:orderId`. The browser return is **never** treated as proof of payment.
+- **Reconciliation job** (cron, like the payment monitor): orders stuck in `processing` for more than
+  20 min get a `TRTYPE=90` status check. Resolve them, or expire them and refund the wallet portion.
+  This covers lost callbacks and users who close the tab.
+- i18n (en/az/ru) for processing / success / declined / unavailable.
+
+**Phase 4 — Sandbox testing (needs bank data, §9). ~1 week elapsed, mostly waiting**
+Run the §9 checklist end to end, plus: callback replay (no double credit), tampered callback
+(rejected), amount mismatch (rejected), tab closed before return (reconciliation resolves it).
+Update `monitor-payment-integrity.js`: once enabled, alert on "card order completed **without** a
+matching ledger `Transaction`/verified callback" instead of "any card order completed".
+
+**Phase 5 — Go live**
+Place `private.pem` and Azericard's public key on the server by hand (never via git, §7). Set the
+production terminal env vars and `AZERICARD_ENABLED=true`. Deploy through the normal pipeline.
+Watch the first real transactions and the monitor for 48h.
+
+**Phase 6 (optional) — Wallet top-up by card.** Same module, with destination = buyer's own wallet
+(§2). Roughly 2 days once Phase 3 exists.
+
+### 12.3 What we need from Rabita Bank / Azericard (blocks Phase 4, not Phases 1–3)
+1. Merchant integration guide (PDF or portal login) — resolves every row in §4.
+2. Test gateway URL, test `TERMINAL` id, merchant name/URL as registered on their side.
+3. **Azericard's public key** for verifying callbacks (if callbacks are RSA-signed by them).
+4. Test card numbers, and callback source IPs if they publish them (§7 allowlist).
+5. Confirmation that any key from the old integration (commit `ed2ef65`, exposed in public git
+   history) is **not** active on any terminal.
+
+### 12.4 Decisions needed from the business
+1. **Card refunds** (finding F): back to the card through the gateway (`TRTYPE=22/24`), or to SATGO
+   wallet credit? Recommendation: refund to card by default. The Refund & Cancellation Policy page
+   (#194) should match whatever is chosen.
+2. **When the seller gets paid**: today the seller's wallet is credited immediately at payment.
+   `Order.status` already has `released`. Holding funds until delivery is confirmed (escrow) is
+   safer for a marketplace and fits the existing buyer delivery-confirmation fields. It also
+   changes step 5 of the callback, so decide before Phase 3.
+3. **Top-up in the first release** or checkout only? (§11.3)
+
+### 12.5 Order of work
+Phase 1 (separate PR, ship immediately) → Phase 2 + 3 (one PR, merged with the flag off) → bank
+data arrives → fix the signer table → Phase 4 → Phase 5.
+
+---
+
 ## Summary of what to do right now
 
-1. Send Rabita Bank the callback URL and public key from §0.
-2. While waiting on their response, request the actual Azericard merchant integration guide /
-   confirm portal access, to resolve §4.
-3. Once both are in hand, implement per §5–§6, test per §9, deploy per §10.
+1. ~~Send Rabita Bank the callback URL and public key from §0.~~ Done.
+2. Ask Rabita/Azericard for the items in §12.3.
+3. Decide §12.4 (refund destination, seller payout timing, top-up scope).
+4. Start Phase 1 (§12.2). It fixes a live security bug and needs nothing from the bank.
