@@ -267,7 +267,7 @@ const Form = () => {
       currentErrors.description = t("Description is required");
     if (!formData.postalCode.trim())
       currentErrors.postalCode = t("Postal Code is required");
-    else if (!/^\d{6}$/.test(formData.postalCode))
+    else if (!/^\d{4}$/.test(formData.postalCode))
       currentErrors.postalCode = t("Invalid Postal Code format");
     if (formData.location.length > 50)
       currentErrors.location = t("Location cannot exceed 50 characters");

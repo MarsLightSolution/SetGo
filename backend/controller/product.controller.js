@@ -66,24 +66,42 @@ const addProduct = asyncHandler(async (req, res) => {
   //   throw new ApiError(400, "Location coordinates are required.");
   // }
 
+  // Azerbaijan postal codes are 4 digits (e.g. 1000 or AZ1000)
+  const normalizedPostalCode = String(postalCode || "").trim().toUpperCase().replace(/^AZ[\s-]*/, "");
+  if (!/^\d{4}$/.test(normalizedPostalCode)) {
+    throw new ApiError(400, "Postal code must be a 4-digit Azerbaijan postal code.");
+  }
+
   const validatePostalCodeWithGoogle = async (postalCode) => {
     try {
       const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
         params: {
           address: postalCode,
+          // Azerbaijan only
+          components: "country:AZ",
+          region: "az",
           key: process.env.GOOGLE_MAPS_API_KEY,
         },
       });
 
-      const results = response.data.results;
-      return results.length > 0;
+      const results = response.data.results || [];
+      // Double-check every accepted result really is in Azerbaijan
+      // Google falls back to a country-level result for unknown codes, so
+      // require an actual postal_code match inside Azerbaijan.
+      return results.some(
+        (r) =>
+          r.types?.includes("postal_code") &&
+          (r.address_components || []).some(
+            (c) => c.types?.includes("country") && c.short_name === "AZ"
+          )
+      );
     } catch (error) {
       logger.error("[PostalCodeValidation] Failed to validate postal code", { error: error.message });
       return false;
     }
   };
 
-  const isPostalValid = await validatePostalCodeWithGoogle(postalCode);
+  const isPostalValid = await validatePostalCodeWithGoogle(normalizedPostalCode);
   if (!isPostalValid) {
     logger.warn(`[AddProduct] Invalid or unknown postal code: ${postalCode}`);
     throw new ApiError(400, "Invalid or unknown postal code.");
@@ -169,7 +187,7 @@ const addProduct = asyncHandler(async (req, res) => {
       type: "Point",
       coordinates: [Number(longitude), Number(latitude)],
     },
-    postalCode: postalCode || "",
+    postalCode: normalizedPostalCode,
     street: streetNo || "",
     name: productName,
     termsAccepted: termsAccepted === "true" || termsAccepted === true,
