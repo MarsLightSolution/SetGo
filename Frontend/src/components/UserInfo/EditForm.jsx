@@ -169,7 +169,7 @@ const EditForm = () => {
 
     if (name === "postalCode") {
       if (!updatedValue.trim()) newErrors.postalCode = t("form.postalCodeRequired");
-      else if (!/^\d{6}$/.test(updatedValue)) newErrors.postalCode = t("form.postalCodeFormatError");
+      else if (!/^\d{4}$/.test(updatedValue)) newErrors.postalCode = t("form.postalCodeFormatError");
       else delete newErrors.postalCode;
     }
 

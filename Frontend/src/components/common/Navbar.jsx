@@ -267,9 +267,9 @@ const Navbar = () => {
           value={postalCode}
           onChange={(e) => {
             const value = e.target.value.replace(/\D/g, "");
-            if (value.length <= 6) setPostalCodeInput(value);
+            if (value.length <= 4) setPostalCodeInput(value);
           }}
-          maxLength={6}
+          maxLength={4}
           className="outline-none text-sm w-full"
         />
       </div>
@@ -443,9 +443,9 @@ const Navbar = () => {
             value={postalCode}
             onChange={(e) => {
               const value = e.target.value.replace(/\D/g, "");
-              if (value.length <= 6) setPostalCodeInput(value);
+              if (value.length <= 4) setPostalCodeInput(value);
             }}
-            maxLength={6}
+            maxLength={4}
             className="outline-none text-sm w-full"
           />
         </div>

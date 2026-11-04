@@ -64,8 +64,8 @@ const CheckoutPage = () => {
       return;
     }
 
-    // Postal code validation (6 digits)
-    if (form.postalCode.length !== 6) {
+    // Postal code validation (Azerbaijan: 4 digits)
+    if (!/^\d{4}$/.test(form.postalCode)) {
       alert(t("checkout.postalCodeInvalid"));
       return;
     }
@@ -138,8 +138,8 @@ const CheckoutPage = () => {
 
   return (
     <>
-      <div className="h-screen bg-gray-50 pt-4">
-        <div className="flex gap-6 justify-center px-4">
+      <div className="min-h-screen bg-gray-50 pt-4 pb-8">
+        <div className="flex gap-6 justify-center px-3 sm:px-4">
           {/* Left Ad */}
           <div className="hidden lg:block w-[160px] sticky top-[70px] h-[80vh] z-30">
             <img
@@ -150,11 +150,11 @@ const CheckoutPage = () => {
           </div>
 
           {/* Main Checkout Section */}
-          <div className="max-w-4xl w-full grid md:grid-cols-2 gap-6">
+          <div className="max-w-4xl w-full min-w-0 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start">
             {/* Product Card */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col">
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 flex flex-col min-w-0 md:h-full">
               {/* Product Image Carousel */}
-              <div className="relative w-full h-64 mb-6 rounded-xl overflow-hidden">
+              <div className="relative w-full h-52 sm:h-64 mb-4 sm:mb-6 rounded-xl overflow-hidden">
                 {product?.pictures?.length > 0 ? (
                   <>
                     <SafeImage
@@ -248,8 +248,8 @@ const CheckoutPage = () => {
             </div>
 
             {/* Checkout Form */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 min-w-0">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800 border-b pb-2">
                 {t("checkout.checkout")}
               </h3>
 
@@ -309,10 +309,10 @@ const CheckoutPage = () => {
                     placeholder={t("checkout.postalCodePlaceholder")}
                     value={form.postalCode}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 4);
                       handleChange({ target: { name: "postalCode", value } });
                     }}
-                    maxLength={6}
+                    maxLength={4}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition"
                     required
                   />
@@ -341,7 +341,7 @@ const CheckoutPage = () => {
               <button
                 onClick={handleCheckout}
                 disabled={isLoading}
-                className={`w-3/4 mx-auto block mt-6 ${isLoading
+                className={`w-full sm:w-3/4 mx-auto block mt-6${isLoading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700"
                   } text-white py-3 px-4 font-semibold rounded-lg shadow-md transition transform hover:scale-[1.02] disabled:transform-none disabled:hover:scale-100`}
