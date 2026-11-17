@@ -14,11 +14,13 @@ const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/product.model');
 const logger = require('../utils/logger');
-const { WalletError, withTransaction, transfer, creditFromGateway } = require('./walletLedger');
+const { WalletError, withTransaction, transfer, creditFromGateway, debitToGateway } = require('./walletLedger');
 const { notifyOrderPlaced } = require('./orderNotifications');
 const { getConfig } = require('./azericard/config');
-const { buildPurchaseForm, queryStatus, StatusCheckUnsupported } = require('./azericard/gateway');
-const { gatewayOrderId, sameAmount, CURRENCY_AZN } = require('./azericard/protocol');
+const { buildPurchaseForm, buildReversalFields, sendReversal, queryStatus, StatusCheckUnsupported } = require('./azericard/gateway');
+const { gatewayOrderId, sameAmount, CURRENCY_AZN, TRTYPE } = require('./azericard/protocol');
+
+const REVERSAL_TRTYPES = [TRTYPE.REVERSAL, TRTYPE.OFFLINE_REVERSAL];
 
 class AlreadyProcessed extends Error {}
 
@@ -197,6 +199,7 @@ async function applyGatewayResult(result) {
     logger.error('[Card] Result for unknown gateway order', { gatewayOrderId: result.gatewayOrderId });
     return { outcome: 'unknown_order' };
   }
+  if (REVERSAL_TRTYPES.includes(String(result.raw?.TRTYPE || '').trim())) return applyReversalResult(order, result);
 
   if (order.paymentStatus !== 'processing') {
     // A genuine approval for an order we already failed under a different bank reference means the
@@ -238,6 +241,124 @@ async function applyGatewayResult(result) {
     }
     throw err;
   }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Reversal (full refund to the card) of an approved card payment: TRTYPE 22, or 24 (offline).
+//   request : POST the signed reversal to the gateway; the order itself is not touched yet
+//   approved: order refunded + cancelled, card money taken back from the seller   (REVERSAL_<order>)
+//             wallet part returned seller -> buyer                                 (REFUND_<order>)
+//             item back in stock
+// Only the bank's signed result (callback) changes the order.
+
+async function findOrderByRef(orderRef) {
+  const ref = String(orderRef || '').trim();
+  if (mongoose.isValidObjectId(ref)) {
+    const byId = await Order.findById(ref);
+    if (byId) return byId;
+  }
+  return Order.findOne({ paymentOrderId: ref });
+}
+
+async function requestCardReversal(orderRef, { trtype = TRTYPE.REVERSAL, reason = 'Card payment reversed' } = {}) {
+  if (!REVERSAL_TRTYPES.includes(trtype)) throw new WalletError('INVALID_TRTYPE', 'TRTYPE must be 22 or 24');
+  const order = await findOrderByRef(orderRef);
+  if (!order) throw new WalletError('ORDER_NOT_FOUND', 'Order not found', 404);
+  if (order.paymentStatus !== 'completed' || !(order.onlineAmount > 0)) {
+    throw new WalletError('NOT_REVERSIBLE', `Only a completed card payment can be reversed (this order is ${order.paymentStatus})`, 409);
+  }
+  if (!order.gateway?.rrn || !order.gateway?.intRef) {
+    throw new WalletError('NO_BANK_REFERENCE', 'The order has no RRN / INT_REF from the bank', 409);
+  }
+
+  const reversal = buildReversalFields({
+    gatewayOrderId: order.paymentOrderId, amount: order.onlineAmount,
+    rrn: order.gateway.rrn, intRef: order.gateway.intRef, trtype,
+  });
+  // One reversal per order; a send that failed ('error') may be retried.
+  const claimed = await Order.updateOne(
+    { _id: order._id, paymentStatus: 'completed', 'paymentMetadata.reversal.status': { $nin: ['sending', 'sent', 'approved'] } },
+    { $set: { 'paymentMetadata.reversal': { status: 'sending', trtype, reason, requestedAt: new Date() } } }
+  );
+  if (claimed.modifiedCount !== 1) throw new WalletError('REVERSAL_IN_PROGRESS', 'A reversal was already requested for this order', 409);
+
+  let response;
+  try {
+    response = await sendReversal(reversal);
+  } catch (err) {
+    await Order.updateOne({ _id: order._id }, { $set: { 'paymentMetadata.reversal.status': 'error', 'paymentMetadata.reversal.error': err.message } });
+    logger.error(`[Card] Reversal for order ${order._id} could not be sent: ${err.message}`);
+    throw err;
+  }
+  await Order.updateOne({ _id: order._id }, {
+    $set: { 'paymentMetadata.reversal.sentAt': new Date(), 'paymentMetadata.reversal.bankResponse': response },
+  });
+  // The callback may already have answered while we waited for the HTTP response.
+  await Order.updateOne({ _id: order._id, 'paymentMetadata.reversal.status': 'sending' }, { $set: { 'paymentMetadata.reversal.status': 'sent' } });
+
+  logger.info(`[Card] Reversal TRTYPE ${trtype} sent: order ${order._id}, gateway order ${order.paymentOrderId}, `
+    + `RRN ${order.gateway.rrn}, INT_REF ${order.gateway.intRef}, ₼${order.onlineAmount} -> HTTP ${response.httpStatus} ${JSON.stringify(response.body.slice(0, 500))}`);
+  const { P_SIGN, ...signedFields } = reversal.fields;
+  return { orderId: String(order._id), request: signedFields, response };
+}
+
+async function applyReversalResult(order, result) {
+  const trtype = String(result.raw?.TRTYPE).trim();
+  const record = { ...gatewayFields(result), trtype, raw: result.raw };
+  const problems = resultMismatches(result, order, getConfig());
+  if (problems.length) {
+    await flagForReview(order, `Reversal result does not match the order: ${problems.join('; ')}`, result);
+    return { outcome: 'mismatch', order };
+  }
+
+  if (!result.approved) {
+    await Order.updateOne({ _id: order._id }, { $set: { 'paymentMetadata.reversal.status': 'declined', 'paymentMetadata.reversal.result': record } });
+    logger.warn(`[Card] Reversal declined by the bank: order ${order._id} (ACTION ${result.action}, RC ${result.responseCode}) | ${JSON.stringify(result.raw)}`);
+    return { outcome: 'reversal_declined', order };
+  }
+  if (order.paymentStatus === 'refunded') return { outcome: 'already_processed', order };
+  if (order.paymentStatus !== 'completed') {
+    await flagForReview(order, `Reversal approved for an order that is ${order.paymentStatus}`, result);
+    return { outcome: 'review', order };
+  }
+
+  const reversedFields = {
+    paymentStatus: 'refunded', status: 'cancelled', cancelledAt: new Date(),
+    cancellationReason: order.paymentMetadata?.reversal?.reason || 'Card payment reversed',
+    'paymentMetadata.reversal.status': 'approved',
+    'paymentMetadata.reversal.result': record,
+    'paymentMetadata.reversal.approvedAt': new Date(),
+  };
+  try {
+    await withTransaction(async (session) => {
+      const updated = await Order.findOneAndUpdate({ _id: order._id, paymentStatus: 'completed' }, { $set: reversedFields }, { session });
+      if (!updated) throw new AlreadyProcessed();
+      await debitToGateway({
+        senderId: order.sellerId, receiverId: order.buyerId, amount: order.onlineAmount,
+        transactionId: `REVERSAL_${order._id}`, description: `Card payment reversed for order ${order._id}`,
+        referenceId: String(order._id),
+      }, session);
+      if (order.walletDeduction > 0) {
+        await transfer({
+          senderId: order.sellerId, receiverId: order.buyerId, amount: order.walletDeduction,
+          transactionId: `REFUND_${order._id}`, description: `Wallet part refunded for order ${order._id}`,
+          referenceId: String(order._id), type: 'refund', source: 'purchase',
+        }, session);
+      }
+      await Product.updateOne({ _id: order.productId }, { $inc: { quantity: 1 } }, { session });
+    });
+  } catch (err) {
+    if (err instanceof AlreadyProcessed) return { outcome: 'already_processed', order };
+    if (err instanceof WalletError && err.code === 'INSUFFICIENT_BALANCE') {
+      // The bank has already returned the money: record that, and leave the wallets to a person.
+      await Order.updateOne({ _id: order._id, paymentStatus: 'completed' }, { $set: reversedFields });
+      await flagForReview(order, 'Card payment reversed at the bank, but the seller wallet could not cover it', result);
+      return { outcome: 'review', order };
+    }
+    throw err;
+  }
+  logger.info(`[Card] Order ${order._id} reversed (TRTYPE ${trtype}, RRN ${result.rrn}, INT_REF ${result.intRef})`);
+  return { outcome: 'reversed', order };
 }
 
 // For orders stuck in "processing" (lost callback, closed tab): ask the gateway what happened, or —
@@ -297,4 +418,4 @@ function startReconciliationLoop(intervalMs = 60 * 1000) {
   logger.info(`[Card] Reconciliation loop started (every ${intervalMs / 1000}s, stale after ${getConfig().staleAfterMinutes} min)`);
 }
 
-module.exports = { startCardCheckout, applyGatewayResult, reconcileStaleCardOrders, startReconciliationLoop };
+module.exports = { startCardCheckout, applyGatewayResult, requestCardReversal, reconcileStaleCardOrders, startReconciliationLoop };

@@ -51,6 +51,38 @@ function verifyResult(fields) {
   };
 }
 
+// TRTYPE 22 (reversal) / 24 (offline reversal) of an approved purchase, per Azericard's
+// reversal_rsa.php: AMOUNT/CURRENCY/ORDER/RRN/INT_REF must equal the original authorization result.
+function buildReversalFields({ gatewayOrderId, amount, rrn, intRef, trtype = p.TRTYPE.REVERSAL }) {
+  const cfg = getConfig();
+  const fields = {
+    AMOUNT: p.formatAmount(amount),
+    CURRENCY: p.CURRENCY_AZN,
+    ORDER: gatewayOrderId,
+    RRN: rrn,
+    INT_REF: intRef,
+    TERMINAL: cfg.terminal,
+    TRTYPE: trtype,
+    TIMESTAMP: p.timestamp(),
+    NONCE: p.nonce(),
+  };
+  fields.P_SIGN = p.sign(fields, p.FOLLOWUP_SIGN_FIELDS, ownPrivateKey());
+  return { url: cfg.gatewayUrl, fields };
+}
+
+// Server-to-server POST of a reversal. The authoritative result comes back signed to our callback;
+// whatever the gateway answers here is kept as-is for the record.
+async function sendReversal({ url, fields }) {
+  const res = await axios.post(url, new URLSearchParams(fields).toString(), {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    timeout: 30000,
+    responseType: 'text',
+    transformResponse: (d) => d,
+    validateStatus: () => true,
+  });
+  return { httpStatus: res.status, body: String(res.data ?? '').slice(0, 4000) };
+}
+
 class StatusCheckUnsupported extends Error {}
 
 // Mock-only for now; the real equivalent is Azericard's "Operation Status" (spec not yet in hand).
@@ -73,4 +105,6 @@ async function queryStatus(gatewayOrderId) {
   return result;
 }
 
-module.exports = { buildPurchaseForm, verifyResult, queryStatus, StatusCheckUnsupported, MOCK_STATUS_SIGN_FIELDS };
+module.exports = {
+  buildPurchaseForm, buildReversalFields, sendReversal, verifyResult, queryStatus, StatusCheckUnsupported, MOCK_STATUS_SIGN_FIELDS,
+};

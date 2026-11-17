@@ -87,4 +87,33 @@ async function creditFromGateway({ senderId, receiverId, amount, transactionId, 
   return txn;
 }
 
-module.exports = { WalletError, withTransaction, transfer, creditFromGateway };
+// Money sent back out through the card gateway (a reversal): only the payer-side wallet changes.
+async function debitToGateway({ senderId, receiverId, amount, transactionId, description = '', referenceId = null }, session) {
+  if (!session) throw new Error('walletLedger.debitToGateway requires a session');
+  if (!(Number.isFinite(amount) && amount > 0)) {
+    throw new WalletError('INVALID_AMOUNT', 'Amount must be greater than zero');
+  }
+  const debited = await User.findOneAndUpdate(
+    { _id: senderId, walletBalance: { $gte: amount } },
+    { $inc: { walletBalance: -amount } },
+    { session, projection: { _id: 1 } }
+  );
+  if (!debited) {
+    const senderExists = await User.exists({ _id: senderId }).session(session);
+    throw senderExists
+      ? new WalletError('INSUFFICIENT_BALANCE', 'Insufficient wallet balance')
+      : new WalletError('SENDER_NOT_FOUND', 'Sender not found', 404);
+  }
+  try {
+    const [txn] = await Transaction.create(
+      [{ senderId, receiverId, amount, transactionId, description, referenceId, type: 'refund', source: 'purchase', paymentMode: 'online', status: 'success' }],
+      { session }
+    );
+    return txn;
+  } catch (err) {
+    if (err.code === 11000) throw new WalletError('DUPLICATE_TRANSACTION', 'This transaction was already processed', 409);
+    throw err;
+  }
+}
+
+module.exports = { WalletError, withTransaction, transfer, creditFromGateway, debitToGateway };

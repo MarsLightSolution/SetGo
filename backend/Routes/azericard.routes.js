@@ -16,7 +16,9 @@ const form = express.urlencoded({ extended: false });
 // Callbacks all come from the bank's few IPs, so this is per-IP but generous.
 const bankLimiter = rateLimit({ windowMs: 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false });
 
-const STATUS_FOR = { completed: 200, failed: 200, already_processed: 200, review: 200, unknown_order: 404, mismatch: 409 };
+const STATUS_FOR = {
+  completed: 200, failed: 200, reversed: 200, reversal_declined: 200, already_processed: 200, review: 200, unknown_order: 404, mismatch: 409,
+};
 
 async function handleResult(fields, source, ip) {
   const { ORDER, P_SIGN, ...rest } = fields || {};

@@ -56,8 +56,37 @@ function signedResult(request, approved) {
   return fields;
 }
 
+// TRTYPE 22/24 sent server to server: reverse an approved payment and post the signed result to
+// our callback, as the real gateway does.
+async function handleReversal(f, res) {
+  if (!p.verify(f, p.FOLLOWUP_SIGN_FIELDS, f.P_SIGN, ownPublicKey())) return res.status(400).type('text').send('BAD P_SIGN');
+  const entry = payments.get(f.ORDER);
+  const original = entry?.result;
+  if (!entry || entry.state !== 'approved' || original.RRN !== f.RRN || original.INT_REF !== f.INT_REF || original.AMOUNT !== f.AMOUNT) {
+    return res.status(400).type('text').send('NO MATCHING APPROVED PAYMENT');
+  }
+  entry.state = 'reversed';
+  const result = {
+    TERMINAL: f.TERMINAL, TRTYPE: f.TRTYPE, ORDER: f.ORDER, AMOUNT: f.AMOUNT, CURRENCY: f.CURRENCY,
+    ACTION: '0', RC: '00', APPROVAL: String(crypto.randomInt(100000, 1000000)),
+    RRN: original.RRN, INT_REF: original.INT_REF, TIMESTAMP: p.timestamp(), NONCE: p.nonce(),
+  };
+  result.P_SIGN = p.sign(result, p.RESULT_SIGN_FIELDS, mockBankKeyPair().privateKey);
+  entry.reversal = result;
+  try {
+    await axios.post(getConfig().callbackUrl, new URLSearchParams(result).toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 10000,
+    });
+  } catch (err) {
+    logger.error('[MockAzericard] reversal callback delivery failed', { order: f.ORDER, message: err.message });
+  }
+  res.type('text').send('ACTION=0\nRC=00');
+}
+
 router.post('/pay', (req, res) => {
   const f = req.body;
+  if (['22', '24'].includes(f.TRTYPE)) return handleReversal(f, res);
   setCsp(res, f.BACKREF);
   if (!p.verify(f, p.REQUEST_SIGN_FIELDS, f.P_SIGN, ownPublicKey())) {
     logger.warn('[MockAzericard] rejected request: bad P_SIGN', { order: f.ORDER });
