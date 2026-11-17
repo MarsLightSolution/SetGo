@@ -25,7 +25,7 @@ const p = require('../services/azericard/protocol');
 const { mockBankKeyPair } = require('../services/azericard/keys');
 const { getConfig } = require('../services/azericard/config');
 const mockBank = require('../services/azericard/mockBank');
-const { reconcileStaleCardOrders } = require('../services/cardPayments');
+const { reconcileStaleCardOrders, requestCardReversal } = require('../services/cardPayments');
 
 let replSet;
 let app;
@@ -131,6 +131,15 @@ describe('protocol (per Azericard docs and samples)', () => {
     const sig = p.sign(values, p.REQUEST_SIGN_FIELDS, privateKey);
     expect(sig).toMatch(/^[0-9a-f]{512}$/);
     expect(p.verify(values, p.REQUEST_SIGN_FIELDS, sig, publicKey)).toBe(true);
+  });
+
+  test('reversal P_SIGN string matches reversal_rsa.php (AMOUNT CURRENCY TERMINAL TRTYPE ORDER RRN INT_REF)', () => {
+    const values = {
+      AMOUNT: '10.00', CURRENCY: 'AZN', ORDER: '000742', RRN: '321676432435', INT_REF: '660C5AA4B9D84B19',
+      TERMINAL: '77777777', TRTYPE: '22',
+    };
+    expect(p.signingString(values, p.FOLLOWUP_SIGN_FIELDS))
+      .toBe('510.00' + '3AZN' + '877777777' + '222' + '6000742' + '12321676432435' + '16660C5AA4B9D84B19');
   });
 
   test('ORDER: numeric, 14 digits, last 6 from a sequence that does not reset daily', () => {
@@ -395,6 +404,76 @@ describe('card checkout against the mock bank', () => {
     } finally {
       process.env.AZERICARD_ENABLED = 'true';
     }
+  });
+});
+
+describe('reversal (TRTYPE 22 / 24) of an approved card payment', () => {
+  const paidOrder = async (price, buyerWallet, walletDeduction) => {
+    const ctx = await setup(price, buyerWallet);
+    const res = await initiate(ctx.buyer, ctx.product, walletDeduction);
+    await payAtBank(res.body.data.gateway, 'approve');
+    return { ...ctx, orderId: res.body.data.orderId, gateway: res.body.data.gateway };
+  };
+
+  test('card only: signed reversal sent, bank callback refunds the order, seller debited, item restocked', async () => {
+    const { seller, product, orderId, gateway } = await paidOrder(50, 0, 0);
+    expect(await balance(seller)).toBe(50);
+    const before = await Order.findById(orderId);
+
+    const out = await requestCardReversal(orderId);
+    expect(out.request).toMatchObject({
+      TRTYPE: '22', AMOUNT: '50.00', CURRENCY: 'AZN', ORDER: gateway.fields.ORDER,
+      RRN: before.gateway.rrn, INT_REF: before.gateway.intRef, TERMINAL: getConfig().terminal,
+    });
+    expect(out.response.httpStatus).toBe(200);
+
+    const order = await Order.findById(orderId);
+    expect(order).toMatchObject({ paymentStatus: 'refunded', status: 'cancelled' });
+    expect(order.paymentMetadata.reversal).toMatchObject({ status: 'approved', trtype: '22' });
+    expect(order.paymentMetadata.reversal.result.rrn).toBe(before.gateway.rrn);
+    expect(await balance(seller)).toBe(0);
+    expect(await quantity(product)).toBe(1);
+    expect(await Transaction.findOne({ transactionId: `REVERSAL_${orderId}` })).toMatchObject({ amount: 50, paymentMode: 'online', type: 'refund' });
+  });
+
+  test('wallet + card: card part reversed, wallet part returned to the buyer; found by gateway ORDER; TRTYPE 24', async () => {
+    const { seller, buyer, orderId, gateway } = await paidOrder(50, 30, 30);
+    expect(await balance(buyer)).toBe(0);
+
+    await requestCardReversal(gateway.fields.ORDER, { trtype: '24' });
+
+    expect(await Order.findById(orderId)).toMatchObject({ paymentStatus: 'refunded', status: 'cancelled' });
+    expect(await balance(buyer)).toBe(30);
+    expect(await balance(seller)).toBe(0);
+  });
+
+  test('only once, only for a completed card payment', async () => {
+    const { orderId } = await paidOrder(20, 0, 0);
+    await requestCardReversal(orderId);
+    await expect(requestCardReversal(orderId)).rejects.toMatchObject({ code: 'NOT_REVERSIBLE' });
+
+    const { buyer, product } = await setup(20);
+    const pending = await initiate(buyer, product, 0);
+    await expect(requestCardReversal(pending.body.data.orderId)).rejects.toMatchObject({ code: 'NOT_REVERSIBLE' });
+    await expect(requestCardReversal(orderId, { trtype: '1' })).rejects.toMatchObject({ code: 'INVALID_TRTYPE' });
+  });
+
+  test('a declined reversal leaves the order paid', async () => {
+    const { seller, orderId } = await paidOrder(25, 0, 0);
+    const order = await Order.findById(orderId);
+    const declined = {
+      TERMINAL: getConfig().terminal, TRTYPE: '22', ORDER: order.paymentOrderId, AMOUNT: '25.00', CURRENCY: 'AZN',
+      ACTION: '2', RC: '05', APPROVAL: '', RRN: order.gateway.rrn, INT_REF: order.gateway.intRef,
+      TIMESTAMP: p.timestamp(), NONCE: p.nonce(),
+    };
+    declined.P_SIGN = p.sign(declined, p.RESULT_SIGN_FIELDS, mockBankKeyPair().privateKey);
+    const res = await postCallback(declined);
+    expect(res.status).toBe(200);
+
+    const after = await Order.findById(orderId);
+    expect(after).toMatchObject({ paymentStatus: 'completed', status: 'paid' });
+    expect(after.paymentMetadata.reversal.status).toBe('declined');
+    expect(await balance(seller)).toBe(25);
   });
 });
 
