@@ -277,8 +277,9 @@ router.get('/orders', authenticateUser, async (req, res) => {
 });
 
 /**
- * POST /api/payments/order/:orderId/cancel — buyer only, before shipping.
- * A paid wallet order is reversed seller -> buyer through the ledger.
+ * POST /api/payments/order/:orderId/cancel — buyer only.
+ * Refunds are started by SATGO admins only: a paid order cannot be cancelled here — the buyer
+ * raises a support query and an admin refunds it. An unpaid order can still be withdrawn.
  */
 router.post('/order/:orderId/cancel', authenticateUser, async (req, res) => {
   try {
@@ -296,9 +297,6 @@ router.post('/order/:orderId/cancel', authenticateUser, async (req, res) => {
     if (String(order.buyerId) !== userId) {
       return res.status(403).json({ success: false, message: 'Only buyer can cancel order' });
     }
-    if (!['pending', 'paid'].includes(order.status)) {
-      return res.status(400).json({ success: false, message: `Cannot cancel order with status: ${order.status}` });
-    }
     if (order.paymentStatus === 'processing') {
       return res.status(409).json({
         success: false,
@@ -306,58 +304,32 @@ router.post('/order/:orderId/cancel', authenticateUser, async (req, res) => {
         message: 'This payment is still being confirmed by the bank. Please try again in a few minutes.',
       });
     }
-    // Refund destination for card money is an open business decision (plan §12.4).
-    if (order.onlineAmount > 0 && order.paymentStatus === 'completed') {
-      return res.status(409).json({
+    if (order.paymentStatus === 'completed' || order.paymentStatus === 'refunded') {
+      return res.status(403).json({
         success: false,
-        code: 'CARD_REFUND_UNSUPPORTED',
-        message: 'This order was paid by card. Please contact support to cancel it.',
+        code: 'REFUND_ADMIN_ONLY',
+        message: 'Paid orders are cancelled and refunded by SATGO support. Please raise a query from your order page.',
       });
     }
+    if (order.status !== 'pending') {
+      return res.status(400).json({ success: false, message: `Cannot cancel order with status: ${order.status}` });
+    }
 
-    const refundAmount = order.paymentStatus === 'completed' ? order.paidAmount : 0;
+    const cancelled = await Order.updateOne(
+      { _id: order._id, status: 'pending', paymentStatus: { $nin: ['processing', 'completed', 'refunded'] } },
+      { $set: { status: 'cancelled', cancelledAt: new Date(), cancellationReason: reason } }
+    );
+    if (cancelled.modifiedCount !== 1) {
+      return res.status(409).json({ success: false, code: 'ALREADY_CANCELLED', message: 'Order was already cancelled or has moved on' });
+    }
 
-    await withTransaction(async (session) => {
-      const cancelled = await Order.updateOne(
-        { _id: order._id, status: { $in: ['pending', 'paid'] } },
-        { $set: { status: 'cancelled', cancelledAt: new Date(), cancellationReason: reason, ...(refundAmount > 0 && { paymentStatus: 'refunded' }) } },
-        { session }
-      );
-      if (cancelled.modifiedCount !== 1) {
-        throw new WalletError('ALREADY_CANCELLED', 'Order was already cancelled or has moved on', 409);
-      }
-
-      if (refundAmount > 0) {
-        try {
-          await transfer({
-            senderId: order.sellerId,
-            receiverId: order.buyerId,
-            amount: refundAmount,
-            transactionId: `REFUND_${order._id}`,
-            description: `Refund for cancelled order ${order._id}`,
-            referenceId: String(order._id),
-            type: 'refund',
-            source: 'purchase',
-          }, session);
-        } catch (err) {
-          if (err instanceof WalletError && err.code === 'INSUFFICIENT_BALANCE') {
-            throw new WalletError('REFUND_NEEDS_SUPPORT', 'The refund cannot be processed automatically. Please contact support.', 409);
-          }
-          throw err;
-        }
-      }
-
-      await Product.updateOne({ _id: order.productId }, { $inc: { quantity: 1 } }, { session });
-    });
-
-    logger.info(`[Payments] Order ${order._id} cancelled, refunded ₼${refundAmount}`);
+    logger.info(`[Payments] Unpaid order ${order._id} cancelled by buyer`);
     res.json({
       success: true,
       message: 'Order cancelled successfully',
-      data: { orderId: order._id, status: 'cancelled', refundedAmount: refundAmount },
+      data: { orderId: order._id, status: 'cancelled', refundedAmount: 0 },
     });
   } catch (error) {
-    if (error instanceof WalletError) return sendWalletError(res, error);
     logger.error('[Payments] Error cancelling order', { message: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: 'Failed to cancel order' });
   }

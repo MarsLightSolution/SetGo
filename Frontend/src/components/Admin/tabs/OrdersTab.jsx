@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { Search, ShoppingCart, CheckCircle, XCircle, DollarSign, RotateCcw, Clock } from "lucide-react"
+import { Search, ShoppingCart, CheckCircle, XCircle, DollarSign, RotateCcw, Clock, AlertTriangle } from "lucide-react"
 import { statusBadge } from "../adminUtils"
 
-export default function OrdersTab({ orders, renderText, onApproveDelivery, onReleaseFunds, onCancelOrder, handleButtonClick }) {
+export default function OrdersTab({ orders, renderText, onApproveDelivery, onReleaseFunds, onCancelOrder, onRefundOrder, handleButtonClick }) {
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch]           = useState("")
 
@@ -86,81 +86,77 @@ export default function OrdersTab({ orders, renderText, onApproveDelivery, onRel
                     <td className="px-5 py-3.5">
                       <div className="flex flex-col gap-1.5 min-w-[160px]">
 
-                        {/* Waiting for shipping */}
-                        {status === "paid" && (
-                          <>
-                            <span className="inline-flex items-center gap-1.5 text-xs text-sky-600 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-lg font-medium">
-                              <Clock className="w-3 h-3" /> Awaiting Shipment
+                        {(() => {
+                          const btn = "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg font-medium border transition-colors"
+                          const red   = `${btn} text-red-600 bg-red-50 border-red-200 hover:bg-red-100`
+                          const amber = `${btn} text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100`
+                          const green = `${btn} text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100`
+                          const tag   = (cls, Icon, text) => (
+                            <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg font-medium border ${cls}`}>
+                              <Icon className="w-3 h-3" /> {text}
                             </span>
-                            <button
-                              onClick={handleButtonClick(() => onCancelOrder(order.id))}
-                              className="inline-flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg font-medium hover:bg-red-100 transition-colors"
-                            >
-                              <XCircle className="w-3 h-3" /> Cancel
-                            </button>
-                          </>
-                        )}
+                          )
+                          const paid          = order.paymentStatus === "completed"
+                          const refundAtBank  = ["sending", "sent"].includes(order.refundStatus)
+                          const refundBlocked = refundAtBank || order.paymentStatus === "processing"
+                          const out = []
 
-                        {/* Shipped — approve or cancel */}
-                        {status === "shipped" && (
-                          <>
-                            <button
-                              onClick={handleButtonClick(() => onApproveDelivery(order.id))}
-                              className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg font-medium hover:bg-emerald-100 transition-colors"
-                            >
-                              <CheckCircle className="w-3 h-3" /> Approve Delivery
-                            </button>
-                            <button
-                              onClick={handleButtonClick(() => onCancelOrder(order.id))}
-                              className="inline-flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg font-medium hover:bg-red-100 transition-colors"
-                            >
-                              <XCircle className="w-3 h-3" /> Cancel
-                            </button>
-                          </>
-                        )}
+                          if (order.paymentStatus === "processing")
+                            out.push(tag("text-amber-700 bg-amber-50 border-amber-200", Clock, "Payment being confirmed"))
+                          if (order.needsReview)
+                            out.push(tag("text-red-700 bg-red-50 border-red-200", AlertTriangle, "Needs review"))
+                          if (refundAtBank)
+                            out.push(tag("text-amber-700 bg-amber-50 border-amber-200", Clock, "Refund sent to bank"))
+                          if (order.refundStatus === "declined")
+                            out.push(tag("text-red-700 bg-red-50 border-red-200", XCircle, "Bank declined refund"))
+                          if (order.paymentStatus === "refunded")
+                            out.push(tag("text-slate-600 bg-slate-100 border-slate-200", RotateCcw, "Refunded to buyer"))
 
-                        {/* Delivered — release to seller */}
-                        {(status === "delivered" || status.includes("funds_released_to_")) &&
-                          !status.includes("funds_released_to_Seller") && (
-                            <button
-                              onClick={handleButtonClick(() => onReleaseFunds(order.id, order.sellerId, "Seller"))}
-                              className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg font-medium hover:bg-emerald-100 transition-colors"
-                            >
-                              <DollarSign className="w-3 h-3" /> Release to Seller
-                            </button>
-                          )}
+                          if (status === "paid") {
+                            out.push(tag("text-sky-600 bg-sky-50 border-sky-200", Clock, "Awaiting Shipment"))
+                          }
+                          if (status === "shipped") {
+                            out.push(
+                              <button key="approve" onClick={handleButtonClick(() => onApproveDelivery(order.id))} className={green}>
+                                <CheckCircle className="w-3 h-3" /> Approve Delivery
+                              </button>,
+                            )
+                          }
+                          if (status === "delivered") {
+                            out.push(
+                              <button key="release" onClick={handleButtonClick(() => onReleaseFunds(order.id))} className={green}>
+                                <DollarSign className="w-3 h-3" /> Release to Seller
+                              </button>,
+                            )
+                          }
+                          if (status === "released") {
+                            out.push(tag("text-slate-500 bg-slate-100 border-slate-200", CheckCircle, "Released to Seller"))
+                          }
 
-                        {status.includes("funds_released_to_Seller") && (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-medium">
-                            <CheckCircle className="w-3 h-3" /> Released to Seller
-                          </span>
-                        )}
-
-                        {/* Cancelled — return to buyer */}
-                        {(status === "cancelled" || status.includes("funds_released_to_")) &&
-                          !status.includes("funds_released_to_Buyer") && (
-                            <button
-                              onClick={handleButtonClick(() => onReleaseFunds(order.id, order.buyerId, "Buyer"))}
-                              className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium hover:bg-amber-100 transition-colors"
-                            >
-                              <RotateCcw className="w-3 h-3" /> Return to Buyer
-                            </button>
-                          )}
-
-                        {status.includes("funds_released_to_Buyer") && (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg font-medium">
-                            <CheckCircle className="w-3 h-3" /> Returned to Buyer
-                          </span>
-                        )}
-
-                        {status === "pending" && (
-                          <button
-                            onClick={handleButtonClick(() => onCancelOrder(order.id))}
-                            className="inline-flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg font-medium hover:bg-red-100 transition-colors"
-                          >
-                            <XCircle className="w-3 h-3" /> Cancel
-                          </button>
-                        )}
+                          // Refund: admin only. Before delivery it is "Cancel & refund"; after, "Refund".
+                          if (paid && !refundBlocked && ["paid", "shipped"].includes(status)) {
+                            out.push(
+                              <button key="cancel" onClick={handleButtonClick(() => onCancelOrder(order.id))} className={red}>
+                                <XCircle className="w-3 h-3" /> Cancel &amp; Refund
+                              </button>,
+                            )
+                          }
+                          if (paid && !refundBlocked && ["delivered", "released"].includes(status)) {
+                            out.push(
+                              <button key="refund" onClick={handleButtonClick(() => onRefundOrder(order.id))} className={amber}>
+                                <RotateCcw className="w-3 h-3" /> Refund
+                              </button>,
+                            )
+                          }
+                          if (status === "pending" && !paid && order.paymentStatus !== "processing") {
+                            out.push(
+                              <button key="cancel-unpaid" onClick={handleButtonClick(() => onCancelOrder(order.id))} className={red}>
+                                <XCircle className="w-3 h-3" /> Cancel
+                              </button>,
+                            )
+                          }
+                          return out.map((el, i) => <span key={i} className="contents">{el}</span>)
+                        })()}
                       </div>
                     </td>
                   </tr>

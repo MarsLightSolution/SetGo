@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const {getAdminDashboardData,cancelOrder,approveDelivery,releaseFunds} = require("../controller/Admincontroller");
+const requireAdmin = require("../middlewares/requireAdmin.middleware");
+const { getAdminDashboardData, cancelOrder, refundOrder, approveDelivery, releaseFunds } = require("../controller/Admincontroller");
 
-// Route to get admin dashboard data
-router.get("/dashboard", getAdminDashboardData);
-router.post("/:orderId/cancel",cancelOrder);
-router.post("/:orderId/approve-delivery", approveDelivery);
-router.post("/:orderId/approve-delivery", approveDelivery);
-router.put("/:orderId/release", releaseFunds);
+// Mounted at "/" — so the guard goes on each route, not router.use(), or it would cover the whole API.
+// SECURITY: these were public; anyone could list every order or cancel/approve any order.
+router.get("/dashboard", requireAdmin, getAdminDashboardData);
+router.post("/:orderId/cancel", requireAdmin, cancelOrder);
+router.post("/:orderId/refund", requireAdmin, refundOrder);
+router.post("/:orderId/approve-delivery", requireAdmin, approveDelivery);
+router.put("/:orderId/release", requireAdmin, releaseFunds);
 module.exports = router;

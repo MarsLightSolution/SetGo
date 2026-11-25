@@ -4,7 +4,8 @@ import {
   Image as GalleryIcon, Megaphone, MessageSquare, Shield, RefreshCw,
   AlertTriangle, ChevronRight,
 } from "lucide-react"
-import { SERVER_URL, renderText } from "./adminUtils"
+import { renderText } from "./adminUtils"
+import { authFetch } from "../../utils/authFetch"
 import DashboardTab from "./tabs/DashboardTab"
 import TransactionsTab from "./tabs/TransactionsTab"
 import BuyersTab from "./tabs/BuyersTab"
@@ -38,15 +39,16 @@ export default function AdminDashboard() {
     orders: [],
   })
 
+  // Every admin call carries the admin's login; the server checks role === "admin".
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${SERVER_URL}/dashboard`)
+      const response = await authFetch(`/dashboard`)
       const result   = await response.json()
       if (result.success) {
         setDashboardData(result.data)
       } else {
-        setError(result.error || "Failed to fetch data")
+        setError(result.error || result.message || "Failed to fetch data")
       }
     } catch (err) {
       setError("Network error: " + err.message)
@@ -58,132 +60,59 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchDashboardData() }, [])
 
+  const adminAction = async (path, method, body) => {
+    const res  = await authFetch(path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.message || data.error || `Request failed (${res.status})`)
+    return data
+  }
+
   const handleApproveDelivery = async (orderId) => {
     try {
-      const order = dashboardData.orders.find((o) => o.id === orderId)
-      if (order && order.status === "shipped") {
-        setDashboardData((prev) => ({
-          ...prev,
-          orders: prev.orders.map((o) =>
-            o.id === orderId ? { ...o, deliveryApproved: true, status: "delivered" } : o,
-          ),
-        }))
-        const response = await fetch(`${SERVER_URL}/${orderId}/approve-delivery`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: import.meta.env.VITE_OWNER_ID }),
-        })
-        if (!response.ok) throw new Error("Failed to approve delivery")
-        await fetchDashboardData()
-      }
+      await adminAction(`/${orderId}/approve-delivery`, "POST")
     } catch (err) {
-      console.error("Error approving delivery:", err)
-      setError("Failed to approve delivery")
-      await fetchDashboardData()
+      alert("Failed to approve delivery: " + err.message)
     }
+    await fetchDashboardData()
   }
 
-  const handleReleaseFunds = async (orderId, to, transferTo) => {
+  // Sellers are paid when the order is paid; "release" marks the order released and notifies
+  // the seller. (It used to send the amount again from the admin wallet.)
+  const handleReleaseFunds = async (orderId) => {
+    if (!window.confirm("Mark this order's funds as released to the seller? The seller will be notified.")) return
     try {
-      const order = dashboardData.orders.find((o) => o.id === orderId)
-      if (order && (
-        order.status === "delivered" ||
-        order.status === "cancelled" ||
-        order.status === "cancel" ||
-        order.status.startsWith("funds_released_to_")
-      )) {
-        const orderTimestamp = Date.now()
-        const payload = {
-          senderId:      import.meta.env.VITE_OWNER_ID,
-          receiverId:    to,
-          type:          "transfer to " + transferTo,
-          amount:        order.amount,
-          transactionId: order.transactionId,
-          description:   `Payment for order ${orderTimestamp} to ${transferTo}`,
-          referenceId:   `order_${orderTimestamp}`,
-          source:        "Admin wallet",
-        }
-        try {
-          const res  = await fetch(`${SERVER_URL}/api/transaction/transferFund`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          })
-          const data = await res.json().catch(() => ({}))
-          if (res.ok) {
-            const orderRes = await fetch(`${SERVER_URL}/${orderId}/release`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId: import.meta.env.VITE_OWNER_ID }),
-            })
-            if (orderRes.ok) {
-              alert("Funds released successfully to " + to)
-              setDashboardData((prev) => ({
-                ...prev,
-                orders: prev.orders.map((o) =>
-                  o.id === orderId
-                    ? { ...o, status: "funds_released_to_" + transferTo, fundsReleasedToSeller: true }
-                    : o,
-                ),
-                stats: {
-                  ...prev.stats,
-                  fundsHeld:     prev.stats.fundsHeld - Number.parseFloat(order.amount),
-                  pendingOrders: prev.stats.pendingOrders - 1,
-                },
-              }))
-            } else {
-              alert("Transaction done but order update failed!")
-            }
-          } else {
-            alert("Failed to release funds " + to)
-          }
-        } catch (err) {
-          console.error(err)
-        }
-        await fetchDashboardData()
-      }
+      const data = await adminAction(`/${orderId}/release`, "PUT")
+      alert(data.message || "Funds released")
     } catch (err) {
-      console.error("Error releasing funds:", err)
-      setError("Failed to release funds to seller")
-      await fetchDashboardData()
+      alert("Failed to release funds: " + err.message)
     }
+    await fetchDashboardData()
   }
 
-  const handleCancelOrder = async (orderId) => {
+  // Refunds are admin-only. Wallet orders are refunded at once; card orders are sent to the bank
+  // and become "refunded" when Azericard confirms. Buyer and seller are notified at every step.
+  const refundOrCancel = async (orderId, kind) => {
+    const order  = dashboardData.orders.find((o) => o.id === orderId)
+    const paid   = order?.paymentStatus === "completed"
+    const prompt = paid
+      ? `Refund ₼${order.amount} to the buyer${order.cardAmount > 0 ? " (card part goes back to the card through the bank)" : ""}?\n\nReason (sent to buyer and seller):`
+      : "Cancel this unpaid order?\n\nReason (sent to buyer and seller):"
+    const reason = window.prompt(prompt, kind === "refund" ? "Refund approved by SATGO" : "Cancelled by SATGO")
+    if (reason === null) return
     try {
-      const order = dashboardData.orders.find((o) => o.id === orderId)
-      if (
-        order &&
-        order.status !== "cancel" &&
-        order.status !== "cancelled" &&
-        order.status !== "delivered" &&
-        order.status !== "funds_released"
-      ) {
-        setDashboardData((prev) => ({
-          ...prev,
-          orders: prev.orders.map((o) =>
-            o.id === orderId ? { ...o, status: "cancelled", fundsReturned: true } : o,
-          ),
-          stats: {
-            ...prev.stats,
-            fundsHeld:     prev.stats.fundsHeld - Number.parseFloat(order.amount),
-            pendingOrders: prev.stats.pendingOrders - 1,
-          },
-        }))
-        const response = await fetch(`${SERVER_URL}/${orderId}/cancel`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: import.meta.env.VITE_OWNER_ID }),
-        })
-        if (!response.ok) throw new Error("Failed to cancel order")
-        await fetchDashboardData()
-      }
+      const data = await adminAction(`/${orderId}/${kind}`, "POST", { reason: reason.trim() || undefined })
+      alert(data.message || "Done")
     } catch (err) {
-      console.error("Error cancelling order:", err)
-      setError("Failed to cancel order and return funds")
-      await fetchDashboardData()
+      alert(`Failed to ${kind} order: ${err.message}`)
     }
+    await fetchDashboardData()
   }
+  const handleCancelOrder = (orderId) => refundOrCancel(orderId, "cancel")
+  const handleRefundOrder = (orderId) => refundOrCancel(orderId, "refund")
 
   const handleButtonClick = (callback) => async (...args) => {
     await callback(...args)
@@ -319,6 +248,7 @@ export default function AdminDashboard() {
               onApproveDelivery={handleApproveDelivery}
               onReleaseFunds={handleReleaseFunds}
               onCancelOrder={handleCancelOrder}
+              onRefundOrder={handleRefundOrder}
               handleButtonClick={handleButtonClick}
             />
           )}

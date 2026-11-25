@@ -15,7 +15,7 @@ const Order = require('../models/Order');
 const Product = require('../models/product.model');
 const logger = require('../utils/logger');
 const { WalletError, withTransaction, transfer, creditFromGateway, debitToGateway } = require('./walletLedger');
-const { notifyOrderPlaced } = require('./orderNotifications');
+const { notifyOrderPlaced, notifyOrderEvent } = require('./orderNotifications');
 const { getConfig } = require('./azericard/config');
 const { buildPurchaseForm, buildReversalFields, sendReversal, queryStatus, StatusCheckUnsupported } = require('./azericard/gateway');
 const { gatewayOrderId, sameAmount, CURRENCY_AZN, TRTYPE } = require('./azericard/protocol');
@@ -189,6 +189,7 @@ async function failOrder(order, reason, result = null) {
     await Product.updateOne({ _id: order.productId }, { $inc: { quantity: 1 } }, { session });
   });
   logger.info(`[Card] Order ${order._id} failed: ${reason}`);
+  notifyOrderEvent(order, 'payment_failed');
 }
 
 // Apply a signature-verified gateway result (from the callback, the browser return, or a status
@@ -298,6 +299,7 @@ async function requestCardReversal(orderRef, { trtype = TRTYPE.REVERSAL, reason 
 
   logger.info(`[Card] Reversal TRTYPE ${trtype} sent: order ${order._id}, gateway order ${order.paymentOrderId}, `
     + `RRN ${order.gateway.rrn}, INT_REF ${order.gateway.intRef}, ₼${order.onlineAmount} -> HTTP ${response.httpStatus} ${JSON.stringify(response.body.slice(0, 500))}`);
+  notifyOrderEvent(order, 'refund_started', { reason });
   const { P_SIGN, ...signedFields } = reversal.fields;
   return { orderId: String(order._id), request: signedFields, response };
 }
@@ -313,6 +315,7 @@ async function applyReversalResult(order, result) {
 
   if (!result.approved) {
     await Order.updateOne({ _id: order._id }, { $set: { 'paymentMetadata.reversal.status': 'declined', 'paymentMetadata.reversal.result': record } });
+    notifyOrderEvent(order, 'refund_failed');
     logger.warn(`[Card] Reversal declined by the bank: order ${order._id} (ACTION ${result.action}, RC ${result.responseCode}) | ${JSON.stringify(result.raw)}`);
     return { outcome: 'reversal_declined', order };
   }
@@ -353,11 +356,13 @@ async function applyReversalResult(order, result) {
       // The bank has already returned the money: record that, and leave the wallets to a person.
       await Order.updateOne({ _id: order._id, paymentStatus: 'completed' }, { $set: reversedFields });
       await flagForReview(order, 'Card payment reversed at the bank, but the seller wallet could not cover it', result);
+      notifyOrderEvent(order, 'refund_completed');
       return { outcome: 'review', order };
     }
     throw err;
   }
   logger.info(`[Card] Order ${order._id} reversed (TRTYPE ${trtype}, RRN ${result.rrn}, INT_REF ${result.intRef})`);
+  notifyOrderEvent(order, 'refund_completed');
   return { outcome: 'reversed', order };
 }
 
@@ -390,6 +395,7 @@ async function reconcileStaleCardOrders({ now = new Date() } = {}) {
       if (err instanceof AlreadyProcessed) continue;
       if (err instanceof StatusCheckUnsupported) {
         await flagForReview(order, 'No result from the bank; status check not available yet');
+        notifyOrderEvent(order, 'payment_review');
         summary.review += 1;
         continue;
       }
