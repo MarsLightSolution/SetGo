@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['message', 'like', 'product', 'system', 'comment', 'follow']
+    enum: ['message', 'like', 'product', 'system', 'comment', 'follow', 'order']
   },
   title: {
     type: String,
@@ -34,7 +34,8 @@ const notificationSchema = new mongoose.Schema({
     conversationId: String,
     productId: String,
     commentId: String,
-    userId: String
+    userId: String,
+    orderId: String
   },
   createdAt: {
     type: Date,

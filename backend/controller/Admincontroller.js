@@ -2,13 +2,9 @@ const Order = require("../models/Order.js");
 const User = require("../models/user.js");
 const Transaction = require("../models/transaction.model.js");
 const Product = require("../models/product.model.js");
-const ADMIN_ID = process.env.Admin_Id;
-const { sendEmail } = require("../services/emailService.js");
-const {
-  orderRejectedTemplate,
-  itemReceivedTemplate,
-  fundsReleasedTemplate
-} = require("../services/templates.js");
+const { WalletError } = require("../services/walletLedger");
+const { refundOrder: refundOrderService, cancelOrderByAdmin } = require("../services/adminRefunds");
+const { notifyOrderEvent } = require("../services/orderNotifications");
 const logger = require('../utils/logger');
 
 const getAdminDashboardData = async (req, res) => {
@@ -156,6 +152,11 @@ const getAdminDashboardData = async (req, res) => {
       transactionId:o.transactionId,
       amount: o.total,
       status: o.status,
+      paymentStatus: o.paymentStatus,
+      paymentMethod: o.paymentMethod,
+      cardAmount: o.onlineAmount || 0,
+      refundStatus: o.paymentMetadata?.reversal?.status || (o.paymentStatus === "refunded" ? "refunded" : null),
+      needsReview: Boolean(o.paymentMetadata?.needsReview),
       trackingId: o.trackingId,
       orderDate: o.createdAt,
       shippingAddress: o.checkoutDetails,
@@ -192,199 +193,87 @@ const getAdminDashboardData = async (req, res) => {
     });
   }
 };
-// Hardcoded admin id (string)
+const sendRefundError = (res, err, fallback) => {
+  if (err instanceof WalletError) {
+    return res.status(err.status || 400).json({ success: false, code: err.code, message: err.message });
+  }
+  logger.error(fallback, { message: err.message, stack: err.stack });
+  return res.status(500).json({ success: false, message: fallback });
+};
 
-
+// Cancel (admin only): a paid order is refunded (wallet at once, card through the bank);
+// an unpaid order is just cancelled. Buyer and seller are notified.
 const cancelOrder = async (req, res) => {
   try {
-    const { orderId } = req.params;
-    const userId = req.body.userId;
-    logger.debug('cancelOrder invoked', { userId, ADMIN_ID });
-    // 🔒 Only admin can cancel
-    // if (userId !== ADMIN_ID ) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: "Only admin can cancel orders",
-    //   });
-    // }
-
-    // 🔍 Find order
-    const order = await Order.findById(orderId).populate("productId", "title"); // 👈 choose the fields you need
-
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
-    }
-
-    // 🚫 Already cancelled / delivered
-    if (["cancelled", "delivered", "released"].includes(order.status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Order already ${order.status}, cannot cancel.`,
-      });
-    }
-
-    // ✅ Cancel order
-    order.status = "cancelled";
-    await order.save();
-
-    // 📧 Send Rejected Email to Buyer
-    try {
-      const buyer = await User.findById(order.buyerId);
-      if (buyer && buyer.email) {
-        const emailHtml = orderRejectedTemplate(
-          buyer,
-          { id: order._id, product: order.productId?.title.en }, // 👈 Pass order details
-          "Cancelled" // 👈 Reason
-        );
-
-        await sendEmail(
-          buyer.email,
-          "Your Order Has Been Cancelled",
-          emailHtml,
-        );
-      }
-    } catch (emailErr) {
-      logger.error('Failed to send cancellation email', { message: emailErr.message });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Order cancelled successfully by admin & email sent to buyer",
-      order,
+    const result = await cancelOrderByAdmin(req.params.orderId, {
+      reason: req.body?.reason || "Cancelled by SATGO",
+      adminId: req.user._id,
     });
-  } catch (error) {
-    logger.error('Cancel Order Error', { message: error.message, stack: error.stack });
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
+    return res.json({ success: true, message: messageFor(result), data: result });
+  } catch (err) {
+    return sendRefundError(res, err, "Failed to cancel order");
   }
 };
-// Approve delivery (only admin)
+
+// Refund (admin only) — also for delivered orders.
+const refundOrder = async (req, res) => {
+  try {
+    const result = await refundOrderService(req.params.orderId, {
+      reason: req.body?.reason || "Refunded by SATGO",
+      adminId: req.user._id,
+    });
+    return res.json({ success: true, message: messageFor(result), data: result });
+  } catch (err) {
+    return sendRefundError(res, err, "Failed to refund order");
+  }
+};
+
+function messageFor(result) {
+  if (result.mode === "card") return "Card refund sent to the bank. The order is refunded once the bank confirms; buyer and seller are notified.";
+  if (result.mode === "wallet") return "Refunded to the buyer's wallet. Buyer and seller notified.";
+  return "Order cancelled. Buyer and seller notified.";
+}
+
+// Approve delivery (admin only)
 const approveDelivery = async (req, res) => {
   try {
-    const { userId } = req.body; // admin id from frontend
-    const { orderId } = req.params;
-    logger.debug('approveDelivery invoked', { ADMIN_ID, userId });
-    // ✅ Ensure only admin can approve delivery
-    // if (userId !== ADMIN_ID) {
-    //   return res.status(403).json({ error: "Only admin can approve delivery" });
-    // }
-
-    logger.debug('approveDelivery invoked again', { ADMIN_ID, userId });
-
-    // // ✅ Ensure only admin can approve delivery
-    // if (userId !== ADMIN_ID) {
-    //   return res.status(403).json({ error: "Only admin can approve delivery" });
-    // }
-
-    // 🔍 Find order with product populated
-    const order = await Order.findById(orderId).populate("productId", "title");
+    const order = await Order.findById(req.params.orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
-
-    // Prevent approving already completed/cancelled orders
-    if (["cancel", "cancelled", "delivered", "funds_released"].includes(order.status)) {
+    if (["cancel", "cancelled", "delivered", "released"].includes(order.status) || order.paymentStatus !== "completed") {
       return res.status(400).json({ error: "Order cannot be approved for delivery" });
     }
 
-    // ✅ Update status
     order.status = "delivered";
     order.deliveryApprovedAt = new Date();
     await order.save();
 
-    // 🔍 Get seller details
-    const seller = await User.findById(order.sellerId);
-    if (seller) {
-      // 📧 Send email to seller
-      await sendEmail(
-        seller.email,
-        "Item Received & Delivery Approved ✅",
-        itemReceivedTemplate(
-          { name: seller.username },
-          { id: order._id, product: order.productId?.title.en || "Product" }
-        )
-      );
-    }
-
+    notifyOrderEvent(order, "delivery_approved");
     res.json({ message: "Order delivery approved successfully", order });
   } catch (err) {
     logger.error('Approve delivery error', { message: err.message, stack: err.stack });
     res.status(500).json({ error: "Server error approving delivery" });
   }
 };
-// Release funds (only admin)
+
+// Release funds (admin only). Refunds no longer go through here: use /:orderId/refund.
 const releaseFunds = async (req, res) => {
   try {
-    const { userId } = req.body; // admin id from frontend
-    const { orderId } = req.params;
-
-    logger.debug('Releasing funds for order', { orderId, userId });
-
-    // ✅ Ensure only admin can release funds
-    if (userId !== ADMIN_ID) {
-      return res.status(403).json({ error: "Only admin can release funds" });
-    }
-
-    // 🔍 Find order + populate buyer & seller
-    const order = await Order.findById(orderId)
-      .populate("buyerId", "username email")
-      .populate("sellerId", "username email");
-
+    const order = await Order.findById(req.params.orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
-
-    // ❌ Prevent releasing if already released/cancelled
-    if (["released", "cancelled"].includes(order.status)) {
-      return res.status(400).json({ error: `Order already ${order.status}` });
+    if (["released", "cancelled"].includes(order.status) || order.paymentStatus !== "completed") {
+      return res.status(400).json({ error: `Order is ${order.status} / ${order.paymentStatus}, funds cannot be released` });
     }
 
-    let emailUser, emailTemplate;
+    order.status = "released";
+    order.fundsReleasedAt = new Date();
+    await order.save();
 
-    if (order.status === "cancelled") {
-      // 🔄 Refund to Buyer
-      emailUser = order.buyerId;
-      emailTemplate = fundsReleasedTemplate(
-        emailUser,
-        {
-          id: order._id,
-          product: order.productName,
-          amount: order.total,
-        },
-        "buyer"
-      );
-    } else {
-      // ✅ Release to Seller
-      order.status = "released";
-      order.fundsReleasedAt = new Date();
-      await order.save();
-
-      emailUser = order.sellerId;
-      emailTemplate = fundsReleasedTemplate(
-        emailUser,
-        {
-          id: order._id,
-          product: order.productName,
-          amount: order.total,
-        },
-        "seller"
-      );
-    }
-
-    // 📧 Send email
-    await sendEmail(emailUser.email, "Funds Update - Order", emailTemplate);
-
-    return res.json({
-      success: true,
-      message:
-        order.status === "released"
-          ? "Funds released to seller successfully & email sent"
-          : "Refund initiated to buyer successfully & email sent",
-      order,
-    });
+    notifyOrderEvent(order, "funds_released");
+    return res.json({ success: true, message: "Funds released to seller. Seller notified.", order });
   } catch (err) {
     logger.error('Release funds error', { message: err.message, stack: err.stack });
     res.status(500).json({ error: "Server error releasing funds" });
@@ -394,6 +283,7 @@ const releaseFunds = async (req, res) => {
 module.exports = {
   getAdminDashboardData,
   cancelOrder,
+  refundOrder,
   approveDelivery,
   releaseFunds
 };

@@ -15,6 +15,7 @@ const User = require('../models/user');
 const Product = require('../models/product.model');
 const Order = require('../models/Order');
 const Transaction = require('../models/transaction.model');
+const Notification = require('../models/Notification');
 
 let replSet;
 let app;
@@ -46,6 +47,7 @@ beforeAll(async () => {
   app.use('/api/payments', require('../Routes/payment-proxy.routes'));
   app.use('/api/transaction', require('../Routes/transaction.route'));
   app.use('/Orders', require('../Routes/Order'));
+  app.use('/', require('../Routes/Admin'));
 }, 120000);
 
 afterAll(async () => {
@@ -142,36 +144,116 @@ describe('POST /api/payments/initiate', () => {
   });
 });
 
-describe('POST /api/payments/order/:id/cancel', () => {
-  test('reverses the payment seller -> buyer through the ledger and restocks', async () => {
-    const seller = await makeUser(0);
-    const buyer = await makeUser(50);
-    const product = await makeProduct(seller, 50);
-    const paid = await request(app).post('/api/payments/initiate').set('Authorization', tokenFor(buyer))
-      .send({ productId: product._id, walletDeduction: 50, checkoutDetails });
-    const orderId = paid.body.data.orderId;
+const payWithWallet = async (price = 50) => {
+  const seller = await makeUser(0);
+  const buyer = await makeUser(price);
+  const product = await makeProduct(seller, price);
+  const paid = await request(app).post('/api/payments/initiate').set('Authorization', tokenFor(buyer))
+    .send({ productId: product._id, walletDeduction: price, checkoutDetails });
+  return { seller, buyer, product, orderId: paid.body.data.orderId };
+};
+
+describe('POST /api/payments/order/:id/cancel (buyer)', () => {
+  test('a paid order cannot be cancelled or refunded by the buyer: support / admin only', async () => {
+    const { seller, buyer, orderId } = await payWithWallet(50);
 
     const res = await request(app).post(`/api/payments/order/${orderId}/cancel`).set('Authorization', tokenFor(buyer)).send({});
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('REFUND_ADMIN_ONLY');
+    expect(await balance(buyer)).toBe(0);
+    expect(await balance(seller)).toBe(50);
+    expect(await Order.findById(orderId)).toMatchObject({ status: 'paid', paymentStatus: 'completed' });
+  });
+
+  test('only the buyer can call it', async () => {
+    const { seller, orderId } = await payWithWallet(50);
+    const res = await request(app).post(`/api/payments/order/${orderId}/cancel`).set('Authorization', tokenFor(seller)).send({});
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('admin order actions', () => {
+  let admin;
+  beforeAll(async () => {
+    admin = await makeUser(0, { role: 'admin' });
+  });
+  const asAdmin = (method, path, body = {}) => request(app)[method](path).set('Authorization', tokenFor(admin)).send(body);
+  const notesFor = (user, orderId) => Notification.find({ recipientId: String(user._id), type: 'order', 'metadata.orderId': String(orderId) }).lean();
+
+  test('admin routes need an admin login', async () => {
+    const { buyer, orderId } = await payWithWallet(20);
+    expect((await request(app).get('/dashboard')).status).toBe(401);
+    expect((await request(app).post(`/${orderId}/refund`).send({})).status).toBe(401);
+    for (const [method, path] of [['get', '/dashboard'], ['post', `/${orderId}/refund`], ['post', `/${orderId}/cancel`], ['post', `/${orderId}/approve-delivery`], ['put', `/${orderId}/release`]]) {
+      const res = await request(app)[method](path).set('Authorization', tokenFor(buyer)).send({});
+      expect(res.status).toBe(403);
+    }
+    expect(await Order.findById(orderId)).toMatchObject({ status: 'paid', paymentStatus: 'completed' });
+  });
+
+  test('refund of a wallet order: money back seller -> buyer, restocked, both notified, only once', async () => {
+    const { seller, buyer, product, orderId } = await payWithWallet(50);
+
+    const res = await asAdmin('post', `/${orderId}/refund`, { reason: 'Item not as described' });
     expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ mode: 'wallet', status: 'refunded', amount: 50 });
     expect(await balance(buyer)).toBe(50);
     expect(await balance(seller)).toBe(0);
+    expect(await Order.findById(orderId)).toMatchObject({ status: 'cancelled', paymentStatus: 'refunded', cancellationReason: 'Item not as described' });
     expect(await Transaction.exists({ transactionId: `REFUND_${orderId}`, type: 'refund' })).toBeTruthy();
     expect((await Product.findById(product._id)).quantity).toBe(1);
 
-    const again = await request(app).post(`/api/payments/order/${orderId}/cancel`).set('Authorization', tokenFor(buyer)).send({});
-    expect(again.status).toBe(400);
+    await new Promise((r) => setTimeout(r, 50));
+    expect((await notesFor(buyer, orderId)).map((n) => n.title)).toContain('Refund completed');
+    expect((await notesFor(seller, orderId)).map((n) => n.title)).toContain('Refund completed');
+
+    const again = await asAdmin('post', `/${orderId}/refund`);
+    expect(again.status).toBe(409);
+    expect(again.body.code).toBe('ALREADY_REFUNDED');
     expect(await balance(buyer)).toBe(50);
   });
 
-  test('only the buyer can cancel', async () => {
-    const seller = await makeUser(0);
-    const buyer = await makeUser(50);
-    const product = await makeProduct(seller, 50);
-    const paid = await request(app).post('/api/payments/initiate').set('Authorization', tokenFor(buyer))
-      .send({ productId: product._id, walletDeduction: 50, checkoutDetails });
+  test('admin cancel of a paid order refunds it', async () => {
+    const { buyer, seller, orderId } = await payWithWallet(30);
+    const res = await asAdmin('post', `/${orderId}/cancel`, { reason: 'Seller cannot ship' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.mode).toBe('wallet');
+    expect(await balance(buyer)).toBe(30);
+    expect(await balance(seller)).toBe(0);
+    expect(await Order.findById(orderId)).toMatchObject({ status: 'cancelled', paymentStatus: 'refunded' });
+  });
 
-    const res = await request(app).post(`/api/payments/order/${paid.body.data.orderId}/cancel`).set('Authorization', tokenFor(seller)).send({});
-    expect(res.status).toBe(403);
+  test('refund fails cleanly when the seller wallet no longer holds the money', async () => {
+    const { buyer, seller, orderId } = await payWithWallet(40);
+    await User.updateOne({ _id: seller._id }, { $set: { walletBalance: 10 } });
+    const res = await asAdmin('post', `/${orderId}/refund`);
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('SELLER_BALANCE_TOO_LOW');
+    expect(await balance(buyer)).toBe(0);
+    expect(await Order.findById(orderId)).toMatchObject({ status: 'paid', paymentStatus: 'completed' });
+  });
+
+  test('approve delivery and release funds notify buyer and seller', async () => {
+    const { buyer, seller, orderId } = await payWithWallet(25);
+    await Order.updateOne({ _id: orderId }, { $set: { status: 'shipped' } });
+
+    expect((await asAdmin('post', `/${orderId}/approve-delivery`)).status).toBe(200);
+    expect((await asAdmin('put', `/${orderId}/release`)).status).toBe(200);
+    expect(await Order.findById(orderId)).toMatchObject({ status: 'released' });
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect((await notesFor(buyer, orderId)).map((n) => n.title)).toContain('Delivery confirmed');
+    expect((await notesFor(seller, orderId)).map((n) => n.title)).toEqual(expect.arrayContaining(['Delivery confirmed', 'Funds released']));
+
+    expect((await asAdmin('post', `/${orderId}/refund`)).status).toBe(200);
+  });
+
+  test('dashboard lists orders with payment and refund status', async () => {
+    const { orderId } = await payWithWallet(15);
+    const res = await asAdmin('get', '/dashboard');
+    expect(res.status).toBe(200);
+    const row = res.body.data.orders.find((o) => String(o.id) === String(orderId));
+    expect(row).toMatchObject({ paymentStatus: 'completed', cardAmount: 0, refundStatus: null });
   });
 });
 

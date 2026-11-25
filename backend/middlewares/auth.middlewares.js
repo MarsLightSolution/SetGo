@@ -11,7 +11,7 @@ const verifyToken = asyncHandler(async (req, res, next) => {
     // Strip one or two "Bearer " prefixes
     token = authHeader.replace(/^Bearer\s+/i, '').replace(/^Bearer\s+/i, '');
   } else {
-    token = req.cookies.refreshToken;
+    token = req.cookies?.refreshToken;
   }
 
   if (!token) {

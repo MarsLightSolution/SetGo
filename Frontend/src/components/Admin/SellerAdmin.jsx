@@ -50,16 +50,10 @@ export default function SellerAdminDashboard() {
       alert("Failed to upload tracking ID");
     }
   };
-const handleReject = async (id) => {
-  try {
-    await axios.post(`${import.meta.env.VITE_SERVER}/${id}/cancel`, {
-      userId: "68a1bb9533d35012fa5e32fa", // or current logged-in user ID
-    });
-    await fetchOrders();
-    alert(`Order #${id} cancelled`);
-  } catch (err) {
-    console.error("Error cancelling order:", err);
-  }
+// Cancellations and refunds are done by SATGO admins only (they used to go through an
+// unprotected admin route with a hard-coded admin id).
+const handleReject = (id) => {
+  alert(`To cancel order #${id}, please raise a support query. SATGO will cancel it and refund the buyer; you will be notified.`);
 };
 
 
