@@ -1,4 +1,6 @@
-// app.config.js
+/* global __dirname */
+// app.config.js — one config for both iOS and Android builds (EAS prebuild generates the native
+// projects from this; ios/ and android/ are not committed).
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
@@ -20,6 +22,23 @@ if (envProjectId && !UUID_RE.test(envProjectId)) {
 }
 const easProjectId = UUID_RE.test(envProjectId) ? envProjectId : DEFAULT_EAS_PROJECT_ID;
 
+// Store builds (eas.json "production" profile sets APP_ENV=production; EAS also exposes the
+// profile name). Plain-HTTP access to the dev backend on the LAN is only allowed in
+// development/preview builds — production talks to the API over HTTPS only.
+const IS_PRODUCTION =
+  process.env.APP_ENV === 'production' || process.env.EAS_BUILD_PROFILE === 'production';
+const DEV_HTTP_HOSTS = ['192.168.1.3', 'localhost', '10.0.2.2' /* Android emulator → host */];
+
+const iosAts = IS_PRODUCTION
+  ? { NSAllowsArbitraryLoads: false }
+  : {
+      NSAllowsArbitraryLoads: false,
+      NSAllowsLocalNetworking: true,
+      NSExceptionDomains: Object.fromEntries(
+        DEV_HTTP_HOSTS.map((h) => [h, { NSExceptionAllowsInsecureHTTPLoads: true, NSIncludesSubdomains: false }])
+      ),
+    };
+
 export default ({ config }) => {
   return {
     ...config,
@@ -28,11 +47,6 @@ export default ({ config }) => {
     version: '1.0.0',
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
-
-    // splash: {
-    //   resizeMode: "contain",
-    //   backgroundColor: "#ffffff"
-    // },
 
     updates: {
       fallbackToCacheTimeout: 0,
@@ -48,55 +62,54 @@ export default ({ config }) => {
 
     assetBundlePatterns: ['**/*'],
 
-    // iOS Configuration
+    // ── iOS ──────────────────────────────────────────────────────────────────
+    // buildNumber / versionCode are managed remotely by EAS (eas.json appVersionSource: remote,
+    // autoIncrement on production), so they are intentionally not set here.
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.Satgo.app',
-      buildNumber: '1',
       infoPlist: {
-        NSCameraUsageDescription: 'Satgo needs camera access to take product photos',
-        NSPhotoLibraryUsageDescription: 'Satgo needs photo library access to select product images',
-        NSLocationWhenInUseUsageDescription: 'Satgo needs your location to show nearby products',
-        NSPhotoLibraryAddUsageDescription: 'Satgo needs permission to save photos to your library',
-        NSAppTransportSecurity: {
-          NSAllowsArbitraryLoads: false,
-          NSExceptionDomains: {
-            '192.168.1.3': {
-              NSExceptionAllowsInsecureHTTPLoads: true,
-              NSIncludesSubdomains: false,
-            },
-            ...(process.env.NODE_ENV !== 'production' ? {
-              localhost: { NSExceptionAllowsInsecureHTTPLoads: true, NSIncludesSubdomains: true },
-              '192.168.1.3': { NSExceptionAllowsInsecureHTTPLoads: true, NSIncludesSubdomains: false },
-            } : {}),
-          },
-        },
+        // Camera / photos / location strings come from the expo-image-picker and expo-location
+        // plugins below, so they live in one place.
+        NSAppTransportSecurity: iosAts,
+        // Only standard HTTPS/TLS crypto → exempt; skips the export-compliance question on
+        // every TestFlight/App Store upload.
+        ITSAppUsesNonExemptEncryption: false,
       },
       requireFullScreen: false,
       config: {
         googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
       },
+      // Apple requires reasons for these "required reason" APIs (React Native core and
+      // AsyncStorage/SecureStore use them); missing entries get App Store submissions rejected.
+      privacyManifests: {
+        NSPrivacyAccessedAPITypes: [
+          { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults', NSPrivacyAccessedAPITypeReasons: ['CA92.1'] },
+          { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp', NSPrivacyAccessedAPITypeReasons: ['C617.1'] },
+          { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime', NSPrivacyAccessedAPITypeReasons: ['35F9.1'] },
+          { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryDiskSpace', NSPrivacyAccessedAPITypeReasons: ['E174.1'] },
+        ],
+      },
     },
 
-    // Android Configuration
+    // ── Android ──────────────────────────────────────────────────────────────
     android: {
       package: 'com.Satgo.app',
-      versionCode: 1,
-      permissions: [
-        'CAMERA',
-        'READ_EXTERNAL_STORAGE',
-        'WRITE_EXTERNAL_STORAGE',
-        'ACCESS_FINE_LOCATION',
-        'ACCESS_COARSE_LOCATION',
-        'INTERNET',
-        'ACCESS_NETWORK_STATE',
+      adaptiveIcon: {
+        foregroundImage: './assets/images/adaptive-icon.png',
+        backgroundColor: '#ffffff',
+      },
+      // Camera/photo/location permissions are added by their plugins. Storage permissions are
+      // obsolete on Android 13+ (the system photo picker needs none) and Play flags them, so
+      // they are blocked even if a library tries to add them.
+      permissions: ['INTERNET', 'ACCESS_NETWORK_STATE'],
+      blockedPermissions: [
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.RECORD_AUDIO',
+        // "Draw over other apps" is only for the dev menu overlay; Play reviews it as sensitive.
+        ...(IS_PRODUCTION ? ['android.permission.SYSTEM_ALERT_WINDOW'] : []),
       ],
-      // NOTE: cleartext traffic is controlled below via the expo-build-properties
-      // plugin (android.usesCleartextTraffic), not here — neither this field nor
-      // networkSecurityConfig is part of Expo's actual config schema at this
-      // level, so having them here did nothing but fail `expo-doctor`'s schema
-      // check. (network_security_config.xml itself was never wired into a real
-      // Android build either — no config-plugin reads that key.)
       // Required for FCM/Android push. Add Mobile/google-services.json (from Firebase
       // console, Android app package must match `package` above) to enable this.
       ...(hasGoogleServicesFile ? { googleServicesFile: googleServicesPath } : {}),
@@ -119,11 +132,12 @@ export default ({ config }) => {
           android: {
             enableProguardInReleaseBuilds: true,
             enableShrinkResourcesInReleaseBuilds: true,
-            compileSdkVersion: 35,
-            targetSdkVersion: 35,
+            // Google Play requires targeting API 36 (Android 16) for new apps and updates.
+            compileSdkVersion: 36,
+            targetSdkVersion: 36,
             minSdkVersion: 24,
-            // Allow cleartext traffic in build properties
-            usesCleartextTraffic: true,
+            // Plain HTTP only for the dev backend on the LAN; production is HTTPS-only.
+            usesCleartextTraffic: !IS_PRODUCTION,
           },
           ios: {
             useFrameworks: 'static',
@@ -135,6 +149,36 @@ export default ({ config }) => {
       'expo-router',
       'expo-font',
       'expo-web-browser',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/splash-icon.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission: 'Satgo needs photo library access to select product images',
+          cameraPermission: 'Satgo needs camera access to take product photos',
+          // Images only — no video recording, so no microphone permission on either platform.
+          microphonePermission: false,
+        },
+      ],
+      [
+        'expo-location',
+        {
+          // Foreground only. The plugin also writes the iOS "Always" keys; give them the same
+          // specific text (App Review rejects the generic default wording).
+          locationWhenInUsePermission: 'Satgo needs your location to show nearby products',
+          locationAlwaysAndWhenInUsePermission: 'Satgo needs your location to show nearby products',
+          locationAlwaysPermission: 'Satgo needs your location to show nearby products',
+          isIosBackgroundLocationEnabled: false,
+          isAndroidBackgroundLocationEnabled: false,
+        },
+      ],
       // Only affects dev-client/production native builds, not Expo Go (which can't
       // apply custom native config regardless), so it's safe to keep enabled.
       [
@@ -151,7 +195,8 @@ export default ({ config }) => {
     // source of truth for that (reads EXPO_PUBLIC_API_URL directly), so a
     // second hardcoded fallback here would just drift out of sync with it.
     extra: {
-      environment: process.env.NODE_ENV || 'development',
+      ...config.extra,
+      environment: IS_PRODUCTION ? 'production' : (process.env.APP_ENV || 'development'),
 
       eas: {
         projectId: easProjectId,
