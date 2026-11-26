@@ -7,7 +7,6 @@ import {
   setUserData,
   isTokenExpiringSoon,
   getRefreshToken,
-  setAuthToken,
 } from '../services/secureAuthService';
 import { API_ENDPOINTS } from '../config/api';
 import logger from '../utils/logger';
@@ -42,26 +41,21 @@ export const useAuthStore = create((set, get) => ({
         const expiring = await isTokenExpiringSoon(0); // 0 buffer = already expired
         if (expiring) {
           try {
-            const refreshToken = await getRefreshToken();
-            if (!refreshToken) throw new Error('No refresh token');
-            const res = await fetch(API_ENDPOINTS.REFRESH_TOKEN, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ refreshToken }),
-              credentials: 'include',
-            });
-            const data = await res.json();
-            if (res.ok && data.success && data.accessToken) {
-              const newToken = data.accessToken.replace(/^Bearer\s+/i, '');
-              await setAuthToken(newToken);
-            } else {
-              throw new Error('Refresh failed');
+            if (!(await getRefreshToken())) throw Object.assign(new Error('No refresh token'), { isAuthError: true });
+            // Shared single-flight refresh: stores the rotated refresh token, and parallel
+            // initialize() calls (layout + home) share one request instead of racing (with
+            // rotation, the loser's token is already invalid and would log the user out).
+            const { refreshSessionToken } = require('../services/api');
+            await refreshSessionToken();
+          } catch (err) {
+            if (err?.isAuthError) {
+              // Server rejected the session — clear it.
+              await clearSession();
+              set({ isAuthenticated: false, user: null, loading: false, initialized: true });
+              return;
             }
-          } catch {
-            // Refresh failed — session is dead, clear it
-            await clearSession();
-            set({ isAuthenticated: false, user: null, loading: false, initialized: true });
-            return;
+            // Offline or server error: keep the session; requests refresh once back online.
+            log.warn('Startup token refresh deferred:', err?.message);
           }
         }
         set({
