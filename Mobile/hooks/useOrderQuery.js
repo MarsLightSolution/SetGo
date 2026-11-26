@@ -12,23 +12,16 @@ export const orderKeys = {
 
 // ==================== FETCHERS ====================
 
+// Both routes require login and only return the logged-in user's own data, so they go through
+// the shared api client (Bearer token + refresh).
 const fetchTransactions = async (userId) => {
-  const response = await fetch(API_ENDPOINTS.USER_TRANSACTIONS(userId), {
-    method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  const json = await response.json();
-  return json.data || { transactions: [], walletBalance: 0, totalCredit: 0, totalDebit: 0 };
+  const { data: json } = await api.get(API_ENDPOINTS.USER_TRANSACTIONS(userId));
+  return json?.data || { transactions: [], walletBalance: 0, totalCredit: 0, totalDebit: 0 };
 };
 
 const fetchUserOrders = async (userId) => {
-  const res = await fetch(API_ENDPOINTS.USER_ORDERS(userId), {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  const data = await res.json();
-  return Array.isArray(data.data) ? data.data : (data.orders || []);
+  const { data } = await api.get(API_ENDPOINTS.USER_ORDERS(userId));
+  return Array.isArray(data?.data) ? data.data : (data?.orders || []);
 };
 
 // /payments/order/:id: authenticated, buyer/seller only, and includes paymentStatus.

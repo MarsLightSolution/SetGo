@@ -14,6 +14,8 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 import logger from '../../utils/logger';
+import api from '../../services/api';
+import { getAuthToken } from '../../services/secureAuthService';
 
 const log = logger.create('EditForm');
 
@@ -46,11 +48,8 @@ export default function EditForm() {
     const fetchAd = async () => {
       try {
         setLoading(true);
-        const res = await fetch(API_ENDPOINTS.GET_PRODUCT(id), {
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (res.ok) {
+        const { data } = await api.get(API_ENDPOINTS.GET_PRODUCT(id));
+        if (data?.data) {
           const product = data.data;
           setFormData({
             ...formData,
@@ -146,14 +145,19 @@ export default function EditForm() {
       });
 
       setLoading(true);
+      // Requires login (seller must own the ad). Don't set Content-Type: fetch adds the
+      // multipart boundary itself; a hand-written header without one breaks the upload.
+      const token = await getAuthToken();
       const res = await fetch(API_ENDPOINTS.UPDATE_PRODUCT(id), {
         method: "PUT",
-        headers: { "Content-Type": "multipart/form-data" },
-        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: updatedData,
       });
 
-      if (!res.ok) throw new Error("Failed to update product");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || `Failed to update product (HTTP ${res.status})`);
+      }
 
       Alert.alert("Success", "Ad updated successfully!");
       router.back();
