@@ -73,10 +73,17 @@ const OrderDetail = () => {
     }
   };
 
+  // Review routes identify the user from the login token, not from the buyerId we send.
+  const authConfig = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+    withCredentials: true,
+  });
+
   const fetchUserReview = async (buyerId) => {
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_SERVER}/reviews/user?buyerId=${buyerId}`
+        `${import.meta.env.VITE_SERVER}/reviews/user?buyerId=${buyerId}`,
+        authConfig()
       );
       if (data.success && data.data) {
         const orderReview = data.data.find(
@@ -104,8 +111,9 @@ const OrderDetail = () => {
       const buyerId = order.buyerId._id || order.buyerId;
 
       await axios.post(
-        `${import.meta.env.VITE_SERVER}/reviews/confirm-delivery/${id}`,
-        { buyerId }
+        `${import.meta.env.VITE_SERVER}/reviews/orders/${id}/confirm-delivery`,
+        { buyerId },
+        authConfig()
       );
 
       // Update order state
@@ -150,7 +158,8 @@ const OrderDetail = () => {
             rating: reviewFormData.rating,
             reviewText: reviewFormData.reviewText,
             buyerId,
-          }
+          },
+          authConfig()
         );
 
         if (data.success) {
@@ -168,7 +177,8 @@ const OrderDetail = () => {
             rating: reviewFormData.rating,
             reviewText: reviewFormData.reviewText,
             buyerId,
-          }
+          },
+          authConfig()
         );
 
         if (data.success) {
@@ -200,7 +210,7 @@ const OrderDetail = () => {
 
       const { data } = await axios.delete(
         `${import.meta.env.VITE_SERVER}/reviews/${review._id}`,
-        { data: { buyerId } }
+        { data: { buyerId }, ...authConfig() }
       );
 
       if (data.success) {

@@ -8,60 +8,53 @@ const ApiError = require('../utils/ApiError');
 const ApiResponse = require('../utils/ApiResponse');
 
 
-// Get all users (cached)
-const getUsers = async (req, res) => {
-  const cacheKey = 'userList';
+// SECURITY: credentials and session material are never sent to any client.
+const SECRET_FIELDS = '-password -refreshTokens -resetToken -resetTokenExpiration -pushToken -pushPlatform';
+// What anyone (not the user themself) may see about another user.
+const PUBLIC_FIELDS = 'username profileName chatDisplayName hasShop shop isOnline lastSeen createdAt';
 
+// The old implementation cached full user documents (password hashes, refresh tokens, reset
+// tokens) under this key. Purge it once so that copy can't be served or read again.
+const LEGACY_CACHE_KEY = 'userList';
+let legacyCachePurged = false;
+async function purgeLegacyUserCache() {
+  if (legacyCachePurged) return;
   try {
-    logger.info(`[GetUsers] Checking Redis cache`, { cacheKey });
-
-    const cachedData = await redisClient.get(cacheKey);
-    const parsedData = cachedData ? JSON.parse(cachedData) : null;
-
-    if (parsedData && Array.isArray(parsedData) && parsedData.length > 0) {
-      logger.info(`[GetUsers] Cache hit`, { fromRedis: true, count: parsedData.length });
-
-      return res.status(200).json({
-        fromRedis: true,
-        data: parsedData
-      });
-    }
-
-    logger.info(`[GetUsers] Cache miss. Querying DB...`);
-
-    const users = await User.find({});
-
-    await redisClient.set(cacheKey, JSON.stringify(users), {
-      EX: 3600 // 1 hour
-    });
-
-    logger.info(`[GetUsers] DB fetched and cached`, { fromRedis: false, count: users.length });
-
-    return res.status(200).json({
-      fromRedis: false,
-      data: users
-    });
-
+    await redisClient.del(LEGACY_CACHE_KEY);
+    legacyCachePurged = true;
   } catch (error) {
-    logger.error(`[GetUsers] Redis or DB error`, { error: error.message });
+    logger.warn('[GetUsers] Could not purge legacy user cache', { error: error.message });
+  }
+}
+
+// GET /users/get-users — admin only (enforced in the router); no caching.
+const getUsers = async (req, res) => {
+  try {
+    await purgeLegacyUserCache();
+    const users = await User.find({}).select(SECRET_FIELDS).lean();
+    return res.status(200).json({ data: users });
+  } catch (error) {
+    logger.error(`[GetUsers] DB error`, { error: error.message });
     return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// ✅ New controller: Get a single user by ID
+// GET /users/get-users/:id — the user themself (or an admin) gets their record without secrets;
+// anyone else gets the public profile only.
 const getUserById = async (req, res) => {
   const userId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ message: 'Invalid user id' });
+  }
 
   try {
-    logger.info(`[GetUserById] Fetching user`, { userId });
-
-    const user = await User.findById(userId);
+    const isSelf = String(req.user?._id) === String(userId);
+    const isAdmin = req.user?.role === 'admin';
+    const user = await User.findById(userId).select(isSelf || isAdmin ? SECRET_FIELDS : PUBLIC_FIELDS).lean();
     if (!user) {
       logger.warn(`[GetUserById] User not found`, { userId });
       return res.status(404).json({ message: 'User not found' });
     }
-
-    logger.info(`[GetUserById] User fetched`, { userId });
     return res.status(200).json({ data: user });
   } catch (error) {
     logger.error(`[GetUserById] Error`, { error: error.message });
