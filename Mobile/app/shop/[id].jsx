@@ -15,6 +15,7 @@ import {
     StatusBar,
     Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,8 @@ const { width } = Dimensions.get('window');
 const PRODUCT_CARD_WIDTH = (width - 48) / 2;
 
 export default function ShopProfileScreen() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
@@ -248,7 +251,7 @@ export default function ShopProfileScreen() {
         <View style={styles.bannerSection}>
           {/* Back Button */}
           <TouchableOpacity
-            style={styles.headerBackButton}
+            style={[styles.headerBackButton, { top: insets.top + 10 }]}
             onPress={() => router.back()}
           >
             <Icon name="arrow-left" size={24} color="#FFFFFF" />
@@ -256,7 +259,7 @@ export default function ShopProfileScreen() {
 
           {/* Share Button */}
           <TouchableOpacity
-            style={styles.headerShareButton}
+            style={[styles.headerShareButton, { top: insets.top + 10 }]}
             onPress={handleShare}
           >
             <Icon name="share-2" size={20} color="#FFFFFF" />

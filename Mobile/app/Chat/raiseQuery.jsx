@@ -12,6 +12,7 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -51,6 +52,8 @@ import logger from '../../utils/logger';
 const log = logger.create('RaiseQuery');
 
 export default function RaiseQuery() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [userId, setUserId] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -370,7 +373,7 @@ export default function RaiseQuery() {
       {/* Header */}
       <LinearGradient
         colors={['#059669', '#16a34a']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <TouchableOpacity
           style={styles.backButton}

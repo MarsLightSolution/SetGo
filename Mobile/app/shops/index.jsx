@@ -14,6 +14,7 @@ import {
     StatusBar,
     Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import { IMAGE_BASE_URL } from '../../config/api';
@@ -23,6 +24,8 @@ const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
 
 export default function AllShopsScreen() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState('');
@@ -324,7 +327,7 @@ export default function AllShopsScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity
             style={styles.backButton}
