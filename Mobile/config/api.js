@@ -114,13 +114,14 @@ export const API_ENDPOINTS = {
   REVIEWS_SELLER: `${BASE_URL}/reviews/seller`,
   REVIEW_SELLER_RESPONSE: (reviewId) => `${BASE_URL}/reviews/${reviewId}/seller-response`,
 
-  // --- Notifications (notificationRoutes.js) - root level ---
-  NOTIFICATIONS: `${BASE_URL}/notifications`,
-  NOTIFICATIONS_UNREAD: `${BASE_URL}/notifications/unread-count`,
-  NOTIFICATION_READ: (id) => `${BASE_URL}/notifications/${id}/read`,
-  NOTIFICATIONS_READ_ALL: `${BASE_URL}/notifications/mark-all-read`,
-  NOTIFICATION_DELETE: (id) => `${BASE_URL}/notifications/${id}`,
-  NOTIFICATIONS_DELETE_READ: `${BASE_URL}/notifications/read/all`,
+  // --- Notifications (notificationRoutes.js) - /api prefix ---
+  // Backend mounts these under /api/notifications (Routes/index.js); /notifications 404s.
+  NOTIFICATIONS: `${API_URL}/notifications`,
+  NOTIFICATIONS_UNREAD: `${API_URL}/notifications/unread-count`,
+  NOTIFICATION_READ: (id) => `${API_URL}/notifications/${id}/read`,
+  NOTIFICATIONS_READ_ALL: `${API_URL}/notifications/mark-all-read`,
+  NOTIFICATION_DELETE: (id) => `${API_URL}/notifications/${id}`,
+  NOTIFICATIONS_DELETE_READ: `${API_URL}/notifications/read/all`,
 
   // --- Chatbot (ChatbotRoutes.js) - root level ---
   CHATBOT_ASK: `${BASE_URL}/chatbot/ask`,
