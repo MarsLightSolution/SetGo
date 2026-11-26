@@ -1,9 +1,10 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL } from '../config/api';
+import { API_ENDPOINTS } from '../config/api';
 
-const ENDPOINT = `${BASE_URL}/api/logs/error`;
+// Backend route: POST /logs/error (Routes/logRoutes.js, mounted at /logs).
+const ENDPOINT = API_ENDPOINTS.ERROR_LOG_REPORT;
 const OFFLINE_QUEUE_KEY = 'setgo_error_queue';
 const MAX_QUEUE = 20; // don't let the queue grow unbounded
 

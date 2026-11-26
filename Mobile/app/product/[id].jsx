@@ -216,8 +216,10 @@ function ProductDetail() {
 
     try {
       const { data } = await api.get(API_ENDPOINTS.USER_DATA(user._id));
-      if (data.success && data.user) {
-        updateUser?.(data.user);
+      // /userdata/:id responds { message, data: user }
+      const freshUser = data?.data || data?.user;
+      if (freshUser?._id) {
+        updateUser?.(freshUser);
       }
     } catch (err) {
       logger.error('Failed to refresh user data:', err);
