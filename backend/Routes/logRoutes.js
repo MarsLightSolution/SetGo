@@ -42,7 +42,10 @@ router.get('/error', verifyToken, adminOnly, asyncHandler(async (req, res) => {
 }));
 
 // POST /api/logs/error — receive client-side error reports from mobile app (no auth)
-router.post('/error', reportError);
+// Public (errors happen before login) but rate limited so it can't be used to flood the DB.
+const rateLimit = require('express-rate-limit');
+const reportLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
+router.post('/error', reportLimiter, reportError);
 
 // GET /api/logs/error/db — fetch MongoDB error logs (auth required)
 router.get('/error/db', verifyToken, adminOnly, getErrors);
