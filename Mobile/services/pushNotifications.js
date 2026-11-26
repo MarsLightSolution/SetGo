@@ -100,16 +100,12 @@ export async function registerPushToken() {
     const authToken = await getAuthToken();
     if (!authToken) return pushToken;
 
-    const res = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}/push-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({ token: pushToken, platform: Platform.OS }),
-    });
-    if (!res.ok) {
-      log.warn(`Backend rejected push token (HTTP ${res.status})`);
+    try {
+      // Lazy require: api.js pulls in authStore; keep this module light at import time.
+      const api = require('./api').default;
+      await api.post(`${API_ENDPOINTS.NOTIFICATIONS}/push-token`, { token: pushToken, platform: Platform.OS });
+    } catch (err) {
+      log.warn(`Backend rejected push token (HTTP ${err.response?.status ?? 'network'})`);
     }
 
     return pushToken;

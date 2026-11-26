@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { API_ENDPOINTS, SOCKET_URL } from '../config/api';
 import { getAuthToken } from '../services/secureAuthService';
+import api from '../services/api';
 import { captureException } from '../services/errorReporter';
 import logger from '../utils/logger';
 import io from 'socket.io-client';
@@ -13,23 +14,14 @@ const notifKeys = {
   unread: () => ['notifications', 'unread'],
 };
 
-const authHeaders = async () => {
-  const token = await getAuthToken();
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-};
-
 const fetchNotifications = async () => {
-  const headers = await authHeaders();
-  const res = await fetch(`${API_ENDPOINTS.NOTIFICATIONS}?limit=50`, { headers });
-  const data = await res.json();
-  return data.data?.notifications || [];
+  const { data } = await api.get(API_ENDPOINTS.NOTIFICATIONS, { params: { limit: 50 } });
+  return data?.data?.notifications || [];
 };
 
 const fetchUnreadCount = async () => {
-  const headers = await authHeaders();
-  const res = await fetch(API_ENDPOINTS.NOTIFICATIONS_UNREAD, { headers });
-  const data = await res.json();
-  return data.data?.unreadCount || 0;
+  const { data } = await api.get(API_ENDPOINTS.NOTIFICATIONS_UNREAD);
+  return data?.data?.unreadCount || 0;
 };
 
 // Listens for real-time `notification` socket events and invalidates the query cache
@@ -83,8 +75,7 @@ export const useMarkRead = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id) => {
-      const headers = await authHeaders();
-      await fetch(API_ENDPOINTS.NOTIFICATION_READ(id), { method: 'PATCH', headers });
+      await api.patch(API_ENDPOINTS.NOTIFICATION_READ(id));
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: notifKeys.list() });
@@ -97,8 +88,7 @@ export const useMarkAllRead = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const headers = await authHeaders();
-      await fetch(API_ENDPOINTS.NOTIFICATIONS_READ_ALL, { method: 'PATCH', headers });
+      await api.patch(API_ENDPOINTS.NOTIFICATIONS_READ_ALL);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: notifKeys.list() });
@@ -111,8 +101,7 @@ export const useDeleteNotification = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id) => {
-      const headers = await authHeaders();
-      await fetch(API_ENDPOINTS.NOTIFICATION_DELETE(id), { method: 'DELETE', headers });
+      await api.delete(API_ENDPOINTS.NOTIFICATION_DELETE(id));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.list() }),
   });
