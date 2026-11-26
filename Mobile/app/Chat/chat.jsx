@@ -526,7 +526,7 @@ function ChatApp() {
     if (!activeConversation || !currentUser) return;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: ["images"],
         allowsEditing: true,
         quality: 0.7,
       });

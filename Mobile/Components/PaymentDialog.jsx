@@ -6,6 +6,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -466,7 +467,12 @@ const PaymentDialog = ({
       transparent={true}
       onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
+      {/* iOS doesn't resize for the keyboard; lift the sheet so the details form stays visible.
+          Android's modal window already resizes, so no extra behavior there. */}
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <TouchableOpacity
           style={styles.modalBackdrop}
           onPress={handleClose}
@@ -487,6 +493,8 @@ const PaymentDialog = ({
 
           <ScrollView
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             style={styles.scrollContent}
             contentContainerStyle={styles.scrollContentContainer}
           >
@@ -698,7 +706,7 @@ const PaymentDialog = ({
             </View>
           )}
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
 
       <CardPaymentWebView
         visible={status === 'BANK' && !!gateway}
