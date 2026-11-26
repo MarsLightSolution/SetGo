@@ -802,6 +802,8 @@ const Form = () => {
         transparent={true}
         animationType="fade"
         statusBarTranslucent={true}
+        // Android back: ignore while the ad is uploading (the request can't be cancelled midway).
+        onRequestClose={() => {}}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
