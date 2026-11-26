@@ -177,7 +177,12 @@ export default function EditForm() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      // iOS: scroll the focused field above the keyboard (no-op on Android).
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>Edit Advertisement</Text>
 
       <TextInput

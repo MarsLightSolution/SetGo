@@ -388,6 +388,9 @@ export default function RaiseQuery() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        // iOS: scroll the focused field above the keyboard (no-op on Android).
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
       >
         {/* Issue Type Dropdown */}
         <View style={styles.card}>

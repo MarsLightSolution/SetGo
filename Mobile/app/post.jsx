@@ -817,6 +817,9 @@ const Form = () => {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        // iOS: scroll the focused field above the keyboard (no-op on Android).
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
       >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
