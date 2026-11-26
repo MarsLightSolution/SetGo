@@ -8,6 +8,11 @@ const { validateSignup, validateLogin, validateResetPassword } = require("../mid
 // SECURITY: Strict rate limiting + input validation on authentication routes
 router.post("/signup", createAccountLimiter, validateSignup, Authcontroller.signup);
 router.get("/verifyemail", Authcontroller.verifyEmail);
+// Mobile "check your inbox" screen polls this (every 5 s) to log in once the email is verified.
+// The handler existed but was never routed, so that screen waited forever.
+const rateLimit = require("express-rate-limit");
+const statusLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
+router.get("/check-status", statusLimiter, Authcontroller.checkVerificationStatus);
 router.post("/login", authLimiter, validateLogin, Authcontroller.login);
 router.post("/refreshAccessToken", authLimiter, Authcontroller.refreshAccessToken);
 router.post("/logout", Authcontroller.logout);

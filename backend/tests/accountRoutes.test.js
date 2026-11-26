@@ -5,6 +5,7 @@ jest.mock('twilio', () => () => ({
   verify: { v2: { services: () => ({ verificationChecks: { create: mockTwilioCheck }, verifications: { create: mockTwilioSend } }) } },
 }));
 jest.mock('../utils/redisClient', () => ({ del: jest.fn().mockResolvedValue(1) }));
+jest.mock('../services/emailService', () => ({ sendEmail: jest.fn().mockResolvedValue() }));
 jest.mock('../utils/ioInstance', () => ({ setIO: jest.fn(), emitToUser: jest.fn() }));
 
 const express = require('express');
@@ -34,6 +35,7 @@ beforeAll(async () => {
   app = express();
   app.use(express.json());
   app.use(require('cookie-parser')());
+  app.use('/', require('../Routes/Authroutes'));
   app.use('/', require('../Routes/Profileroutes'));
   app.use('/', require('../Routes/Twillioroutes'));
   app.use('/', require('../Routes/Followerroutes'));
@@ -105,6 +107,15 @@ describe('profile', () => {
     // Targets "victim" but acts as me (wrong password for me → 401, victim untouched).
     await request(app).post('/emailverify').set('Authorization', tokenFor(me)).send({ userId: String(victim._id), password: 'x', newEmail: 'n@example.com' });
     expect((await User.findById(victim._id)).email).toBe(victim.email);
+  });
+});
+
+describe('email verification status', () => {
+  test('/check-status is routed and returns only the flag', async () => {
+    const u = await makeUser({ emailVerified: true });
+    const res = await request(app).get('/check-status').query({ email: u.email.toUpperCase() });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, emailVerified: true });
   });
 });
 
