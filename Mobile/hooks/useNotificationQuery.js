@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { API_ENDPOINTS, SOCKET_URL } from '../config/api';
-import { getAuthToken } from '../services/secureAuthService';
-import api from '../services/api';
+import api, { getFreshAuthToken } from '../services/api';
 import { captureException } from '../services/errorReporter';
 import logger from '../utils/logger';
 import io from 'socket.io-client';
@@ -30,12 +29,17 @@ export function useNotificationSocket(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     let socket;
-    getAuthToken().then(token => {
+    let cancelled = false;
+    getFreshAuthToken().then(token => {
+      if (!token || cancelled) return;
       socket = io(SOCKET_URL, {
         transports: ['websocket', 'polling'],
         withCredentials: true,
         reconnection: true,
-        auth: token ? { token: `Bearer ${token}` } : {},
+        auth: (cb) => {
+          // Called on every (re)connect, so a reconnect after the token expired still authenticates.
+          getFreshAuthToken().then((t) => cb(t ? { token: `Bearer ${t}` } : {}), () => cb({}));
+        },
       });
       socket.on('notification', () => {
         qc.invalidateQueries({ queryKey: notifKeys.list() });
@@ -50,7 +54,10 @@ export function useNotificationSocket(enabled = true) {
         captureException(err, { type: 'socket', module: 'Notifications', extra: { event: 'error' } });
       });
     });
-    return () => socket?.disconnect();
+    return () => {
+      cancelled = true;
+      socket?.disconnect();
+    };
   }, [enabled, qc]);
 }
 

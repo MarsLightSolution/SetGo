@@ -14,8 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
 import logger from '../../utils/logger';
-import api from '../../services/api';
-import { getAuthToken } from '../../services/secureAuthService';
+import api, { getFreshAuthToken } from '../../services/api';
 
 const log = logger.create('EditForm');
 
@@ -147,7 +146,7 @@ export default function EditForm() {
       setLoading(true);
       // Requires login (seller must own the ad). Don't set Content-Type: fetch adds the
       // multipart boundary itself; a hand-written header without one breaks the upload.
-      const token = await getAuthToken();
+      const token = await getFreshAuthToken();
       const res = await fetch(API_ENDPOINTS.UPDATE_PRODUCT(id), {
         method: "PUT",
         headers: token ? { Authorization: `Bearer ${token}` } : {},

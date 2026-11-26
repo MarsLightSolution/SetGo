@@ -24,7 +24,8 @@ import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
 import { API_ENDPOINTS, BASE_URL, IMAGE_BASE_URL } from '../../config/api';
-import { getUserData, getAuthToken } from '../../services/secureAuthService';
+import { getUserData } from '../../services/secureAuthService';
+import { getFreshAuthToken } from '../../services/api';
 import { useChatStore } from '../../Store/chatStore';
 import logger from '../../utils/logger';
 import { captureException } from '../../services/errorReporter';
@@ -248,8 +249,8 @@ function ChatApp() {
     (async () => {
       if (socketRef.current?.connected) return;
 
-      const token = await getAuthToken();
-      if (!mounted) return;
+      const token = await getFreshAuthToken();
+      if (!mounted || !token) return;
 
       socketRef.current = io(BASE_URL, {
         withCredentials: true,
@@ -257,7 +258,10 @@ function ChatApp() {
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
-        auth: token ? { token: `Bearer ${token}` } : {},
+        auth: (cb) => {
+          // Called on every (re)connect, so a reconnect after the token expired still authenticates.
+          getFreshAuthToken().then((t) => cb(t ? { token: `Bearer ${t}` } : {}), () => cb({}));
+        },
       });
 
       handlers.onConnect = () => {
@@ -358,7 +362,7 @@ function ChatApp() {
   // Every chat REST call carries the login token: the backend identifies the user from it
   // (sender, conversation membership), not from ids in the request.
   const chatFetch = async (url, options = {}) => {
-    const token = await getAuthToken();
+    const token = await getFreshAuthToken();
     return fetch(url, {
       ...options,
       headers: { ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
