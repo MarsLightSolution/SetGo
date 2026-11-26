@@ -246,7 +246,38 @@
     "totalAmount": "Итого",
     "transactionId": "ID транзакции",
     "status": "Статус",
-    "paid": "ОПЛАЧЕН"
+    "paid": "ОПЛАЧЕН",
+    "processingTitle": "Подтверждение оплаты…",
+    "processingMessage": "Ждём подтверждения оплаты картой от банка. Страница обновится автоматически — повторного списания не будет.",
+    "failedTitle": "Оплата не завершена",
+    "failedMessage": "Банк не одобрил этот платёж. Деньги не списаны, сумма из кошелька возвращена.",
+    "refundedTitle": "Заказ возвращён",
+    "refundedMessage": "Заказ отменён, оплата возвращена.",
+    "cancelledTitle": "Заказ отменён",
+    "cancelledMessage": "Этот заказ был отменён.",
+    "loadError": "Не удалось загрузить заказ.",
+    "retry": "Повторить",
+    "product": "Товар",
+    "walletPart": "Оплачено из кошелька",
+    "cardPart": "Оплачено картой",
+    "trackingId": "Трек-номер",
+    "paymentStatus": "Оплата",
+    "orderStatus": "Заказ",
+    "payment": {
+      "pending": "Ожидает",
+      "processing": "Подтверждается",
+      "completed": "Оплачено",
+      "failed": "Не удалась",
+      "refunded": "Возвращено"
+    },
+    "orderState": {
+      "pending": "Ожидает",
+      "paid": "Оплачен",
+      "shipped": "Отправлен",
+      "delivered": "Доставлен",
+      "cancelled": "Отменён",
+      "released": "Завершён"
+    }
   },
 
   "chat": {

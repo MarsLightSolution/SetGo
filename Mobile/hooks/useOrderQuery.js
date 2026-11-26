@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../config/api';
+import api from '../services/api';
 
 // ==================== QUERY KEYS ====================
 
@@ -30,11 +31,11 @@ const fetchUserOrders = async (userId) => {
   return Array.isArray(data.data) ? data.data : (data.orders || []);
 };
 
+// /payments/order/:id: authenticated, buyer/seller only, and includes paymentStatus.
 const fetchOrderDetail = async (orderId) => {
-  const res = await fetch(API_ENDPOINTS.ORDER_DETAIL(orderId));
-  const data = await res.json();
-  if (!data.success) throw new Error(data.message || 'Order not found');
-  return data.data;
+  const { data } = await api.get(API_ENDPOINTS.PAYMENT_ORDER(orderId));
+  if (!data?.success || !data?.data?.order) throw new Error(data?.message || 'Order not found');
+  return data.data.order;
 };
 
 // ==================== HOOKS ====================
@@ -54,14 +55,16 @@ export const useTransactions = (userId, enabled = true) =>
 
 /**
  * Fetches a single order by ID.
- * Stale for 10 min — order state rarely changes after placement.
+ * While the bank is still confirming a card payment (paymentStatus "processing") it refetches
+ * every 5s; otherwise stale for 1 min.
  */
 export const useOrderDetail = (orderId) =>
   useQuery({
     queryKey: orderKeys.detail(orderId),
     queryFn: () => fetchOrderDetail(orderId),
     enabled: !!orderId,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: (query) => (query.state.data?.paymentStatus === 'processing' ? 5000 : false),
   });
 
 /**

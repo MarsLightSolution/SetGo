@@ -1,59 +1,127 @@
-// app/order/[orderId].js
+// app/order/[orderId].jsx
+// Shows the real payment state of an order: confirming (card payment waiting on the bank — the
+// query refetches until it settles), paid, declined, refunded or cancelled.
 import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useOrderDetail } from '../../hooks/useOrderQuery';
 import { withErrorBoundary } from '../../Components/ErrorBoundary';
 
+const textOf = (v, lang) => {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  return v[lang] || v.en || v.az || v.ru || Object.values(v)[0] || '';
+};
+
+const money = (n) => `₼${(Number(n) || 0).toFixed(2)}`;
+
+// Which header to show for an order.
+function headerFor(order) {
+  const ps = order?.paymentStatus;
+  if (ps === 'processing') return { key: 'processing', icon: 'time-outline', color: '#f59e0b' };
+  if (ps === 'failed') return { key: 'failed', icon: 'close-circle', color: '#ef4444' };
+  if (ps === 'refunded') return { key: 'refunded', icon: 'return-down-back', color: '#3b82f6' };
+  if (order?.status === 'cancelled') return { key: 'cancelled', icon: 'remove-circle', color: '#6b7280' };
+  if (ps === 'completed') return { key: 'confirmed', icon: 'checkmark-circle', color: '#16a34a' };
+  return { key: 'processing', icon: 'time-outline', color: '#f59e0b' };
+}
+
+const STATUS_COLORS = {
+  completed: '#16a34a', paid: '#16a34a', delivered: '#16a34a', released: '#16a34a', shipped: '#3b82f6',
+  processing: '#f59e0b', pending: '#f59e0b',
+  failed: '#ef4444', cancelled: '#6b7280', refunded: '#3b82f6',
+};
+
 function OrderDetails() {
   const { orderId } = useLocalSearchParams();
-  const { t } = useTranslation();
-  const { data: order, isLoading } = useOrderDetail(orderId);
+  const { t, i18n } = useTranslation();
+  const { data: order, isLoading, isError, refetch, isRefetching } = useOrderDetail(orderId);
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color="#16a34a" />
       </SafeAreaView>
     );
   }
 
+  if (isError || !order) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <Ionicons name="alert-circle-outline" size={64} color="#9ca3af" />
+        <Text style={styles.errorText}>{t('orderDetail.loadError')}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
+          <Text style={styles.retryText}>{t('orderDetail.retry')}</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const header = headerFor(order);
+  const title = header.key === 'confirmed' ? t('orderDetail.confirmed') : t(`orderDetail.${header.key}Title`);
+  const message = header.key === 'confirmed' ? t('orderDetail.successMessage') : t(`orderDetail.${header.key}Message`);
+  const productTitle = textOf(order.product?.title, i18n.language);
+
+  const rows = [
+    productTitle && { label: t('orderDetail.product'), value: productTitle },
+    { label: t('orderDetail.totalAmount'), value: money(order.total) },
+    order.walletDeduction > 0 && order.onlineAmount > 0 && { label: t('orderDetail.walletPart'), value: money(order.walletDeduction) },
+    order.onlineAmount > 0 && { label: t('orderDetail.cardPart'), value: money(order.onlineAmount) },
+    order.transactionId && { label: t('orderDetail.transactionId'), value: order.transactionId },
+    order.trackingId && { label: t('orderDetail.trackingId'), value: order.trackingId },
+  ].filter(Boolean);
+
+  const badge = (kind, value) => (
+    <Text style={[styles.badge, { color: STATUS_COLORS[value] || '#374151' }]}>
+      {t(`orderDetail.${kind}.${value}`, { defaultValue: value })}
+    </Text>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.successCard}>
-          <Ionicons name="checkmark-circle" size={80} color="#16a34a" />
-          <Text style={styles.successTitle}>{t('orderDetail.confirmed')}</Text>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#16a34a" />}
+      >
+        <View style={styles.headerCard}>
+          {header.key === 'processing' ? (
+            <ActivityIndicator size="large" color={header.color} style={styles.spinner} />
+          ) : (
+            <Ionicons name={header.icon} size={80} color={header.color} />
+          )}
+          <Text style={styles.headerTitle}>{title}</Text>
           <Text style={styles.orderId}>{t('orderDetail.orderId', { id: orderId })}</Text>
-          <Text style={styles.successMessage}>{t('orderDetail.successMessage')}</Text>
+          <Text style={styles.headerMessage}>{message}</Text>
         </View>
-        
-        {order && (
-          <View style={styles.detailsCard}>
-            <Text style={styles.cardTitle}>{t('orderDetail.details')}</Text>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('orderDetail.totalAmount')}</Text>
-              <Text style={styles.detailValue}>₼{order.total}</Text>
+
+        <View style={styles.detailsCard}>
+          <Text style={styles.cardTitle}>{t('orderDetail.details')}</Text>
+          {rows.map((r) => (
+            <View key={r.label} style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{r.label}</Text>
+              <Text style={styles.detailValue} numberOfLines={2} selectable>{r.value}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('orderDetail.transactionId')}</Text>
-              <Text style={styles.detailValue}>{order.transactionId}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('orderDetail.status')}</Text>
-              <Text style={styles.statusPaid}>{t('orderDetail.paid')}</Text>
-            </View>
+          ))}
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('orderDetail.paymentStatus')}</Text>
+            {badge('payment', order.paymentStatus)}
           </View>
-        )}
+          <View style={[styles.detailRow, styles.lastRow]}>
+            <Text style={styles.detailLabel}>{t('orderDetail.orderStatus')}</Text>
+            {badge('orderState', order.status)}
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -64,25 +132,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  successCard: {
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  headerCard: {
     backgroundColor: '#fff',
     margin: 20,
     padding: 30,
     borderRadius: 16,
     alignItems: 'center',
   },
-  successTitle: {
+  spinner: {
+    marginVertical: 16,
+  },
+  headerTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#111827',
     marginTop: 16,
+    textAlign: 'center',
   },
   orderId: {
     fontSize: 14,
     color: '#6b7280',
     marginTop: 8,
   },
-  successMessage: {
+  headerMessage: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
@@ -105,9 +182,14 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
+    gap: 12,
+  },
+  lastRow: {
+    borderBottomWidth: 0,
   },
   detailLabel: {
     fontSize: 14,
@@ -117,11 +199,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#111827',
+    flexShrink: 1,
+    textAlign: 'right',
   },
-  statusPaid: {
+  badge: {
     fontSize: 14,
+    fontWeight: '700',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: 16,
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  retryText: {
+    color: '#fff',
     fontWeight: '600',
-    color: '#16a34a',
+    fontSize: 15,
   },
 });
+
 export default withErrorBoundary(OrderDetails);
