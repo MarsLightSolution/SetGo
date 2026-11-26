@@ -63,10 +63,19 @@ const performRefresh = async () => {
     credentials: 'include',
   });
 
-  if (!response.ok) throw new Error('Refresh failed');
+  // A 4xx means the server rejected the refresh token (revoked/rotated/expired): the session is
+  // over. 5xx and network errors are transient and must not log the user out.
+  if (!response.ok) {
+    throw Object.assign(new Error('Refresh failed'), {
+      status: response.status,
+      isAuthError: response.status >= 400 && response.status < 500,
+    });
+  }
 
   const data = await response.json();
-  if (!data.success || !data.accessToken) throw new Error('Invalid refresh response');
+  if (!data.success || !data.accessToken) {
+    throw Object.assign(new Error('Invalid refresh response'), { isAuthError: true });
+  }
 
   const newToken = data.accessToken.replace(/^Bearer\s+/i, '');
   await setAuthToken(newToken); // also persists expiry via parseJwtExpiry
@@ -124,10 +133,14 @@ api.interceptors.request.use(
       if (AUTH_SKIP_URLS.some((u) => url.includes(u))) return config;
 
       const token = await getOrRefreshToken().catch(async (err) => {
-        // Proactive refresh failed → session expired
         log.warn('Proactive token refresh failed:', err?.message);
-        signalSessionExpired();
-        return null;
+        if (err?.isAuthError) {
+          // Server rejected the refresh token → session expired
+          signalSessionExpired();
+          return null;
+        }
+        // Offline / server error: send the current token; the 401 handler retries later.
+        return getAuthToken();
       });
 
       if (token) {
@@ -163,7 +176,7 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        signalSessionExpired();
+        if (refreshError?.isAuthError) signalSessionExpired();
         return Promise.reject(refreshError);
       }
     }
@@ -187,6 +200,12 @@ api.interceptors.response.use(
 );
 
 /**
+ * Force a token refresh through the shared single-flight path (stores the rotated refresh
+ * token too). Throws; err.isAuthError is true only when the server rejected the session.
+ */
+export const refreshSessionToken = () => getOrRefreshToken(true);
+
+/**
  * A valid access token for requests that can't go through axios (multipart uploads via
  * fetch): refreshes it first if it is expiring. Returns null when the session can't be renewed.
  */
@@ -195,8 +214,11 @@ export const getFreshAuthToken = async () => {
     return await getOrRefreshToken();
   } catch (err) {
     log.warn('Token refresh before upload failed:', err?.message);
-    signalSessionExpired();
-    return null;
+    if (err?.isAuthError) {
+      signalSessionExpired();
+      return null;
+    }
+    return getAuthToken(); // offline/server error: try with the current token
   }
 };
 
