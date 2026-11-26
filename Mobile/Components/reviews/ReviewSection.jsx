@@ -6,6 +6,7 @@ import ReviewItem from './ReviewItem';
 import logger from '../../utils/logger';
 
 import { API_ENDPOINTS } from '../../config/api';
+import api from '../../services/api';
 
 /**
  * ReviewSection - Complete review section with summary, filters, and list
@@ -118,27 +119,20 @@ const ReviewSection = ({ productId, currentUserId }) => {
     }
 
     try {
-      const res = await fetch(API_ENDPOINTS.REVIEW_HELPFUL(reviewId), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserId }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        if (errorData.message?.includes('already marked')) {
-          Alert.alert('Notice', "You've already marked this as helpful");
-        } else {
-          throw new Error('Failed to mark review as helpful');
-        }
-        return;
-      }
-
+      // Authenticated: the backend takes the voter from the login token.
+      await api.post(API_ENDPOINTS.REVIEW_HELPFUL(reviewId), { userId: currentUserId });
       Alert.alert('Success', 'Review marked as helpful!');
       fetchReviews(1, false);
     } catch (error) {
-      logger.error('Error marking review as helpful:', error);
-      Alert.alert('Error', 'Failed to mark review as helpful');
+      const status = error?.response?.status;
+      if (error?.response?.data?.message?.includes('already marked')) {
+        Alert.alert('Notice', "You've already marked this as helpful");
+      } else if (status === 401) {
+        Alert.alert('Login Required', 'Please log in again to mark reviews as helpful');
+      } else {
+        logger.error('Error marking review as helpful:', error?.message);
+        Alert.alert('Error', 'Failed to mark review as helpful');
+      }
     }
   }, [currentUserId, fetchReviews]);
 
