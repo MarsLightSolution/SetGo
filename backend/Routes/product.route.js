@@ -67,5 +67,6 @@ router.patch("/mark-sold/:productId", verifyJWT, markProductAsSold);
 router.get('/category/:category', getProductsByCategory);
 router.route("/productadds")
 router.get("/priority", getPriorityProducts);
-router.put("/priority/:productId", updateProductPriority);
+// SECURITY: boosting/unboosting requires login; owner or admin only (checked in controller).
+router.put("/priority/:productId", verifyJWT, updateProductPriority);
 module.exports = router;
