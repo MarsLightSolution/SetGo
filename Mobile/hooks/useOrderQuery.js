@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../config/api';
 import api from '../services/api';
 
@@ -8,6 +8,7 @@ export const orderKeys = {
   transactions: (userId) => ['orders', 'transactions', userId],
   detail: (orderId) => ['orders', 'detail', orderId],
   userOrders: (userId) => ['orders', 'user', userId],
+  sales: () => ['orders', 'sales'],
 };
 
 // ==================== FETCHERS ====================
@@ -29,6 +30,12 @@ const fetchOrderDetail = async (orderId) => {
   const { data } = await api.get(API_ENDPOINTS.PAYMENT_ORDER(orderId));
   if (!data?.success || !data?.data?.order) throw new Error(data?.message || 'Order not found');
   return data.data.order;
+};
+
+// Orders for the logged-in seller's items (server takes the seller from the token).
+const fetchSellerOrders = async () => {
+  const { data } = await api.get(API_ENDPOINTS.PAYMENT_ORDERS, { params: { role: 'seller' } });
+  return data?.data?.orders || [];
 };
 
 // ==================== HOOKS ====================
@@ -70,6 +77,48 @@ export const useUserOrders = (userId, enabled = true) =>
     enabled: !!userId && enabled,
     staleTime: 3 * 60 * 1000,
   });
+
+/**
+ * Orders placed on the logged-in user's items. Stale for 1 min.
+ */
+export const useSellerOrders = (enabled = true) =>
+  useQuery({
+    queryKey: orderKeys.sales(),
+    queryFn: fetchSellerOrders,
+    enabled,
+    staleTime: 60 * 1000,
+  });
+
+// After a buyer/seller action, refresh this order and every order list.
+const useRefreshOrders = () => {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: ['orders'] });
+};
+
+/**
+ * Buyer confirms they received the item (paid/shipped → delivered).
+ * The server uses the logged-in buyer; buyerId is sent for the pre-auth backend version.
+ */
+export const useConfirmDelivery = () => {
+  const refresh = useRefreshOrders();
+  return useMutation({
+    mutationFn: ({ orderId, buyerId }) =>
+      api.post(API_ENDPOINTS.REVIEW_CONFIRM_DELIVERY(orderId), { buyerId }),
+    onSuccess: refresh,
+  });
+};
+
+/**
+ * Seller adds the tracking number (paid → shipped).
+ */
+export const useAddTracking = () => {
+  const refresh = useRefreshOrders();
+  return useMutation({
+    mutationFn: ({ orderId, trackingId }) =>
+      api.patch(API_ENDPOINTS.ORDER_TRACKING(orderId), { trackingId }),
+    onSuccess: refresh,
+  });
+};
 
 /**
  * Helper — invalidate transactions cache after wallet mutations.

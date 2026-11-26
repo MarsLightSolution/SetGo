@@ -8,15 +8,18 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
 import { useTranslation } from 'react-i18next';
-import { useTransactions, useUserOrders } from '../hooks/useOrderQuery';
+import { useTransactions, useUserOrders, useSellerOrders } from '../hooks/useOrderQuery';
 
 export default function OrdersScreen() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('orders');
 
@@ -36,32 +39,79 @@ export default function OrdersScreen() {
     refetch: refetchOrders,
   } = useUserOrders(userId, isAuthenticated && activeTab === 'orders');
 
+  const {
+    data: sales = [],
+    isFetching: salesFetching,
+    isRefetching: salesRefetching,
+    refetch: refetchSales,
+  } = useSellerOrders(isAuthenticated && activeTab === 'sales');
+
   const transactions = txData?.transactions || [];
   const walletBalance = txData?.walletBalance || 0;
   const totalCredit = txData?.totalCredit || 0;
   const totalDebit = txData?.totalDebit || 0;
 
-  const isFetching = activeTab === 'orders' ? ordersFetching : txFetching;
-  const isRefetching = activeTab === 'orders' ? ordersRefetching : txRefetching;
+  const isFetching = { orders: ordersFetching, sales: salesFetching }[activeTab] ?? txFetching;
+  const isRefetching = { orders: ordersRefetching, sales: salesRefetching }[activeTab] ?? txRefetching;
 
+  // Order.status values from the backend.
   const STATUS_COLORS = {
-    delivered: '#10B981',
-    'in transit': '#3B82F6',
-    processing: '#F59E0B',
-    cancelled: '#EF4444',
     pending: '#6B7280',
+    paid: '#F59E0B',
+    shipped: '#3B82F6',
+    delivered: '#10B981',
+    released: '#10B981',
+    cancelled: '#EF4444',
   };
 
   const onRefresh = () => {
     if (activeTab === 'transactions') refetchTx();
+    else if (activeTab === 'sales') refetchSales();
     else refetchOrders();
+  };
+
+  const localized = (v) => {
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    return v[i18n.language] || v.en || v.az || v.ru || '';
+  };
+
+  // /Orders/user/:id returns populated productId + total; /payments/orders (sales) returns
+  // productTitle + total. Normalize both for the card.
+  const renderOrderCard = (order) => {
+    const id = order._id || order.id;
+    const status = (order.status || 'pending').toLowerCase();
+    const statusColor = STATUS_COLORS[status] || '#6B7280';
+    const title = localized(order.productId?.title || order.productTitle || order.product?.title) || t('orders.order');
+    return (
+      <View key={id} style={styles.orderCard}>
+        <View style={styles.orderHeader}>
+          <Text style={styles.orderTitle} numberOfLines={2}>{title}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {t(`orderDetail.orderState.${status}`, { defaultValue: order.status })}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.orderDetails}>
+          <Text style={styles.orderPrice}>₼ {(Number(order.total ?? order.amount ?? 0) || 0).toFixed(2)}</Text>
+          <Text style={styles.orderDate}>
+            {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.viewButton} onPress={() => router.push(`/order/${id}`)}>
+          <Text style={styles.viewButtonText}>{t('orders.viewDetails')}</Text>
+          <Ionicons name="chevron-forward" size={16} color="#008235" />
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   // IF NOT AUTHENTICATED
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <Text style={styles.headerTitle}>{t('orders.title')}</Text>
         </View>
 
@@ -83,7 +133,7 @@ export default function OrdersScreen() {
   // IF AUTHENTICATED
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.headerTitle}>{t('orders.title')}</Text>
       </View>
 
@@ -95,6 +145,14 @@ export default function OrdersScreen() {
         >
           <Text style={[styles.tabText, activeTab === 'orders' && styles.tabTextActive]}>
             {t('orders.tabOrders')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'sales' && styles.tabActive]}
+          onPress={() => setActiveTab('sales')}
+        >
+          <Text style={[styles.tabText, activeTab === 'sales' && styles.tabTextActive]}>
+            {t('orders.tabSales')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -126,38 +184,22 @@ export default function OrdersScreen() {
               <Text style={styles.emptyText}>{t('orders.noOrdersSubtitle')}</Text>
             </View>
           ) : (
-            orders.map((order) => {
-              const rawStatus = (order.status || 'pending').toLowerCase();
-              const statusColor = STATUS_COLORS[rawStatus] || '#6B7280';
-              const title = typeof order.product?.title === 'object'
-                ? order.product?.title?.en
-                : (order.product?.title || order.title || 'Order');
-              return (
-                <View key={order._id || order.id} style={styles.orderCard}>
-                  <View style={styles.orderHeader}>
-                    <Text style={styles.orderTitle}>{title}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-                      <Text style={[styles.statusText, { color: statusColor }]}>
-                        {order.status}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.orderDetails}>
-                    <Text style={styles.orderPrice}>₼ {order.amount || order.price || 0}</Text>
-                    <Text style={styles.orderDate}>
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.viewButton}
-                    onPress={() => router.push(`/order/${order._id || order.id}`)}
-                  >
-                    <Text style={styles.viewButtonText}>{t('orders.viewDetails')}</Text>
-                    <Ionicons name="chevron-forward" size={16} color="#008235" />
-                  </TouchableOpacity>
-                </View>
-              );
-            })
+            orders.map(renderOrderCard)
+          )
+        ) : activeTab === 'sales' ? (
+          // SALES TAB (orders on my items)
+          salesFetching && sales.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#008235" />
+            </View>
+          ) : sales.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="storefront-outline" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyTitle}>{t('orders.noSales')}</Text>
+              <Text style={styles.emptyText}>{t('orders.noSalesSubtitle')}</Text>
+            </View>
+          ) : (
+            sales.map(renderOrderCard)
           )
         ) : (
           // TRANSACTIONS TAB

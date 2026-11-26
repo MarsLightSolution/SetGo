@@ -13,7 +13,6 @@
     "version": "Versiya 1.0.0",
     "and": "və"
   },
-
   "onboarding": {
     "chooseLanguage": "Dil seçin",
     "slide1Title": "Yaxınlığınızda Alın və Satın",
@@ -29,7 +28,6 @@
     "guestNote": "Sonra qeydiyyatdan keçə bilərsiniz",
     "tagline": "Yerli bazarınız"
   },
-
   "tabs": {
     "home": "Ana səhifə",
     "wishlist": "İstək siyahısı",
@@ -37,7 +35,6 @@
     "orders": "Sifarişlər",
     "profile": "Profil"
   },
-
   "home": {
     "searchPlaceholder": "Məhsul, xidmət axtarın...",
     "featuredProducts": "Seçilmiş Məhsullar",
@@ -60,7 +57,6 @@
       "general": "Ümumi"
     }
   },
-
   "auth": {
     "loginTab": "Giriş",
     "signupTab": "Qeydiyyat",
@@ -84,7 +80,6 @@
     "benefit2": "Cəmiyyətlə əlaqə qur",
     "benefit3": "Kontent yarat və paylaş"
   },
-
   "wishlist": {
     "title": "İstək Siyahısı",
     "itemsCount": "{{count}} məhsul saxlanılıb",
@@ -94,7 +89,6 @@
     "loginRequired": "Giriş tələb olunur",
     "loginMessage": "İstək siyahınızı görmək üçün daxil olun"
   },
-
   "profile": {
     "title": "Profil",
     "welcomeTitle": "SetGo-ya xoş gəldiniz",
@@ -111,7 +105,6 @@
     "logoutConfirmMessage": "Çıxmaq istədiyinizə əminsinizmi?",
     "logoutConfirmYes": "Bəli, Çıxış"
   },
-
   "post": {
     "title": "Elan Ver",
     "sectionAdDetails": "Elan Məlumatları",
@@ -182,7 +175,6 @@
       "other": "Digər"
     }
   },
-
   "orders": {
     "title": "Sifarişlər və Əməliyyatlar",
     "loginRequired": "Giriş tələb olunur",
@@ -207,9 +199,12 @@
       "processing": "İşlənir",
       "cancelled": "Ləğv edildi",
       "pending": "Gözləyir"
-    }
+    },
+    "tabSales": "Satışlar",
+    "noSales": "Hələ satış yoxdur",
+    "noSalesSubtitle": "Elanlarınıza verilən sifarişlər burada görünəcək",
+    "order": "Sifariş"
   },
-
   "shop": {
     "loading": "Mağaza yüklənir...",
     "notFound": "Mağaza tapılmadı",
@@ -226,7 +221,6 @@
     "noProducts": "Hələ məhsul yoxdur",
     "noTitle": "Başlıq yoxdur"
   },
-
   "shops": {
     "title": "Mağazalara bax",
     "searchPlaceholder": "Mağaza axtar...",
@@ -237,7 +231,6 @@
     "next": "Növbəti",
     "page": "Səhifə {{current}} / {{total}}"
   },
-
   "orderDetail": {
     "confirmed": "Sifariş təsdiqləndi!",
     "orderId": "Sifariş ID: {{id}}",
@@ -277,9 +270,22 @@
       "delivered": "Çatdırıldı",
       "cancelled": "Ləğv edildi",
       "released": "Tamamlandı"
-    }
+    },
+    "actions": "Növbəti addım",
+    "confirmDelivery": "Məhsulu aldım",
+    "confirmDeliveryTitle": "Çatdırılma təsdiqlənsin?",
+    "confirmDeliveryPrompt": "Yalnız məhsulu aldıqdan sonra təsdiqləyin. Bundan sonra satıcıya ödəniş edilir.",
+    "confirmDeliveryDone": "Çatdırılma təsdiqləndi. Təşəkkür edirik!",
+    "confirm": "Təsdiqlə",
+    "cancel": "Ləğv et",
+    "markShipped": "Göndərildi kimi qeyd et",
+    "trackingPlaceholder": "İzləmə nömrəsi",
+    "trackingRequired": "Əvvəlcə izləmə nömrəsini daxil edin.",
+    "shippedDone": "Göndərildi kimi qeyd edildi. Alıcıya bildiriş göndərildi.",
+    "actionFailed": "Alınmadı. Yenidən cəhd edin.",
+    "awaitingShipment": "Satıcı sifarişinizi hazırlayır.",
+    "awaitingConfirmation": "Alıcının çatdırılmanı təsdiqləməsi gözlənilir."
   },
-
   "chat": {
     "title": "Mesajlar",
     "connecting": "Qoşulur...",
@@ -289,12 +295,10 @@
     "startFromListing": "Məhsul siyahısından söhbət başladın",
     "typeMessage": "Mesaj yazın"
   },
-
   "confirm": {
     "checkEmail": "{{email}} ünvanına təsdiq linki göndərdik.\nDavam etmək üçün e-poçtunuzu yoxlayın.",
     "confirmed": "E-poçt təsdiqləndi! Girişə yönləndirilirsiniz…"
   },
-
   "filters": {
     "title": "Filtrlər",
     "reset": "Sıfırla",

@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +16,8 @@ import { useFilters } from '../context/FilterContext';
 import { CATEGORIES, CONDITIONS } from '../constants/Categories';
 
 export default function FilterScreen() {
+  // Real status-bar / notch inset (Android full screen); iOS shows this as a sheet (inset 0) → min 12.
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
   const { filters, updateFilters, resetFilters } = useFilters();
@@ -45,7 +48,7 @@ export default function FilterScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) + 10 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Icon name="x" size={24} color="#FFFFFF" />
         </TouchableOpacity>
