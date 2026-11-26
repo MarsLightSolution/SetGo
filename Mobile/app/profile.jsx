@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
@@ -13,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import { useUnreadCount } from '../hooks/useNotificationQuery';
 
 export default function ProfileScreen() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
   const { user, logout, isAuthenticated } = useAuthStore();
@@ -49,7 +52,7 @@ const handleLogout = () => {
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <Text style={styles.headerTitle}>{t('profile.title')}</Text>
         </View>
 
@@ -71,7 +74,7 @@ const handleLogout = () => {
   // IF AUTHENTICATED
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.profileSection}>
           <View style={styles.avatar}>
             <Ionicons name="person" size={40} color="#008235" />

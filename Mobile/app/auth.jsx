@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../Store/authStore';
@@ -25,6 +26,8 @@ import { useTranslation } from 'react-i18next';
 const { width } = Dimensions.get('window');
 
 export default function AuthScreen() {
+  // Real status-bar / notch inset (Android full screen); iOS shows this as a sheet (inset 0) → min 12.
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
   const { login } = useAuthStore();
@@ -126,7 +129,7 @@ export default function AuthScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) + 10 }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>

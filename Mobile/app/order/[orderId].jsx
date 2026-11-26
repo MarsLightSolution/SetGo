@@ -1,7 +1,7 @@
 // app/order/[orderId].jsx
 // Shows the real payment state of an order: confirming (card payment waiting on the bank — the
 // query refetches until it settles), paid, declined, refunded or cancelled.
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,15 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useOrderDetail } from '../../hooks/useOrderQuery';
+import { useOrderDetail, useConfirmDelivery, useAddTracking } from '../../hooks/useOrderQuery';
+import { useAuthStore } from '../../Store/authStore';
 import { withErrorBoundary } from '../../Components/ErrorBoundary';
 
 const textOf = (v, lang) => {
@@ -47,6 +50,10 @@ function OrderDetails() {
   const { orderId } = useLocalSearchParams();
   const { t, i18n } = useTranslation();
   const { data: order, isLoading, isError, refetch, isRefetching } = useOrderDetail(orderId);
+  const me = useAuthStore((s) => String(s.user?._id || s.user?.userId || ''));
+  const confirmDelivery = useConfirmDelivery();
+  const addTracking = useAddTracking();
+  const [trackingInput, setTrackingInput] = useState('');
 
   if (isLoading) {
     return (
@@ -82,6 +89,46 @@ function OrderDetails() {
     order.trackingId && { label: t('orderDetail.trackingId'), value: order.trackingId },
   ].filter(Boolean);
 
+  // What the logged-in user can do next (backend enforces the same rules).
+  const paid = order.paymentStatus === 'completed';
+  const isBuyer = !!me && String(order.buyerId) === me;
+  const isSeller = !!me && String(order.sellerId) === me;
+  const canConfirm = isBuyer && paid && ['paid', 'shipped'].includes(order.status);
+  const canShip = isSeller && paid && order.status === 'paid';
+  const fail = (err) =>
+    Alert.alert(t('orderDetail.actionFailed'), err?.response?.data?.message || err?.message || '');
+
+  const onConfirmDelivery = () =>
+    Alert.alert(t('orderDetail.confirmDeliveryTitle'), t('orderDetail.confirmDeliveryPrompt'), [
+      { text: t('orderDetail.cancel'), style: 'cancel' },
+      {
+        text: t('orderDetail.confirm'),
+        onPress: () =>
+          confirmDelivery.mutate(
+            { orderId: order.id || orderId, buyerId: me },
+            { onSuccess: () => Alert.alert(t('orderDetail.confirmDeliveryDone')), onError: fail },
+          ),
+      },
+    ]);
+
+  const onMarkShipped = () => {
+    const trackingId = trackingInput.trim();
+    if (!trackingId) {
+      Alert.alert(t('orderDetail.trackingRequired'));
+      return;
+    }
+    addTracking.mutate(
+      { orderId: order.id || orderId, trackingId },
+      {
+        onSuccess: () => {
+          setTrackingInput('');
+          Alert.alert(t('orderDetail.shippedDone'));
+        },
+        onError: fail,
+      },
+    );
+  };
+
   const badge = (kind, value) => (
     <Text style={[styles.badge, { color: STATUS_COLORS[value] || '#374151' }]}>
       {t(`orderDetail.${kind}.${value}`, { defaultValue: value })}
@@ -92,6 +139,8 @@ function OrderDetails() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#16a34a" />}
       >
         <View style={styles.headerCard}>
@@ -122,12 +171,80 @@ function OrderDetails() {
             {badge('orderState', order.status)}
           </View>
         </View>
+
+        {(canConfirm || canShip || (paid && order.status === 'paid' && isBuyer) || (isSeller && order.status === 'shipped')) && (
+          <View style={styles.detailsCard}>
+            <Text style={styles.cardTitle}>{t('orderDetail.actions')}</Text>
+            {canShip && (
+              <>
+                <TextInput
+                  style={styles.input}
+                  value={trackingInput}
+                  onChangeText={setTrackingInput}
+                  placeholder={t('orderDetail.trackingPlaceholder')}
+                  placeholderTextColor="#9ca3af"
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  returnKeyType="done"
+                  onSubmitEditing={onMarkShipped}
+                />
+                <TouchableOpacity
+                  style={[styles.actionBtn, addTracking.isPending && styles.actionBtnBusy]}
+                  onPress={onMarkShipped}
+                  disabled={addTracking.isPending}
+                >
+                  {addTracking.isPending
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.actionText}>{t('orderDetail.markShipped')}</Text>}
+                </TouchableOpacity>
+              </>
+            )}
+            {isBuyer && order.status === 'paid' && (
+              <Text style={styles.hint}>{t('orderDetail.awaitingShipment')}</Text>
+            )}
+            {isSeller && order.status === 'shipped' && (
+              <Text style={styles.hint}>{t('orderDetail.awaitingConfirmation')}</Text>
+            )}
+            {canConfirm && (
+              <TouchableOpacity
+                style={[styles.actionBtn, confirmDelivery.isPending && styles.actionBtnBusy]}
+                onPress={onConfirmDelivery}
+                disabled={confirmDelivery.isPending}
+              >
+                {confirmDelivery.isPending
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.actionText}>{t('orderDetail.confirmDelivery')}</Text>}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#fff',
+    marginBottom: 12,
+  },
+  actionBtn: {
+    backgroundColor: '#16a34a',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  actionBtnBusy: { opacity: 0.7 },
+  actionText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  hint: { color: '#6b7280', fontSize: 14, marginBottom: 8 },
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',

@@ -8,6 +8,7 @@ import {
   Image,
   RefreshControl,
 } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../Store/authStore";
@@ -17,6 +18,8 @@ import { IMAGE_BASE_URL } from "../config/api";
 import { useTranslation } from "react-i18next";
 
 export default function WishlistScreen() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
@@ -42,7 +45,7 @@ export default function WishlistScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <Text style={styles.headerTitle}>{t('wishlist.title')}</Text>
         </View>
 
@@ -64,7 +67,7 @@ export default function WishlistScreen() {
   // MAIN WISHLIST
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.headerTitle}>{t('wishlist.title')}</Text>
         <Text style={styles.headerSubtitle}>{t('wishlist.itemsCount', { count: wishlistItems.length })}</Text>
       </View>

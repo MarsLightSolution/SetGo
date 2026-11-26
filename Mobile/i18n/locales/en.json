@@ -13,7 +13,6 @@
     "version": "Version 1.0.0",
     "and": "and"
   },
-
   "onboarding": {
     "chooseLanguage": "Choose your language",
     "slide1Title": "Buy & Sell Near You",
@@ -29,7 +28,6 @@
     "guestNote": "You can sign up later",
     "tagline": "Your local marketplace"
   },
-
   "tabs": {
     "home": "Home",
     "wishlist": "Wishlist",
@@ -37,7 +35,6 @@
     "orders": "Orders",
     "profile": "Profile"
   },
-
   "home": {
     "searchPlaceholder": "Search for products, services...",
     "featuredProducts": "Featured Products",
@@ -60,7 +57,6 @@
       "general": "General"
     }
   },
-
   "auth": {
     "loginTab": "Login",
     "signupTab": "Sign Up",
@@ -84,7 +80,6 @@
     "benefit2": "Connect with community",
     "benefit3": "Create & share content"
   },
-
   "wishlist": {
     "title": "My Wishlist",
     "itemsCount": "{{count}} items saved",
@@ -94,7 +89,6 @@
     "loginRequired": "Login Required",
     "loginMessage": "Please login to view and manage your wishlist"
   },
-
   "profile": {
     "title": "Profile",
     "welcomeTitle": "Welcome to SetGo",
@@ -111,7 +105,6 @@
     "logoutConfirmMessage": "Are you sure you want to logout?",
     "logoutConfirmYes": "Yes, Logout"
   },
-
   "post": {
     "title": "Post an Ad",
     "sectionAdDetails": "Ad Details",
@@ -182,7 +175,6 @@
       "other": "Other"
     }
   },
-
   "orders": {
     "title": "Orders & Transactions",
     "loginRequired": "Login Required",
@@ -207,9 +199,12 @@
       "processing": "Processing",
       "cancelled": "Cancelled",
       "pending": "Pending"
-    }
+    },
+    "tabSales": "Sales",
+    "noSales": "No sales yet",
+    "noSalesSubtitle": "Orders for your items will appear here",
+    "order": "Order"
   },
-
   "shop": {
     "loading": "Loading shop...",
     "notFound": "Shop not found",
@@ -226,7 +221,6 @@
     "noProducts": "No products yet",
     "noTitle": "No title"
   },
-
   "shops": {
     "title": "Browse Shops",
     "searchPlaceholder": "Search shops...",
@@ -237,7 +231,6 @@
     "next": "Next",
     "page": "Page {{current}} of {{total}}"
   },
-
   "orderDetail": {
     "confirmed": "Order Confirmed!",
     "orderId": "Order ID: {{id}}",
@@ -277,9 +270,22 @@
       "delivered": "Delivered",
       "cancelled": "Cancelled",
       "released": "Completed"
-    }
+    },
+    "actions": "Next step",
+    "confirmDelivery": "I received it",
+    "confirmDeliveryTitle": "Confirm delivery?",
+    "confirmDeliveryPrompt": "Only confirm once you have the item. The seller is then paid.",
+    "confirmDeliveryDone": "Delivery confirmed. Thank you!",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "markShipped": "Mark as shipped",
+    "trackingPlaceholder": "Tracking number",
+    "trackingRequired": "Enter the tracking number first.",
+    "shippedDone": "Marked as shipped. The buyer has been notified.",
+    "actionFailed": "That didn't work. Please try again.",
+    "awaitingShipment": "The seller is preparing your order.",
+    "awaitingConfirmation": "Waiting for the buyer to confirm delivery."
   },
-
   "chat": {
     "title": "Messages",
     "connecting": "Connecting...",
@@ -289,12 +295,10 @@
     "startFromListing": "Start a chat from a product listing",
     "typeMessage": "Type a message"
   },
-
   "confirm": {
     "checkEmail": "We've sent a confirmation link to {{email}}.\nPlease check your email to continue.",
     "confirmed": "Email confirmed! Redirecting to login…"
   },
-
   "filters": {
     "title": "Filters",
     "reset": "Reset",
