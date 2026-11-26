@@ -135,8 +135,10 @@ exports.confirmDelivery = async (req, res) => {
       });
     }
 
-    // Check order status
-    if (order.status !== "delivered" && order.status !== "paid") {
+    // Check order status. "shipped" is the normal case: the seller added a tracking ID and the
+    // buyer now confirms receipt (this used to be rejected, so shipped orders could never be
+    // confirmed and the seller's escrow was never released).
+    if (!["paid", "shipped", "delivered"].includes(order.status)) {
       logger.warn(`${endpoint}: Invalid order status`, {
         orderId,
         status: order.status,
