@@ -14,8 +14,25 @@
 
 import logger from '../utils/logger';
 
-// Base URL from env (e.g., http://192.168.1.3:8080)
-const BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.3:8080').replace(/\/$/, '');
+// Production API (same server the website uses). Production EAS builds set it via eas.json;
+// it is also the fallback outside development so a release build never points at a LAN IP.
+export const PRODUCTION_API_URL = 'https://api.satgo.az';
+const DEV_FALLBACK_URL = 'http://192.168.1.3:8080';
+const IS_DEV = typeof __DEV__ !== 'undefined' && __DEV__;
+
+// Builds on the production update channel only ever talk to an https API. Guards against an
+// `eas update` bundled on a dev machine whose .env points at a LAN backend.
+let UPDATE_CHANNEL = null;
+try {
+  UPDATE_CHANNEL = require('expo-updates').channel ?? null;
+} catch {
+  // expo-updates unavailable (e.g. web) — no channel
+}
+const fromEnv = (value) =>
+  value && !(UPDATE_CHANNEL === 'production' && !value.startsWith('https://')) ? value : null;
+
+// Base URL from env (e.g., http://192.168.1.3:8080 in development)
+const BASE_URL = (fromEnv(process.env.EXPO_PUBLIC_API_URL) || (IS_DEV ? DEV_FALLBACK_URL : PRODUCTION_API_URL)).replace(/\/$/, '');
 
 // API-prefixed URL for Express /api router routes
 const API_URL = `${BASE_URL}/api`;
@@ -24,7 +41,7 @@ const API_URL = `${BASE_URL}/api`;
 const IMAGE_BASE_URL = BASE_URL;
 
 // WebSocket URL — set EXPO_PUBLIC_SOCKET_URL in .env
-const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'http://192.168.1.3:8080';
+const SOCKET_URL = fromEnv(process.env.EXPO_PUBLIC_SOCKET_URL) || BASE_URL;
 
 // Validate in development
 if (!BASE_URL && typeof __DEV__ !== 'undefined' && __DEV__) {

@@ -390,7 +390,7 @@ export default function ShopProfileScreen() {
             {shop.contactPhone && (
               <TouchableOpacity
                 style={styles.contactItem}
-                onPress={() => Linking.openURL(`tel:${shop.contactPhone}`)}
+                onPress={() => Linking.openURL(`tel:${String(shop.contactPhone).replace(/[^\d+]/g, '')}`).catch(() => {})}
               >
                 <Icon name="phone" size={16} color="#6B7280" />
                 <Text style={[styles.contactText, styles.contactLink]}>
@@ -401,7 +401,7 @@ export default function ShopProfileScreen() {
             {shop.contactEmail && (
               <TouchableOpacity
                 style={styles.contactItem}
-                onPress={() => Linking.openURL(`mailto:${shop.contactEmail}`)}
+                onPress={() => Linking.openURL(`mailto:${encodeURIComponent(shop.contactEmail)}`).catch(() => {})}
               >
                 <Icon name="mail" size={16} color="#6B7280" />
                 <Text style={[styles.contactText, styles.contactLink]}>

@@ -30,7 +30,11 @@
       "extends": "base",
       "autoIncrement": true,
       "channel": "production",
-      "env": { "APP_ENV": "production" },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.satgo.az",
+        "EXPO_PUBLIC_SOCKET_URL": "https://api.satgo.az"
+      },
       "android": { "buildType": "app-bundle" }
     }
   },

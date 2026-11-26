@@ -23,7 +23,7 @@ export default function ConfirmPage() {
 
     const checkStatus = async () => {
       try {
-        const res = await fetch(`${API_ENDPOINTS.CHECK_STATUS}?email=${email}`);
+        const res = await fetch(`${API_ENDPOINTS.CHECK_STATUS}?email=${encodeURIComponent(email || "")}`);
         const data = await res.json();
 
         if (data.success && data.emailVerified) {

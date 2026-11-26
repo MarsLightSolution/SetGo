@@ -1,24 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from '../config/api';
 
 const STORAGE_KEY = 'setgo_remote_config';
-const HARDCODED_API_URL = 'http://192.168.1.3:8080';
 const HARDCODED_MIN_VERSION = '1.0.0';
 
 let _cached = null;
 
 /**
- * Returns the API base URL using a 3-level fallback:
- *   1. EXPO_PUBLIC_API_URL from build-time env
- *   2. Last-known URL stored in AsyncStorage (set by a successful remote fetch)
- *   3. Hardcoded production URL
+ * Returns the API base URL (see config/api.js: env, else LAN in dev / https production API).
  */
 export async function getApiBaseUrl() {
-  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
-
-  const stored = await _loadStored();
-  if (stored?.apiUrl) return stored.apiUrl;
-
-  return HARDCODED_API_URL;
+  // config/api.js already resolves env → (production-safe) fallback.
+  return BASE_URL;
 }
 
 /**
@@ -36,7 +29,7 @@ export async function getMinRequiredVersion() {
  */
 export async function fetchAndCacheRemoteConfig() {
   try {
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') || HARDCODED_API_URL;
+    const baseUrl = BASE_URL;
     const res = await fetch(`${baseUrl}/config/app`, { method: 'GET' });
     if (!res.ok) return;
     const data = await res.json();

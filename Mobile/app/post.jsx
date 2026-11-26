@@ -55,6 +55,7 @@ const showInfoToast = (message) => {
   });
 };
 import { getAuthToken, getUserId, getUserData } from "../services/secureAuthService";
+import { getFreshAuthToken } from "../services/api";
 import logger from "../utils/logger";
 import { API_ENDPOINTS } from "../config/api";
 
@@ -651,7 +652,8 @@ const Form = () => {
             submitData.append("pictures", file);
           } else {
             // For React Native, ensure proper URI format
-            const imageUri = pic.uri.startsWith('file://') ? pic.uri : `file://${pic.uri}`;
+            // Keep file:// and Android content:// URIs as-is; only bare paths need the scheme.
+            const imageUri = pic.uri.startsWith('/') ? `file://${pic.uri}` : pic.uri;
             submitData.append("pictures", {
               uri: imageUri,
               type: pic.type || 'image/jpeg',
@@ -671,14 +673,13 @@ const Form = () => {
       log.info("All images appended, getting auth token...");
       setSubmissionStatus("Uploading to server...");
 
-      // Get fresh token before submitting
-      const currentToken = authToken || await getAuthToken();
+      // Fresh token (refreshed if it expired while the form was open)
+      const currentToken = await getFreshAuthToken();
 
       // Headers for multipart/form-data - don't set Content-Type, let fetch handle it
       const headers = {};
       if (currentToken) {
         headers['Authorization'] = `Bearer ${currentToken}`;
-        log.info("Auth token present:", currentToken.substring(0, 20) + "...");
       } else {
         log.error("No auth token available!");
         showErrorToast("Please login again to post an ad");

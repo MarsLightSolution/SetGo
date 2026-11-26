@@ -29,21 +29,16 @@ const ProductLocationMap = React.memo(function ProductLocationMap({
   };
 
   const handleOpenInMaps = () => {
-    const label = title || 'Product Location';
+    // Encode the title: spaces, "&" or "#" in it otherwise produce an invalid URL.
+    const label = encodeURIComponent(title || 'Product Location');
     const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${latitude},${longitude}`,
+      // https Apple Maps link: always openable on iOS (no LSApplicationQueriesSchemes needed).
+      ios: `https://maps.apple.com/?ll=${latitude},${longitude}&q=${label}`,
       android: `geo:0,0?q=${latitude},${longitude}(${label})`,
     });
 
-    Linking.canOpenURL(url).then((supported) => {
-      if (supported) {
-        Linking.openURL(url);
-      } else {
-        Linking.openURL(
-          `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
-        );
-      }
-    });
+    const webFallback = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    Linking.openURL(url).catch(() => Linking.openURL(webFallback).catch(() => {}));
   };
 
   return (
@@ -51,7 +46,8 @@ const ProductLocationMap = React.memo(function ProductLocationMap({
       <View style={styles.mapWrapper}>
         <MapView
           style={styles.map}
-          provider={PROVIDER_GOOGLE}
+          // Google on Android; Apple Maps on iOS (Google on iOS needs its SDK + key in the build).
+          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
           initialRegion={region}
           scrollEnabled={false}
           zoomEnabled={false}

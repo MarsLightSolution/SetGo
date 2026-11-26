@@ -186,4 +186,18 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * A valid access token for requests that can't go through axios (multipart uploads via
+ * fetch): refreshes it first if it is expiring. Returns null when the session can't be renewed.
+ */
+export const getFreshAuthToken = async () => {
+  try {
+    return await getOrRefreshToken();
+  } catch (err) {
+    log.warn('Token refresh before upload failed:', err?.message);
+    signalSessionExpired();
+    return null;
+  }
+};
+
 export default api;
