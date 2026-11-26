@@ -11,6 +11,7 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -63,6 +64,8 @@ import logger from '../../utils/logger';
 const log = logger.create('Chatbot');
 
 function Chatbot() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const scrollViewRef = useRef(null);
@@ -384,7 +387,7 @@ function Chatbot() {
         colors={['#059669', '#16a34a', '#0d9488']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         {/* Decorative circles */}
         <View style={styles.decorativeCircle1} />
@@ -393,7 +396,7 @@ function Chatbot() {
 
         {/* Back button */}
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { top: insets.top + 10 }]}
           onPress={() => router.back()}
           activeOpacity={0.8}
         >

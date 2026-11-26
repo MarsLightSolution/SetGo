@@ -15,6 +15,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { IMAGE_BASE_URL } from '../config/api';
 import { useFilters } from '../context/FilterContext';
@@ -28,6 +29,8 @@ import { feedKeys } from '../hooks/useFeedQuery';
 import { withErrorBoundary } from '../Components/ErrorBoundary';
 
 function HomeScreen() {
+  // Real status-bar / notch / Dynamic Island inset on iOS and Android (edge-to-edge).
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -35,12 +38,18 @@ function HomeScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(1);
+
+  // New filters start again at page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
 
   // Query hooks — cached, auto-refresh in background
   const {
     data: feedData,
     isPending: loading,
-  } = useFeedProducts(filters);
+  } = useFeedProducts({ ...filters, page });
 
   const { data: galleryData } = useGalleryProducts();
   const { data: shops = [], isPending: shopsLoading, isError: shopsError } = useShops();
@@ -324,7 +333,7 @@ function HomeScreen() {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <View style={styles.headerTop}>
             <View style={styles.logo}>
               <View style={styles.logoCircle}>
@@ -467,7 +476,7 @@ function HomeScreen() {
               <View style={styles.pagination}>
                 <TouchableOpacity
                   disabled={!pagination.hasPrevPage}
-                  onPress={() => fetchProducts(pagination.currentPage - 1)}
+                  onPress={() => setPage(Math.max(1, pagination.currentPage - 1))}
                   style={[
                     styles.paginationButton,
                     !pagination.hasPrevPage && styles.paginationButtonDisabled,
@@ -494,7 +503,7 @@ function HomeScreen() {
 
                 <TouchableOpacity
                   disabled={!pagination.hasNextPage}
-                  onPress={() => fetchProducts(pagination.currentPage + 1)}
+                  onPress={() => setPage(pagination.currentPage + 1)}
                   style={[
                     styles.paginationButton,
                     !pagination.hasNextPage && styles.paginationButtonDisabled,
