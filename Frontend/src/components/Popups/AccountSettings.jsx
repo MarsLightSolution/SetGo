@@ -161,6 +161,10 @@ function AccountSettings() {
         userId: profile._id,
         password: emailPassword,
         newEmail: newEmail,
+      }, {
+        // Changing the email requires login (the server uses the logged-in user, not userId).
+        headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+        withCredentials: true,
       });
 
       if (res.status === 200) {

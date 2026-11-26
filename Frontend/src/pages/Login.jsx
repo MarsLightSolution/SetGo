@@ -47,7 +47,7 @@ const Login = () => {
         localStorage.setItem("userName", data.userName);
         const userRes = await fetch(
           `${import.meta.env.VITE_SERVER}/userdata/${data.userId}`,
-          { method: "GET" }
+          { method: "GET", headers: { Authorization: `Bearer ${data.accessToken}` }, credentials: "include" }
         );
 
         const userData = await userRes.json();
