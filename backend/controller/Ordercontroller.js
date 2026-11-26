@@ -15,6 +15,11 @@ const { emitToUser } = require('../utils/ioInstance');
 const Transaction = require("../models/transaction.model.js");
 const { notifyOrderPlaced } = require("../services/orderNotifications");
 
+// Identity always comes from the verified token (req.user), never from URL params.
+const isAdmin = (req) => req.user?.role === "admin";
+const sameId = (a, b) => a != null && b != null && String(a._id || a) === String(b._id || b);
+const forbidden = (res) => res.status(403).json({ success: false, error: "Not allowed to access this order" });
+
 const placeOrder = async (req, res) => {
   logger.debug('placeOrder called', { body: req.body });
   
@@ -87,6 +92,7 @@ const placeOrder = async (req, res) => {
 // ✅ Get all orders of a user
 const getUserOrders = async (req, res) => {
   try {
+    if (!sameId(req.params.userId, req.user._id) && !isAdmin(req)) return forbidden(res);
     const orders = await Order.find({ buyerId: req.params.userId })
       .populate("productId", "title price")
       .populate("sellerId", "username email")
@@ -107,6 +113,10 @@ const getOrderById = async (req, res) => {
 
     if (!order)
       return res.status(404).json({ success: false, error: "Order not found" });
+    // Only the buyer, the seller or an admin may see an order (it holds the buyer's address).
+    if (!sameId(order.buyerId, req.user._id) && !sameId(order.sellerId, req.user._id) && !isAdmin(req)) {
+      return forbidden(res);
+    }
 
     res.json({ success: true, data: order });
   } catch (err) {
@@ -116,6 +126,7 @@ const getOrderById = async (req, res) => {
 const getSellerOrders = async (req, res) => {
   try {
     const { sellerId } = req.params;
+    if (!sameId(sellerId, req.user._id) && !isAdmin(req)) return forbidden(res);
 
     const orders = await Order.find({ sellerId })
       .populate("productId")   // brings full product data
@@ -149,6 +160,10 @@ const uploadTrackingId = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    // Only this order's seller may mark it shipped.
+    if (!sameId(order.sellerId, req.user._id)) {
+      return res.status(403).json({ success: false, message: "Only the seller can upload tracking for this order" });
     }
 
     if (order.status !== "paid") {
