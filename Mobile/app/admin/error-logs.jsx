@@ -8,28 +8,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../../config/api';
-import { getAuthToken } from '../../services/secureAuthService';
+import api from '../../services/api';
 
 const logKeys = {
   list: (resolved) => ['admin', 'errorLogs', resolved],
 };
 
 async function fetchLogs(resolved) {
-  const token = await getAuthToken();
-  const url = `${API_ENDPOINTS.ERROR_LOG_LIST}?resolved=${resolved}&limit=50`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await res.json();
-  return data.data?.logs || [];
+  const { data } = await api.get(API_ENDPOINTS.ERROR_LOG_LIST, { params: { resolved, limit: 50 } });
+  return data?.data?.logs || [];
 }
 
 async function resolveLog(id) {
-  const token = await getAuthToken();
-  await fetch(API_ENDPOINTS.ERROR_LOG_RESOLVE(id), {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  await api.patch(API_ENDPOINTS.ERROR_LOG_RESOLVE(id));
 }
 
 const TYPE_COLOR = { boundary: '#EF4444', api: '#F59E0B', unknown: '#6B7280' };

@@ -10,15 +10,16 @@ import {
   Modal,
   StyleSheet,
   Dimensions,
-  SafeAreaView,
   StatusBar,
   Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { getAuthToken, getUserId, getUserData } from '../../services/secureAuthService';
+import { getUserId, getUserData } from '../../services/secureAuthService';
 import { useUserAds } from '../../hooks/useUserQuery';
 import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
+import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -29,43 +30,11 @@ const getImageUrl = (path) => {
 };
 
 // ==================== API SERVICE ====================
+// Through the shared api client: Bearer token with automatic refresh; errors carry err.response.status.
 const ApiService = {
-  getHeaders: async () => {
-    const token = await getAuthToken();
-    return {
-      Authorization: token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json',
-    };
-  },
-
-  toggleAdStatus: async (id) => {
-    const headers = await ApiService.getHeaders();
-    const res = await fetch(API_ENDPOINTS.MARK_SOLD(id), {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({}),
-    });
-    if (!res.ok) throw Object.assign(new Error('Failed'), { status: res.status });
-  },
-
-  boostAd: async (id) => {
-    const headers = await ApiService.getHeaders();
-    const res = await fetch(API_ENDPOINTS.UPDATE_PRIORITY(id), {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({}),
-    });
-    if (!res.ok) throw Object.assign(new Error('Failed'), { status: res.status });
-  },
-
-  deleteAd: async (id) => {
-    const headers = await ApiService.getHeaders();
-    const res = await fetch(API_ENDPOINTS.DELETE_PRODUCT(id), {
-      method: 'DELETE',
-      headers,
-    });
-    if (!res.ok) throw Object.assign(new Error('Failed'), { status: res.status });
-  },
+  toggleAdStatus: (id) => api.patch(API_ENDPOINTS.MARK_SOLD(id), {}),
+  boostAd: (id) => api.put(API_ENDPOINTS.UPDATE_PRIORITY(id), {}),
+  deleteAd: (id) => api.delete(API_ENDPOINTS.DELETE_PRODUCT(id)),
 };
 
 // ==================== UTILITY FUNCTIONS ====================

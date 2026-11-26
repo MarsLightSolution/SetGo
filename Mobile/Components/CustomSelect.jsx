@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, Modal, FlatList,
-  StyleSheet, SafeAreaView, StatusBar,
+  StyleSheet, StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
@@ -54,7 +55,7 @@ export default function CustomSelect({
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setOpen(false)} />
-        <SafeAreaView style={styles.sheet}>
+        <SafeAreaView style={styles.sheet} edges={['bottom']}>
           <StatusBar barStyle="dark-content" />
 
           {/* Header */}

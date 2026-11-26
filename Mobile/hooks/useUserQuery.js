@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../config/api';
-import { getAuthToken, getUserId } from '../services/secureAuthService';
+import api from '../services/api';
 
 // ==================== QUERY KEYS ====================
 
@@ -11,18 +11,13 @@ export const userQueryKeys = {
 // ==================== FETCHERS ====================
 
 const fetchUserAds = async (userId) => {
-  const token = await getAuthToken();
-  const response = await fetch(API_ENDPOINTS.USER_ADS(userId), {
-    method: 'GET',
-    headers: {
-      Authorization: token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json',
-    },
-  });
-  if (response.status === 401) throw Object.assign(new Error('Unauthorized'), { status: 401 });
-  if (!response.ok) throw new Error('Failed to fetch ads');
-  const data = await response.json();
-  return Array.isArray(data.data) ? data.data : [];
+  try {
+    const { data } = await api.get(API_ENDPOINTS.USER_ADS(userId));
+    return Array.isArray(data?.data) ? data.data : [];
+  } catch (err) {
+    const status = err.response?.status;
+    throw Object.assign(new Error(status === 401 ? 'Unauthorized' : 'Failed to fetch ads'), { status });
+  }
 };
 
 // ==================== HOOKS ====================
