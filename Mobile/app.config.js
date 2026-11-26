@@ -8,8 +8,17 @@ const hasGoogleServicesFile = fs.existsSync(path.resolve(__dirname, googleServic
 
 // Single source of truth for the EAS project id — used both for push
 // notifications (Constants.expoConfig.extra.eas.projectId) and for EAS
-// Update (updates.url below). Set EAS_PROJECT_ID in .env.
-const easProjectId = process.env.EAS_PROJECT_ID || 'your-project-id';
+// Update (updates.url below). EAS_PROJECT_ID in .env overrides it; the
+// fallback is the real id of the @adi_7389/satgo EAS project, so a missing or
+// malformed env value can never ship a non-UUID (Expo rejects those with
+// "projectId: Invalid uuid").
+const DEFAULT_EAS_PROJECT_ID = 'f8005958-a6b6-48b5-a5f6-c956b146eed0';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const envProjectId = (process.env.EAS_PROJECT_ID || '').trim();
+if (envProjectId && !UUID_RE.test(envProjectId)) {
+  console.warn(`[app.config] EAS_PROJECT_ID "${envProjectId}" is not a UUID; using ${DEFAULT_EAS_PROJECT_ID}`);
+}
+const easProjectId = UUID_RE.test(envProjectId) ? envProjectId : DEFAULT_EAS_PROJECT_ID;
 
 export default ({ config }) => {
   return {
