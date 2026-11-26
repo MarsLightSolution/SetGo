@@ -355,12 +355,26 @@ function ChatApp() {
     return () => listener.remove();
   }, []);
 
+  // Every chat REST call carries the login token: the backend identifies the user from it
+  // (sender, conversation membership), not from ids in the request.
+  const chatFetch = async (url, options = {}) => {
+    const token = await getAuthToken();
+    return fetch(url, {
+      ...options,
+      headers: { ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  };
+  // The other participant of the open conversation (so the server can notify them).
+  const recipientIdOf = (conversation) =>
+    conversation?.participants?.map((p) => String(p.userId?._id || p.userId))
+      .find((id) => id && id !== String(currentUser?.userId)) || undefined;
+
   // ── API: connect user ────────────────────────────────────────
   const connectUser = async (username, displayName) => {
     if (!username?.trim()) return;
     setIsConnecting(true);
     try {
-      const response = await fetch(API_ENDPOINTS.CHAT_CONNECT, {
+      const response = await chatFetch(API_ENDPOINTS.CHAT_CONNECT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, displayName: displayName || username }),
@@ -385,7 +399,7 @@ function ChatApp() {
 
   const loadAllUsers = async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.CHAT_USERS);
+      const response = await chatFetch(API_ENDPOINTS.CHAT_USERS);
       const data = await response.json();
       if (data.success) {
         setAllUsers(data.users);
@@ -399,7 +413,7 @@ function ChatApp() {
 
   const loadConversations = async (userId) => {
     try {
-      const response = await fetch(API_ENDPOINTS.CHAT_CONVERSATIONS(userId));
+      const response = await chatFetch(API_ENDPOINTS.CHAT_CONVERSATIONS(userId));
       const data = await response.json();
       if (data.success) {
         setConversations(data.conversations);
@@ -419,7 +433,7 @@ function ChatApp() {
     setIsLoadingMessages(true);
     setInitialLoad(true);
     try {
-      const response = await fetch(API_ENDPOINTS.CHAT_CREATE_CONVERSATION, {
+      const response = await chatFetch(API_ENDPOINTS.CHAT_CREATE_CONVERSATION, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participants: [currentUser.userId, otherUser.userId] }),
@@ -446,7 +460,7 @@ function ChatApp() {
         setMessages(conversationId, cached.map(m => ({ ...m, isOptimistic: false })));
       }
       // Fetch fresh
-      const response = await fetch(API_ENDPOINTS.CHAT_MESSAGES(conversationId));
+      const response = await chatFetch(API_ENDPOINTS.CHAT_MESSAGES(conversationId));
       const data = await response.json();
       if (data.success) {
         const formatted = data.messages.reverse().map((msg) => ({
@@ -488,7 +502,7 @@ function ChatApp() {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      const response = await fetch(API_ENDPOINTS.CHAT_SEND_MESSAGE, {
+      const response = await chatFetch(API_ENDPOINTS.CHAT_SEND_MESSAGE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -508,6 +522,7 @@ function ChatApp() {
           fileUrl: data.message.fileUrl,
           messageType: data.message.messageType,
           senderName: data.message.senderName,
+          recipientId: recipientIdOf(activeConversation),
           _id: data.message._id,
         });
         messageQueueRef.current.push(data.message._id);
@@ -555,18 +570,16 @@ function ChatApp() {
 
       const formData = new FormData();
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        uri, // keep file:// on both platforms — iOS can't read a bare path
         type: mimeType,
         name: filename,
       });
       formData.append('conversationId', activeConversation._id);
       formData.append('senderId', currentUser.userId);
 
-      const uploadToken = await getAuthToken();
-      const response = await fetch(API_ENDPOINTS.CHAT_UPLOAD, {
+      const response = await chatFetch(API_ENDPOINTS.CHAT_UPLOAD, {
         method: 'POST',
         body: formData,
-        headers: uploadToken ? { Authorization: `Bearer ${uploadToken}` } : {},
       });
       let data;
       try { data = JSON.parse(await response.text()); } catch { throw new Error('Invalid server response'); }
@@ -586,6 +599,7 @@ function ChatApp() {
           fileUrl: data.message.fileUrl,
           messageType: data.message.messageType,
           senderName: data.message.senderName,
+          recipientId: recipientIdOf(activeConversation),
           _id: data.message._id,
         });
         messageQueueRef.current.push(data.message._id);
