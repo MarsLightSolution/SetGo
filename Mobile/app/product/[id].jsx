@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -14,15 +13,17 @@ import {
   SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { like, unlike } from '../../Store/wishSlice';
 import { useAuthStore } from '../../Store/authStore';
+import { withErrorBoundary } from '../../Components/ErrorBoundary';
 import { Ionicons } from '@expo/vector-icons';
 import SkeletonLoader from '../../Components/SkeletonLoader';
 import PaymentDialog from '../../Components/PaymentDialog';
 import logger from '../../utils/logger';
-import { getAuthToken } from '../../services/secureAuthService';
+import api from '../../services/api';
 import { useProductDetail, useRelatedProducts, useInvalidateShop } from '../../hooks/useProductQuery';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { enqueue, flush } from '../../services/mutationQueue';
@@ -42,15 +43,17 @@ const getLocalizedText = (field, lang = 'en') => {
   return field[lang] || field.en || '';
 };
 
-// Memoized Image Component
+// Memoized Image Component — expo-image gives disk caching (RN's Image only
+// caches in memory per-session), so repeat visits to a product load instantly
+// and use less data instead of re-downloading every photo each time.
 const ProductImage = React.memo(function ProductImage({ uri, style, resizeMode }) {
   return (
     <Image
       source={{ uri }}
       style={style}
-      resizeMode={resizeMode}
-      progressiveRenderingEnabled
-      fadeDuration={200}
+      contentFit={resizeMode}
+      transition={200}
+      cachePolicy="disk"
     />
   );
 });
@@ -102,7 +105,8 @@ const ThumbnailGallery = React.memo(function ThumbnailGallery({ pictures, curren
           <Image
             source={{ uri: `${IMAGE_BASE_URL}/${pic.replace(/\\/g, '/')}` }}
             style={styles.thumbnailImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="disk"
           />
         </TouchableOpacity>
       ))}
@@ -110,7 +114,7 @@ const ThumbnailGallery = React.memo(function ThumbnailGallery({ pictures, curren
   );
 });
 
-export default function ProductDetail() {
+function ProductDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const dispatch = useDispatch();
@@ -138,17 +142,10 @@ export default function ProductDetail() {
   // Flush queued follow mutations when connection is restored
   useEffect(() => {
     if (!wasOffline || !user) return;
-    const token_ref = { value: null };
-    getAuthToken().then((t) => { token_ref.value = t; });
 
     flush({
       SHOP_FOLLOW_TOGGLE: async ({ shopId }) => {
-        const token = token_ref.value || await getAuthToken();
-        const res = await fetch(API_ENDPOINTS.FOLLOW_SHOP(shopId), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error('Flush failed');
+        await api.post(API_ENDPOINTS.FOLLOW_SHOP(shopId));
         invalidateShop(shopId);
       },
     });
@@ -206,8 +203,7 @@ export default function ProductDetail() {
 
   const checkFollowStatus = useCallback(async (followerId, followingId) => {
     try {
-      const res = await fetch(API_ENDPOINTS.CHECK_FOLLOW(followerId, followingId));
-      const data = await res.json();
+      const { data } = await api.get(API_ENDPOINTS.CHECK_FOLLOW(followerId, followingId));
       setIsFollowing(data?.isFollowing || false);
     } catch (err) {
       logger.error('Error checking follow status', err);
@@ -219,16 +215,9 @@ export default function ProductDetail() {
     if (!user?._id) return;
 
     try {
-      const res = await fetch(API_ENDPOINTS.USER_DATA(user._id), {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.user) {
-          updateUser?.(data.user);
-        }
+      const { data } = await api.get(API_ENDPOINTS.USER_DATA(user._id));
+      if (data.success && data.user) {
+        updateUser?.(data.user);
       }
     } catch (err) {
       logger.error('Failed to refresh user data:', err);
@@ -351,16 +340,10 @@ export default function ProductDetail() {
     }
 
     try {
-      const res = await fetch(API_ENDPOINTS.CHAT_GET_OR_CREATE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderId: user._id,
-          receiverId: productOwnerId,
-        }),
+      const { data } = await api.post(API_ENDPOINTS.CHAT_GET_OR_CREATE, {
+        senderId: user._id,
+        receiverId: productOwnerId,
       });
-
-      const data = await res.json();
 
       if (!data.success) {
         Alert.alert('Error', data.message || 'Failed to start conversation');
@@ -369,18 +352,14 @@ export default function ProductDetail() {
 
       const conversationId = data.conversation._id;
 
-      await fetch(API_ENDPOINTS.CHAT_SEND_MESSAGE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId,
-          senderId: user._id,
-          text: `Hi! I'm interested in your product: ${getLocalizedText(product.title)}`,
-        }),
+      await api.post(API_ENDPOINTS.CHAT_SEND_MESSAGE, {
+        conversationId,
+        senderId: user._id,
+        text: `Hi! I'm interested in your product: ${getLocalizedText(product.title)}`,
       });
 
       router.push({
-        pathname: '/chat',
+        pathname: '/Chat/chat',
         params: {
           conversationId,
           receiverUsername: product.owner?.username || productOwnerId
@@ -417,18 +396,9 @@ export default function ProductDetail() {
           return;
         }
 
-        const token = await getAuthToken();
-        const res = await fetch(API_ENDPOINTS.FOLLOW_SHOP(product.shop._id), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        const { data: result } = await api.post(API_ENDPOINTS.FOLLOW_SHOP(product.shop._id));
 
-        const result = await res.json();
-
-        if (res.ok && result.success !== false) {
+        if (result.success !== false) {
           setIsFollowing(result.isFollowing);
           invalidateShop(product.shop._id);
           Alert.alert('Success', result.isFollowing ? 'Followed successfully' : 'Unfollowed successfully');
@@ -440,15 +410,9 @@ export default function ProductDetail() {
           ? API_ENDPOINTS.UNFOLLOW(ownerId)
           : API_ENDPOINTS.FOLLOW(ownerId);
 
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ followerId: user._id }),
-        });
+        const { data: result } = await api.post(endpoint, { followerId: user._id });
 
-        const result = await res.json();
-
-        if (res.ok && result.success !== false) {
+        if (result.success !== false) {
           await checkFollowStatus(user._id, ownerId);
           Alert.alert('Success', isFollowing ? 'Unfollowed successfully' : 'Followed successfully');
         } else {
@@ -732,7 +696,8 @@ export default function ProductDetail() {
                 <Image
                   source={{ uri: `${IMAGE_BASE_URL}${product.shop.logo}` }}
                   style={styles.avatarImage}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="disk"
                 />
               ) : (
                 <Text style={styles.avatarText}>
@@ -1253,3 +1218,5 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
 });
+
+export default withErrorBoundary(ProductDetail);

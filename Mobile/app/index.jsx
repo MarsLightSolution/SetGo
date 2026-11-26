@@ -25,8 +25,9 @@ import logger from '../utils/logger';
 import { useFeedProducts, useGalleryProducts, useShops } from '../hooks/useFeedQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { feedKeys } from '../hooks/useFeedQuery';
+import { withErrorBoundary } from '../Components/ErrorBoundary';
 
-export default function HomeScreen() {
+function HomeScreen() {
   const router = useRouter();
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -1047,3 +1048,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
 });
+export default withErrorBoundary(HomeScreen);

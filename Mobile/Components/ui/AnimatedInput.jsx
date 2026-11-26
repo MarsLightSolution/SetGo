@@ -51,7 +51,7 @@ export function AnimatedInput({
 
   const borderColor = borderAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: error ? ["#FCA5A5", "#EF4444"] : ["#E5E7EB", "#10B981"],
+    outputRange: error ? ["#FCA5A5", "#EF4444"] : ["#E5E7EB", "#008235"],
   });
 
   return (
@@ -68,7 +68,7 @@ export function AnimatedInput({
           <Feather
             name={icon}
             size={20}
-            color={focused ? "#10B981" : "#9CA3AF"}
+            color={focused ? "#008235" : "#9CA3AF"}
             style={styles.inputIcon}
           />
         )}

@@ -12,8 +12,9 @@ import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useOrderDetail } from '../../hooks/useOrderQuery';
+import { withErrorBoundary } from '../../Components/ErrorBoundary';
 
-export default function OrderDetails() {
+function OrderDetails() {
   const { orderId } = useLocalSearchParams();
   const { t } = useTranslation();
   const { data: order, isLoading } = useOrderDetail(orderId);
@@ -123,3 +124,4 @@ const styles = StyleSheet.create({
     color: '#16a34a',
   },
 });
+export default withErrorBoundary(OrderDetails);

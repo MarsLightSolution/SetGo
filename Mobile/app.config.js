@@ -1,5 +1,24 @@
 // app.config.js
 import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+
+const googleServicesPath = './google-services.json';
+const hasGoogleServicesFile = fs.existsSync(path.resolve(__dirname, googleServicesPath));
+
+// Single source of truth for the EAS project id — used both for push
+// notifications (Constants.expoConfig.extra.eas.projectId) and for EAS
+// Update (updates.url below). EAS_PROJECT_ID in .env overrides it; the
+// fallback is the real id of the @adi_7389/satgo EAS project, so a missing or
+// malformed env value can never ship a non-UUID (Expo rejects those with
+// "projectId: Invalid uuid").
+const DEFAULT_EAS_PROJECT_ID = 'f8005958-a6b6-48b5-a5f6-c956b146eed0';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const envProjectId = (process.env.EAS_PROJECT_ID || '').trim();
+if (envProjectId && !UUID_RE.test(envProjectId)) {
+  console.warn(`[app.config] EAS_PROJECT_ID "${envProjectId}" is not a UUID; using ${DEFAULT_EAS_PROJECT_ID}`);
+}
+const easProjectId = UUID_RE.test(envProjectId) ? envProjectId : DEFAULT_EAS_PROJECT_ID;
 
 export default ({ config }) => {
   return {
@@ -17,6 +36,14 @@ export default ({ config }) => {
 
     updates: {
       fallbackToCacheTimeout: 0,
+      url: `https://u.expo.dev/${easProjectId}`,
+    },
+
+    // OTA updates only apply to builds sharing this native version — bump it
+    // (and do a fresh `eas build`) whenever a change needs new native code.
+    // Pure-JS fixes can then ship via `eas update` without a store review.
+    runtimeVersion: {
+      policy: 'appVersion',
     },
 
     assetBundlePatterns: ['**/*'],
@@ -64,10 +91,15 @@ export default ({ config }) => {
         'INTERNET',
         'ACCESS_NETWORK_STATE',
       ],
-      // Always allow cleartext traffic (HTTP) for development and production
-      usesCleartextTraffic: true,
-      // Network security configuration
-      networkSecurityConfig: './network_security_config.xml',
+      // NOTE: cleartext traffic is controlled below via the expo-build-properties
+      // plugin (android.usesCleartextTraffic), not here — neither this field nor
+      // networkSecurityConfig is part of Expo's actual config schema at this
+      // level, so having them here did nothing but fail `expo-doctor`'s schema
+      // check. (network_security_config.xml itself was never wired into a real
+      // Android build either — no config-plugin reads that key.)
+      // Required for FCM/Android push. Add Mobile/google-services.json (from Firebase
+      // console, Android app package must match `package` above) to enable this.
+      ...(hasGoogleServicesFile ? { googleServicesFile: googleServicesPath } : {}),
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -103,17 +135,26 @@ export default ({ config }) => {
       'expo-router',
       'expo-font',
       'expo-web-browser',
-      // NOTE: expo-notifications plugin removed — not compatible with Expo Go SDK 53+
-      // For development builds or production EAS builds, configure separately
+      // Only affects dev-client/production native builds, not Expo Go (which can't
+      // apply custom native config regardless), so it's safe to keep enabled.
+      [
+        'expo-notifications',
+        {
+          color: '#008235',
+        },
+      ],
     ],
 
     // Environment variables and extra config
+    //
+    // Note: there's no `apiUrl` here on purpose — config/api.js is the single
+    // source of truth for that (reads EXPO_PUBLIC_API_URL directly), so a
+    // second hardcoded fallback here would just drift out of sync with it.
     extra: {
-      apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://10.219.164.234:8080',
       environment: process.env.NODE_ENV || 'development',
 
       eas: {
-        projectId: process.env.EAS_PROJECT_ID || 'your-project-id',
+        projectId: easProjectId,
       },
     },
   };

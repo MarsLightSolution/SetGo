@@ -19,7 +19,14 @@ import { fetchAndCacheRemoteConfig, getMinRequiredVersion } from '../services/re
 import { registerPushToken, onForegroundNotification, onNotificationResponse } from '../services/pushNotifications';
 import { useNotificationSocket } from '../hooks/useNotificationQuery';
 import Constants from 'expo-constants';
+import { setupGlobalErrorHandlers } from '../utils/globalErrorHandlers';
+import { captureException } from '../services/errorReporter';
 import '../i18n';
+
+// Installed once, at module scope, before anything renders — catches errors
+// React's <ErrorBoundary> can't see (event handlers, timers, unhandled
+// promise rejections). See utils/globalErrorHandlers.js.
+setupGlobalErrorHandlers();
 
 function _isVersionLower(current, minimum) {
   const parse = (v) => v.split('.').map(Number);
@@ -91,7 +98,15 @@ function AppContent() {
     const removeFg = onForegroundNotification(() => {});
     const removeTap = onNotificationResponse((response) => {
       const data = response.notification.request.content.data;
-      if (data?.route) router.push(data.route);
+      if (!data?.route) return;
+      try {
+        router.push(data.route);
+      } catch (err) {
+        // Stale/malformed notification payload (e.g. route renamed since
+        // the notification was sent) — fall back instead of crashing.
+        captureException(err, { type: 'deeplink', extra: { route: data.route } });
+        router.push('/notifications');
+      }
     });
     return () => { removeFg(); removeTap(); };
   }, [appReady, isAuthenticated]);

@@ -12,7 +12,6 @@ import {
   Platform,
   Switch,
   Modal,
-  StatusBar,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -819,7 +818,7 @@ const Form = () => {
         showsVerticalScrollIndicator={false}
       >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Icon name="arrow-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -1295,7 +1294,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 50,
+    paddingTop: 10,
     paddingHorizontal: 16,
     paddingBottom: 16,
   },

@@ -2,7 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { API_ENDPOINTS, SOCKET_URL } from '../config/api';
 import { getAuthToken } from '../services/secureAuthService';
+import { captureException } from '../services/errorReporter';
+import logger from '../utils/logger';
 import io from 'socket.io-client';
+
+const log = logger.create('NotificationSocket');
 
 const notifKeys = {
   list: () => ['notifications', 'list'],
@@ -44,6 +48,14 @@ export function useNotificationSocket(enabled = true) {
       socket.on('notification', () => {
         qc.invalidateQueries({ queryKey: notifKeys.list() });
         qc.invalidateQueries({ queryKey: notifKeys.unread() });
+      });
+      socket.on('connect_error', (err) => {
+        log.warn('Socket connect_error:', err?.message);
+        captureException(err, { type: 'socket', module: 'Notifications', extra: { event: 'connect_error' } });
+      });
+      socket.on('error', (err) => {
+        log.warn('Socket error:', err?.message);
+        captureException(err, { type: 'socket', module: 'Notifications', extra: { event: 'error' } });
       });
     });
     return () => socket?.disconnect();

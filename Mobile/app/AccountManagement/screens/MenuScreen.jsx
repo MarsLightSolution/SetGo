@@ -33,7 +33,7 @@ export const MenuScreen = ({ formData, navigateTo }) => (
             {formData.username?.charAt(0)?.toUpperCase() || "U"}
           </Text>
           <View style={styles.onlineBadge}>
-            <PulseIcon size={3} color="#10B981" />
+            <PulseIcon size={3} color="#008235" />
           </View>
         </View>
         <View>

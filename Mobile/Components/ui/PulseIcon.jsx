@@ -8,9 +8,9 @@ import { Animated, Easing } from 'react-native';
  * Extracted from app/AccountManagement/Accountsetting.jsx for reusability.
  *
  * @param {number} size - Base size multiplier (default: 6, actual size = size * 4)
- * @param {string} color - Background color (default: "#10B981")
+ * @param {string} color - Background color (default: "#008235")
  */
-export function PulseIcon({ size = 6, color = "#10B981" }) {
+export function PulseIcon({ size = 6, color = "#008235" }) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {

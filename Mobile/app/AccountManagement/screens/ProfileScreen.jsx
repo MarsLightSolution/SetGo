@@ -87,8 +87,8 @@ export const ProfileScreen = ({ formData, setModalOpen, setTempUsername, goBack 
               ? `${formData.deliveryAddress.street} ${formData.deliveryAddress.houseNumber}, ${formData.deliveryAddress.location}`
               : "Not set"
           }
-          iconColor="#10B981"
-          iconBg="#ECFDF5"
+          iconColor="#008235"
+          iconBg="#DCFCE7"
           onPress={() => setModalOpen("address")}
         />
       </AnimatedCard>

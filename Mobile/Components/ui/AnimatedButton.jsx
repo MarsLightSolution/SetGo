@@ -48,7 +48,7 @@ export function AnimatedButton({ title, onPress, loading, variant = "primary", s
         activeOpacity={0.9}
       >
         {loading ? (
-          <ActivityIndicator color={variant === "primary" ? "#fff" : "#10B981"} />
+          <ActivityIndicator color={variant === "primary" ? "#fff" : "#008235"} />
         ) : (
           <Text style={[
             styles.buttonText,
@@ -72,12 +72,12 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   buttonPrimary: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#008235',
   },
   buttonSecondary: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: '#10B981',
+    borderColor: '#008235',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -90,6 +90,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   buttonTextSecondary: {
-    color: '#10B981',
+    color: '#008235',
   },
 });

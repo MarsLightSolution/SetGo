@@ -6,7 +6,6 @@ import {
   Alert,
   Animated,
   Dimensions,
-  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -17,12 +16,39 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import logger from '../utils/logger';
-import { getUserId } from '../services/secureAuthService';
+import api from '../services/api';
+import CardPaymentWebView from './CardPaymentWebView';
+import { API_ENDPOINTS } from '../config/api';
 
 const { width: _width } = Dimensions.get('window'); // Prefixed with _ since not currently used
 
-import { API_ENDPOINTS } from '../config/api';
+const PENDING_PAYMENT_KEY = 'pendingPayment';
+const POLL_INTERVAL_MS = 2500;
+const POLL_TIMEOUT_MS = 60 * 1000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Azerbaijan postal codes: 4 digits (same rule as the web checkout).
+const POSTAL_RE = /^\d{4}$/;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Pull a readable message out of an axios error / backend error body.
+const errorMessageFrom = (err, fallback) => {
+  const status = err?.response?.status;
+  if (status === 401) return 'Session expired. Please log in again.';
+  return err?.response?.data?.message || (err?.response ? fallback : 'Network error. Please check your connection.');
+};
+
+const validateDetails = (d) => {
+  const errors = {};
+  if (!d.name.trim()) errors.name = 'Full name is required';
+  if (!EMAIL_RE.test(d.email.trim())) errors.email = 'Enter a valid email';
+  if (!d.address.trim()) errors.address = 'Address is required';
+  if (!d.city.trim()) errors.city = 'City is required';
+  if (!POSTAL_RE.test(d.pincode.trim())) errors.pincode = 'Postal code must be 4 digits';
+  return errors;
+};
 
 // Helper function to get text from multilingual object
 const getTextValue = (textObj, fallback = '') => {
@@ -53,12 +79,39 @@ const PaymentDialog = ({
   onPaymentSuccess,
 }) => {
   const router = useRouter();
+  const { i18n } = useTranslation();
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [customAmount, setCustomAmount] = useState(''); // Custom wallet amount
-  const [status, setStatus] = useState('READY'); // READY, LOADING, SUCCESS, FAILURE
+  // READY, LOADING, BANK (card page open), CONFIRMING (waiting for bank), PENDING, SUCCESS, FAILURE
+  const [status, setStatus] = useState('READY');
   const [errorMessage, setErrorMessage] = useState('');
   const [loadingWallet, setLoadingWallet] = useState(false);
+  const [details, setDetails] = useState({ name: '', email: '', address: '', city: '', pincode: '' });
+  const [detailErrors, setDetailErrors] = useState({});
+  const [gateway, setGateway] = useState(null);
+  const [cardOrderId, setCardOrderId] = useState(null);
+  const pollCancelledRef = useRef(false);
+
+  // Prefill checkout details from the profile whenever the dialog opens.
+  useEffect(() => {
+    if (!isVisible || !user) return;
+    setDetails({
+      name: user.fullName || user.name || user.userName || '',
+      email: user.email || '',
+      address: user.address || '',
+      city: user.city || '',
+      pincode: String(user.postalCode || user.zipCode || ''),
+    });
+    setDetailErrors({});
+  }, [isVisible, user]);
+
+  useEffect(() => () => { pollCancelledRef.current = true; }, []);
+
+  const updateDetail = (field, value) => {
+    setDetails((d) => ({ ...d, [field]: value }));
+    if (detailErrors[field]) setDetailErrors((e) => ({ ...e, [field]: undefined }));
+  };
 
   // Animation values
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -99,26 +152,8 @@ const PaymentDialog = ({
     setLoadingWallet(true);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-      const res = await fetch(API_ENDPOINTS.USER_WALLET(user.userId), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      logger.log('Wallet response:', data);
+      // Shared client: sends the Bearer token and refreshes it if needed.
+      const { data } = await api.get(API_ENDPOINTS.USER_WALLET(user.userId), { timeout: 8000 });
 
       // Extract wallet balance from response
       const balance =
@@ -176,20 +211,15 @@ const PaymentDialog = ({
     setCustomAmount(amount);
   };
 
-  const handleClose = useCallback(() => {
-    if (status === 'LOADING') {
-      Alert.alert(
-        'Payment in Progress',
-        'Please wait while we process your payment.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
+  // Resets and closes without checking status (used after success / from the pending screen).
+  const closeDialog = useCallback(() => {
+    pollCancelledRef.current = true;
     setStatus('READY');
     setUseWallet(false);
     setCustomAmount('');
     setErrorMessage('');
+    setGateway(null);
+    setCardOrderId(null);
 
     Animated.timing(fadeAnim, {
       toValue: 0,
@@ -199,137 +229,134 @@ const PaymentDialog = ({
       fadeAnim.setValue(1);
       onClose();
     });
-  }, [status, onClose, fadeAnim]);
+  }, [onClose, fadeAnim]);
+
+  const handleClose = useCallback(() => {
+    if (status === 'LOADING' || status === 'CONFIRMING') {
+      Alert.alert(
+        'Payment in Progress',
+        'Please wait while we confirm your payment.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    closeDialog();
+  }, [status, closeDialog]);
+
+  const finishSuccess = useCallback((orderId) => {
+    AsyncStorage.removeItem(PENDING_PAYMENT_KEY).catch(() => {});
+    setStatus('SUCCESS');
+    onPaymentSuccess?.(price);
+    setTimeout(() => {
+      closeDialog();
+      if (orderId) router.push({ pathname: `/order/${orderId}` });
+    }, 2300);
+  }, [onPaymentSuccess, price, closeDialog, router]);
 
   /**
-   * UNIFIED PAYMENT PROCESSING
-   * Uses the new /api/payments/initiate endpoint
-   * Backend handles: product lookup, price validation, wallet deduction, payment processing
+   * After the bank page closes, ask the backend what the bank said. Only the bank's signed
+   * callback changes the order, so this just waits for paymentStatus to leave "processing".
+   */
+  const pollCardOrder = useCallback(async (orderId) => {
+    pollCancelledRef.current = false;
+    setStatus('CONFIRMING');
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+
+    while (!pollCancelledRef.current && Date.now() < deadline) {
+      try {
+        const { data } = await api.get(API_ENDPOINTS.PAYMENT_ORDER(orderId), { timeout: 10000 });
+        const order = data?.data?.order;
+        if (order?.paymentStatus === 'completed') {
+          finishSuccess(orderId);
+          return;
+        }
+        if (order?.paymentStatus === 'failed') {
+          AsyncStorage.removeItem(PENDING_PAYMENT_KEY).catch(() => {});
+          setStatus('FAILURE');
+          setErrorMessage('The bank did not approve this payment. You were not charged; any wallet amount was returned.');
+          fetchWalletBalance(0);
+          return;
+        }
+      } catch (err) {
+        logger.warn('Order status check failed:', err?.message);
+      }
+      await sleep(POLL_INTERVAL_MS);
+    }
+    if (!pollCancelledRef.current) setStatus('PENDING');
+  }, [finishSuccess, fetchWalletBalance]);
+
+  /**
+   * POST /api/payments/initiate
+   *  - wallet covers everything → order is paid immediately
+   *  - otherwise → backend returns a signed Azericard form; we open it in a WebView
+   * The buyer is always the logged-in user (from the Bearer token).
    */
   const processPayment = async () => {
-    setStatus('LOADING');
-    setErrorMessage('');
-
-    // Get userId from secure storage
-    const storedUserId = await getUserId();
-    const buyerId = storedUserId || user?.userId;
-
-    if (!buyerId) {
-      setStatus('FAILURE');
-      setErrorMessage('Authentication required. Please log in again.');
+    const errors = validateDetails(details);
+    if (Object.keys(errors).length) {
+      setDetailErrors(errors);
       return;
     }
 
-    // Minimal payload - backend fetches product details and validates
+    setStatus('LOADING');
+    setErrorMessage('');
+
     const payload = {
-      buyerId: buyerId,
       productId: product._id,
-      walletUsed: useWallet,
-      walletAmount: walletAmountToUse,
-      checkoutDetails: {
-        name: user.fullName || user.name || user.userName || 'N/A',
-        email: user.email || 'N/A',
-        city: user.city || 'Not specified',
-        address: user.address || 'Not specified',
-        pincode: user.postalCode || user.zipCode || 'Not specified',
-      },
+      walletDeduction: Math.round(walletAmountToUse * 100) / 100,
+      lang: (i18n?.language || 'az').slice(0, 2),
+      checkoutDetails: Object.fromEntries(Object.entries(details).map(([k, v]) => [k, v.trim()])),
     };
 
-    logger.log('Payment payload:', payload);
-
     try {
-      const res = await fetch(API_ENDPOINTS.PAYMENT_INITIATE, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const { data } = await api.post(API_ENDPOINTS.PAYMENT_INITIATE, payload);
+      const orderId = data?.data?.orderId;
 
-      const data = await res.json().catch(() => ({}));
-      logger.log('Payment response:', data);
-
-      // Handle unauthorized/authentication errors
-      if (res.status === 401 || res.status === 403) {
-        setStatus('FAILURE');
-        setErrorMessage('Session expired. Please log in again.');
+      if (data?.success && data.completed) {
+        logger.log('Wallet payment completed');
+        finishSuccess(orderId);
         return;
       }
 
-      if (data.success === true) {
-        // If payment completed without redirect (wallet-only payment)
-        if (data.completed === true) {
-          logger.log('Payment completed successfully');
-          setStatus('SUCCESS');
-
-          // Notify parent component
-          onPaymentSuccess?.(price);
-
-          // Navigate to order page
-          setTimeout(() => {
-            handleClose();
-            if (data.orderId) {
-              router.push({
-                pathname: `/order/${data.orderId}`,
-              });
-            }
-          }, 2300);
+      const gw = data?.data?.gateway;
+      if (data?.success && gw?.url && gw?.fields && orderId) {
+        try {
+          await AsyncStorage.setItem(PENDING_PAYMENT_KEY, JSON.stringify({ orderId, timestamp: Date.now() }));
+        } catch (e) {
+          logger.warn('Failed to store pending payment:', e);
         }
-        // If payment requires redirect (online payment or wallet + online)
-        else if (data.url) {
-          // Store pending payment info
-          try {
-            await AsyncStorage.setItem('pendingPayment', JSON.stringify({
-              orderId: data.orderId,
-              transactionId: data.transactionId,
-              timestamp: Date.now(),
-            }));
-          } catch (e) {
-            logger.warn('Failed to store pending payment:', e);
-          }
-
-          // Open payment URL
-          Alert.alert(
-            'Complete Payment',
-            'You will be redirected to complete your payment securely.',
-            [
-              {
-                text: 'Cancel',
-                onPress: () => {
-                  setStatus('READY');
-                },
-                style: 'cancel',
-              },
-              {
-                text: 'Continue',
-                onPress: () => {
-                  Linking.openURL(data.url).catch(err => {
-                    logger.error('Failed to open payment URL:', err);
-                    setStatus('FAILURE');
-                    setErrorMessage('Failed to open payment page. Please try again.');
-                  });
-                },
-              },
-            ],
-            { cancelable: false }
-          );
-        } else {
-          setStatus('FAILURE');
-          setErrorMessage('Invalid payment response. Please try again.');
-        }
-      } else {
-        setStatus('FAILURE');
-        setErrorMessage(data.message || 'Payment failed. Please try again.');
+        setCardOrderId(orderId);
+        setGateway(gw);
+        setStatus('BANK');
+        return;
       }
-    } catch (err) {
-      logger.error('Payment error:', err);
+
       setStatus('FAILURE');
-      setErrorMessage('Network error. Please check your connection.');
+      setErrorMessage(data?.message || 'Invalid payment response. Please try again.');
+    } catch (err) {
+      logger.error('Payment error:', err?.response?.data || err?.message);
+      setStatus('FAILURE');
+      setErrorMessage(errorMessageFrom(err, 'Payment failed. Please try again.'));
     }
   };
 
+  // Bank page finished (returned to our result URL) or the buyer closed it: either way, check.
+  const handleBankDone = useCallback(() => {
+    setGateway(null);
+    if (cardOrderId) pollCardOrder(cardOrderId);
+  }, [cardOrderId, pollCardOrder]);
+
+  const handleViewPendingOrder = () => {
+    const id = cardOrderId;
+    closeDialog();
+    if (id) router.push({ pathname: `/order/${id}` });
+  };
+
   const handlePay = async () => {
+    if (status === 'PENDING') {
+      handleViewPendingOrder();
+      return;
+    }
     if (status === 'FAILURE') {
       setStatus('READY');
       setErrorMessage('');
@@ -344,19 +371,39 @@ const PaymentDialog = ({
   const payLabel = useMemo(() => {
     if (status === 'LOADING') return 'Processing Payment...';
     if (status === 'SUCCESS') return 'Payment Successful';
-    if (status === 'FAILURE') return 'Retry Payment';
-    return `Pay ₼ ${formatNumber(price)}`;
-  }, [status, price]);
+    if (status === 'FAILURE') return 'Try Again';
+    if (status === 'PENDING') return 'View Order';
+    if (remainingAmount > 0) return `Pay ₼ ${remainingAmount.toFixed(2)} by card`;
+    return `Pay ₼ ${formatNumber(price)} from wallet`;
+  }, [status, price, remainingAmount]);
 
-  const isPayDisabled = status === 'LOADING' || status === 'SUCCESS';
+  const isPayDisabled = ['LOADING', 'SUCCESS', 'BANK', 'CONFIRMING'].includes(status);
 
   const renderStatusAnimation = () => {
-    if (status === 'LOADING') {
+    if (status === 'LOADING' || status === 'BANK' || status === 'CONFIRMING') {
+      const [title, sub] = {
+        LOADING: ['Processing payment...', 'Please wait'],
+        BANK: ['Complete payment on the bank page', 'Do not close the app'],
+        CONFIRMING: ['Confirming with the bank...', 'This usually takes a few seconds'],
+      }[status];
       return (
         <View style={styles.statusContainer}>
           <ActivityIndicator size="large" color="#16a34a" />
-          <Text style={styles.statusText}>Processing payment...</Text>
-          <Text style={styles.statusSubtext}>Please wait</Text>
+          <Text style={styles.statusText}>{title}</Text>
+          <Text style={styles.statusSubtext}>{sub}</Text>
+        </View>
+      );
+    }
+
+    if (status === 'PENDING') {
+      return (
+        <View style={styles.statusContainer}>
+          <Ionicons name="time-outline" size={80} color="#f59e0b" />
+          <Text style={styles.statusText}>Waiting for bank confirmation</Text>
+          <Text style={[styles.statusSubtext, styles.centerText]}>
+            We haven&apos;t heard back from the bank yet. Your order is saved and will update
+            automatically — you won&apos;t be charged twice.
+          </Text>
         </View>
       );
     }
@@ -577,6 +624,32 @@ const PaymentDialog = ({
                   </View>
                 )}
 
+                {/* Checkout / delivery details (sent to the bank, so they must be real) */}
+                <View style={styles.detailsCard}>
+                  <Text style={styles.sectionTitle}>Delivery Details</Text>
+                  {[
+                    { key: 'name', label: 'Full name', props: { autoCapitalize: 'words', textContentType: 'name' } },
+                    { key: 'email', label: 'Email', props: { keyboardType: 'email-address', autoCapitalize: 'none', textContentType: 'emailAddress' } },
+                    { key: 'address', label: 'Address', props: { textContentType: 'fullStreetAddress' } },
+                    { key: 'city', label: 'City', props: { textContentType: 'addressCity' } },
+                    { key: 'pincode', label: 'Postal code (4 digits)', props: { keyboardType: 'number-pad', maxLength: 4, textContentType: 'postalCode' } },
+                  ].map(({ key, label, props }) => (
+                    <View key={key} style={styles.fieldWrap}>
+                      <Text style={styles.fieldLabel}>{label}</Text>
+                      <TextInput
+                        style={[styles.fieldInput, detailErrors[key] && styles.fieldInputError]}
+                        value={details[key]}
+                        onChangeText={(v) => updateDetail(key, v)}
+                        placeholder={label}
+                        placeholderTextColor="#9ca3af"
+                        editable={status === 'READY'}
+                        {...props}
+                      />
+                      {detailErrors[key] ? <Text style={styles.validationError}>{detailErrors[key]}</Text> : null}
+                    </View>
+                  ))}
+                </View>
+
                 {/* Payment Method Info */}
                 {(!useWallet || remainingAmount > 0) && (
                   <View style={styles.paymentMethodCard}>
@@ -627,6 +700,13 @@ const PaymentDialog = ({
           )}
         </Animated.View>
       </View>
+
+      <CardPaymentWebView
+        visible={status === 'BANK' && !!gateway}
+        gateway={gateway}
+        onReturn={handleBankDone}
+        onCancel={handleBankDone}
+      />
     </Modal>
   );
 };
@@ -847,6 +927,37 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginLeft: 8,
     flex: 1,
+  },
+  detailsCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  fieldWrap: {
+    marginBottom: 10,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  fieldInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: '#111827',
+  },
+  fieldInputError: {
+    borderColor: '#ef4444',
+  },
+  centerText: {
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
   paymentMethodCard: {
     flexDirection: 'row',

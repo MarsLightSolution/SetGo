@@ -27,6 +27,8 @@ import { API_ENDPOINTS, BASE_URL, IMAGE_BASE_URL } from '../../config/api';
 import { getUserData, getAuthToken } from '../../services/secureAuthService';
 import { useChatStore } from '../../Store/chatStore';
 import logger from '../../utils/logger';
+import { captureException } from '../../services/errorReporter';
+import { withErrorBoundary } from '../../Components/ErrorBoundary';
 
 const log = logger.create('Chat');
 
@@ -141,7 +143,7 @@ const MessageItem = ({ item }) => {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function ChatApp() {
+function ChatApp() {
   // ── Store state ──────────────────────────────────────────────
   const {
     currentUser, isConnected, isConnecting,
@@ -192,6 +194,12 @@ export default function ChatApp() {
   };
 
   const restoreFromCache = async () => {
+    const userData = await getUserData();
+    if (!userData) {
+      setConversations([]);
+      setAllUsers([]);
+      return;
+    }
     const [cachedConvs, cachedUsers] = await Promise.all([
       loadCachedConversations(),
       loadCachedAllUsers(),
@@ -209,12 +217,15 @@ export default function ChatApp() {
         if (identifier) {
           connectUser(identifier, displayName);
         } else {
+          setConversations([]);
           setIsLoadingChats(false);
         }
       } else {
+        setConversations([]);
         setIsLoadingChats(false);
       }
     } catch {
+      setConversations([]);
       setIsLoadingChats(false);
     }
   };
@@ -256,6 +267,16 @@ export default function ChatApp() {
         }
       };
 
+      handlers.onConnectError = (err) => {
+        log.warn('Socket connect_error:', err?.message);
+        captureException(err, { type: 'socket', module: 'Chat', extra: { event: 'connect_error' } });
+      };
+
+      handlers.onError = (err) => {
+        log.warn('Socket error:', err?.message);
+        captureException(err, { type: 'socket', module: 'Chat', extra: { event: 'error' } });
+      };
+
       handlers.handleNewMessage = (msg) => {
         if (messageQueueRef.current.includes(msg._id)) {
           messageQueueRef.current = messageQueueRef.current.filter(id => id !== msg._id);
@@ -290,6 +311,8 @@ export default function ChatApp() {
       };
 
       socketRef.current.on('connect', handlers.onConnect);
+      socketRef.current.on('connect_error', handlers.onConnectError);
+      socketRef.current.on('error', handlers.onError);
       socketRef.current.on('newMessage', handlers.handleNewMessage);
       socketRef.current.on('typing', handlers.handleTyping);
     })();
@@ -298,6 +321,8 @@ export default function ChatApp() {
       mounted = false;
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       socketRef.current?.off('connect', handlers.onConnect);
+      socketRef.current?.off('connect_error', handlers.onConnectError);
+      socketRef.current?.off('error', handlers.onError);
       socketRef.current?.off('newMessage', handlers.handleNewMessage);
       socketRef.current?.off('typing', handlers.handleTyping);
       socketRef.current?.disconnect();
@@ -581,7 +606,7 @@ export default function ChatApp() {
 
   const renderChatItem = ({ item }) => {
     const conversation = conversations.find((c) =>
-      c.participants.some((p) => p.userId === item.userId)
+      (c.participants || []).some((p) => p.userId === item.userId)
     );
 
     const unreadCount = conversation ? Math.max(0, unreadCounts[conversation._id] || 0) : 0;
@@ -959,3 +984,5 @@ const styles = StyleSheet.create({
   emptyListTitle: { fontSize: 22, fontWeight: '700', color: theme.text, marginTop: 20, marginBottom: 8 },
   emptyListText: { fontSize: 15, color: theme.secondaryText, textAlign: 'center', lineHeight: 22 },
 });
+
+export default withErrorBoundary(ChatApp);
