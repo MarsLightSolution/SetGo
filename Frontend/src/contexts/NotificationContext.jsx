@@ -26,6 +26,8 @@ export const NotificationProvider = ({ children }) => {
     if (userId || userEmail) {
       const socketInstance = io(`${import.meta.env.VITE_SERVER}`, {
         withCredentials: true,
+        // The server rejects socket connections without a valid access token.
+        auth: { token: `Bearer ${localStorage.getItem("accessToken")}` },
         transports: ['websocket', 'polling']
       });
 

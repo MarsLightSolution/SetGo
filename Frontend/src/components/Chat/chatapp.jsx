@@ -28,6 +28,17 @@ export default function ChatApp() {
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
   const SERVER_URL = `${import.meta.env.VITE_SERVER}`
 
+  // Chat API and socket identify the user from the login token (not from ids we send).
+  const authToken = () => localStorage.getItem("accessToken")
+  const chatFetch = (url, options = {}) => {
+    const token = authToken()
+    return fetch(url, {
+      credentials: "include",
+      ...options,
+      headers: { ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+  }
+
   // ─── Refs ─────────────────────────────────────────────────────────────────
   const messagesContainerRef  = useRef(null)
   const fileInputRef          = useRef(null)
@@ -76,6 +87,7 @@ export default function ChatApp() {
       path: "/socket.io/",
       transports: ["websocket"],
       withCredentials: true,
+      auth: { token: `Bearer ${authToken()}` },
     })
     socketRef.current = socket
 
@@ -139,7 +151,7 @@ export default function ChatApp() {
     const name = (username || "").trim()
     if (!name) return
     try {
-      const res  = await fetch(`${API_BASE}/connect`, {
+      const res  = await chatFetch(`${API_BASE}/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: name, displayName: name }),
@@ -159,7 +171,7 @@ export default function ChatApp() {
 
   const loadAllUsers = async () => {
     try {
-      const res  = await fetch(`${API_BASE}/users`)
+      const res  = await chatFetch(`${API_BASE}/users`)
       const data = await res.json()
       if (data.success) setAllUsers(data.users)
     } catch {}
@@ -167,7 +179,7 @@ export default function ChatApp() {
 
   const loadConversations = async (userId) => {
     try {
-      const res  = await fetch(`${API_BASE}/conversations/${userId}`, { credentials: "include" })
+      const res  = await chatFetch(`${API_BASE}/conversations/${userId}`)
       const data = await res.json()
       if (data.success) setConversations(data.conversations)
     } catch {}
@@ -178,7 +190,7 @@ export default function ChatApp() {
     setLoadingMessages(true)
     isFirstLoad.current = true
     try {
-      const res  = await fetch(`${API_BASE}/messages/${conversationId}`)
+      const res  = await chatFetch(`${API_BASE}/messages/${conversationId}`)
       const data = await res.json()
       if (data.success) {
         setMessages(data.messages.reverse().map(msg => ({
@@ -206,7 +218,7 @@ export default function ChatApp() {
   const startConversation = async (otherUser) => {
     if (!currentUser) return
     try {
-      const res  = await fetch(`${API_BASE}/conversations`, {
+      const res  = await chatFetch(`${API_BASE}/conversations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ participants: [currentUser.userId, otherUser.userId] }),
@@ -236,7 +248,7 @@ export default function ChatApp() {
     }])
 
     try {
-      const res  = await fetch(`${API_BASE}/messages`, {
+      const res  = await chatFetch(`${API_BASE}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -312,7 +324,7 @@ export default function ChatApp() {
       formData.append("conversationId", activeConversation._id)
       formData.append("senderId",       currentUser.userId)
 
-      const res = await fetch(`${API_BASE}/upload`, { method: "POST", body: formData })
+      const res = await chatFetch(`${API_BASE}/upload`, { method: "POST", body: formData })
       if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
 
       const data = await res.json()

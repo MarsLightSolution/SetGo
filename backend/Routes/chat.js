@@ -1,7 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const chatController = require("../controller/chatcontroller");
+const verifyJWT = require("../middlewares/auth.middlewares.js");
 const { uploadChatFiles } = require("../middlewares/multer.middleware.js");
+
+// SECURITY: all chat routes require login; the controller takes the acting user from the token
+// and checks conversation membership.
+router.use(verifyJWT);
 
 // User
 router.post("/connect", chatController.connectUser);
