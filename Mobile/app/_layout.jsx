@@ -18,6 +18,7 @@ import { queryClient, asyncStoragePersister } from '../services/queryClient';
 import { fetchAndCacheRemoteConfig, getMinRequiredVersion } from '../services/remoteConfig';
 import { registerPushToken, onForegroundNotification, onNotificationResponse } from '../services/pushNotifications';
 import { useNotificationSocket } from '../hooks/useNotificationQuery';
+import { usePendingPaymentCheck } from '../hooks/usePendingPaymentCheck';
 import Constants from 'expo-constants';
 import { setupGlobalErrorHandlers } from '../utils/globalErrorHandlers';
 import { captureException } from '../services/errorReporter';
@@ -92,6 +93,8 @@ function AppContent() {
 
   // Real-time notification updates via Socket
   useNotificationSocket(isAuthenticated);
+  // A card payment left open when the app was closed: tell the buyer how it ended.
+  usePendingPaymentCheck({ enabled: appReady && !showSplash && isAuthenticated, router });
   useEffect(() => {
     if (!appReady || !isAuthenticated) return;
     registerPushToken();

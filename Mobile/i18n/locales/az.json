@@ -246,7 +246,38 @@
     "totalAmount": "Ümumi məbləğ",
     "transactionId": "Əməliyyat ID",
     "status": "Status",
-    "paid": "ÖDƏNİLDİ"
+    "paid": "ÖDƏNİLDİ",
+    "processingTitle": "Ödəniş təsdiqlənir…",
+    "processingMessage": "Kart ödənişinizin bank tərəfindən təsdiqini gözləyirik. Bu səhifə avtomatik yenilənir — sizdən iki dəfə ödəniş alınmayacaq.",
+    "failedTitle": "Ödəniş tamamlanmadı",
+    "failedMessage": "Bank bu ödənişi təsdiqləmədi. Sizdən vəsait tutulmadı, pul kisəsindən istifadə olunan məbləğ geri qaytarıldı.",
+    "refundedTitle": "Sifariş geri qaytarıldı",
+    "refundedMessage": "Bu sifariş ləğv edildi və ödəniş geri qaytarıldı.",
+    "cancelledTitle": "Sifariş ləğv edildi",
+    "cancelledMessage": "Bu sifariş ləğv edildi.",
+    "loadError": "Sifarişi yükləmək mümkün olmadı.",
+    "retry": "Yenidən cəhd edin",
+    "product": "Məhsul",
+    "walletPart": "Pul kisəsindən ödənildi",
+    "cardPart": "Kartla ödənildi",
+    "trackingId": "İzləmə nömrəsi",
+    "paymentStatus": "Ödəniş",
+    "orderStatus": "Sifariş",
+    "payment": {
+      "pending": "Gözləmədə",
+      "processing": "Təsdiqlənir",
+      "completed": "Ödənildi",
+      "failed": "Uğursuz",
+      "refunded": "Geri qaytarıldı"
+    },
+    "orderState": {
+      "pending": "Gözləmədə",
+      "paid": "Ödənildi",
+      "shipped": "Göndərildi",
+      "delivered": "Çatdırıldı",
+      "cancelled": "Ləğv edildi",
+      "released": "Tamamlandı"
+    }
   },
 
   "chat": {

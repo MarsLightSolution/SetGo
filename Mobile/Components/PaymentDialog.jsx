@@ -21,10 +21,9 @@ import logger from '../utils/logger';
 import api from '../services/api';
 import CardPaymentWebView from './CardPaymentWebView';
 import { API_ENDPOINTS } from '../config/api';
+import { PENDING_PAYMENT_KEY } from '../hooks/usePendingPaymentCheck';
 
 const { width: _width } = Dimensions.get('window'); // Prefixed with _ since not currently used
-
-const PENDING_PAYMENT_KEY = 'pendingPayment';
 const POLL_INTERVAL_MS = 2500;
 const POLL_TIMEOUT_MS = 60 * 1000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

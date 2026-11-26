@@ -246,7 +246,38 @@
     "totalAmount": "Total Amount",
     "transactionId": "Transaction ID",
     "status": "Status",
-    "paid": "PAID"
+    "paid": "PAID",
+    "processingTitle": "Confirming payment…",
+    "processingMessage": "We're waiting for the bank to confirm your card payment. This page updates automatically — you won't be charged twice.",
+    "failedTitle": "Payment not completed",
+    "failedMessage": "The bank did not approve this payment. You were not charged, and any wallet amount was returned.",
+    "refundedTitle": "Order refunded",
+    "refundedMessage": "This order was cancelled and the payment returned.",
+    "cancelledTitle": "Order cancelled",
+    "cancelledMessage": "This order was cancelled.",
+    "loadError": "Could not load this order.",
+    "retry": "Try again",
+    "product": "Product",
+    "walletPart": "Paid from wallet",
+    "cardPart": "Paid by card",
+    "trackingId": "Tracking ID",
+    "paymentStatus": "Payment",
+    "orderStatus": "Order",
+    "payment": {
+      "pending": "Pending",
+      "processing": "Confirming",
+      "completed": "Paid",
+      "failed": "Failed",
+      "refunded": "Refunded"
+    },
+    "orderState": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "released": "Completed"
+    }
   },
 
   "chat": {
