@@ -23,7 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
-import { API_ENDPOINTS, BASE_URL, IMAGE_BASE_URL } from '../../config/api';
+import { API_ENDPOINTS, BASE_URL, IMAGE_BASE_URL, socketEvent } from '../../config/api';
 import { getUserData } from '../../services/secureAuthService';
 import { getFreshAuthToken } from '../../services/api';
 import { useChatStore } from '../../Store/chatStore';
@@ -267,7 +267,7 @@ function ChatApp() {
       handlers.onConnect = () => {
         log.info('Socket connected');
         if (activeConversationRef.current) {
-          socketRef.current?.emit('joinConversation', activeConversationRef.current._id);
+          socketRef.current?.emit(socketEvent('joinConversation'), activeConversationRef.current._id);
         }
       };
 
@@ -336,7 +336,7 @@ function ChatApp() {
   // ── Join room when active conversation changes ───────────────
   useEffect(() => {
     if (activeConversation?._id && socketRef.current?.connected) {
-      socketRef.current.emit('joinConversation', activeConversation._id);
+      socketRef.current.emit(socketEvent('joinConversation'), activeConversation._id);
     }
   }, [activeConversation?._id]);
 
@@ -519,7 +519,7 @@ function ChatApp() {
       if (data.success) {
         updateMessage(activeConversation._id, optimisticId, { id: data.message._id, isOptimistic: false });
         cacheMessages(activeConversation._id, useChatStore.getState().messages[activeConversation._id] || []);
-        socketRef.current?.emit('sendMessage', {
+        socketRef.current?.emit(socketEvent('sendMessage'), {
           conversationId: activeConversation._id,
           senderId: currentUser.userId,
           text: data.message.text,
@@ -596,7 +596,7 @@ function ChatApp() {
           isOptimistic: false,
         });
         cacheMessages(activeConversation._id, useChatStore.getState().messages[activeConversation._id] || []);
-        socketRef.current?.emit('sendMessage', {
+        socketRef.current?.emit(socketEvent('sendMessage'), {
           conversationId: activeConversation._id,
           senderId: currentUser.userId,
           text: data.message.text,

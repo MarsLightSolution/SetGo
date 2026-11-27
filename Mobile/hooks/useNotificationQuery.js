@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { API_ENDPOINTS, SOCKET_URL } from '../config/api';
+import { API_ENDPOINTS, SOCKET_URL, isApiV2 } from '../config/api';
+import { useAuthStore } from '../Store/authStore';
 import api, { getFreshAuthToken } from '../services/api';
 import { captureException } from '../services/errorReporter';
 import logger from '../utils/logger';
@@ -40,6 +41,16 @@ export function useNotificationSocket(enabled = true) {
           // Called on every (re)connect, so a reconnect after the token expired still authenticates.
           getFreshAuthToken().then((t) => cb(t ? { token: `Bearer ${t}` } : {}), () => cb({}));
         },
+      });
+      // Join the personal room the server sends notifications to (v2: the server picks the
+      // room from the verified token; older servers: our own id).
+      socket.on('connect', () => {
+        if (isApiV2()) {
+          socket.emit('v2:join-user');
+        } else {
+          const userId = useAuthStore.getState().user?._id;
+          if (userId) socket.emit('join-user', String(userId));
+        }
       });
       socket.on('notification', () => {
         qc.invalidateQueries({ queryKey: notifKeys.list() });

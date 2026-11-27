@@ -15,9 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import axios from 'axios';
 import Toast from 'react-native-toast-message';
-import { getUserId, getAuthToken } from '../../services/secureAuthService';
+import { getUserId } from '../../services/secureAuthService';
 import { useAuthStore } from '../../Store/authStore';
 import { withErrorBoundary } from '../../Components/ErrorBoundary';
 
@@ -59,6 +58,7 @@ const showWarningToast = (message) => {
 };
 
 import { API_ENDPOINTS } from '../../config/api';
+import api from '../../services/api';
 import logger from '../../utils/logger';
 
 const log = logger.create('Chatbot');
@@ -247,17 +247,10 @@ function Chatbot() {
     setLoading(true);
     
     try {
-      const token = await getAuthToken();
-      const { data } = await axios.post(
+      // Shared client: attaches (and refreshes) the login token.
+      const { data } = await api.post(
         API_ENDPOINTS.CHATBOT_ASK,
         { question, orderId: orderIdParam, userId },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          timeout: 15000,
-        }
       );
 
       log.info('API Response:', data);

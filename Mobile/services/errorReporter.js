@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api';
 
 // Backend route: POST /logs/error (Routes/logRoutes.js, mounted at /logs).
-const ENDPOINT = API_ENDPOINTS.ERROR_LOG_REPORT;
+// Read per request: switches to the rate-limited /api/v2 path once the server has it.
 const OFFLINE_QUEUE_KEY = 'setgo_error_queue';
 const MAX_QUEUE = 20; // don't let the queue grow unbounded
 
@@ -16,7 +16,7 @@ const getDeviceInfo = () => ({
 });
 
 const send = async (payload) => {
-  const res = await fetch(ENDPOINT, {
+  const res = await fetch(API_ENDPOINTS.ERROR_LOG_REPORT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
