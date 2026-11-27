@@ -97,13 +97,20 @@ const useRefreshOrders = () => {
 
 /**
  * Buyer confirms they received the item (paid/shipped → delivered).
- * The server uses the logged-in buyer; buyerId is sent for the pre-auth backend version.
+ * Uses the new /order-receipt endpoint; falls back to the older review route
+ * while a backend without it is still deployed (404).
  */
 export const useConfirmDelivery = () => {
   const refresh = useRefreshOrders();
   return useMutation({
-    mutationFn: ({ orderId, buyerId }) =>
-      api.post(API_ENDPOINTS.REVIEW_CONFIRM_DELIVERY(orderId), { buyerId }),
+    mutationFn: async ({ orderId, buyerId }) => {
+      try {
+        return await api.post(API_ENDPOINTS.ORDER_CONFIRM_RECEIPT(orderId));
+      } catch (err) {
+        if (err?.response?.status !== 404) throw err;
+        return api.post(API_ENDPOINTS.REVIEW_CONFIRM_DELIVERY(orderId), { buyerId });
+      }
+    },
     onSuccess: refresh,
   });
 };

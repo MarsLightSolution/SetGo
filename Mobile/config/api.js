@@ -104,6 +104,8 @@ export const API_ENDPOINTS = {
   // --- Reviews (reviewRoutes.js) - root level ---
   REVIEWS: `${BASE_URL}/reviews`,
   REVIEW_CONFIRM_DELIVERY: (orderId) => `${BASE_URL}/reviews/orders/${orderId}/confirm-delivery`,
+  // New backend endpoint (buyer from token; also accepts shipped orders)
+  ORDER_CONFIRM_RECEIPT: (orderId) => `${BASE_URL}/order-receipt/${orderId}/confirm`,
   REVIEWS_PENDING: `${BASE_URL}/reviews/pending`,
   REVIEWS_USER: `${BASE_URL}/reviews/user`,
   REVIEW_UPDATE: (reviewId) => `${BASE_URL}/reviews/${reviewId}`,
