@@ -390,7 +390,10 @@ const ProductDetail = () => {
         `${import.meta.env.VITE_SERVER}/api/chat/conversation/get-or-create`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
           credentials: "include",
           body: JSON.stringify({
             senderId: user._id,
@@ -411,7 +414,10 @@ const ProductDetail = () => {
       const initialMessage = "Hi! I'm interested in your product.";
       await fetch(`${import.meta.env.VITE_SERVER}/api/chat/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
         credentials: "include",
         body: JSON.stringify({
           conversationId,
