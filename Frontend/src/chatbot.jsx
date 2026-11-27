@@ -124,10 +124,15 @@ export default function Chatbot({ onClose }) {
   const fetchResponse = async (question, orderIdParam = null) => {
     setLoading(true);
     try {
+      // Send the login token: order answers are looked up as this user (own orders only).
+      const token = localStorage.getItem("accessToken");
       const { data } = await axios.post(`${import.meta.env.VITE_SERVER}/chatbot/ask`, {
         question,
         orderId: orderIdParam,
         userId
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        withCredentials: true,
       });
 
       if (data.success) {

@@ -405,18 +405,15 @@ module.exports.resetPassword = async (req, res) => {
 module.exports.checkVerificationStatus = async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email) {
+    if (!email || typeof email !== "string") {
       return res.status(400).json({ success: false, message: "Email is required" });
     }
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.trim().toLowerCase() }, "emailVerified");
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    return res.json({
-      success: true,
-      email: user.email,
-      emailVerified: user.emailVerified,
-    });
+    // Only the verification flag (no profile data) — this endpoint is public.
+    return res.json({ success: true, emailVerified: user.emailVerified });
   } catch (err) {
     logger.error(`[CheckVerification] Error: ${err.stack}`);
     return res.status(500).json({ success: false, message: "Server error" });

@@ -17,6 +17,14 @@ const logError = (endpoint, err, extra = {}) => {
 exports.getChatResponse = async (req, res) => {
   const endpoint = "getChatResponse";
   const { question, orderId, userId } = req.body;
+  // Order lookups go through the regular order API *as the caller* (their token/cookie), so its
+  // login and ownership checks apply: the bot can only show the caller's own orders.
+  const asCaller = {
+    headers: {
+      ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+      ...(req.headers.cookie ? { Cookie: req.headers.cookie } : {}),
+    },
+  };
 
   let answer = "I'm sorry, I didn't understand that question.";
   let showMenu = true;
@@ -49,7 +57,7 @@ exports.getChatResponse = async (req, res) => {
         }
 
         try {
-          const { data } = await axios.get(`${BASE_URL}/Orders/${orderId}`);
+          const { data } = await axios.get(`${BASE_URL}/Orders/${encodeURIComponent(orderId)}`, asCaller);
 
           if (!data.success || !data.data) throw new Error("Invalid order response from API");
 
@@ -79,7 +87,7 @@ exports.getChatResponse = async (req, res) => {
         }
 
         try {
-          const { data } = await axios.get(`${BASE_URL}/Orders/user/${userId}`);
+          const { data } = await axios.get(`${BASE_URL}/Orders/user/${encodeURIComponent(userId)}`, asCaller);
 
           if (!data.success || !Array.isArray(data.data))
             throw new Error("Unexpected format from orders API");

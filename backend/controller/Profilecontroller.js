@@ -10,6 +10,11 @@ const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 const client = twilio(accountSid, authToken);
 
+// Never returned by the API: credentials, session/reset tokens, push tokens.
+const SECRET_FIELDS = '-password -__v -refreshTokens -resetToken -resetTokenExpiration -pushToken -pushPlatform';
+// What other users may see about someone.
+const PUBLIC_FIELDS = 'username profileName chatDisplayName hasShop shop isOnline lastSeen followers following createdAt';
+
 module.exports.nameupdate = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -313,7 +318,10 @@ module.exports.getUserProfile = async (req, res) => {
 
     logger.info(`[GetUserProfile] Request`, { userId });
 
-    const user = await User.findById(userId).select('-password -__v');
+    // Own profile (or admin): everything except secrets. Anyone else: public fields only.
+    const isSelf = String(req.user?._id) === String(userId);
+    const fields = isSelf || req.user?.role === 'admin' ? SECRET_FIELDS : PUBLIC_FIELDS;
+    const user = await User.findById(userId).select(fields);
 
     if (!user) {
       logger.warn(`[GetUserProfile] User not found`, { userId });

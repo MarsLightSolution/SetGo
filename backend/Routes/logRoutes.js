@@ -3,6 +3,9 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const verifyToken = require('../middlewares/auth.middlewares');
+// Admin-only guard (after verifyToken, which sets req.user).
+const adminOnly = (req, res, next) =>
+  req.user?.role === 'admin' ? next() : res.status(403).json({ success: false, message: 'Admin access required' });
 const ApiResponse = require('../utils/ApiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const { reportError, getErrors, resolveError } = require('../controller/errorLogController');
@@ -11,7 +14,8 @@ const ERROR_LOG_PATH = path.join(__dirname, '../logs/error.log');
 
 // GET /api/logs/error
 // Query params: lines (default 100), since (ISO date string)
-router.get('/error', verifyToken, asyncHandler(async (req, res) => {
+// SECURITY: server/client error logs can contain user data — admins only (any login used to do).
+router.get('/error', verifyToken, adminOnly, asyncHandler(async (req, res) => {
   if (!fs.existsSync(ERROR_LOG_PATH)) {
     return res.status(200).json(new ApiResponse(200, { entries: [] }, 'No error log found'));
   }
@@ -38,12 +42,15 @@ router.get('/error', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 // POST /api/logs/error — receive client-side error reports from mobile app (no auth)
-router.post('/error', reportError);
+// Public (errors happen before login) but rate limited so it can't be used to flood the DB.
+const rateLimit = require('express-rate-limit');
+const reportLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
+router.post('/error', reportLimiter, reportError);
 
 // GET /api/logs/error/db — fetch MongoDB error logs (auth required)
-router.get('/error/db', verifyToken, getErrors);
+router.get('/error/db', verifyToken, adminOnly, getErrors);
 
 // PATCH /api/logs/error/:id/resolve — mark error resolved (auth required)
-router.patch('/error/:id/resolve', verifyToken, resolveError);
+router.patch('/error/:id/resolve', verifyToken, adminOnly, resolveError);
 
 module.exports = router;

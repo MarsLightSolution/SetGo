@@ -180,7 +180,11 @@ router.delete('/read/all', authMiddleware, async (req, res) => {
 });
 
 // Create a notification (for admin/system use)
+// SECURITY: admin only — any user could send any text, "from" the system, to anyone (phishing).
 router.post('/', authMiddleware, async (req, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ success: false, message: 'Admin access required' });
+  }
   try {
     const { recipientId, type, title, message, metadata } = req.body;
     const senderId = req.user._id.toString();

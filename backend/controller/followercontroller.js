@@ -3,7 +3,7 @@ const logger = require("../utils/logger"); // Import the logger
 
 // Follow a user
 exports.followUser = async (req, res) => {
-  const followerId = req.body.followerId;
+  const followerId = String(req.user._id); // never trust a body-supplied follower
   const followingId = req.params.id;
   logger.info(`[FollowUser] Request from follower: ${followerId} to follow: ${followingId}`);
 
@@ -13,6 +13,9 @@ exports.followUser = async (req, res) => {
       return res.status(400).json({ message: "You can't follow yourself" });
     }
 
+    if (!require("mongoose").Types.ObjectId.isValid(followingId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
     const follower = await User.findById(followerId);
     const following = await User.findById(followingId);
 
@@ -42,11 +45,14 @@ exports.followUser = async (req, res) => {
 
 // Unfollow a user
 exports.unfollowUser = async (req, res) => {
-  const followerId = req.body.followerId;
+  const followerId = String(req.user._id); // never trust a body-supplied follower
   const followingId = req.params.id;
   logger.info(`[UnfollowUser] Request from follower: ${followerId} to unfollow: ${followingId}`);
 
   try {
+    if (!require("mongoose").Types.ObjectId.isValid(followingId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
     const follower = await User.findById(followerId);
     const following = await User.findById(followingId);
 
@@ -100,7 +106,7 @@ exports.getFollowers = async (req, res) => {
   const { id } = req.params;
   logger.info(`[GetFollowers] Request to get followers for user: ${id}`);
   try {
-    const user = await User.findById(id).populate("followers", "username email"); // Populate with useful fields
+    const user = await User.findById(id).populate("followers", "username profileName"); // public list: no emails
     if (!user) {
         logger.warn(`[GetFollowers] User not found: ${id}`);
         return res.status(404).json({ message: "User not found" });
@@ -119,7 +125,7 @@ exports.getFollowing = async (req, res) => {
   const { id } = req.params;
   logger.info(`[GetFollowing] Request to get following list for user: ${id}`);
   try {
-    const user = await User.findById(id).populate("following", "username email"); // Populate with useful fields
+    const user = await User.findById(id).populate("following", "username profileName"); // public list: no emails
     if (!user) {
         logger.warn(`[GetFollowing] User not found: ${id}`);
         return res.status(404).json({ message: "User not found" });

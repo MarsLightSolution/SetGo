@@ -4,6 +4,12 @@ import { SERVER_URL } from "../adminUtils"
 
 const EMPTY_FORM = { position: "banner", title: "", linkUrl: "", isActive: true, image: null }
 
+
+// Banner-ad management is admin-only on the server: send the admin's login.
+const adminAuth = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+  credentials: "include",
+})
 export default function AdsTab() {
   const [ads, setAds]                   = useState([])
   const [adsLoading, setAdsLoading]     = useState(false)
@@ -17,7 +23,7 @@ export default function AdsTab() {
   const fetchAds = async () => {
     try {
       setAdsLoading(true)
-      const res  = await fetch(`${SERVER_URL}/api/ads/all`)
+      const res  = await fetch(`${SERVER_URL}/api/ads/all`, adminAuth())
       const data = await res.json()
       if (data.success) setAds(data.data || [])
     } catch (err) {
@@ -53,7 +59,7 @@ export default function AdsTab() {
     try {
       const url    = editingAd ? `${SERVER_URL}/api/ads/${editingAd._id}` : `${SERVER_URL}/api/ads`
       const method = editingAd ? "PUT" : "POST"
-      const res    = await fetch(url, { method, body: formData })
+      const res    = await fetch(url, { method, body: formData, ...adminAuth() })
       const data   = await res.json()
       if (data.success) {
         alert(data.message || (editingAd ? "Ad updated!" : "Ad created!"))
@@ -92,7 +98,7 @@ export default function AdsTab() {
       formData.append("title", ad.title)
       formData.append("position", ad.position)
       if (ad.link) formData.append("linkUrl", ad.link)
-      const res  = await fetch(`${SERVER_URL}/api/ads/${adId}`, { method: "PUT", body: formData })
+      const res  = await fetch(`${SERVER_URL}/api/ads/${adId}`, { method: "PUT", body: formData, ...adminAuth() })
       const data = await res.json()
       if (data.success) { fetchAds() }
       else alert(data.message || "Failed to update status")
@@ -105,7 +111,7 @@ export default function AdsTab() {
   const deleteAd = async (adId) => {
     if (!window.confirm("Delete this ad? This cannot be undone.")) return
     try {
-      const res  = await fetch(`${SERVER_URL}/api/ads/${adId}`, { method: "DELETE" })
+      const res  = await fetch(`${SERVER_URL}/api/ads/${adId}`, { method: "DELETE", ...adminAuth() })
       const data = await res.json()
       if (data.success) { alert("Ad deleted"); fetchAds() }
       else alert(data.message || "Failed to delete ad")

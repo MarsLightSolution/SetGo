@@ -469,6 +469,8 @@ const ProductDetail = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          // Following requires login; the server uses the logged-in user as the follower.
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({ followerId: user._id }),
         credentials: "include",
