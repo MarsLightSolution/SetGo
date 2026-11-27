@@ -12,6 +12,26 @@ const path = require("path");
 const axios = require("axios");
 require("dotenv").config();
 
+// SECURITY: who may change a product — its owner, or an admin.
+const isAdmin = (req) => req.user?.role === "admin";
+const assertCanModify = (product, req) => {
+  if (isAdmin(req)) return;
+  if (!product.owner || String(product.owner) !== String(req.user?._id)) {
+    throw new ApiError(403, "You can only change your own ads.");
+  }
+};
+// A shop the given user owns (admins may use any shop); throws otherwise.
+const assertOwnShop = async (shopId, ownerId, req) => {
+  if (!mongoose.Types.ObjectId.isValid(String(shopId))) throw new ApiError(400, "Invalid shop ID.");
+  const shopDoc = await Shop.findById(shopId);
+  if (!shopDoc) throw new ApiError(400, "Shop not found.");
+  if (!isAdmin(req) && String(shopDoc.owner) !== String(ownerId)) {
+    throw new ApiError(403, "You can only list products in your own shop.");
+  }
+  return shopDoc;
+};
+const escapeRegexText = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const addProduct = asyncHandler(async (req, res) => {
   const {
     user,
@@ -159,20 +179,16 @@ const addProduct = asyncHandler(async (req, res) => {
     productName[lang] = await translateText(name, lang);
   }
 
-  // ✅ NEW: Validate shop if provided
+  // SECURITY: the owner is the logged-in user, never a "user" id from the body.
+  const ownerId = req.user._id;
+  if (user && String(user) !== String(ownerId)) {
+    logger.warn(`[AddProduct] Ignoring body user id that differs from the token`, { bodyUser: user, ownerId });
+  }
+
+  // Shop listing: the shop must belong to the poster.
   let validShopId = null;
   if (shop && listingType === "shop") {
-    // Verify shop exists and belongs to user
-    const shopDoc = await Shop.findById(shop);
-    if (!shopDoc) {
-      logger.warn(`[AddProduct] Shop not found: ${shop}`);
-      throw new ApiError(400, "Shop not found.");
-    }
-    // Verify ownership (optional - uncomment if you want strict ownership check)
-    // if (user && shopDoc.owner.toString() !== user.toString()) {
-    //   logger.warn(`[AddProduct] User does not own this shop`);
-    //   throw new ApiError(403, "You can only add products to your own shop.");
-    // }
+    await assertOwnShop(shop, ownerId, req);
     validShopId = shop;
   }
 
@@ -197,7 +213,7 @@ const addProduct = asyncHandler(async (req, res) => {
     isBuy: isBuy === "true" || isBuy === true,
     isSell: isSell === "true" || isSell === true,
     quantity: Number(quantity) || 1, // ✅ NEW: Default to 1 if not provided
-    owner: user || null,
+    owner: ownerId,
     shop: validShopId,                                // ✅ NEW: Add shop reference
     listingType: validShopId ? "shop" : "individual", // ✅ NEW: Set listing type
   });
@@ -292,7 +308,7 @@ const getProducts = asyncHandler(async (req, res) => {
   if (category?.trim() && category !== "All Products") {
     pipeline.push({
       $match: {
-        [`category.${selectedLang}`]: new RegExp(`^${escapeRegex(category.trim())}$`, "i"),
+        [`category.${selectedLang}`]: new RegExp(`^${escapeRegexText(category.trim())}$`, "i"),
       },
     });
   }
@@ -479,6 +495,7 @@ const markProductAsSold = asyncHandler(async (req, res) => {
     logger.warn(`[MarkProductAsSold] Product not found`, { productId });
     throw new ApiError(404, "Product not found");
   }
+  assertCanModify(product, req);
 
   // Toggle the status
   product.isSell = !product.isSell;
@@ -517,7 +534,7 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
 
   // ✅ NEW: Populate shop details
   const products = await Product.find({
-    category: new RegExp(`^${category.trim()}$`, "i"),
+    category: new RegExp(`^${escapeRegexText(category.trim())}$`, "i"),
     isSell: false,
     quantity: { $gt: 0 }, // ✅ NEW: Only show products with quantity > 0
   })
@@ -565,6 +582,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
+  assertCanModify(product, req);
 
   // ✅ NEW: Update shop totalProducts if product belongs to a shop (and not already sold)
   if (product.shop && !product.isSell) {
@@ -602,6 +620,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
+  assertCanModify(product, req);
 
   const {
     title,
@@ -703,6 +722,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (shop !== undefined) {
     const oldShopId = product.shop ? product.shop.toString() : null;
     const newShopId = shop || null;
+    if (newShopId && newShopId !== oldShopId) await assertOwnShop(newShopId, product.owner, req);
 
     // If shop changed and product is not sold, update product counts
     if (oldShopId !== newShopId && !product.isSell) {
@@ -955,15 +975,16 @@ const getPriorityProducts = asyncHandler(async (req, res) => {
 const updateProductPriority = asyncHandler(async (req, res) => {
   const { productId } = req.params;
 
-  if (!productId) {
-    throw new ApiError(400, "Product ID is required");
+  if (!mongoose.Types.ObjectId.isValid(String(productId || ""))) {
+    throw new ApiError(400, "Invalid product ID");
   }
 
   const product = await Product.findById(productId);
-  
+
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
+  assertCanModify(product, req);
 
   // Toggle boolean
   product.priority = !product.priority;

@@ -37,7 +37,9 @@ export default function GalleryTab() {
     try {
       const response = await fetch(`${SERVER_URL}/api/products/priority/${productId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        // Unboosting requires an admin login.
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+        credentials: "include",
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || "Failed to unboost product")
