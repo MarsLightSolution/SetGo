@@ -185,6 +185,40 @@ describe('change password', () => {
   });
 });
 
+describe('catalog (public)', () => {
+  test('category: plain-text match on any language, in stock only', async () => {
+    const owner = await makeUser();
+    const p = await Product.create({
+      title: { en: 'Lamp' }, category: { en: 'Home (Decor)', az: 'Ev' }, price: 5, description: { en: 'A lamp' },
+      condition: 'Used', postalCode: '1000', name: { en: 'S' }, termsAccepted: true, quantity: 1, owner: owner._id,
+    });
+    const ids = (res) => res.body.data.map((x) => String(x._id));
+    // regex characters are matched literally (and the old regex form would have been invalid / slow)
+    expect(ids(await api('get', `/catalog/category/${encodeURIComponent('home (decor)')}`))).toContain(String(p._id));
+    expect(ids(await api('get', '/catalog/category/Ev'))).toContain(String(p._id));
+    expect((await api('get', `/catalog/category/${encodeURIComponent('.*')}`)).body.data).toEqual([]);
+    expect((await api('get', `/catalog/category/${encodeURIComponent('(a+)+$')}`)).status).toBe(200);
+    await Product.updateOne({ _id: p._id }, { quantity: 0 });
+    expect(ids(await api('get', '/catalog/category/Ev'))).not.toContain(String(p._id));
+  });
+
+  test("shop: owner shown by name only, no personal email/phone", async () => {
+    const Shop = require('../models/Shop');
+    const owner = await makeUser({ phoneNumber: '+994500000099' });
+    const shop = await Shop.create({ shopName: { en: 'My Shop' }, slug: `shop-${owner._id}`, owner: owner._id, contactEmail: 'shop@example.com' });
+    for (const key of [String(shop._id), shop.slug]) {
+      const res = await api('get', `/catalog/shops/${key}`);
+      expect(res.status).toBe(200);
+      expect(res.body.data.owner.username).toBe(owner.username);
+      expect(res.body.data.owner.email).toBeUndefined();
+      expect(res.body.data.owner.phoneNumber).toBeUndefined();
+      expect(res.body.data.contactEmail).toBe('shop@example.com');
+      expect(JSON.stringify(res.body)).not.toContain(owner.email);
+    }
+    expect((await api('get', `/catalog/shops/${new mongoose.Types.ObjectId()}`)).status).toBe(404);
+  });
+});
+
 describe('follow', () => {
   test('follower is the logged-in user; lists have no emails', async () => {
     const [a, b, c] = await Promise.all([makeUser(), makeUser(), makeUser()]);

@@ -19,5 +19,6 @@ router.use("/logs", require("./logs"));
 router.use("/notifications", require("./notifications"));
 router.use("/redis", require("./redis"));
 router.use("/chatbot", require("./chatbot"));
+router.use("/catalog", require("./catalog"));
 
 module.exports = router;

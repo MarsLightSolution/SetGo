@@ -66,7 +66,8 @@ const ShopProfile = () => {
       setLoading(true);
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_SERVER}/api/shops/${id}`,
+          // v2: same data, but the owner's personal email/phone are not exposed
+          `${import.meta.env.VITE_SERVER}/api/v2/catalog/shops/${encodeURIComponent(id)}`,
           { method: "GET", credentials: "include" }
         );
 

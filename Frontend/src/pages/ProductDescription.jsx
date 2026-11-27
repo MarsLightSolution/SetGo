@@ -157,7 +157,7 @@ const ProductDetail = () => {
       const res = await fetch(
         `${
           import.meta.env.VITE_SERVER
-        }/api/products/category/${encodeURIComponent(categoryName)}?lang=${
+        }/api/v2/catalog/category/${encodeURIComponent(categoryName)}?limit=4&lang=${
           i18n.language
         }`
       );

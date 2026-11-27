@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
 import axios from 'axios';
 
+// Same rules as signup and the server's change-password check.
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
 function NewPasswordModal({ onClose }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,31 +20,32 @@ function NewPasswordModal({ onClose }) {
     setErrorMsg('');
     setSuccessMsg('');
 
+    if (!currentPassword) {
+      setErrorMsg("Please enter your current password.");
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setErrorMsg("Passwords do not match.");
       return;
     }
 
-    if (newPassword.trim().length < 6) {
-      setErrorMsg("Password must be at least 6 characters.");
-      return;
-    }
-
-    const userId = localStorage.getItem("userId"); // ✅ Corrected
-
-    if (!userId) {
-      setErrorMsg("User not found.");
+    if (newPassword.length < 8 || newPassword.length > 128 || !PASSWORD_RULE.test(newPassword)) {
+      setErrorMsg("Password must be at least 8 characters with an uppercase letter, a lowercase letter and a number.");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await axios.patch(`${import.meta.env.VITE_SERVER}/api/v2/profile/updatepassword/${userId}`, {
-        password: newPassword.trim()
+      // The logged-in user comes from the login token; the current password is checked.
+      const res = await axios.patch(`${import.meta.env.VITE_SERVER}/api/v2/profile/change-password`, {
+        currentPassword,
+        newPassword,
       });
 
       if (res.status === 200) {
         setSuccessMsg("Password updated successfully.");
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setTimeout(() => {
@@ -67,6 +73,28 @@ function NewPasswordModal({ onClose }) {
       <h2 className="text-xl font-semibold text-gray-800 mb-6">Change Your Password</h2>
 
       <div className="space-y-6">
+        {/* Current Password */}
+        <div className="flex items-center gap-2">
+          <label className="w-40 text-base text-gray-700">Current Password</label>
+          <div className="relative flex-1">
+            <input
+              type={showCurrent ? 'text' : 'password'}
+              autoComplete="current-password"
+              className="w-full px-5 py-3 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCurrent(!showCurrent)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
+            >
+              {showCurrent ? <Eye size={20} /> : <EyeOff size={20} />}
+            </button>
+          </div>
+        </div>
+
         {/* New Password */}
         <div className="flex items-center gap-2">
           <label className="w-40 text-base text-gray-700">New Password</label>
