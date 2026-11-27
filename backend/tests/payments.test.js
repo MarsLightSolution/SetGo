@@ -282,3 +282,58 @@ describe('POST /Orders (legacy mobile flow)', () => {
     expect(res.status).toBe(402);
   });
 });
+
+describe('/Orders access control', () => {
+  const placeWalletOrder = async () => {
+    const seller = await makeUser(0);
+    const buyer = await makeUser(100);
+    const product = await makeProduct(seller, 40);
+    const res = await request(app).post('/api/payments/initiate').set('Authorization', tokenFor(buyer))
+      .send({ productId: product._id, walletDeduction: 40, checkoutDetails });
+    expect(res.status).toBe(200);
+    return { seller, buyer, orderId: String(res.body.data.orderId) };
+  };
+
+  test('GET /Orders/:id: buyer, seller and admin allowed; anyone else 403', async () => {
+    const { seller, buyer, orderId } = await placeWalletOrder();
+    const stranger = await makeUser(0);
+    const admin = await makeUser(0, { role: 'admin' });
+
+    for (const user of [buyer, seller, admin]) {
+      const res = await request(app).get(`/Orders/${orderId}`).set('Authorization', tokenFor(user));
+      expect(res.status).toBe(200);
+    }
+    const res = await request(app).get(`/Orders/${orderId}`).set('Authorization', tokenFor(stranger));
+    expect(res.status).toBe(403);
+    expect(JSON.stringify(res.body)).not.toContain(checkoutDetails.address);
+  });
+
+  test('GET /Orders/user/:userId and /Orders/seller/:sellerId only for that user (or admin)', async () => {
+    const { seller, buyer } = await placeWalletOrder();
+    const stranger = await makeUser(0);
+    const admin = await makeUser(0, { role: 'admin' });
+
+    expect((await request(app).get(`/Orders/user/${buyer._id}`).set('Authorization', tokenFor(buyer))).status).toBe(200);
+    expect((await request(app).get(`/Orders/user/${buyer._id}`).set('Authorization', tokenFor(admin))).status).toBe(200);
+    expect((await request(app).get(`/Orders/user/${buyer._id}`).set('Authorization', tokenFor(stranger))).status).toBe(403);
+
+    expect((await request(app).get(`/Orders/seller/${seller._id}`).set('Authorization', tokenFor(seller))).status).toBe(200);
+    expect((await request(app).get(`/Orders/seller/${seller._id}`).set('Authorization', tokenFor(admin))).status).toBe(200);
+    expect((await request(app).get(`/Orders/seller/${seller._id}`).set('Authorization', tokenFor(buyer))).status).toBe(403);
+  });
+
+  test('PATCH /Orders/:id/tracking: only the seller can mark the order shipped', async () => {
+    const { seller, buyer, orderId } = await placeWalletOrder();
+    const stranger = await makeUser(0);
+
+    for (const user of [buyer, stranger]) {
+      const res = await request(app).patch(`/Orders/${orderId}/tracking`).set('Authorization', tokenFor(user)).send({ trackingId: 'FAKE1' });
+      expect(res.status).toBe(403);
+    }
+    expect((await Order.findById(orderId)).status).toBe('paid');
+
+    const ok = await request(app).patch(`/Orders/${orderId}/tracking`).set('Authorization', tokenFor(seller)).send({ trackingId: 'TRK123' });
+    expect(ok.status).toBe(200);
+    expect(await Order.findById(orderId)).toMatchObject({ status: 'shipped', trackingId: 'TRK123' });
+  });
+});
