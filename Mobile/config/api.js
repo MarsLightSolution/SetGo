@@ -49,6 +49,43 @@ if (!BASE_URL && typeof __DEV__ !== 'undefined' && __DEV__) {
 }
 
 // ============================================================
+// Secured /api/v2 endpoints
+// ============================================================
+// The backend serves secured versions of many routes under /api/v2 (identity from the login
+// token, ownership checks). Until that backend is deployed those paths don't exist, so the app
+// probes once at startup and uses v2 only when the server has it; otherwise the older paths.
+const V2 = `${BASE_URL}/api/v2`;
+let apiV2Available = false;
+let apiV2Probe = null;
+export const isApiV2 = () => apiV2Available;
+const pick = (v2Url, legacyUrl) => (apiV2Available ? v2Url : legacyUrl);
+
+/**
+ * Detect /api/v2: v2 answers GET /auth/check-status (no email) with a JSON 400; an older
+ * server has no such route and answers 404. Safe to call repeatedly; retries after failures.
+ */
+export const detectApiV2 = () => {
+  if (apiV2Available) return Promise.resolve(true);
+  if (!apiV2Probe) {
+    apiV2Probe = fetch(`${V2}/auth/check-status`, { headers: { Accept: 'application/json' } })
+      .then((res) => {
+        apiV2Available = res.status === 400 && (res.headers.get('content-type') || '').includes('json');
+        logger.info(`API v2 ${apiV2Available ? 'available' : 'not available'} (status ${res.status})`);
+        return apiV2Available;
+      })
+      .catch(() => false)
+      .finally(() => {
+        apiV2Probe = null;
+      });
+  }
+  return apiV2Probe;
+};
+detectApiV2();
+
+/** Socket event name: "v2:<name>" on a v2 server (those handlers verify the user). */
+export const socketEvent = (name) => (apiV2Available ? `v2:${name}` : name);
+
+// ============================================================
 // All endpoints organized by backend route file
 // ============================================================
 export const API_ENDPOINTS = {
@@ -57,7 +94,7 @@ export const API_ENDPOINTS = {
   LOGIN: `${BASE_URL}/login`,
   SIGNUP: `${BASE_URL}/signup`,
   VERIFY_EMAIL: `${BASE_URL}/verifyemail`,
-  CHECK_STATUS: `${BASE_URL}/check-status`,
+  get CHECK_STATUS() { return pick(`${V2}/auth/check-status`, `${BASE_URL}/check-status`); },
   REFRESH_TOKEN: `${BASE_URL}/refreshAccessToken`,
   LOGOUT: `${BASE_URL}/logout`,
   FORGOT_PASSWORD: `${BASE_URL}/forgotpassword`,
@@ -66,55 +103,55 @@ export const API_ENDPOINTS = {
   PROTECTED: `${BASE_URL}/protected`,
 
   // --- Users (userRouter.js) - root level ---
-  GET_USERS: `${BASE_URL}/users/get-users`,
-  GET_USER: (id) => `${BASE_URL}/users/get-users/${id}`,
-  USER_TRANSACTIONS: (id) => `${BASE_URL}/users/${id}/transactions`,
-  USER_WALLET: (id) => `${BASE_URL}/users/${id}/wallet`,
+  get GET_USERS() { return pick(`${V2}/users/get-users`, `${BASE_URL}/users/get-users`); },
+  GET_USER: (id) => pick(`${V2}/users/get-users/${id}`, `${BASE_URL}/users/get-users/${id}`),
+  USER_TRANSACTIONS: (id) => pick(`${V2}/users/${id}/transactions`, `${BASE_URL}/users/${id}/transactions`),
+  USER_WALLET: (id) => pick(`${V2}/users/${id}/wallet`, `${BASE_URL}/users/${id}/wallet`),
 
   // --- Profile (Profileroutes.js) - root level ---
-  USER_DATA: (id) => `${BASE_URL}/userdata/${id}`,
-  UPDATE_PROFILE_NAME: (id) => `${BASE_URL}/nameupdate/${id}/profileName`,
-  UPDATE_DELIVERY_ADDRESS: (id) => `${BASE_URL}/deliveryaddress/${id}/delivery-Address`,
-  UPDATE_BILLING_ADDRESS: (id) => `${BASE_URL}/billingaddress/${id}/billingAddress`,
-  DELETE_USER: (id) => `${BASE_URL}/deleteuser/${id}`,
-  NEWSLETTER: (id) => `${BASE_URL}/newsletter/${id}`,
-  USER_MESSAGES: (id) => `${BASE_URL}/messageforuser/${id}`,
-  UPDATE_PASSWORD: (id) => `${BASE_URL}/updatepassword/${id}`,
-  EMAIL_VERIFY: `${BASE_URL}/emailverify`,
-  VERIFY_PHONE_UPDATE: `${BASE_URL}/verifyphoneupdate`,
+  USER_DATA: (id) => pick(`${V2}/profile/userdata/${id}`, `${BASE_URL}/userdata/${id}`),
+  UPDATE_PROFILE_NAME: (id) => pick(`${V2}/profile/nameupdate/${id}/profileName`, `${BASE_URL}/nameupdate/${id}/profileName`),
+  UPDATE_DELIVERY_ADDRESS: (id) => pick(`${V2}/profile/deliveryaddress/${id}/delivery-Address`, `${BASE_URL}/deliveryaddress/${id}/delivery-Address`),
+  UPDATE_BILLING_ADDRESS: (id) => pick(`${V2}/profile/billingaddress/${id}/billingAddress`, `${BASE_URL}/billingaddress/${id}/billingAddress`),
+  DELETE_USER: (id) => pick(`${V2}/profile/deleteuser/${id}`, `${BASE_URL}/deleteuser/${id}`),
+  NEWSLETTER: (id) => pick(`${V2}/profile/newsletter/${id}`, `${BASE_URL}/newsletter/${id}`),
+  USER_MESSAGES: (id) => pick(`${V2}/profile/messageforuser/${id}`, `${BASE_URL}/messageforuser/${id}`),
+  UPDATE_PASSWORD: (id) => pick(`${V2}/profile/updatepassword/${id}`, `${BASE_URL}/updatepassword/${id}`),
+  get EMAIL_VERIFY() { return pick(`${V2}/profile/emailverify`, `${BASE_URL}/emailverify`); },
+  get VERIFY_PHONE_UPDATE() { return pick(`${V2}/profile/verifyphoneupdate`, `${BASE_URL}/verifyphoneupdate`); },
 
   // --- OTP (Twillioroutes.js) - root level ---
-  SEND_OTP: `${BASE_URL}/send-otp`,
-  VERIFY_OTP: `${BASE_URL}/verify-otp`,
+  get SEND_OTP() { return pick(`${V2}/otp/send-otp`, `${BASE_URL}/send-otp`); },
+  get VERIFY_OTP() { return pick(`${V2}/otp/verify-otp`, `${BASE_URL}/verify-otp`); },
 
   // --- Orders (Order.js) - root level ---
-  ORDERS: `${BASE_URL}/Orders`,
-  SELLER_ORDERS: (sellerId) => `${BASE_URL}/Orders/seller/${sellerId}`,
-  USER_ORDERS: (userId) => `${BASE_URL}/Orders/user/${userId}`,
-  ORDER_DETAIL: (id) => `${BASE_URL}/Orders/${id}`,
-  ORDER_TRACKING: (orderId) => `${BASE_URL}/Orders/${orderId}/tracking`,
+  get ORDERS() { return pick(`${V2}/orders`, `${BASE_URL}/Orders`); },
+  SELLER_ORDERS: (sellerId) => pick(`${V2}/orders/seller/${sellerId}`, `${BASE_URL}/Orders/seller/${sellerId}`),
+  USER_ORDERS: (userId) => pick(`${V2}/orders/user/${userId}`, `${BASE_URL}/Orders/user/${userId}`),
+  ORDER_DETAIL: (id) => pick(`${V2}/orders/${id}`, `${BASE_URL}/Orders/${id}`),
+  ORDER_TRACKING: (orderId) => pick(`${V2}/orders/${orderId}/tracking`, `${BASE_URL}/Orders/${orderId}/tracking`),
 
   // --- Followers (Followerroutes.js) - root level ---
-  FOLLOW: (id) => `${BASE_URL}/follow/${id}`,
-  UNFOLLOW: (id) => `${BASE_URL}/unfollow/${id}`,
+  FOLLOW: (id) => pick(`${V2}/follow/${id}/follow`, `${BASE_URL}/follow/${id}`),
+  UNFOLLOW: (id) => pick(`${V2}/follow/${id}/unfollow`, `${BASE_URL}/unfollow/${id}`),
   CHECK_FOLLOW: (followerId, followingId) => `${BASE_URL}/check/${followerId}/${followingId}`,
-  GET_FOLLOWERS: (id) => `${BASE_URL}/${id}/followers`,
-  GET_FOLLOWING: (id) => `${BASE_URL}/${id}/following`,
+  GET_FOLLOWERS: (id) => pick(`${V2}/follow/${id}/followers`, `${BASE_URL}/${id}/followers`),
+  GET_FOLLOWING: (id) => pick(`${V2}/follow/${id}/following`, `${BASE_URL}/${id}/following`),
 
   // --- Reviews (reviewRoutes.js) - root level ---
-  REVIEWS: `${BASE_URL}/reviews`,
-  REVIEW_CONFIRM_DELIVERY: (orderId) => `${BASE_URL}/reviews/orders/${orderId}/confirm-delivery`,
-  // New backend endpoint (buyer from token; also accepts shipped orders)
-  ORDER_CONFIRM_RECEIPT: (orderId) => `${BASE_URL}/order-receipt/${orderId}/confirm`,
-  REVIEWS_PENDING: `${BASE_URL}/reviews/pending`,
-  REVIEWS_USER: `${BASE_URL}/reviews/user`,
-  REVIEW_UPDATE: (reviewId) => `${BASE_URL}/reviews/${reviewId}`,
-  REVIEW_DELETE: (reviewId) => `${BASE_URL}/reviews/${reviewId}`,
-  REVIEW_HELPFUL: (reviewId) => `${BASE_URL}/reviews/${reviewId}/helpful`,
+  get REVIEWS() { return pick(`${V2}/reviews`, `${BASE_URL}/reviews`); },
+  REVIEW_CONFIRM_DELIVERY: (orderId) => pick(`${V2}/reviews/orders/${orderId}/confirm-delivery`, `${BASE_URL}/reviews/orders/${orderId}/confirm-delivery`),
+  // v2 only (buyer from token; also accepts shipped orders). Older servers: REVIEW_CONFIRM_DELIVERY.
+  ORDER_CONFIRM_RECEIPT: (orderId) => `${V2}/orders/${orderId}/confirm-receipt`,
+  get REVIEWS_PENDING() { return pick(`${V2}/reviews/pending`, `${BASE_URL}/reviews/pending`); },
+  get REVIEWS_USER() { return pick(`${V2}/reviews/user`, `${BASE_URL}/reviews/user`); },
+  REVIEW_UPDATE: (reviewId) => pick(`${V2}/reviews/${reviewId}`, `${BASE_URL}/reviews/${reviewId}`),
+  REVIEW_DELETE: (reviewId) => pick(`${V2}/reviews/${reviewId}`, `${BASE_URL}/reviews/${reviewId}`),
+  REVIEW_HELPFUL: (reviewId) => pick(`${V2}/reviews/${reviewId}/helpful`, `${BASE_URL}/reviews/${reviewId}/helpful`),
   REVIEWS_PRODUCT: (productId) => `${BASE_URL}/reviews/product/${productId}`,
   REVIEWS_PRODUCT_SUMMARY: (productId) => `${BASE_URL}/reviews/product/${productId}/summary`,
-  REVIEWS_SELLER: `${BASE_URL}/reviews/seller`,
-  REVIEW_SELLER_RESPONSE: (reviewId) => `${BASE_URL}/reviews/${reviewId}/seller-response`,
+  get REVIEWS_SELLER() { return pick(`${V2}/reviews/seller`, `${BASE_URL}/reviews/seller`); },
+  REVIEW_SELLER_RESPONSE: (reviewId) => pick(`${V2}/reviews/${reviewId}/seller-response`, `${BASE_URL}/reviews/${reviewId}/seller-response`),
 
   // --- Notifications (notificationRoutes.js) - /api prefix ---
   // Backend mounts these under /api/notifications (Routes/index.js); /notifications 404s.
@@ -126,7 +163,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_DELETE_READ: `${API_URL}/notifications/read/all`,
 
   // --- Chatbot (ChatbotRoutes.js) - root level ---
-  CHATBOT_ASK: `${BASE_URL}/chatbot/ask`,
+  get CHATBOT_ASK() { return pick(`${V2}/chatbot/ask`, `${BASE_URL}/chatbot/ask`); },
 
   // --- Concern/Support (concernRoutes.js) - root level ---
   CONCERN_RAISE: `${BASE_URL}/concern/raise`,
@@ -139,26 +176,26 @@ export const API_ENDPOINTS = {
   CONCERN_REOPEN: (id) => `${BASE_URL}/concern/${id}/reopen`,
 
   // --- Error logs (logRoutes.js) - root level ---
-  ERROR_LOG_REPORT: `${BASE_URL}/logs/error`,
-  ERROR_LOG_LIST: `${BASE_URL}/logs/error/db`,
-  ERROR_LOG_RESOLVE: (id) => `${BASE_URL}/logs/error/${id}/resolve`,
+  get ERROR_LOG_REPORT() { return pick(`${V2}/logs/error`, `${BASE_URL}/logs/error`); },
+  get ERROR_LOG_LIST() { return pick(`${V2}/logs/error/db`, `${BASE_URL}/logs/error/db`); },
+  ERROR_LOG_RESOLVE: (id) => pick(`${V2}/logs/error/${id}/resolve`, `${BASE_URL}/logs/error/${id}/resolve`),
 
   // --- Redis (redisRoutes.js) - root level ---
-  REDIS_CLEAR: `${BASE_URL}/redis/clear-cache`,
+  get REDIS_CLEAR() { return pick(`${V2}/redis/clear-cache`, `${BASE_URL}/redis/clear-cache`); },
 
   // --- Products (product.route.js) - /api prefixed ---
-  ADD_PRODUCT: `${API_URL}/products/add`,
+  get ADD_PRODUCT() { return pick(`${V2}/products/add`, `${API_URL}/products/add`); },
   GET_PRODUCTS: `${API_URL}/products/getProducts`,
   GET_PRODUCT: (id) => `${API_URL}/products/product/${id}`,
   USER_ADS: (userId) => `${API_URL}/products/user/${userId}/ads`,
-  DELETE_PRODUCT: (id) => `${API_URL}/products/product/${id}`,
-  UPDATE_PRODUCT: (id) => `${API_URL}/products/product/${id}`,
+  DELETE_PRODUCT: (id) => pick(`${V2}/products/product/${id}`, `${API_URL}/products/product/${id}`),
+  UPDATE_PRODUCT: (id) => pick(`${V2}/products/product/${id}`, `${API_URL}/products/product/${id}`),
   NEARBY_PRODUCTS: `${API_URL}/products/nearby`,
   PRODUCTS_TRY: `${API_URL}/products/try`,
-  MARK_SOLD: (productId) => `${API_URL}/products/mark-sold/${productId}`,
+  MARK_SOLD: (productId) => pick(`${V2}/products/mark-sold/${productId}`, `${API_URL}/products/mark-sold/${productId}`),
   PRODUCTS_BY_CATEGORY: (category) => `${API_URL}/products/category/${encodeURIComponent(category)}`,
   PRIORITY_PRODUCTS: `${API_URL}/products/priority`,
-  UPDATE_PRIORITY: (productId) => `${API_URL}/products/priority/${productId}`,
+  UPDATE_PRIORITY: (productId) => pick(`${V2}/products/priority/${productId}`, `${API_URL}/products/priority/${productId}`),
 
   // --- Shops (shopRoutes.js) - /api prefixed ---
   MY_SHOP: `${API_URL}/shops/my-shop`,
@@ -171,15 +208,15 @@ export const API_ENDPOINTS = {
   FOLLOW_SHOP: (id) => `${API_URL}/shops/${id}/follow`,
 
   // --- Chat (chat.js) - /api prefixed ---
-  CHAT_CONNECT: `${API_URL}/chat/connect`,
-  CHAT_USERS: `${API_URL}/chat/users`,
-  CHAT_USER: (username) => `${API_URL}/chat/user/${username}`,
-  CHAT_CONVERSATIONS: (userIdentifier) => `${API_URL}/chat/conversations/${userIdentifier}`,
-  CHAT_CREATE_CONVERSATION: `${API_URL}/chat/conversations`,
-  CHAT_MESSAGES: (conversationId) => `${API_URL}/chat/messages/${conversationId}`,
-  CHAT_SEND_MESSAGE: `${API_URL}/chat/messages`,
-  CHAT_UPLOAD: `${API_URL}/chat/upload`,
-  CHAT_GET_OR_CREATE: `${API_URL}/chat/conversation/get-or-create`,
+  get CHAT_CONNECT() { return pick(`${V2}/chat/connect`, `${API_URL}/chat/connect`); },
+  get CHAT_USERS() { return pick(`${V2}/chat/users`, `${API_URL}/chat/users`); },
+  CHAT_USER: (username) => pick(`${V2}/chat/user/${username}`, `${API_URL}/chat/user/${username}`),
+  CHAT_CONVERSATIONS: (userIdentifier) => pick(`${V2}/chat/conversations/${userIdentifier}`, `${API_URL}/chat/conversations/${userIdentifier}`),
+  get CHAT_CREATE_CONVERSATION() { return pick(`${V2}/chat/conversations`, `${API_URL}/chat/conversations`); },
+  CHAT_MESSAGES: (conversationId) => pick(`${V2}/chat/messages/${conversationId}`, `${API_URL}/chat/messages/${conversationId}`),
+  get CHAT_SEND_MESSAGE() { return pick(`${V2}/chat/messages`, `${API_URL}/chat/messages`); },
+  get CHAT_UPLOAD() { return pick(`${V2}/chat/upload`, `${API_URL}/chat/upload`); },
+  get CHAT_GET_OR_CREATE() { return pick(`${V2}/chat/conversation/get-or-create`, `${API_URL}/chat/conversation/get-or-create`); },
 
   // --- Payments (payment-proxy.routes.js) - /api prefixed ---
   PAYMENT_INITIATE: `${API_URL}/payments/initiate`,

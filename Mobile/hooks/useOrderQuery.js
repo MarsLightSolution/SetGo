@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, isApiV2 } from '../config/api';
 import api from '../services/api';
 
 // ==================== QUERY KEYS ====================
@@ -97,20 +97,16 @@ const useRefreshOrders = () => {
 
 /**
  * Buyer confirms they received the item (paid/shipped → delivered).
- * Uses the new /order-receipt endpoint; falls back to the older review route
- * while a backend without it is still deployed (404).
+ * v2 server: /api/v2/orders/:id/confirm-receipt (buyer from the token, accepts shipped orders).
+ * Older server: the review route (which only accepts paid/delivered).
  */
 export const useConfirmDelivery = () => {
   const refresh = useRefreshOrders();
   return useMutation({
-    mutationFn: async ({ orderId, buyerId }) => {
-      try {
-        return await api.post(API_ENDPOINTS.ORDER_CONFIRM_RECEIPT(orderId));
-      } catch (err) {
-        if (err?.response?.status !== 404) throw err;
-        return api.post(API_ENDPOINTS.REVIEW_CONFIRM_DELIVERY(orderId), { buyerId });
-      }
-    },
+    mutationFn: ({ orderId, buyerId }) =>
+      isApiV2()
+        ? api.post(API_ENDPOINTS.ORDER_CONFIRM_RECEIPT(orderId))
+        : api.post(API_ENDPOINTS.REVIEW_CONFIRM_DELIVERY(orderId), { buyerId }),
     onSuccess: refresh,
   });
 };
