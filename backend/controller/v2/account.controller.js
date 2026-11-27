@@ -79,3 +79,44 @@ exports.checkVerificationStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// PATCH /api/v2/profile/change-password — body { currentPassword, newPassword }.
+// Changes the logged-in user's own password after checking the current one, with the same
+// rules as signup (8–128 chars, upper + lower case + digit).
+const bcrypt = require("bcrypt");
+const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (typeof currentPassword !== "string" || !currentPassword || typeof newPassword !== "string") {
+      return res.status(400).json({ success: false, code: "MISSING_FIELDS", message: "Current and new password are required." });
+    }
+    if (newPassword.length < 8 || newPassword.length > 128 || !PASSWORD_RULE.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        code: "WEAK_PASSWORD",
+        message: "Password must be 8-128 characters with an uppercase letter, a lowercase letter and a number.",
+      });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+    if (!user) return res.status(404).json({ success: false, message: "User not found." });
+
+    if (!user.password || !(await bcrypt.compare(currentPassword, user.password))) {
+      logger.warn("[v2 changePassword] Wrong current password", { userId: String(user._id) });
+      return res.status(400).json({ success: false, code: "WRONG_PASSWORD", message: "Current password is incorrect." });
+    }
+    if (await bcrypt.compare(newPassword, user.password)) {
+      return res.status(400).json({ success: false, code: "SAME_PASSWORD", message: "New password must be different from the current one." });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    await user.save();
+    logger.info("[v2 changePassword] Password changed", { userId: String(user._id) });
+    return res.status(200).json({ success: true, message: "Password updated successfully." });
+  } catch (err) {
+    logger.error("[v2 changePassword] Error", { message: err.message });
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};

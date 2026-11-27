@@ -2,9 +2,9 @@
 // :id must be the logged-in user (or an admin) and body userIds are the logged-in user.
 const express = require("express");
 const verifyJWT = require("../../middlewares/auth.middlewares");
-const { selfOrAdmin, asSelf } = require("../../middlewares/v2Guards.middleware");
+const { selfOrAdmin, asSelf, limiter } = require("../../middlewares/v2Guards.middleware");
 const P = require("../../controller/Profilecontroller");
-const { getUserProfile } = require("../../controller/v2/account.controller");
+const { getUserProfile, changePassword } = require("../../controller/v2/account.controller");
 
 const router = express.Router();
 router.use(verifyJWT);
@@ -17,6 +17,8 @@ router.patch("/nameupdate/:id/profileName", own, P.nameupdate);
 router.patch("/deliveryaddress/:id/delivery-Address", own, P.updateDeliveryAddress);
 router.patch("/billingaddress/:id/billingAddress", own, P.updateBillingAddress);
 router.patch("/updatepassword/:id", own, P.updatePassword);
+// Own password only, current password required (the app's change-password screen).
+router.patch("/change-password", limiter(10), changePassword);
 router.delete("/deleteuser/:id", own, P.deleteUserAccount);
 router.get("/newsletter/:id", own, P.toggleNewsletterPreference);
 router.get("/messageforuser/:id", own, P.toggleMessagePreference);

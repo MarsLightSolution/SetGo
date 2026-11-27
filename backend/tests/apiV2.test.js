@@ -162,6 +162,29 @@ describe('users and profile', () => {
   });
 });
 
+describe('change password', () => {
+  const bcrypt = require('bcrypt');
+  test('own password only, current password required, signup rules', async () => {
+    const me = await makeUser({ password: await bcrypt.hash('OldPass123', 10) });
+    const send = (body, user = me) => api('patch', '/profile/change-password', user).send(body);
+
+    expect((await api('patch', '/profile/change-password').send({ currentPassword: 'OldPass123', newPassword: 'NewPass123' })).status).toBe(401);
+    expect((await send({ newPassword: 'NewPass123' })).status).toBe(400);
+    const wrong = await send({ currentPassword: 'nope', newPassword: 'NewPass123' });
+    expect(wrong.status).toBe(400);
+    expect(wrong.body.code).toBe('WRONG_PASSWORD');
+    expect((await send({ currentPassword: 'OldPass123', newPassword: 'short' })).body.code).toBe('WEAK_PASSWORD');
+    expect((await send({ currentPassword: 'OldPass123', newPassword: 'alllowercase1' })).body.code).toBe('WEAK_PASSWORD');
+    expect((await send({ currentPassword: 'OldPass123', newPassword: 'OldPass123' })).body.code).toBe('SAME_PASSWORD');
+
+    const ok = await send({ currentPassword: 'OldPass123', newPassword: 'NewPass123' });
+    expect(ok.status).toBe(200);
+    expect(JSON.stringify(ok.body)).not.toMatch(/password"/i);
+    const saved = await User.findById(me._id).select('+password');
+    expect(await bcrypt.compare('NewPass123', saved.password)).toBe(true);
+  });
+});
+
 describe('follow', () => {
   test('follower is the logged-in user; lists have no emails', async () => {
     const [a, b, c] = await Promise.all([makeUser(), makeUser(), makeUser()]);
