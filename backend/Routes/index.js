@@ -21,6 +21,7 @@ router.use("/",require("./Admin.js"));
 router.use("/chatbot", require("./ChatbotRoutes.js"));
 router.use("/concern", require("./concernRoutes.js"));
 router.use("/reviews", require("./reviewRoutes.js"));
+router.use("/order-receipt", require("./orderReceipt.routes.js"));
 router.use("/api/shops", shopRoutes);
 router.use("/api/ads", require("./adRoutes.js"));
 router.use("/api/notifications", require("./notificationRoutes.js"));
