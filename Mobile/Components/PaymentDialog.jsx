@@ -145,15 +145,19 @@ const PaymentDialog = ({
     return getTextValue(product?.title, 'Unnamed Product');
   }, [product?.title]);
 
+  // The logged-in user from /userdata has `_id`; only the bare login response has `userId`.
+  // Reading only `userId` left the wallet at 0 after a normal login, so wallet checkout failed.
+  const userId = user?._id || user?.userId;
+
   // Fetch wallet balance
   const fetchWalletBalance = useCallback(async (retryCount = 0) => {
-    if (!user?.userId) return;
+    if (!userId) return;
 
     setLoadingWallet(true);
 
     try {
       // Shared client: sends the Bearer token and refreshes it if needed.
-      const { data } = await api.get(API_ENDPOINTS.USER_WALLET(user.userId), { timeout: 8000 });
+      const { data } = await api.get(API_ENDPOINTS.USER_WALLET(userId), { timeout: 8000 });
 
       // Extract wallet balance from response
       const balance =
@@ -175,13 +179,13 @@ const PaymentDialog = ({
     } finally {
       setLoadingWallet(false);
     }
-  }, [user?.userId, user?.walletBalance]);
+  }, [userId, user?.walletBalance]);
 
   useEffect(() => {
-    if (isVisible && user?.userId) {
+    if (isVisible && userId) {
       fetchWalletBalance();
     }
-  }, [isVisible, fetchWalletBalance, user?.userId]);
+  }, [isVisible, fetchWalletBalance, userId]);
 
   useEffect(() => {
     if (status === 'SUCCESS' || status === 'FAILURE') {

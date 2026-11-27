@@ -11,6 +11,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accountService } from '../../services/accountService';
 import { STORAGE_KEYS } from '../../constants/accountSettings';
 
+// The server's own message (e.g. "Current password is incorrect.") over axios's generic one.
+const serverMessage = (error, fallback) =>
+  error?.response?.data?.message || error?.message || fallback;
+
 /**
  * Custom hook for security update operations
  *
@@ -45,7 +49,7 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
       Alert.alert('Success', 'OTP sent successfully to your phone');
       if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to send OTP');
+      Alert.alert('Error', serverMessage(error, 'Failed to send OTP'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +92,7 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
       setFormData({ ...formData, otp: '' });
       if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Invalid OTP');
+      Alert.alert('Error', serverMessage(error, 'Invalid OTP'));
     } finally {
       setLoading(false);
     }
@@ -115,8 +119,9 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
       return;
     }
 
-    if (formData.newPassword.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+    // Same rules as signup (and the server's change-password check)
+    if (formData.newPassword.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword)) {
+      Alert.alert('Error', 'Password must be at least 8 characters with an uppercase letter, a lowercase letter and a number');
       return;
     }
 
@@ -141,7 +146,7 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
       });
       if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to update password');
+      Alert.alert('Error', serverMessage(error, 'Failed to update password'));
     } finally {
       setLoading(false);
     }
