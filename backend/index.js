@@ -231,6 +231,8 @@ io.use((socket, next) => {
 
 // Init socket controller
 initSocket(io);
+// v2 socket events (participants-only chat relay etc.); the events above are unchanged.
+require("./controller/v2/socket")(io);
 
 // Log connections (userId available after handshake)
 io.on("connection", (socket) => {
