@@ -117,6 +117,8 @@ export const API_ENDPOINTS = {
   NEWSLETTER: (id) => pick(`${V2}/profile/newsletter/${id}`, `${BASE_URL}/newsletter/${id}`),
   USER_MESSAGES: (id) => pick(`${V2}/profile/messageforuser/${id}`, `${BASE_URL}/messageforuser/${id}`),
   UPDATE_PASSWORD: (id) => pick(`${V2}/profile/updatepassword/${id}`, `${BASE_URL}/updatepassword/${id}`),
+  // v2 only: own password, current password checked. Older servers: UPDATE_PASSWORD.
+  CHANGE_PASSWORD: `${V2}/profile/change-password`,
   get EMAIL_VERIFY() { return pick(`${V2}/profile/emailverify`, `${BASE_URL}/emailverify`); },
   get VERIFY_PHONE_UPDATE() { return pick(`${V2}/profile/verifyphoneupdate`, `${BASE_URL}/verifyphoneupdate`); },
 

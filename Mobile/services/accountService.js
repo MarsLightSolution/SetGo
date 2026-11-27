@@ -14,7 +14,7 @@
  */
 
 import api from './api';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, isApiV2 } from '../config/api';
 import logger from '../utils/logger';
 
 const log = logger.create('Account');
@@ -157,9 +157,25 @@ export const accountService = {
    * @param {Object} passwordData - Password data: { currentPassword, newPassword }
    * @returns {Promise<Object>} Updated user data
    */
-  updatePassword: async (userId, passwordData) => {
+  updatePassword: async (userId, { currentPassword, newPassword }) => {
+    // The old /updatepassword/:id route reads only `password` (it used to get
+    // { currentPassword, newPassword } and always answered 400) and never checks the
+    // current password. v2 servers have /profile/change-password, which does.
+    const legacy = () => api.patch(API_ENDPOINTS.UPDATE_PASSWORD(userId), { password: newPassword });
     try {
-      const { data } = await api.patch(API_ENDPOINTS.UPDATE_PASSWORD(userId), passwordData);
+      let res;
+      if (isApiV2()) {
+        try {
+          res = await api.patch(API_ENDPOINTS.CHANGE_PASSWORD, { currentPassword, newPassword });
+        } catch (err) {
+          // v2 server deployed before change-password existed
+          if (err?.response?.status !== 404) throw err;
+          res = await legacy();
+        }
+      } else {
+        res = await legacy();
+      }
+      const { data } = res;
       return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('updatePassword error:', error);
