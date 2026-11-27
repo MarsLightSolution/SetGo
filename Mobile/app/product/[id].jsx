@@ -35,7 +35,7 @@ import { StockBadge } from '../../Components/product';
 import { ProductLocationMap } from '../../Components/map';
 
 const { width } = Dimensions.get('window');
-import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
+import { API_ENDPOINTS, IMAGE_BASE_URL, fetchV2OrLegacy, WEB_LINKS } from '../../config/api';
 
 const getLocalizedText = (field, lang = 'en') => {
   if (!field) return '';
@@ -188,10 +188,12 @@ function ProductDetail() {
     const shopProduct = product.listingType === 'shop' && product.shop;
     if (shopProduct && product.shop._id) {
       // Check shop follow status via shop details
-      fetch(API_ENDPOINTS.GET_SHOP(product.shop._id))
+      fetchV2OrLegacy(API_ENDPOINTS.CATALOG_SHOP(product.shop._id), API_ENDPOINTS.GET_SHOP(product.shop._id))
         .then((r) => r.json())
         .then((data) => {
-          const shop = data?.shop || data;
+          // The API answers { success, data: shop }; reading the envelope always gave
+          // "not following" for shops.
+          const shop = data?.data || data?.shop || data;
           const followers = shop?.followers || [];
           setIsFollowing(followers.some((f) => (f._id || f) === user._id));
         })
@@ -432,7 +434,8 @@ function ProductDetail() {
   const handleShare = useCallback(async () => {
     try {
       const productTitle = getLocalizedText(product.title);
-      const productUrl = API_ENDPOINTS.GET_PRODUCT(id);
+      // Website page (the API URL used before opened raw JSON).
+      const productUrl = WEB_LINKS.product(id);
 
       await Share.share({
         message: `Check out this product: ${productTitle}\nPrice: ₼${product.price?.toLocaleString()}\n\n${productUrl}`,

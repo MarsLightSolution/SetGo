@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
-import { API_ENDPOINTS, IMAGE_BASE_URL } from '../../config/api';
+import { API_ENDPOINTS, IMAGE_BASE_URL, WEB_LINKS } from '../../config/api';
 import { useAuthStore } from '../../Store/authStore';
 import logger from '../../utils/logger';
 import { useShopProfile, useShopProducts } from '../../hooks/useShopQuery';
@@ -135,7 +135,7 @@ export default function ShopProfileScreen() {
       const shopName = getLocalizedText(shop?.shopName);
       await Share.share({
         message: `Check out ${shopName} on SetGo!`,
-        url: API_ENDPOINTS.GET_SHOP(shop?.slug || shop?._id),
+        url: WEB_LINKS.shop(shop?.slug || shop?._id), // website page, not the JSON API
         title: shopName,
       });
     } catch (error) {

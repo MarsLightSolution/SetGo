@@ -82,6 +82,25 @@ export const detectApiV2 = () => {
 };
 detectApiV2();
 
+/**
+ * GET a v2-only public read, falling back to the older route when the server doesn't have
+ * it yet (not a v2 server, or a v2 server from before that endpoint: 404).
+ */
+export const fetchV2OrLegacy = async (v2Url, legacyUrl, init) => {
+  if (apiV2Available) {
+    const res = await fetch(v2Url, init);
+    if (res.status !== 404) return res;
+  }
+  return fetch(legacyUrl, init);
+};
+
+// Public website (share links must open a page, not the JSON API).
+export const WEB_URL = 'https://satgo.az';
+export const WEB_LINKS = {
+  product: (id) => `${WEB_URL}/product/${encodeURIComponent(id)}`,
+  shop: (slugOrId) => `${WEB_URL}/shop/${encodeURIComponent(slugOrId)}`,
+};
+
 /** Socket event name: "v2:<name>" on a v2 server (those handlers verify the user). */
 export const socketEvent = (name) => (apiV2Available ? `v2:${name}` : name);
 
@@ -196,6 +215,9 @@ export const API_ENDPOINTS = {
   PRODUCTS_TRY: `${API_URL}/products/try`,
   MARK_SOLD: (productId) => pick(`${V2}/products/mark-sold/${productId}`, `${API_URL}/products/mark-sold/${productId}`),
   PRODUCTS_BY_CATEGORY: (category) => `${API_URL}/products/category/${encodeURIComponent(category)}`,
+  // v2 only (use with fetchV2OrLegacy): plain-text match on category.en/az/ru. The old route
+  // compares against the whole multi-language object and never matches.
+  CATALOG_CATEGORY: (category) => `${V2}/catalog/category/${encodeURIComponent(category)}`,
   PRIORITY_PRODUCTS: `${API_URL}/products/priority`,
   UPDATE_PRIORITY: (productId) => pick(`${V2}/products/priority/${productId}`, `${API_URL}/products/priority/${productId}`),
 
@@ -203,6 +225,8 @@ export const API_ENDPOINTS = {
   MY_SHOP: `${API_URL}/shops/my-shop`,
   GET_SHOPS: `${API_URL}/shops`,
   GET_SHOP: (id) => `${API_URL}/shops/${id}`,
+  // v2 only (use with fetchV2OrLegacy): same data without the owner's personal email/phone.
+  CATALOG_SHOP: (id) => `${V2}/catalog/shops/${encodeURIComponent(id)}`,
   SHOP_PRODUCTS: (id) => `${API_URL}/shops/${id}/products`,
   CREATE_SHOP: `${API_URL}/shops`,
   UPDATE_SHOP: (id) => `${API_URL}/shops/${id}`,

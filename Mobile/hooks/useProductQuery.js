@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, fetchV2OrLegacy } from '../config/api';
 
 // ==================== QUERY KEYS ====================
 // Centralised so invalidations are consistent across the app.
@@ -37,18 +37,21 @@ const fetchProduct = async (id) => {
 
 const fetchRelatedProducts = async ({ category, excludeId }) => {
   if (!category) return [];
-  const res = await fetch(
-    `${API_ENDPOINTS.PRODUCTS_BY_CATEGORY(category)}?lang=en&limit=4`
+  const query = '?lang=en&limit=5'; // one extra in case the current product is in the list
+  const res = await fetchV2OrLegacy(
+    `${API_ENDPOINTS.CATALOG_CATEGORY(category)}${query}`,
+    `${API_ENDPOINTS.PRODUCTS_BY_CATEGORY(category)}${query}`
   );
   const json = await res.json();
   return json.data?.filter((p) => p._id !== excludeId).slice(0, 4) || [];
 };
 
 const fetchShop = async (shopId) => {
-  const res = await fetch(API_ENDPOINTS.GET_SHOP(shopId));
+  const res = await fetchV2OrLegacy(API_ENDPOINTS.CATALOG_SHOP(shopId), API_ENDPOINTS.GET_SHOP(shopId));
   if (!res.ok) throw new Error('Failed to fetch shop');
   const data = await res.json();
-  return data?.shop || data;
+  // The API answers { success, data: shop }; returning the envelope gave callers no shop fields.
+  return data?.data || data?.shop || data;
 };
 
 // ==================== HOOKS ====================
