@@ -86,7 +86,7 @@ function AccountSettings() {
     try {
       setLoading(true);
       const res = await axios.patch(
-        `${import.meta.env.VITE_SERVER}/billingaddress/${profile._id}/billingAddress`,
+        `${import.meta.env.VITE_SERVER}/api/v2/profile/billingaddress/${profile._id}/billingAddress`,
         {
           billingAddress: newAddress,
         },
@@ -128,7 +128,7 @@ function AccountSettings() {
       }
 
       const res = await axios.delete(
-        `${import.meta.env.VITE_SERVER}/deleteuser/${profile._id}`
+        `${import.meta.env.VITE_SERVER}/api/v2/profile/deleteuser/${profile._id}`
       );
       if (res.status === 200) {
         await fetch(`${import.meta.env.VITE_SERVER}/logout`, {
@@ -157,7 +157,7 @@ function AccountSettings() {
 
     try {
       setLoading(true);
-      const res = await axios.post(`${import.meta.env.VITE_SERVER}/emailverify`, {
+      const res = await axios.post(`${import.meta.env.VITE_SERVER}/api/v2/profile/emailverify`, {
         userId: profile._id,
         password: emailPassword,
         newEmail: newEmail,

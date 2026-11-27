@@ -151,7 +151,7 @@
         const wasPaused = currentAd?.isSell === true
 
         await axios.patch(
-          `${import.meta.env.VITE_SERVER}/api/products/mark-sold/${id}`,
+          `${import.meta.env.VITE_SERVER}/api/v2/products/mark-sold/${id}`,
           {},
           {
             headers: { Authorization: `Bearer ${accessToken}` },
@@ -176,7 +176,7 @@
     const boostAd = async (id) => {
       try {
         await axios.put(
-          `${import.meta.env.VITE_SERVER}/api/products/priority/${id}`,
+          `${import.meta.env.VITE_SERVER}/api/v2/products/priority/${id}`,
           {},
           {
             headers: { Authorization: `Bearer ${accessToken}` },
@@ -206,7 +206,7 @@
       };
     const deleteAd = async (id) => {
       try {
-        await axios.delete(`${import.meta.env.VITE_SERVER}/api/products/product/${id}`, {
+        await axios.delete(`${import.meta.env.VITE_SERVER}/api/v2/products/product/${id}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
           withCredentials: true,
         })

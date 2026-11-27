@@ -73,7 +73,7 @@ const AdminAds = () => {
   const fetchAds = async () => {
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/ads/admin/all`,
+        `${import.meta.env.VITE_SERVER}/api/v2/ads/admin/all`,
         { credentials: "include" }
       );
       const data = await res.json();
@@ -89,7 +89,7 @@ const AdminAds = () => {
   const fetchStats = async () => {
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/ads/admin/stats`,
+        `${import.meta.env.VITE_SERVER}/api/v2/ads/admin/stats`,
         { credentials: "include" }
       );
       const data = await res.json();
@@ -174,8 +174,8 @@ const AdminAds = () => {
       });
 
       const url = editingAd
-        ? `${import.meta.env.VITE_SERVER}/api/ads/admin/${editingAd._id}`
-        : `${import.meta.env.VITE_SERVER}/api/ads/admin/create`;
+        ? `${import.meta.env.VITE_SERVER}/api/v2/ads/admin/${editingAd._id}`
+        : `${import.meta.env.VITE_SERVER}/api/v2/ads/admin/create`;
 
       const res = await fetch(url, {
         method: editingAd ? "PUT" : "POST",
@@ -206,7 +206,7 @@ const AdminAds = () => {
   const handleDelete = async (adId) => {
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/ads/admin/${adId}`,
+        `${import.meta.env.VITE_SERVER}/api/v2/ads/admin/${adId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -232,7 +232,7 @@ const AdminAds = () => {
   const toggleAdStatus = async (ad) => {
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/ads/admin/${ad._id}`,
+        `${import.meta.env.VITE_SERVER}/api/v2/ads/admin/${ad._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

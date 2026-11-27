@@ -45,7 +45,7 @@ function PhoneVerification({ onSendOTP, setPhoneNumber, email }) {
     const fullNumber = `${countryCode}${localPhoneNumber}`;
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_SERVER}/send-otp`, {
+      const res = await axios.post(`${import.meta.env.VITE_SERVER}/api/v2/otp/send-otp`, {
         email: email,
         phoneNumber: fullNumber,
       });

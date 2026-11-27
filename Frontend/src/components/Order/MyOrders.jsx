@@ -16,7 +16,7 @@ const MyOrders = () => {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-        const { data } = await axios.get(`${import.meta.env.VITE_SERVER}/Orders/user/${userId}`, {
+        const { data } = await axios.get(`${import.meta.env.VITE_SERVER}/api/v2/orders/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if(data.success){

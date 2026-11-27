@@ -35,7 +35,7 @@ const TransactionHistory = ({ forcedUserId }) => {
     (async () => {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_SERVER}/users/${userId}/transactions`,
+          `${import.meta.env.VITE_SERVER}/api/v2/users/${userId}/transactions`,
           { credentials: "include" }
         );
         const json = await res.json();

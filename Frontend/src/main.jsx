@@ -10,6 +10,10 @@ import { rootReducer } from './redux/index.js';
 import { Toaster } from 'react-hot-toast';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n'; 
+import { installServerAuth } from './utils/serverAuth';
+
+// Our server's requests carry the login (secured /api/v2 routes need it).
+installServerAuth();
 
 export const store = configureStore({
   reducer: rootReducer,

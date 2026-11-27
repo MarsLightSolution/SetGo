@@ -20,7 +20,7 @@ function EmailSettings() {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${import.meta.env.VITE_SERVER}/newsletter/${userId}`
+        `${import.meta.env.VITE_SERVER}/api/v2/profile/newsletter/${userId}`
       );
       setNewsletter(res.data.data.newsletter);
       toast.success(t("emailSettings.newsletterToggleSuccess"));
@@ -36,7 +36,7 @@ function EmailSettings() {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${import.meta.env.VITE_SERVER}/messageforuser/${userId}`
+        `${import.meta.env.VITE_SERVER}/api/v2/profile/messageforuser/${userId}`
       );
       setMessagesFromUsers(res.data.data.messageforuser);
       toast.success(t("emailSettings.messagesToggleSuccess"));

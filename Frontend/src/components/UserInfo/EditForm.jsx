@@ -290,7 +290,7 @@ const handleSubmit = async (e) => {
 
     // --- API call ---
     const accessToken = localStorage.getItem("accessToken");
-    const response = await axios.put(`${import.meta.env.VITE_SERVER}/api/products/product/${id}`, updatedData, {
+    const response = await axios.put(`${import.meta.env.VITE_SERVER}/api/v2/products/product/${id}`, updatedData, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

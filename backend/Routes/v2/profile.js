@@ -1,0 +1,24 @@
+// /api/v2/profile — like the /userdata, /nameupdate, ... routes in Profileroutes.js, but the
+// :id must be the logged-in user (or an admin) and body userIds are the logged-in user.
+const express = require("express");
+const verifyJWT = require("../../middlewares/auth.middlewares");
+const { selfOrAdmin, asSelf } = require("../../middlewares/v2Guards.middleware");
+const P = require("../../controller/Profilecontroller");
+const { getUserProfile } = require("../../controller/v2/account.controller");
+
+const router = express.Router();
+router.use(verifyJWT);
+const own = selfOrAdmin("id");
+
+router.get("/userdata/:id", getUserProfile); // own/admin: private fields; others: public profile
+router.post("/emailverify", asSelf("userId"), P.verifyEmail);
+router.post("/verifyphoneupdate", asSelf("userId"), P.verifyOTP);
+router.patch("/nameupdate/:id/profileName", own, P.nameupdate);
+router.patch("/deliveryaddress/:id/delivery-Address", own, P.updateDeliveryAddress);
+router.patch("/billingaddress/:id/billingAddress", own, P.updateBillingAddress);
+router.patch("/updatepassword/:id", own, P.updatePassword);
+router.delete("/deleteuser/:id", own, P.deleteUserAccount);
+router.get("/newsletter/:id", own, P.toggleNewsletterPreference);
+router.get("/messageforuser/:id", own, P.toggleMessagePreference);
+
+module.exports = router;

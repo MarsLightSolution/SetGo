@@ -6,6 +6,9 @@ const shopRoutes = require("../Routes/shopRoutes");
 const logger = require('../utils/logger');
 logger.debug('router loaded');
 // console.log( productRoutes);
+// Secured v2 API (new routes, mounted first so no older catch-all route can shadow them;
+// the routes below are unchanged).
+router.use("/api/v2", require("./v2"));
 router.use('/', require('./Authroutes.js'));
 router.use('/users', require('./userRouter.js'));
 router.use('/redis', require('./redisRoutes.js'));

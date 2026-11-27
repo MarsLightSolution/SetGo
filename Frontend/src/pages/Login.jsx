@@ -46,7 +46,7 @@ const Login = () => {
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("userName", data.userName);
         const userRes = await fetch(
-          `${import.meta.env.VITE_SERVER}/userdata/${data.userId}`,
+          `${import.meta.env.VITE_SERVER}/api/v2/profile/userdata/${data.userId}`,
           { method: "GET" }
         );
 

@@ -57,7 +57,7 @@ function SmsVerification({ phoneNumber, email, onClose, showCloseButton = false,
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_SERVER}/api/auth/send-otp`,
+        `${import.meta.env.VITE_SERVER}/api/v2/otp/send-otp`,
         {
           phoneNumber: phoneNumber,
           email: email,

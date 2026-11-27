@@ -333,7 +333,7 @@ const Form = () => {
     try {
       setLoading(true);
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/products/add`,
+        `${import.meta.env.VITE_SERVER}/api/v2/products/add`,
         {
           method: "POST",
           body: formDataToSend,
