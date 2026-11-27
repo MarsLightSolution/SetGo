@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { io } from 'socket.io-client';
 import { chatNotifications } from '../Notification/notification';
 
+import { socketAuth, reconnectAfterTokenRefresh } from '../utils/serverAuth';
 const NotificationContext = createContext();
 
 export const useNotificationContext = () => {
@@ -26,8 +27,10 @@ export const NotificationProvider = ({ children }) => {
     if (userId || userEmail) {
       const socketInstance = io(`${import.meta.env.VITE_SERVER}`, {
         withCredentials: true,
+        auth: socketAuth, // the server rejects sockets without a valid login token
         transports: ['websocket', 'polling']
       });
+      reconnectAfterTokenRefresh(socketInstance);
 
       socketInstance.on('connect', () => {
         console.log('Connected to notification server');
@@ -35,7 +38,7 @@ export const NotificationProvider = ({ children }) => {
         
         // Join user's personal notification room (prefer MongoDB userId so it
         // matches what order/concern/chat controllers emit to)
-        socketInstance.emit('join-user', userId || userEmail);
+        socketInstance.emit('v2:join-user'); // server joins this login's own room
       });
 
       socketInstance.on('disconnect', () => {
@@ -235,7 +238,7 @@ export const NotificationProvider = ({ children }) => {
   // Send notification through socket
   const sendNotification = useCallback((recipientId, notificationData) => {
     if (socket && isConnected) {
-      socket.emit('send-notification', {
+      socket.emit('v2:send-notification', {
         recipientId,
         ...notificationData
       });

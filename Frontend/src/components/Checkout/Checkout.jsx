@@ -82,7 +82,7 @@ const CheckoutPage = () => {
     // ✅ SECURITY: Backend will authenticate user via session/JWT
     setIsLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SERVER}/users/${userId}/wallet`, {
+      const res = await fetch(`${import.meta.env.VITE_SERVER}/api/v2/users/${userId}/wallet`, {
         credentials: "include", // ✅ SECURITY: Include cookies for authentication
       });
 

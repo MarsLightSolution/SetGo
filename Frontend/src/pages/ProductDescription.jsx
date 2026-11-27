@@ -275,7 +275,7 @@ const ProductDetail = () => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/reviews/${reviewId}/helpful`,
+        `${import.meta.env.VITE_SERVER}/api/v2/reviews/${reviewId}/helpful`,
         {
           method: "POST",
           headers: {
@@ -352,7 +352,7 @@ const ProductDetail = () => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/users/get-users/${userId}`,
+        `${import.meta.env.VITE_SERVER}/api/v2/users/get-users/${userId}`,
         { credentials: "include" }
       );
       const json = await res.json();
@@ -386,7 +386,7 @@ const ProductDetail = () => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_SERVER}/api/chat/conversation/get-or-create`,
+        `${import.meta.env.VITE_SERVER}/api/v2/chat/conversation/get-or-create`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -408,7 +408,7 @@ const ProductDetail = () => {
       const conversationId = data.conversation._id;
 
       const initialMessage = "Hi! I'm interested in your product.";
-      await fetch(`${import.meta.env.VITE_SERVER}/api/chat/messages`, {
+      await fetch(`${import.meta.env.VITE_SERVER}/api/v2/chat/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -461,8 +461,8 @@ const ProductDetail = () => {
 
     try {
       const endpoint = isFollowing
-        ? `${import.meta.env.VITE_SERVER}/unfollow/${ownerId}`
-        : `${import.meta.env.VITE_SERVER}/follow/${ownerId}`;
+        ? `${import.meta.env.VITE_SERVER}/api/v2/follow/${ownerId}/unfollow`
+        : `${import.meta.env.VITE_SERVER}/api/v2/follow/${ownerId}/follow`;
 
       const res = await fetch(endpoint, {
         method: "POST",

@@ -6,6 +6,7 @@ import { FaCamera, FaTimes, FaBars, FaPaperPlane, FaCheck, FaCheckDouble, FaExcl
 import imageCompression from "browser-image-compression"
 import heic2any from "heic2any"
 
+import { socketAuth, reconnectAfterTokenRefresh } from "../../utils/serverAuth"
 export default function ChatApp() {
   const [currentUser, setCurrentUser]           = useState(null)
   const [allUsers, setAllUsers]                 = useState([])
@@ -24,7 +25,7 @@ export default function ChatApp() {
   const location              = useLocation()
   const focusedConversationId = location.state?.conversationId
 
-  const API_BASE   = `${import.meta.env.VITE_SERVER}/api/chat`
+  const API_BASE   = `${import.meta.env.VITE_SERVER}/api/v2/chat`
   const SOCKET_URL = `${import.meta.env.VITE_SOCKET}`
   const SERVER_URL = `${import.meta.env.VITE_SERVER}`
 
@@ -76,7 +77,9 @@ export default function ChatApp() {
       path: "/socket.io/",
       transports: ["websocket"],
       withCredentials: true,
+      auth: socketAuth, // the server rejects sockets without a valid login token
     })
+    reconnectAfterTokenRefresh(socket)
     socketRef.current = socket
 
     socket.on("newMessage", (msg) => {
@@ -116,7 +119,7 @@ export default function ChatApp() {
   // ─── Join socket room on conversation change ───────────────────────────────
   useEffect(() => {
     if (activeConversation && socketRef.current) {
-      socketRef.current.emit("joinConversation", activeConversation._id)
+      socketRef.current.emit("v2:joinConversation", activeConversation._id)
     }
   }, [activeConversation])
 
@@ -255,7 +258,7 @@ export default function ChatApp() {
           sending:   false,
         } : m))
 
-        socketRef.current?.emit("sendMessage", {
+        socketRef.current?.emit("v2:sendMessage", {
           conversationId: activeConversation._id,
           senderId:       currentUser.userId,
           recipientId:    getOtherParticipant(activeConversation)?.userId,
@@ -326,7 +329,7 @@ export default function ChatApp() {
       } : m))
       setUploadState("idle")
 
-      socketRef.current?.emit("sendMessage", {
+      socketRef.current?.emit("v2:sendMessage", {
         conversationId: activeConversation._id,
         senderId:       currentUser.userId,
         recipientId:    getOtherParticipant(activeConversation)?.userId,
@@ -348,7 +351,7 @@ export default function ChatApp() {
   const handleInputChange = (e) => {
     setNewMessage(e.target.value)
     if (!socketRef.current || !activeConversation || !currentUser) return
-    socketRef.current.emit("typing", {
+    socketRef.current.emit("v2:typing", {
       conversationId: activeConversation._id,
       userId:         currentUser.userId,
     })

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const API_URL = `${import.meta.env.VITE_SERVER}/Orders`;
+const API_URL = `${import.meta.env.VITE_SERVER}/api/v2/orders`;
 
 export default function SellerAdminDashboard() {
   const [orders, setOrders] = useState([]);

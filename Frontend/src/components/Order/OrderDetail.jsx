@@ -47,7 +47,7 @@ const OrderDetail = () => {
     try {
       const token = localStorage.getItem("accessToken");
       const { data } = await axios.get(
-        `${import.meta.env.VITE_SERVER}/Orders/${id}`,
+        `${import.meta.env.VITE_SERVER}/api/v2/orders/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
@@ -76,7 +76,7 @@ const OrderDetail = () => {
   const fetchUserReview = async (buyerId) => {
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_SERVER}/reviews/user?buyerId=${buyerId}`
+        `${import.meta.env.VITE_SERVER}/api/v2/reviews/user?buyerId=${buyerId}`
       );
       if (data.success && data.data) {
         const orderReview = data.data.find(
@@ -104,7 +104,7 @@ const OrderDetail = () => {
       const buyerId = order.buyerId._id || order.buyerId;
 
       await axios.post(
-        `${import.meta.env.VITE_SERVER}/reviews/confirm-delivery/${id}`,
+        `${import.meta.env.VITE_SERVER}/api/v2/orders/${id}/confirm-receipt`,
         { buyerId }
       );
 
@@ -145,7 +145,7 @@ const OrderDetail = () => {
       if (isEditingReview && review) {
         // Update existing review
         const { data } = await axios.put(
-          `${import.meta.env.VITE_SERVER}/reviews/${review._id}`,
+          `${import.meta.env.VITE_SERVER}/api/v2/reviews/${review._id}`,
           {
             rating: reviewFormData.rating,
             reviewText: reviewFormData.reviewText,
@@ -162,7 +162,7 @@ const OrderDetail = () => {
       } else {
         // Submit new review
         const { data } = await axios.post(
-          `${import.meta.env.VITE_SERVER}/reviews`,
+          `${import.meta.env.VITE_SERVER}/api/v2/reviews`,
           {
             orderId: id,
             rating: reviewFormData.rating,
@@ -199,7 +199,7 @@ const OrderDetail = () => {
       const buyerId = order.buyerId._id || order.buyerId;
 
       const { data } = await axios.delete(
-        `${import.meta.env.VITE_SERVER}/reviews/${review._id}`,
+        `${import.meta.env.VITE_SERVER}/api/v2/reviews/${review._id}`,
         { data: { buyerId } }
       );
 

@@ -35,7 +35,7 @@ export default function GalleryTab() {
   const handleUnboost = async (productId) => {
     if (!window.confirm("Are you sure you want to unboost this product?")) return
     try {
-      const response = await fetch(`${SERVER_URL}/api/products/priority/${productId}`, {
+      const response = await fetch(`${SERVER_URL}/api/v2/products/priority/${productId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
       })

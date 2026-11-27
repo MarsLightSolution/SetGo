@@ -21,7 +21,7 @@ function SmsVerify({ phoneNumber, email, onClose }) {
     setMessage("");
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_SERVER}/verify-otp`, {
+      const res = await axios.post(`${import.meta.env.VITE_SERVER}/api/v2/otp/verify-otp`, {
         email,
         phoneNumber,
         code,
@@ -43,7 +43,7 @@ function SmsVerify({ phoneNumber, email, onClose }) {
     setMessage("");
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_SERVER}/send-otp`, {
+      const res = await axios.post(`${import.meta.env.VITE_SERVER}/api/v2/otp/send-otp`, {
         email,
         phoneNumber,
       });
