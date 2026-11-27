@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, fetchV2OrLegacy } from '../config/api';
 
 // ==================== QUERY KEYS ====================
 
@@ -12,7 +12,7 @@ export const shopQueryKeys = {
 // ==================== FETCHERS ====================
 
 const fetchShopProfile = async (id) => {
-  const response = await fetch(API_ENDPOINTS.GET_SHOP(id), {
+  const response = await fetchV2OrLegacy(API_ENDPOINTS.CATALOG_SHOP(id), API_ENDPOINTS.GET_SHOP(id), {
     method: 'GET',
     credentials: 'include',
   });
