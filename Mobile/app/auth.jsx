@@ -105,7 +105,8 @@ export default function AuthScreen() {
           params: { email: email.trim().toLowerCase(), password },
         });
       } else {
-        showErrorToast(data?.error || data?.message || 'Signup failed');
+        // Validation errors come as a generic message plus per-field details: show the reason.
+        showErrorToast(data?.details?.[0]?.message || data?.error || data?.message || 'Signup failed');
       }
     } catch (error) {
       logger.error('Signup error:', error);
@@ -243,6 +244,14 @@ export default function AuthScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
+
+                  <TouchableOpacity
+                    style={styles.forgotLink}
+                    onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
+                  </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[styles.button, loading && styles.buttonDisabled]}
@@ -391,6 +400,16 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginTop: -6,
+    marginBottom: 14,
+  },
+  forgotText: {
+    color: '#008235',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   container: { flex: 1 },
   scrollContainer: { flexGrow: 1, paddingBottom: 40 },
   header: {

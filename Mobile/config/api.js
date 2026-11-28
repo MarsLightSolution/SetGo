@@ -182,6 +182,8 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_READ_ALL: `${API_URL}/notifications/mark-all-read`,
   NOTIFICATION_DELETE: (id) => `${API_URL}/notifications/${id}`,
   NOTIFICATIONS_DELETE_READ: `${API_URL}/notifications/read/all`,
+  // v2: a device token belongs to one account (moved on login, DELETE at logout)
+  get PUSH_TOKEN() { return pick(`${V2}/notifications/push-token`, `${API_URL}/notifications/push-token`); },
 
   // --- Chatbot (ChatbotRoutes.js) - root level ---
   get CHATBOT_ASK() { return pick(`${V2}/chatbot/ask`, `${BASE_URL}/chatbot/ask`); },

@@ -38,7 +38,7 @@ export const useUserData = () => {
     newEmail: '',
     emailPassword: '',
     phoneNumber: '',
-    countryCode: '+91',
+    countryCode: '+994', // Azerbaijan
     otp: '',
     currentPassword: '',
     newPassword: '',

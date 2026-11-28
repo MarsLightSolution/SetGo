@@ -119,14 +119,15 @@ export const accountService = {
   // ==================== SECURITY APIs ====================
 
   /**
-   * Send OTP to phone number
+   * Send an SMS code to a phone number.
    *
-   * @param {Object} phoneData - Phone data object: { userId, countryCode, phoneNumber }
+   * @param {Object} phoneData - { email, phoneNumber } with phoneNumber in international
+   *   format (+994501234567). v2 servers take the email from the login; older ones need it.
    * @returns {Promise<Object>} API response
    */
-  sendOTP: async (phoneData) => {
+  sendOTP: async ({ email, phoneNumber }) => {
     try {
-      const { data } = await api.post(API_ENDPOINTS.SEND_OTP, phoneData);
+      const { data } = await api.post(API_ENDPOINTS.SEND_OTP, { email, phoneNumber });
       return data;
     } catch (error) {
       log.error('sendOTP error:', error);
@@ -135,14 +136,17 @@ export const accountService = {
   },
 
   /**
-   * Verify OTP code
+   * Check the SMS code and save the phone number on the account.
+   * Uses the profile route (it also refuses a number already used by another account and
+   * returns the updated user). The server reads the code as `code`; the app used to send
+   * `otp`, so verification always failed.
    *
-   * @param {Object} otpData - OTP data object: { userId, phoneNumber, otp }
-   * @returns {Promise<Object>} Updated user data
+   * @param {Object} otpData - { userId, email, phoneNumber (international), code }
+   * @returns {Promise<Object>} Updated user data (or the API response)
    */
-  verifyOTP: async (otpData) => {
+  verifyOTP: async ({ userId, email, phoneNumber, code }) => {
     try {
-      const { data } = await api.post(API_ENDPOINTS.VERIFY_OTP, otpData);
+      const { data } = await api.post(API_ENDPOINTS.VERIFY_PHONE_UPDATE, { userId, email, phoneNumber, code });
       return data.data || data; // Return updated user data if available
     } catch (error) {
       log.error('verifyOTP error:', error);

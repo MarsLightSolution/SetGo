@@ -137,6 +137,7 @@ function AppContent() {
     '/Chat/raiseQuery',
     '/UserInfo/EditForm',
     '/confirm',
+    '/forgot-password',
     '/shops',
     '/shop'
   ];
@@ -217,6 +218,15 @@ function AppContent() {
 
         <Stack.Screen
           name="confirm"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom'
+          }}
+        />
+
+        {/* Opened from the auth modal, so also a modal (a card would open behind it on iOS) */}
+        <Stack.Screen
+          name="forgot-password"
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom'

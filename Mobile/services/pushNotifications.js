@@ -2,8 +2,11 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { getAuthToken } from './secureAuthService';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, isApiV2 } from '../config/api';
 import logger from '../utils/logger';
+
+// Token sent to the server for the current login (removed again at logout).
+let lastRegisteredToken = null;
 
 const log = logger.create('PushNotifications');
 
@@ -103,7 +106,8 @@ export async function registerPushToken() {
     try {
       // Lazy require: api.js pulls in authStore; keep this module light at import time.
       const api = require('./api').default;
-      await api.post(`${API_ENDPOINTS.NOTIFICATIONS}/push-token`, { token: pushToken, platform: Platform.OS });
+      await api.post(API_ENDPOINTS.PUSH_TOKEN, { token: pushToken, platform: Platform.OS });
+      lastRegisteredToken = pushToken;
     } catch (err) {
       log.warn(`Backend rejected push token (HTTP ${err.response?.status ?? 'network'})`);
     }
@@ -113,6 +117,23 @@ export async function registerPushToken() {
     // Push is non-essential: warn instead of error so it never red-boxes the app.
     log.warn('Failed to register push token:', err?.message || err);
     return null;
+  }
+}
+
+/**
+ * Unlink this device's push token from the logged-in account. Call at logout, while the
+ * access token is still valid: otherwise the next account to log in on this phone would also
+ * get the previous account's notifications. Only v2 servers support it; never throws.
+ */
+export async function unregisterPushToken() {
+  if (!lastRegisteredToken || !isApiV2()) return;
+  try {
+    const api = require('./api').default;
+    await api.delete(API_ENDPOINTS.PUSH_TOKEN, { data: { token: lastRegisteredToken }, timeout: 5000 });
+  } catch (err) {
+    log.warn(`Push token unregister failed (HTTP ${err?.response?.status ?? 'network'})`);
+  } finally {
+    lastRegisteredToken = null;
   }
 }
 

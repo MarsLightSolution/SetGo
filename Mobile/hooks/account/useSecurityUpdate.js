@@ -7,9 +7,26 @@
 
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accountService } from '../../services/accountService';
-import { STORAGE_KEYS } from '../../constants/accountSettings';
+import { saveAccountUser } from './saveAccountUser';
+
+/**
+ * Phone number in international format for SMS (e.g. "+994" + "050 123 45 67" →
+ * "+994501234567"), or null if it doesn't look like a phone number. The app used to send the
+ * local number alone, which the SMS provider can't deliver to.
+ */
+export const toInternational = (countryCode, phone) => {
+  const raw = String(phone || '').trim();
+  // Already a full international number typed into the phone field ("+994 50 ...")
+  if (raw.startsWith('+')) {
+    const full = raw.replace(/\D/g, '');
+    return full.length >= 8 && full.length <= 15 ? `+${full}` : null;
+  }
+  const cc = String(countryCode || '').replace(/\D/g, '');
+  const local = String(phone || '').replace(/\D/g, '').replace(/^0+/, '');
+  if (!cc || cc.length > 4 || local.length < 7 || local.length > 12) return null;
+  return `+${cc}${local}`;
+};
 
 // The server's own message (e.g. "Current password is incorrect.") over axios's generic one.
 const serverMessage = (error, fallback) =>
@@ -34,7 +51,7 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
    * @param {Function} onSuccess - Callback on success
    */
   const sendOTP = async (onSuccess) => {
-    if (!formData.phoneNumber || formData.phoneNumber.length < 10) {
+    if (!toInternational(formData.countryCode, formData.phoneNumber)) {
       Alert.alert('Error', 'Please enter a valid phone number');
       return;
     }
@@ -42,8 +59,8 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
     setLoading(true);
     try {
       await accountService.sendOTP({
-        countryCode: formData.countryCode,
-        phoneNumber: formData.phoneNumber,
+        email: userData?.email,
+        phoneNumber: toInternational(formData.countryCode, formData.phoneNumber),
       });
       setPhoneStep(2);
       Alert.alert('Success', 'OTP sent successfully to your phone');
@@ -71,20 +88,23 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
       return;
     }
 
+    const phoneNumber = toInternational(formData.countryCode, formData.phoneNumber);
+    if (!phoneNumber) {
+      Alert.alert('Error', 'Please enter a valid phone number');
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await accountService.verifyOTP({
-        countryCode: formData.countryCode,
-        phoneNumber: formData.phoneNumber,
-        otp: formData.otp,
+        userId: userData._id,
+        email: userData.email,
+        phoneNumber,
+        code: formData.otp,
       });
 
-      let updatedUser = result;
-      if (!result._id) {
-        updatedUser = { ...userData, phoneNumber: formData.phoneNumber };
-      }
-
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      const updatedUser = result?._id ? { ...userData, ...result } : { ...userData, phoneNumber };
+      await saveAccountUser(updatedUser);
       setUserData(updatedUser);
 
       Alert.alert('Success', 'Phone number verified successfully!');
@@ -127,15 +147,11 @@ export const useSecurityUpdate = (userData, setUserData, formData, setFormData) 
 
     setLoading(true);
     try {
-      const result = await accountService.updatePassword(userData._id, {
+      // The password endpoints answer with a message only; nothing to store.
+      await accountService.updatePassword(userData._id, {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
       });
-
-      if (result._id) {
-        await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(result));
-        setUserData(result);
-      }
 
       Alert.alert('Success', 'Password updated successfully!');
       setFormData({

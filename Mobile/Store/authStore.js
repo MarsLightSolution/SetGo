@@ -200,6 +200,9 @@ export const useAuthStore = create((set, get) => ({
    */
   logout: async () => {
     try {
+      // First, while still logged in: stop this account's notifications reaching this phone.
+      // Lazy require keeps authStore free of an import cycle (pushNotifications → api → authStore).
+      await require('../services/pushNotifications').unregisterPushToken();
       const refreshToken = await getRefreshToken();
       await fetch(API_ENDPOINTS.LOGOUT, {
         method: 'POST',

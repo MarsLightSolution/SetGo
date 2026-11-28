@@ -303,13 +303,19 @@ export const removeUserId = async () => {
  * Store user data (non-sensitive profile info)
  * @param {Object} userData - User profile data
  */
+// Never kept on the device: older servers return them inside user objects (AsyncStorage is
+// not encrypted; the session tokens live in SecureStore).
+const NEVER_STORED = ['password', 'refreshTokens', 'resetToken', 'resetTokenExpiration', 'pushToken', '__v'];
+
 export const setUserData = async (userData) => {
   if (!userData) {
     throw new Error('User data is required');
   }
 
   try {
-    await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+    const safe = { ...userData };
+    NEVER_STORED.forEach((key) => delete safe[key]);
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(safe));
   } catch (error) {
     throw new Error(`Failed to store user data: ${error.message}`);
   }
