@@ -25,7 +25,8 @@ export function AnimatedInput({
   secureTextEntry,
   error,
   placeholder,
-  editable = true
+  editable = true,
+  ...inputProps // other TextInput props (keyboardType, maxLength, autoComplete, ...)
 }) {
   const [focused, setFocused] = useState(false);
   const borderAnim = useRef(new Animated.Value(0)).current;
@@ -82,6 +83,7 @@ export function AnimatedInput({
           placeholder={placeholder}
           placeholderTextColor="#D1D5DB"
           editable={editable}
+          {...inputProps}
         />
         {secureTextEntry && (
           <TouchableOpacity

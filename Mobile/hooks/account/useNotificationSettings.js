@@ -7,9 +7,8 @@
 
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accountService } from '../../services/accountService';
-import { STORAGE_KEYS } from '../../constants/accountSettings';
+import { saveAccountUser } from './saveAccountUser';
 
 /**
  * Custom hook for notification settings
@@ -46,7 +45,7 @@ export const useNotificationSettings = (userData, setUserData, formData, setForm
         updatedUser = { ...userData, newsletter: value };
       }
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      await saveAccountUser(updatedUser);
       setUserData(updatedUser);
       setFormData({ ...formData, newsletter: updatedUser.newsletter });
     } catch (error) {
@@ -76,7 +75,7 @@ export const useNotificationSettings = (userData, setUserData, formData, setForm
         updatedUser = { ...userData, messageforuser: value };
       }
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      await saveAccountUser(updatedUser);
       setUserData(updatedUser);
       setFormData({ ...formData, messageforuser: updatedUser.messageforuser });
     } catch (error) {

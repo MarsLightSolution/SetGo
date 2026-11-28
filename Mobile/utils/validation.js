@@ -191,11 +191,12 @@ export const validateUsername = (username) => {
     return { isValid: false, error: 'Username must be no more than 30 characters' };
   }
 
-  // Allow letters, numbers, underscores, and hyphens
-  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+  // Same rule as the server's signup check (letters and numbers only). Allowing "_" and "-"
+  // here let users submit names the server then rejected with a bare "Validation Error".
+  if (!/^[a-zA-Z0-9]+$/.test(trimmed)) {
     return {
       isValid: false,
-      error: 'Username can only contain letters, numbers, underscores, and hyphens',
+      error: 'Username can only contain letters and numbers',
     };
   }
 

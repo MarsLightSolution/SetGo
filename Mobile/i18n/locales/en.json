@@ -78,7 +78,13 @@
     "privacyLink": "Privacy Policy",
     "benefit1": "Save your favorites",
     "benefit2": "Connect with community",
-    "benefit3": "Create & share content"
+    "benefit3": "Create & share content",
+    "forgotPassword": "Forgot password?",
+    "forgotTitle": "Reset your password",
+    "forgotSubtitle": "Enter your account email. We'll send you a link to set a new password.",
+    "forgotButton": "Send reset link",
+    "forgotSent": "If an account exists for this email, a reset link is on its way. Check your inbox (and spam folder). The link is valid for 1 hour.",
+    "backToLogin": "Back to login"
   },
   "wishlist": {
     "title": "My Wishlist",

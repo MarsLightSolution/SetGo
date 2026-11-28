@@ -7,9 +7,8 @@
 
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { accountService } from '../../services/accountService';
-import { STORAGE_KEYS } from '../../constants/accountSettings';
+import { saveAccountUser } from './saveAccountUser';
 
 /**
  * Custom hook for profile update operations
@@ -44,14 +43,14 @@ export const useProfileUpdate = (userData, setUserData, formData, setFormData) =
     try {
       const updatedUser = await accountService.updateProfileName(userData._id, tempUsername);
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      await saveAccountUser(updatedUser);
       setUserData(updatedUser);
       setFormData({ ...formData, username: tempUsername });
 
       Alert.alert('Success', 'Username updated successfully!');
       if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to update username');
+      Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to update username');
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,7 @@ export const useProfileUpdate = (userData, setUserData, formData, setFormData) =
         updatedUser = { ...userData, email: formData.newEmail };
       }
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      await saveAccountUser(updatedUser);
       setUserData(updatedUser);
       setFormData({
         ...formData,
@@ -99,7 +98,7 @@ export const useProfileUpdate = (userData, setUserData, formData, setFormData) =
       Alert.alert('Success', 'Email updated successfully! Please check your inbox for verification.');
       if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to update email');
+      Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to update email');
     } finally {
       setLoading(false);
     }
@@ -134,14 +133,14 @@ export const useProfileUpdate = (userData, setUserData, formData, setFormData) =
 
       const updatedUser = await accountService.updateDeliveryAddress(userData._id, addressString);
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      await saveAccountUser(updatedUser);
       setUserData(updatedUser);
       setFormData({ ...formData, deliveryAddress: formData.deliveryAddress });
 
       Alert.alert('Success', 'Delivery address updated successfully!');
       if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to update address');
+      Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to update address');
     } finally {
       setLoading(false);
     }
@@ -175,13 +174,13 @@ export const useProfileUpdate = (userData, setUserData, formData, setFormData) =
         updatedUser = { ...userData, billingAddress: formData.billingAddress };
       }
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+      await saveAccountUser(updatedUser);
       setUserData(updatedUser);
 
       Alert.alert('Success', 'Billing address updated successfully!');
       if (onSuccess) onSuccess();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to update billing address');
+      Alert.alert('Error', error?.response?.data?.message || error.message || 'Failed to update billing address');
     } finally {
       setLoading(false);
     }

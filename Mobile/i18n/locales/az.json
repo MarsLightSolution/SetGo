@@ -78,7 +78,13 @@
     "privacyLink": "Məxfilik Siyasəti",
     "benefit1": "Seçdiklərini saxla",
     "benefit2": "Cəmiyyətlə əlaqə qur",
-    "benefit3": "Kontent yarat və paylaş"
+    "benefit3": "Kontent yarat və paylaş",
+    "forgotPassword": "Şifrəni unutmusunuz?",
+    "forgotTitle": "Şifrəni bərpa edin",
+    "forgotSubtitle": "Hesabınızın e-poçtunu daxil edin. Yeni şifrə təyin etmək üçün keçid göndərəcəyik.",
+    "forgotButton": "Keçid göndər",
+    "forgotSent": "Bu e-poçt üçün hesab varsa, bərpa keçidi göndərildi. Gələnlər qutusunu (və spam qovluğunu) yoxlayın. Keçid 1 saat etibarlıdır.",
+    "backToLogin": "Girişə qayıt"
   },
   "wishlist": {
     "title": "İstək Siyahısı",

@@ -91,14 +91,17 @@ export const PhoneModal = ({
                           style={styles.countryCodeInput}
                           value={formData.countryCode}
                           onChangeText={(val) => setFormData({ ...formData, countryCode: val })}
-                          placeholder="+91"
+                          placeholder="+994"
+                          keyboardType="phone-pad"
+                          maxLength={5}
                         />
                         <View style={{ flex: 1 }}>
                           <AnimatedInput
                             value={formData.phoneNumber}
                             onChangeText={(val) => setFormData({ ...formData, phoneNumber: val })}
                             icon="smartphone"
-                            placeholder="1234567890"
+                            placeholder="50 123 45 67"
+                            keyboardType="phone-pad"
                           />
                         </View>
                       </View>
