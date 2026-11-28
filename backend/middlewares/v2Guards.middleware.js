@@ -101,6 +101,30 @@ const ownShopIfAny = async (req, res, next) => {
   }
 };
 
+// Removes credentials and session material from a JSON response's user data. Several
+// existing handlers answer with the full user document (password hash, refresh tokens, reset
+// token); v2 routes that reuse them put this in front so those fields never leave the server.
+const SECRET_KEYS = ["password", "refreshTokens", "resetToken", "resetTokenExpiration", "pushToken", "pushPlatform", "__v"];
+const scrub = (value) => {
+  if (!value || typeof value !== "object") return value;
+  const plain = typeof value.toJSON === "function" ? value.toJSON() : value;
+  if (Array.isArray(plain)) return plain.map(scrub);
+  const out = { ...plain };
+  for (const k of SECRET_KEYS) delete out[k];
+  return out;
+};
+const noSecrets = (req, res, next) => {
+  const json = res.json.bind(res);
+  res.json = (body) => {
+    if (body && typeof body === "object" && !Array.isArray(body)) {
+      body = { ...body };
+      for (const key of ["data", "user"]) if (key in body) body[key] = scrub(body[key]);
+    }
+    return json(body);
+  };
+  next();
+};
+
 const limiter = (max, windowMinutes = 15) =>
   rateLimit({ windowMs: windowMinutes * 60 * 1000, max, standardHeaders: true, legacyHeaders: false });
 
@@ -115,5 +139,6 @@ module.exports = {
   orderSellerOrAdmin,
   productOwnerOrAdmin,
   ownShopIfAny,
+  noSecrets,
   limiter,
 };

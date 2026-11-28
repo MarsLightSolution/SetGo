@@ -219,6 +219,34 @@ describe('catalog (public)', () => {
   });
 });
 
+describe('account hardening', () => {
+  test('profile updates never return the password hash or session tokens', async () => {
+    const me = await makeUser({ refreshTokens: ['rt-secret'], resetToken: 'reset-secret' });
+    const res = await api('patch', `/profile/nameupdate/${me._id}/profileName`, me).send({ profileName: 'Anna' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.username).toBe('Anna');
+    expect(res.body.data.password).toBeUndefined();
+    expect(JSON.stringify(res.body)).not.toMatch(/rt-secret|reset-secret|"password"|refreshTokens/);
+    const toggled = await api('get', `/profile/newsletter/${me._id}`, me);
+    expect(toggled.status).toBe(200);
+    expect(JSON.stringify(toggled.body)).not.toMatch(/rt-secret|"password"/);
+  });
+
+  test('a push token belongs to one account; logout removes it', async () => {
+    const [a, b] = await Promise.all([makeUser(), makeUser()]);
+    const token = 'ExponentPushToken[device-1]';
+    expect((await api('post', '/notifications/push-token').send({ token })).status).toBe(401);
+    expect((await api('post', '/notifications/push-token', a).send({ token, platform: 'ios' })).status).toBe(200);
+    expect((await User.findById(a._id)).pushToken).toBe(token);
+    // b logs in on the same phone: a no longer gets this device's notifications
+    expect((await api('post', '/notifications/push-token', b).send({ token })).status).toBe(200);
+    expect((await User.findById(a._id)).pushToken).toBeNull();
+    expect((await User.findById(b._id)).pushToken).toBe(token);
+    expect((await api('delete', '/notifications/push-token', b).send({ token })).status).toBe(200);
+    expect((await User.findById(b._id)).pushToken).toBeNull();
+  });
+});
+
 describe('follow', () => {
   test('follower is the logged-in user; lists have no emails', async () => {
     const [a, b, c] = await Promise.all([makeUser(), makeUser(), makeUser()]);
