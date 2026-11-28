@@ -2,12 +2,14 @@
 // :id must be the logged-in user (or an admin) and body userIds are the logged-in user.
 const express = require("express");
 const verifyJWT = require("../../middlewares/auth.middlewares");
-const { selfOrAdmin, asSelf, limiter } = require("../../middlewares/v2Guards.middleware");
+const { selfOrAdmin, asSelf, limiter, noSecrets } = require("../../middlewares/v2Guards.middleware");
 const P = require("../../controller/Profilecontroller");
 const { getUserProfile, changePassword } = require("../../controller/v2/account.controller");
 
 const router = express.Router();
 router.use(verifyJWT);
+// The reused Profilecontroller handlers answer with the whole user document; strip secrets.
+router.use(noSecrets);
 const own = selfOrAdmin("id");
 
 router.get("/userdata/:id", getUserProfile); // own/admin: private fields; others: public profile

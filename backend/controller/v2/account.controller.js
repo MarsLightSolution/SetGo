@@ -120,3 +120,39 @@ exports.changePassword = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// POST /api/v2/notifications/push-token { token, platform }
+// Like /api/notifications/push-token, but a device token belongs to one account only: it is
+// removed from any other account first, so after switching accounts on a phone the previous
+// account's notifications no longer reach it.
+exports.registerPushToken = async (req, res) => {
+  try {
+    const { token, platform } = req.body || {};
+    if (typeof token !== "string" || !token || token.length > 512) {
+      return res.status(400).json({ success: false, message: "token is required" });
+    }
+    await User.updateMany({ pushToken: token, _id: { $ne: req.user._id } }, { $set: { pushToken: null } });
+    await User.updateOne(
+      { _id: req.user._id },
+      { $set: { pushToken: token, pushPlatform: typeof platform === "string" ? platform.slice(0, 20) : "unknown" } }
+    );
+    return res.json({ success: true, message: "Push token registered" });
+  } catch (err) {
+    logger.error("[v2 registerPushToken] Error", { message: err.message });
+    return res.status(500).json({ success: false, message: "Failed to register push token" });
+  }
+};
+
+// DELETE /api/v2/notifications/push-token — called at logout. Clears the logged-in user's
+// token (only if it is this device's token, when one is given).
+exports.removePushToken = async (req, res) => {
+  try {
+    const token = req.body?.token;
+    const filter = { _id: req.user._id, ...(typeof token === "string" && token ? { pushToken: token } : {}) };
+    await User.updateOne(filter, { $set: { pushToken: null } });
+    return res.json({ success: true, message: "Push token removed" });
+  } catch (err) {
+    logger.error("[v2 removePushToken] Error", { message: err.message });
+    return res.status(500).json({ success: false, message: "Failed to remove push token" });
+  }
+};
